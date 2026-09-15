@@ -63,7 +63,7 @@ app.get('/api/state',auth,async(req,res)=>{const raw=await storeGet(schoolKey(re
 app.put('/api/state',auth,async(req,res)=>{const incoming=req.body?.state;if(!incoming||typeof incoming!=='object')return res.status(400).json({error:'invalid_state'});let next=incoming;if(req.user.role!=='admin'){const oldRaw=await storeGet(schoolKey(req.user.schoolId));const old=oldRaw?JSON.parse(oldRaw):{};next={...old,marks:incoming.marks??old.marks,term:incoming.term??old.term};if(req.user.permissions?.includes('pupils'))next.pupils=incoming.pupils??old.pupils}await storeSet(schoolKey(req.user.schoolId),JSON.stringify(next));res.json({ok:true})});
 
 app.use(express.static(path.join(__dirname,'../public')));
-app.get('*',(_req,res)=>res.sendFile(path.join(__dirname,'../public/index.html')));
+app.use((_req,res)=>res.sendFile(path.join(__dirname,'../public/index.html')));
 
 const port=process.env.PORT||3000;
 await initStore();
