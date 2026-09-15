@@ -1,0 +1,10 @@
+import express from 'express';
+import path from 'node:path';
+import { fileURLToPath } from 'node:url';
+const app=express();
+const __dirname=path.dirname(fileURLToPath(import.meta.url));
+app.use(express.json());
+app.use(express.static(path.join(__dirname,'../public')));
+app.get('/health',(_req,res)=>res.json({ok:true,app:'نتائجي'}));
+const port=process.env.PORT||3000;
+app.listen(port,()=>console.log(`Nataiji running on ${port}`));
