@@ -2,10 +2,49 @@
 'use strict';
 
 const BASMALA='بسم الله الرحمن الرحيم';
+const NAME_FR={
+  'محمد':'Mohamed','أحمد':'Ahmed','احمد':'Ahmed','محمود':'Mahmoud','عبد الله':'Abdallahi','عبدالله':'Abdallahi',
+  'عبد الرحمن':'Abderrahmane','فاطمة':'Fatimetou','خديجة':'Khadijetou','عائشة':'Aïcha','مريم':'Mariam','سارة':'Sara',
+  'ياسين':'Yacine','إبراهيم':'Ibrahim','ابراهيم':'Ibrahim','علي':'Ali','سالم':'Salem','أمينة':'Amina','خالد':'Khaled'
+};
+const SUBJECT_FR={
+  'التربية الإسلامية':'Éducation islamique','اللغة العربية':'Langue arabe','القراءة':'Lecture','التعبير':'Expression',
+  'الكتابة':'Écriture','الرياضيات':'Mathématiques','التربية المدنية':'Éducation civique','التربية الفنية':'Éducation artistique',
+  'الرياضة':'Éducation physique','التربية البدنية':'Éducation physique','التاريخ والجغرافيا':'Histoire et géographie',
+  'اللغة الفرنسية':'Langue française','العلوم الطبيعية':'Sciences naturelles'
+};
+const SEX_FR={'ذكر':'Garçon','أنثى':'Fille'};
 let timer=null;
 
+const q=s=>document.querySelector(s);
+const qa=s=>[...document.querySelectorAll(s)];
+const language=()=>localStorage.getItem('nataiji-lang')||'ar';
+function getState(){try{return typeof state==='undefined'?null:state}catch{return null}}
+function getUser(){try{return typeof currentUser==='undefined'?null:currentUser}catch{return null}}
+function latinName(v){
+  const raw=String(v||'').trim();
+  if(NAME_FR[raw]) return NAME_FR[raw];
+  return raw.split(/\s+/).map(x=>NAME_FR[x]||x).join(' ');
+}
+function classFr(v){
+  return String(v||'')
+    .replace('السنة الأولى ابتدائية','1re année primaire')
+    .replace('السنة الثانية ابتدائية','2e année primaire')
+    .replace('السنة الثالثة ابتدائية','3e année primaire')
+    .replace('السنة الرابعة ابتدائية','4e année primaire')
+    .replace('السنة الخامسة ابتدائية','5e année primaire')
+    .replace('السنة السادسة ابتدائية','6e année primaire');
+}
+function subjectFr(s){return s?.[2]||SUBJECT_FR[s?.[0]]||s?.[0]||''}
+function setDynamic(el,ar,fr){
+  if(!el)return;
+  el.dataset.dynamicLang='1';
+  const value=language()==='fr'?fr:ar;
+  if(el.textContent!==String(value??''))el.textContent=String(value??'');
+}
+
 function enforceBasmala(){
-  document.querySelectorAll('.doc-basmala').forEach(el=>{
+  qa('.doc-basmala').forEach(el=>{
     if(el.textContent!==BASMALA) el.textContent=BASMALA;
     if(el.lang!=='ar') el.lang='ar';
     if(el.dir!=='rtl') el.dir='rtl';
@@ -14,14 +53,91 @@ function enforceBasmala(){
   });
 }
 
+function syncDynamicLanguage(){
+  const st=getState();
+  if(!st)return;
+  const fr=language()==='fr';
+  const user=getUser();
+  const teacher=user?.name||st.teacher||'';
+
+  setDynamic(q('#welcomeName'),teacher,latinName(teacher));
+  const teacherNode=q('#teacherName');
+  if(teacherNode?.firstChild){
+    const wanted=fr?latinName(teacher):teacher;
+    if(teacherNode.firstChild.nodeValue!==wanted)teacherNode.firstChild.nodeValue=wanted;
+  }
+  const role=q('#teacherName small');
+  if(role){
+    const admin=user?.role==='admin';
+    setDynamic(role,admin?'مدير / صلاحيات كاملة':'معلم / إدخال النتائج',admin?'Directeur / accès complet':'Enseignant / saisie des notes');
+  }
+
+  const classSelect=q('#classTop');
+  const selectedClass=classSelect?.selectedOptions?.[0]||classSelect?.options?.[0];
+  if(selectedClass)setDynamic(selectedClass,st.className||selectedClass.textContent,classFr(st.className||selectedClass.textContent));
+
+  qa('#subjectPicker option').forEach((o,i)=>{const s=st.subjects?.[i];if(s)setDynamic(o,s[0],subjectFr(s))});
+  qa('#subjectProgress>div').forEach((row,i)=>{
+    const s=st.subjects?.[i],sp=row.querySelector('span');
+    if(!s||!sp)return;
+    const small=sp.querySelector('small'),suffix=small?.textContent||'';
+    sp.dataset.dynamicLang='1';
+    if(sp.firstChild)sp.firstChild.nodeValue=fr?subjectFr(s):s[0];
+    if(small)small.textContent=suffix;
+  });
+
+  qa('#list tr').forEach((r,i)=>{
+    const p=st.pupils?.[i];if(!p)return;
+    if(r.cells?.[2])setDynamic(r.cells[2],p[1],p[4]||latinName(p[1]));
+    if(r.cells?.[3])setDynamic(r.cells[3],p[2],SEX_FR[p[2]]||p[2]);
+  });
+  qa('#student option').forEach((o,i)=>{const p=st.pupils?.[i];if(p)setDynamic(o,p[1],p[4]||latinName(p[1]))});
+
+  const studentSelect=q('#student');
+  const pupilIndex=Math.max(0,studentSelect?.selectedIndex??0);
+  const pupil=st.pupils?.[pupilIndex];
+  if(pupil)setDynamic(q('#sheetName'),pupil[1],pupil[4]||latinName(pupil[1]));
+  qa('#sheet tr').forEach((r,i)=>{const s=st.subjects?.[i];if(s&&r.cells?.[0])setDynamic(r.cells[0],s[0],subjectFr(s))});
+
+  qa('#paperList tr').forEach((r,i)=>{
+    const p=st.pupils?.[i];if(!p)return;
+    if(r.cells?.[2])setDynamic(r.cells[2],p[1],p[4]||latinName(p[1]));
+    if(r.cells?.[3])setDynamic(r.cells[3],p[2],SEX_FR[p[2]]||p[2]);
+  });
+  qa('#paperResults tbody tr').forEach((r,i)=>{
+    const p=st.pupils?.[i];if(p&&r.cells?.[1])setDynamic(r.cells[1],p[1],p[4]||latinName(p[1]));
+  });
+
+  const portalType=document.body.dataset.portalType;
+  if(portalType){
+    qa('#printPortal .portal-paper tbody tr').forEach((r,i)=>{
+      const p=st.pupils?.[i];if(!p)return;
+      if(portalType==='list'){
+        if(r.cells?.[2])setDynamic(r.cells[2],p[1],p[4]||latinName(p[1]));
+        if(r.cells?.[3])setDynamic(r.cells[3],p[2],SEX_FR[p[2]]||p[2]);
+      }else if(portalType==='class'&&r.cells?.[1])setDynamic(r.cells[1],p[1],p[4]||latinName(p[1]));
+    });
+  }
+
+  qa('#printBatch .batch-sheet').forEach((sheet,i)=>{
+    const p=st.pupils?.[i];if(!p)return;
+    const name=sheet.querySelector('h3');
+    if(name)setDynamic(name,p[1],p[4]||latinName(p[1]));
+    sheet.querySelectorAll('.sheet tbody tr').forEach((r,j)=>{
+      const s=st.subjects?.[j];if(s&&r.cells?.[0])setDynamic(r.cells[0],s[0],subjectFr(s));
+    });
+  });
+}
+
 function normalizeOfficialHeads(){
-  document.querySelectorAll('.paperhead.official-document-head,.official-head.enhanced-head').forEach(el=>{
+  qa('.paperhead.official-document-head,.official-head.enhanced-head').forEach(el=>{
     el.style.width='100%';
   });
 }
 
 function apply(){
   enforceBasmala();
+  syncDynamicLanguage();
   normalizeOfficialHeads();
 }
 
@@ -80,6 +196,7 @@ new MutationObserver(()=>{
 document.addEventListener('click',e=>{
   if(e.target.closest?.('#langSwitch')) setTimeout(apply,100);
 },true);
+document.addEventListener('change',()=>setTimeout(apply,20),true);
 window.addEventListener('beforeprint',apply);
 window.addEventListener('DOMContentLoaded',()=>setTimeout(apply,50));
 setTimeout(apply,0);
