@@ -1,0 +1,1 @@
+(()=>{document.addEventListener('click',e=>{if(e.target.closest?.('[data-x="one"],[data-x="all1"],[data-x="all2"],#printResult,.report-print,#printList')){try{window.nataijiApplyEvaluation?.()}catch{}}},true)})();
