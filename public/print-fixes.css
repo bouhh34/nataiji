@@ -1,0 +1,82 @@
+/* Nataiji official print hardening — intentionally scoped to print output only. */
+@media print {
+  /* Class results and pupil list must never inherit mobile overflow/hiding. */
+  body[data-print="class"] #classReport,
+  body[data-print="class"] #classReport .paper,
+  body[data-print="class"] #classReport .table-scroll,
+  body[data-print="class"] #classReport table,
+  body[data-print="class"] #classReport thead,
+  body[data-print="class"] #classReport tbody,
+  body[data-print="class"] #classReport tr,
+  body[data-print="list"] #listReport,
+  body[data-print="list"] #listReport .paper,
+  body[data-print="list"] #listReport table,
+  body[data-print="list"] #listReport tbody,
+  body[data-print="list"] #listReport tr {
+    visibility: visible !important;
+  }
+  body[data-print="class"] #classReport .table-scroll {
+    display: block !important;
+    width: 100% !important;
+    overflow: visible !important;
+  }
+  body[data-print="class"] #classReport table,
+  body[data-print="list"] #listReport table {
+    display: table !important;
+    width: 100% !important;
+    min-width: 0 !important;
+    max-width: 100% !important;
+    table-layout: fixed !important;
+    border-collapse: collapse !important;
+  }
+  body[data-print="class"] #classReport thead { display: table-header-group !important; }
+  body[data-print="class"] #classReport tbody,
+  body[data-print="list"] #listReport tbody { display: table-row-group !important; }
+  body[data-print="class"] #classReport tr,
+  body[data-print="list"] #listReport tr { display: table-row !important; break-inside: avoid !important; page-break-inside: avoid !important; }
+  body[data-print="class"] #classReport th,
+  body[data-print="class"] #classReport td,
+  body[data-print="list"] #listReport th,
+  body[data-print="list"] #listReport td { display: table-cell !important; }
+
+  /* Use the printable area instead of leaving the reports tiny at the top. */
+  body[data-print="class"] #classReport .paper,
+  body[data-print="list"] #listReport .paper {
+    width: 190mm !important;
+    max-width: 190mm !important;
+    margin: 0 auto !important;
+    padding: 5mm 6mm !important;
+  }
+  body[data-print="class"] #classReport .official-document-head,
+  body[data-print="list"] #listReport .official-document-head { margin-bottom: 3.5mm !important; }
+  body[data-print="class"] #classReport .doc-head,
+  body[data-print="list"] #listReport .doc-head { font-size: 9.6pt !important; line-height: 1.55 !important; }
+  body[data-print="class"] #classReport .doc-center img,
+  body[data-print="list"] #listReport .doc-center img { width: 25mm !important; height: 25mm !important; }
+  body[data-print="class"] #classReport h2,
+  body[data-print="list"] #listReport h2 { margin: 3mm 0 4mm !important; font-size: 17pt !important; }
+  body[data-print="class"] #classReport table { font-size: 7.4pt !important; }
+  body[data-print="class"] #classReport th,
+  body[data-print="class"] #classReport td { height: 6.2mm !important; padding: .7mm !important; overflow-wrap: anywhere; }
+  body[data-print="list"] #listReport table { font-size: 9pt !important; }
+  body[data-print="list"] #listReport td { height: 7mm !important; padding: 1mm !important; }
+
+  /* Two pupils per A4: enlarge each half while keeping a strict 2-up page. */
+  body[data-print="batch"] .batch-page.two .batch-sheet {
+    height: 138.5mm !important;
+    padding: 4.5mm 6.5mm !important;
+  }
+  body[data-print="batch"] .batch-page.two .doc-head {
+    font-size: 8pt !important;
+    line-height: 1.34 !important;
+  }
+  body[data-print="batch"] .batch-page.two .doc-basmala { font-size: 8pt !important; margin-bottom: 1mm !important; }
+  body[data-print="batch"] .batch-page.two .doc-center img { width: 19mm !important; height: 19mm !important; }
+  body[data-print="batch"] .batch-page.two h1 { font-size: 16pt !important; margin: 2.2mm 0 .6mm !important; }
+  body[data-print="batch"] .batch-page.two h3 { font-size: 10pt !important; margin: 0 0 1.2mm !important; }
+  body[data-print="batch"] .batch-page.two .info { font-size: 7.4pt !important; gap: 1mm !important; }
+  body[data-print="batch"] .batch-page.two .sheet { margin-top: 1.3mm !important; font-size: 7.3pt !important; }
+  body[data-print="batch"] .batch-page.two .sheet th,
+  body[data-print="batch"] .batch-page.two .sheet td { height: 4.8mm !important; padding: .35mm !important; }
+  body[data-print="batch"] .batch-page.two footer { font-size: 7.5pt !important; margin-top: 1.8mm !important; }
+}
