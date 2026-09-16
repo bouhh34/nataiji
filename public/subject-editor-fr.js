@@ -1,0 +1,7 @@
+(()=>{
+'use strict';
+const defaults=window.nataijiSubjectFrench||{};
+function enhanceModal(){const modal=[...document.querySelectorAll('.modal-card')].find(x=>x.querySelector('#subjectEdit'));if(!modal||modal.dataset.frReady)return;modal.dataset.frReady='1';modal.querySelectorAll('.subject-edit').forEach((row,i)=>{const name=row.querySelector('[data-name]');if(!name)return;const fr=document.createElement('input');fr.className='subject-fr-edit';fr.placeholder='Nom complet en français';fr.value=state.subjects[i]?.[2]||defaults[state.subjects[i]?.[0]]||'';fr.dataset.frIndex=i;row.insertBefore(fr,row.querySelector('[data-weight]'))});const save=modal.querySelector('.action');if(save)save.addEventListener('click',()=>{modal.querySelectorAll('[data-fr-index]').forEach(x=>{const i=+x.dataset.frIndex;if(state.subjects[i])state.subjects[i][2]=x.value.trim()})},true)}
+new MutationObserver(()=>enhanceModal()).observe(document.body,{childList:true,subtree:true});
+const css=document.createElement('style');css.textContent='.subject-edit{grid-template-columns:minmax(130px,1.2fr) minmax(150px,1.2fr) 80px 38px!important}.subject-fr-edit{direction:ltr;text-align:left}@media(max-width:640px){.subject-edit{grid-template-columns:1fr!important}.subject-edit button{width:42px}}';document.head.appendChild(css);
+})();
