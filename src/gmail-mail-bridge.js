@@ -48,3 +48,8 @@ if(typeof nativeFetch==='function'){
 }
 
 console.log(`Nataiji mail provider: ${gmailConfigured()?'gmail':'resend'}`);
+if(gmailConfigured()){
+  getTransporter().verify()
+    .then(()=>console.log('Nataiji Gmail SMTP: verified'))
+    .catch(err=>console.error(`Nataiji Gmail SMTP: verify_failed code=${String(err?.code||'unknown').slice(0,80)}`));
+}
