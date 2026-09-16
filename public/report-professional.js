@@ -1,0 +1,13 @@
+(()=>{
+'use strict';
+const $=s=>document.querySelector(s),$$=s=>[...document.querySelectorAll(s)];
+function termNo(){const t=String(window.state?.term||$('#term')?.value||'');return t.includes('الثالث')?3:t.includes('الثاني')?2:1}
+function enhance(){const sheet=$('#officialSheet');if(!sheet)return;sheet.setAttribute('dir','rtl');const title=sheet.querySelector('h1');if(title)title.textContent='كشف الدرجات';const info=sheet.querySelector('.info');if(info&&!info.querySelector('.call-number')){const s=document.createElement('span');s.className='call-number';s.innerHTML='رقم النداء: <b>—</b>';info.appendChild(s)}
+const foot=sheet.querySelector('footer');if(foot){foot.innerHTML='<div class="signature-block"><b>المعلم(ة)</b><span>معاون المعلم</span><i></i></div><div class="signature-block"><b>المدير</b><span>معاون المدير</span><i></i></div>'}
+const n=termNo();sheet.dataset.termNo=n;const term=$('#sheetTerm');if(term){term.textContent=n===1?'الفصل الأول':n===2?'الفصل الثاني':'الفصل الثالث'}
+// الفصل الثالث وحده يهيأ لعرض الخلاصة السنوية؛ لا نضيف أسطر الفصول السابقة في الأول أو الثاني.
+$$('#sheet .annual-only').forEach(x=>x.remove());if(n===3){const body=$('#sheet');if(body&&!body.querySelector('.annual-only')){[['معدل الفصل الأول','—'],['معدل الفصل الثاني','—'],['معدل الفصل الثالث','—'],['المعدل السنوي','—'],['النتيجة النهائية','—']].forEach(([a,v])=>{const tr=document.createElement('tr');tr.className='annual-only';tr.innerHTML=`<td>${a}</td><td>${v}</td><td></td>`;body.appendChild(tr)})}}
+}
+let lock=false;new MutationObserver(()=>{if(lock)return;lock=true;setTimeout(()=>{enhance();lock=false},100)}).observe(document.body,{childList:true,subtree:true});window.addEventListener('DOMContentLoaded',()=>setTimeout(enhance,800));document.addEventListener('change',e=>{if(e.target?.id==='term')setTimeout(enhance,80)});
+const css=document.createElement('style');css.textContent=`.official-sheet footer{display:grid!important;grid-template-columns:1fr 1fr!important;gap:12mm!important;align-items:start!important;margin-top:3mm!important}.signature-block{display:grid!important;grid-template-columns:1fr 1fr!important;grid-template-rows:auto 10mm!important;column-gap:3mm!important;text-align:center!important}.signature-block b,.signature-block span{font-size:9px!important;font-style:normal!important}.signature-block i{grid-column:1/-1;border-bottom:1px dotted #777}.official-sheet[data-term-no="1"] .annual-only,.official-sheet[data-term-no="2"] .annual-only{display:none!important}@media print{.official-sheet footer{margin-top:2mm!important}.signature-block{grid-template-rows:auto 8mm!important}}`;document.head.appendChild(css);
+})();
