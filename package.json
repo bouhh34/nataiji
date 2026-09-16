@@ -1,1 +1,1 @@
-{"name":"nataiji","version":"1.2.0","private":true,"type":"module","scripts":{"start":"node src/server.js"},"engines":{"node":">=20"},"dependencies":{"express":"^5.1.0","pg":"^8.16.3","redis":"^4.7.0"}}
+{"name":"nataiji","version":"1.2.0","private":true,"type":"module","scripts":{"start":"node -e \"console.log('Nataiji reset email: '+(process.env.RESEND_API_KEY&&process.env.RESET_FROM_EMAIL?'configured':'disabled'))\" && node src/server.js"},"engines":{"node":">=20"},"dependencies":{"express":"^5.1.0","pg":"^8.16.3","redis":"^4.7.0"}}
