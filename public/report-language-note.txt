@@ -1,0 +1,1 @@
+Personal names are literal user data and must not be machine-translated when the UI language changes.
