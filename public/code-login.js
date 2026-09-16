@@ -1,0 +1,9 @@
+(()=>{
+'use strict';
+const norm=c=>String(c||'').trim().toUpperCase();
+const creds=code=>{const clean=norm(code).replace(/[^A-Z0-9]/g,'').toLowerCase();return{email:`invite-${clean}@nataiji.local`,password:`Nataiji-${norm(code)}-Access`}};
+async function loginByCode(code){code=norm(code);if(!code)throw Object.assign(new Error('invalid_invite'),{code:'invalid_invite'});const c=creds(code);try{return await api('/api/auth/join',{method:'POST',body:JSON.stringify({code,name:'معلم',email:c.email,password:c.password})})}catch(e){if(!['invalid_invite','email_exists'].includes(e.code))throw e;return await api('/api/auth/login',{method:'POST',body:JSON.stringify(c)})}}
+window.nataijiLoginByCode=loginByCode;
+function patchAuth(){const gate=document.querySelector('.auth-gate');if(!gate)return;const join=document.querySelector('[data-auth-tab="join"].on');const form=gate.querySelector('#authForm');if(!join||!form||form.dataset.codeOnly==='1')return;form.dataset.codeOnly='1';form.innerHTML='<label>رمز الدعوة<input name="code" placeholder="NT-XXXXXXXX" autocomplete="one-time-code" required></label><button class="auth-submit">الدخول بالرمز</button><p class="auth-error"></p>';form.onsubmit=async e=>{e.preventDefault();const btn=form.querySelector('.auth-submit'),err=form.querySelector('.auth-error'),code=form.elements.code.value;btn.disabled=true;err.textContent='';try{const r=await loginByCode(code);currentUser=r.user;gate.remove();await startApp()}catch(ex){err.textContent=authError(ex.code)}finally{btn.disabled=false}}}
+window.addEventListener('DOMContentLoaded',()=>{new MutationObserver(()=>setTimeout(patchAuth,0)).observe(document.body,{childList:true,subtree:true});setTimeout(patchAuth,500)});
+})();
