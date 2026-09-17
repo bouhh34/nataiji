@@ -71,13 +71,13 @@ function patchFinalStudent(){
 
 function fillFinalTable(table){
   if(!finalTerm()||!table||!state?.pupils?.length)return;
-  const ranks=annualRanks(),isFrench=fr(),ts=terms(),mx=totalMax();
+  const ranks=annualRanks(),isFrench=fr(),ts=terms(),mx=totalMax(),subjects=state.subjects||[];
   table.innerHTML=`<thead><tr>
     <th>${isFrench?"N° d’appel":'رقم النداء'}</th><th>${isFrench?'Élève':'التلميذ'}</th>
-    <th>${isFrench?'Total 3e trimestre':'مجموع الفصل الثالث'}</th><th>${isFrench?'Moyenne 3e /20':'معدل الفصل الثالث /20'}</th>
-    <th>${isFrench?'Moyenne 2e /20':'معدل الفصل الثاني /20'}</th><th>${isFrench?'Moyenne 1er /20':'معدل الفصل الأول /20'}</th>
-    <th>${isFrench?'Moyenne générale /20':'المعدل العام /20'}</th><th>${isFrench?'Rang':'الرتبة'}</th><th data-eval-col="1">${isFrench?'Appréciation':'الملاحظة'}</th>
-  </tr></thead><tbody>${state.pupils.map((p,i)=>{const row=termRows(ts[2])?.[i]||[],sum=row.reduce((a,v)=>v===''||v==null?a:a+(Number(v)||0),0),a1=termAverage(i,ts[0]),a2=termAverage(i,ts[1]),a3=termAverage(i,ts[2]),annual=annualAverage(i),remark=annual==null?'':(typeof window.nataijiRemark==='function'?window.nataijiRemark(annual):(annual>=10?(isFrench?'Admis':'ناجح'):(isFrench?'Non admis':'راسب')));return `<tr><td>${esc(callNo(p,i))}</td><td>${esc(p[1])}</td><td>${Number(sum.toFixed(1))} / ${mx}</td><td>${fmt(a3)}</td><td>${fmt(a2)}</td><td>${fmt(a1)}</td><td><strong>${fmt(annual)}</strong></td><td><strong>${ranks[i]==null?'—':ranks[i]+' / '+state.pupils.length}</strong></td><td data-eval-cell="1">${esc(remark)}</td></tr>`}).join('')}</tbody>`;
+    ${subjects.map((s,j)=>{const max=Number(s?.[3])||20,label=isFrench?(s?.[2]||s?.[0]):s?.[0];return `<th class="sub-head"><span>${esc(label)}</span><small dir="ltr">/ ${max}</small></th>`}).join('')}
+    <th class="avg-head"><span>${isFrench?'Moyenne':'المعدل'}</span><small dir="ltr">/ 20</small></th>
+    <th>${isFrench?'Rang':'الرتبة'}</th><th data-eval-col="1">${isFrench?'Appréciation':'الملاحظة'}</th>
+  </tr></thead><tbody>${state.pupils.map((p,i)=>{const row=termRows(ts[2])?.[i]||[],annual=annualAverage(i),remark=annual==null?'':(typeof window.nataijiRemark==='function'?window.nataijiRemark(annual):(annual>=10?(isFrench?'Admis':'ناجح'):(isFrench?'Non admis':'راسب')));return `<tr><td>${esc(callNo(p,i))}</td><td>${esc(p[1])}</td>${subjects.map((s,j)=>`<td class="mark-only">${row[j]===''||row[j]==null?'':esc(row[j])}</td>`).join('')}<td><strong>${fmt(annual)}</strong></td><td><strong>${ranks[i]==null?'—':ranks[i]+' / '+state.pupils.length}</strong></td><td data-eval-cell="1">${esc(remark)}</td></tr>`}).join('')}</tbody>`;
 }
 function buildFinalClassTable(){
   if(!finalTerm())return;fillFinalTable(q('#paperResults'));
@@ -113,7 +113,7 @@ const css=document.createElement('style');css.id='annual-results-v1-style';css.t
 @media screen and (max-width:800px){.student-sheet-scroll #officialSheet{box-sizing:border-box!important;width:760px!important;min-width:760px!important;max-width:none!important;font-size:15px!important;margin:0!important;padding:24px!important}.student-sheet-scroll #officialSheet h1{font-size:28px!important;color:#000!important;font-weight:900!important}.student-sheet-scroll #officialSheet h3{font-size:18px!important;color:#000!important;font-weight:900!important}.student-sheet-scroll #officialSheet .sheet{font-size:15px!important}.student-sheet-scroll #officialSheet .sheet th,.student-sheet-scroll #officialSheet .sheet td{padding:8px 10px!important;height:38px!important}}
 @media print{.student-sheet-scroll{display:contents!important;overflow:visible!important;padding:0!important}#officialSheet .sheet th,#officialSheet .report-black-label,.batch-sheet .report-black-label{color:#000!important;font-weight:900!important}#officialSheet .annual-summary-row td,.batch-sheet .annual-summary-row td{font-weight:800!important}body[data-print=portal][data-portal-type=class] #printPortal table th{color:#000!important;font-weight:900!important;background:#f2f2f2!important}}
 `;
-document.head.appendChild(css);
+css.textContent+="\n#paperResults .sub-head small,#paperResults .avg-head small{display:block!important;font-size:.78em!important;font-weight:800!important;direction:ltr!important;margin-top:2px!important}\n#paperResults .mark-only{direction:ltr!important;font-weight:700!important}\n";document.head.appendChild(css);
 
 new MutationObserver(()=>schedule(100)).observe(document.documentElement,{childList:true,subtree:true});
 document.addEventListener('change',e=>{if(e.target.matches?.('#term,#student,#classTop'))schedule(80)},true);
