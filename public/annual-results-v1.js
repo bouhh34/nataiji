@@ -52,7 +52,7 @@ function markBoldLabels(root=q('#officialSheet')){
 function patchFinalStudent(){
   const root=q('#officialSheet'),body=q('#sheet');if(!root||!body||!state?.pupils?.length)return;
   removeAnnualRows(body);
-  const i=currentStudentIndex(),baseAvg=rowByLabel(body,/^(المعدل|Moyenne|Moyenne du 3e trimestre|معدل الفصل الثالث)$/i),rankRow=rowByLabel(body,/^(الرتبة|Rang|الرتبة العامة|Rang général)$/i);
+  const i=currentStudentIndex(),baseAvg=rowByLabel(body,/^(المعدل(?: العام)?(?: \(على 20\))?|Moyenne(?: générale)?(?: \(sur 20\))?|Moyenne du 3e trimestre|معدل الفصل الثالث)$/i),rankRow=rowByLabel(body,/^(الرتبة|Rang|الرتبة العامة|Rang général)$/i);
   if(!finalTerm()){
     if(baseAvg)baseAvg.cells[0].textContent=fr()?'Moyenne':'المعدل';
     if(rankRow)rankRow.cells[0].textContent=fr()?'Rang':'الرتبة';
