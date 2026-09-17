@@ -22,7 +22,9 @@ function termAverage(i,term){
 }
 function annualAverage(i){
   const avgs=TERMS.map(t=>termAverage(i,t));if(avgs.some(v=>v==null))return null;
-  return avgs.reduce((a,v,j)=>a+v*WEIGHTS[j],0)/6;
+  /* Official yearly weighting: T1×1 + T2×2 + T3×3, divided by 6.
+     Each trimester average is already normalized to /20, so the yearly result stays /20. */
+  return (avgs[0]+2*avgs[1]+3*avgs[2])/6;
 }
 function annualRanks(){
   const vals=(state?.pupils||[]).map((_,i)=>annualAverage(i));
@@ -60,8 +62,8 @@ function patchFinalStudent(){
   const anchor=rankRow||null;
   body.insertBefore(makeRow(fr()?'Moyenne du 1er trimestre':'معدل الفصل الأول',`${fmt(a1)} / 20`),anchor);
   body.insertBefore(makeRow(fr()?'Moyenne du 2e trimestre':'معدل الفصل الثاني',`${fmt(a2)} / 20`),anchor);
-  body.insertBefore(makeRow(fr()?'Moyenne générale':'المعدل العام',annual==null?'—':`${fmt(annual)} / 20`),anchor);
-  if(rankRow){rankRow.cells[0].textContent=fr()?'Rang général':'الرتبة العامة';rankRow.cells[1].innerHTML=`<strong>${rank??'—'}</strong>`;rankRow.cells[0].classList.add('report-black-label','report-summary-label')}
+  body.insertBefore(makeRow(fr()?'Moyenne générale pondérée (1×, 2×, 3×)':'المعدل العام الموزون (×1، ×2، ×3)',annual==null?'—':`${fmt(annual)} / 20`),anchor);
+  if(rankRow){rankRow.cells[0].textContent=fr()?'Rang':'الرتبة';rankRow.cells[1].innerHTML=`<strong>${rank??'—'}</strong>`;rankRow.cells[0].classList.add('report-black-label','report-summary-label')}
   markBoldLabels(root);
   setTimeout(()=>window.nataijiApplyEvaluation?.(),0);
 }
@@ -72,7 +74,7 @@ function fillFinalTable(table){
   table.innerHTML=`<thead><tr>
     <th>${isFrench?"N° d’appel":'رقم النداء'}</th><th>${isFrench?'Élève':'التلميذ'}</th>
     <th>${isFrench?'1er trimestre':'معدل الفصل الأول'}</th><th>${isFrench?'2e trimestre':'معدل الفصل الثاني'}</th><th>${isFrench?'3e trimestre':'معدل الفصل الثالث'}</th>
-    <th>${isFrench?'Moyenne générale':'المعدل العام'}</th><th>${isFrench?'Rang général':'الرتبة العامة'}</th><th data-eval-col="1">${isFrench?'Appréciation':'الملاحظة'}</th>
+    <th>${isFrench?'Moyenne générale pondérée /20':'المعدل العام الموزون /20'}</th><th>${isFrench?'Rang':'الرتبة'}</th><th data-eval-col="1">${isFrench?'Appréciation':'الملاحظة'}</th>
   </tr></thead><tbody>${state.pupils.map((p,i)=>{const a1=termAverage(i,TERMS[0]),a2=termAverage(i,TERMS[1]),a3=termAverage(i,TERMS[2]),annual=annualAverage(i),remark=annual!=null&&typeof window.nataijiRemark==='function'?window.nataijiRemark(annual):'';return `<tr><td>${esc(callNo(p,i))}</td><td>${esc(p[1])}</td><td>${fmt(a1)}</td><td>${fmt(a2)}</td><td>${fmt(a3)}</td><td><strong>${fmt(annual)}</strong></td><td><strong>${ranks[i]??'—'}</strong></td><td data-eval-cell="1">${esc(remark)}</td></tr>`}).join('')}</tbody>`;
 }
 function buildFinalClassTable(){
@@ -90,8 +92,8 @@ function patchBatchFinal(){
     if(baseAvg){baseAvg.cells[0].textContent=fr()?'Moyenne du 3e trimestre':'معدل الفصل الثالث';baseAvg.cells[1].innerHTML=`<strong dir="ltr">${fmt(a3)} / 20</strong>`}
     body.insertBefore(makeRow(fr()?'Moyenne du 1er trimestre':'معدل الفصل الأول',`${fmt(a1)} / 20`),rankRow||null);
     body.insertBefore(makeRow(fr()?'Moyenne du 2e trimestre':'معدل الفصل الثاني',`${fmt(a2)} / 20`),rankRow||null);
-    body.insertBefore(makeRow(fr()?'Moyenne générale':'المعدل العام',annual==null?'—':`${fmt(annual)} / 20`),rankRow||null);
-    if(rankRow){rankRow.cells[0].textContent=fr()?'Rang général':'الرتبة العامة';rankRow.cells[1].innerHTML=`<strong>${ranks[i]??'—'}</strong>`}
+    body.insertBefore(makeRow(fr()?'Moyenne générale pondérée (1×, 2×, 3×)':'المعدل العام الموزون (×1، ×2، ×3)',annual==null?'—':`${fmt(annual)} / 20`),rankRow||null);
+    if(rankRow){rankRow.cells[0].textContent=fr()?'Rang':'الرتبة';rankRow.cells[1].innerHTML=`<strong>${ranks[i]??'—'}</strong>`}
     markBoldLabels(root);
   });
 }
