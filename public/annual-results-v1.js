@@ -71,12 +71,13 @@ function patchFinalStudent(){
 
 function fillFinalTable(table){
   if(!finalTerm()||!table||!state?.pupils?.length)return;
-  const ranks=annualRanks(),isFrench=fr();
+  const ranks=annualRanks(),isFrench=fr(),ts=terms(),mx=totalMax();
   table.innerHTML=`<thead><tr>
     <th>${isFrench?"N° d’appel":'رقم النداء'}</th><th>${isFrench?'Élève':'التلميذ'}</th>
-    <th>${isFrench?'1er trimestre':'معدل الفصل الأول'}</th><th>${isFrench?'2e trimestre':'معدل الفصل الثاني'}</th><th>${isFrench?'3e trimestre':'معدل الفصل الثالث'}</th>
+    <th>${isFrench?'Total 3e trimestre':'مجموع الفصل الثالث'}</th><th>${isFrench?'Moyenne 3e /20':'معدل الفصل الثالث /20'}</th>
+    <th>${isFrench?'Moyenne 2e /20':'معدل الفصل الثاني /20'}</th><th>${isFrench?'Moyenne 1er /20':'معدل الفصل الأول /20'}</th>
     <th>${isFrench?'Moyenne générale /20':'المعدل العام /20'}</th><th>${isFrench?'Rang':'الرتبة'}</th><th data-eval-col="1">${isFrench?'Appréciation':'الملاحظة'}</th>
-  </tr></thead><tbody>${state.pupils.map((p,i)=>{const ts=terms(),a1=termAverage(i,ts[0]),a2=termAverage(i,ts[1]),a3=termAverage(i,ts[2]),annual=annualAverage(i),remark=annual!=null&&typeof window.nataijiRemark==='function'?window.nataijiRemark(annual):'';return `<tr><td>${esc(callNo(p,i))}</td><td>${esc(p[1])}</td><td>${fmt(a1)}</td><td>${fmt(a2)}</td><td>${fmt(a3)}</td><td><strong>${fmt(annual)}</strong></td><td><strong>${ranks[i]??'—'}</strong></td><td data-eval-cell="1">${esc(remark)}</td></tr>`}).join('')}</tbody>`;
+  </tr></thead><tbody>${state.pupils.map((p,i)=>{const row=termRows(ts[2])?.[i]||[],sum=row.reduce((a,v)=>v===''||v==null?a:a+(Number(v)||0),0),a1=termAverage(i,ts[0]),a2=termAverage(i,ts[1]),a3=termAverage(i,ts[2]),annual=annualAverage(i),remark=annual==null?'':(typeof window.nataijiRemark==='function'?window.nataijiRemark(annual):(annual>=10?(isFrench?'Admis':'ناجح'):(isFrench?'Non admis':'راسب')));return `<tr><td>${esc(callNo(p,i))}</td><td>${esc(p[1])}</td><td>${Number(sum.toFixed(1))} / ${mx}</td><td>${fmt(a3)}</td><td>${fmt(a2)}</td><td>${fmt(a1)}</td><td><strong>${fmt(annual)}</strong></td><td><strong>${ranks[i]==null?'—':ranks[i]+' / '+state.pupils.length}</strong></td><td data-eval-cell="1">${esc(remark)}</td></tr>`}).join('')}</tbody>`;
 }
 function buildFinalClassTable(){
   if(!finalTerm())return;fillFinalTable(q('#paperResults'));
@@ -91,10 +92,11 @@ function patchBatchFinal(){
     const baseAvg=rowByLabel(body,/^(المعدل|Moyenne|Moyenne du 3e trimestre|معدل الفصل الثالث)$/i),rankRow=rowByLabel(body,/^(الرتبة|Rang|الرتبة العامة|Rang général)$/i);
     const ts=terms(),a1=termAverage(i,ts[0]),a2=termAverage(i,ts[1]),a3=termAverage(i,ts[2]),annual=annualAverage(i);
     if(baseAvg){baseAvg.cells[0].textContent=fr()?'Moyenne du 3e trimestre':'معدل الفصل الثالث';baseAvg.cells[1].innerHTML=`<strong dir="ltr">${fmt(a3)} / 20</strong>`}
-    body.insertBefore(makeRow('معدل الفصل الأول','Moyenne du 1er trimestre',`${fmt(a1)} / 20`),rankRow||null);
     body.insertBefore(makeRow('معدل الفصل الثاني','Moyenne du 2e trimestre',`${fmt(a2)} / 20`),rankRow||null);
+    body.insertBefore(makeRow('معدل الفصل الأول','Moyenne du 1er trimestre',`${fmt(a1)} / 20`),rankRow||null);
     body.insertBefore(makeRow('المعدل العام','Moyenne générale',annual==null?'—':`${fmt(annual)} / 20`),rankRow||null);
-    if(rankRow){rankRow.cells[0].textContent=fr()?'Rang':'الرتبة';rankRow.cells[1].innerHTML=`<strong>${ranks[i]??'—'}</strong>`}
+    if(rankRow){rankRow.cells[0].textContent='الرتبة';if(rankRow.cells[2])rankRow.cells[2].textContent='Rang';rankRow.cells[1].innerHTML=`<strong>${ranks[i]==null?'—':ranks[i]+' / '+(state.pupils||[]).length}</strong>`}
+    const obsRow=rowByLabel(body,/^(الملاحظة|Observation)$/i);if(obsRow){const ok=annual!=null&&annual>=10;if(obsRow.cells[0])obsRow.cells[0].textContent='الملاحظة';if(obsRow.cells[2])obsRow.cells[2].textContent='Observation';obsRow.cells[1].innerHTML=annual==null?'<strong>—</strong>':`<strong>${ok?'ناجح / Admis':'راسب / Non admis'}</strong>`}
     markBoldLabels(root);
   });
 }
