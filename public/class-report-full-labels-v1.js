@@ -1,91 +1,36 @@
 (()=>{
 'use strict';
-if(window.__nataijiClassReportLabelsV2)return;
-window.__nataijiClassReportLabelsV2=true;
+if(window.__nataijiClassReportFinalV3)return;
+window.__nataijiClassReportFinalV3=true;
 const q=(s,r=document)=>r.querySelector(s);
 const qa=(s,r=document)=>[...r.querySelectorAll(s)];
 const fr=()=>localStorage.getItem('nataiji-lang')==='fr';
-const SUBJECT_FR={
-'التربية الإسلامية':'Éducation islamique','اللغة العربية':'Langue arabe','القراءة':'Lecture','التعبير':'Expression','الكتابة':'Écriture','الرياضيات':'Mathématiques','التربية المدنية':'Éducation civique','التربية الفنية':'Éducation artistique','الرياضة':'Éducation physique','التربية البدنية':'Éducation physique','التاريخ والجغرافيا':'Histoire et géographie','اللغة الفرنسية':'Langue française','Français':'Français','العلوم':'Sciences','العلوم الطبيعية':'Sciences naturelles'
-};
-function subjectFull(s){
-  const raw=String(s?.[0]||'');
-  if(!fr())return raw;
-  return String(s?.[2]||SUBJECT_FR[raw]||raw);
-}
-function markHeader(cell,label,isSubject=false){
-  if(!cell)return;
-  cell.classList.add('full-label-cell');
-  if(isSubject)cell.classList.add('full-subject-label');
-  cell.dataset.fullLabel=String(label||'').trim();
-  const len=String(label||'').replace(/\s+/g,'').length;
-  cell.classList.toggle('full-label-vertical',isSubject&&len>9);
-}
-function hideGeneralStats(portal){
-  const labels=['الإحصائيات العامة','الإحصائيات العامة للقسم','إحصائيات عامة','Statistiques générales','Statistiques générales de la classe'];
-  qa('h1,h2,h3,h4,h5,h6,p,div,span,strong,b',portal).forEach(el=>{
-    const text=String(el.textContent||'').replace(/\s+/g,' ').trim();
-    if(!labels.includes(text))return;
-    const wrapper=el.closest('.general-stats,.statistics,.stats-summary,.class-stats,.summary-stats');
-    if(wrapper){wrapper.classList.add('nataiji-hide-class-stats');return;}
-    el.classList.add('nataiji-hide-class-stats');
-    let next=el.nextElementSibling;
-    if(next&&(next.matches('table,.table-scroll,.stats,.statistics')||next.querySelector?.('table')))next.classList.add('nataiji-hide-class-stats');
-  });
-}
-function fitNameColumn(table){
-  const head=table?.tHead?.rows?.[0];
-  if(!head)return;
-  const cells=[...head.cells];
-  let idx=cells.findIndex(c=>/اسم|التلميذ|élève|nom/i.test(String(c.textContent||'')+' '+String(c.dataset.fullLabel||'')));
-  if(idx<0&&cells.length>1)idx=1;
-  if(idx<0)return;
-  cells[idx].classList.add('nataiji-name-head');
-  [...(table.tBodies?.[0]?.rows||[])].forEach(r=>r.cells?.[idx]?.classList.add('nataiji-name-cell'));
-}
-function apply(){
-  if(document.body.dataset.print!=='portal'||document.body.dataset.portalType!=='class')return;
-  const portal=q('#printPortal');
-  const table=q('#printPortal table');
-  const row=table?.tHead?.rows?.[0];
-  let s;
-  try{s=typeof state==='undefined'?null:state}catch{s=null}
-  if(row&&s?.subjects?.length){
-    const cells=[...row.cells];
-    const start=2;
-    s.subjects.forEach((sub,j)=>markHeader(cells[start+j],subjectFull(sub),true));
-    markHeader(cells[start+s.subjects.length],fr()?'Moyenne':'المعدل');
-    markHeader(cells[start+s.subjects.length+1],fr()?'Rang':'الرتبة');
-    markHeader(cells[start+s.subjects.length+2],fr()?'Appréciation':'الملاحظة');
-  }
-  fitNameColumn(table);
-  if(portal)hideGeneralStats(portal);
-}
-const old=q('#nataiji-full-class-labels');if(old)old.remove();
-const style=document.createElement('style');
-style.id='nataiji-full-class-labels';
-style.textContent=`
-@media print{
- body[data-print="portal"][data-portal-type="class"] #printPortal .nataiji-hide-class-stats{display:none!important;}
- body[data-print="portal"][data-portal-type="class"] #printPortal th.full-label-cell{font-size:0!important;overflow:visible!important;text-align:center!important;vertical-align:middle!important;}
- body[data-print="portal"][data-portal-type="class"] #printPortal th.full-label-cell>*{display:none!important;}
- body[data-print="portal"][data-portal-type="class"] #printPortal th.full-label-cell::before{content:none!important;display:none!important;}
- body[data-print="portal"][data-portal-type="class"] #printPortal th.full-label-cell::after{content:attr(data-full-label)!important;font-size:6.7pt!important;font-weight:900!important;line-height:1.08!important;color:#000!important;white-space:normal!important;word-break:normal!important;overflow-wrap:normal!important;hyphens:none!important;display:inline-block!important;max-width:100%!important;}
- body[data-print="portal"][data-portal-type="class"] #printPortal th.full-label-vertical{height:28mm!important;padding:.8mm .15mm!important;}
- body[data-print="portal"][data-portal-type="class"] #printPortal th.full-label-vertical::after{writing-mode:vertical-rl!important;text-orientation:mixed!important;white-space:nowrap!important;max-height:26mm!important;max-width:none!important;}
- body[data-print="portal"][data-portal-type="class"] #printPortal th.nataiji-name-head{width:29mm!important;min-width:29mm!important;max-width:29mm!important;font-size:7pt!important;white-space:normal!important;writing-mode:horizontal-tb!important;}
- body[data-print="portal"][data-portal-type="class"] #printPortal td.nataiji-name-cell{width:29mm!important;min-width:29mm!important;max-width:29mm!important;font-size:7pt!important;font-weight:800!important;line-height:1.18!important;white-space:normal!important;overflow-wrap:anywhere!important;word-break:normal!important;padding:1.2mm .8mm!important;}
- body[data-print="portal"][data-portal-type="class"] #printPortal .portal-paper[data-v4-density="roomy"] th.full-label-cell::after{font-size:7.1pt!important;}
- body[data-print="portal"][data-portal-type="class"] #printPortal .portal-paper[data-v4-density="dense"] th.full-label-cell::after{font-size:6.2pt!important;}
-}
-`;
-document.head.appendChild(style);
-let timer=null;
-function later(ms=0){clearTimeout(timer);timer=setTimeout(apply,ms)}
-new MutationObserver(()=>later(20)).observe(document.documentElement,{childList:true,subtree:true});
-document.addEventListener('click',e=>{if(e.target.closest?.('.report-print,[data-print="class"],[data-report="class"]'))later(50)},true);
-document.addEventListener('change',()=>later(30),true);
-window.addEventListener('beforeprint',apply);
-window.addEventListener('DOMContentLoaded',()=>later(150));
-setTimeout(()=>later(0),0);
+const SUBJECT_FR={'التربية الإسلامية':'Éducation islamique','اللغة العربية':'Langue arabe','القراءة':'Lecture','التعبير':'Expression','الكتابة':'Écriture','الرياضيات':'Mathématiques','التربية المدنية':'Éducation civique','التربية الفنية':'Éducation artistique','الرياضة':'Éducation physique','التربية البدنية':'Éducation physique','التاريخ والجغرافيا':'Histoire et géographie','اللغة الفرنسية':'Langue française','Français':'Français','العلوم':'Sciences','العلوم الطبيعية':'Sciences naturelles'};
+function getState(){try{return typeof state==='undefined'?null:state}catch{return null}}
+function subjectFull(s){const raw=String(s?.[0]||'');return fr()?String(s?.[2]||SUBJECT_FR[raw]||raw):raw}
+function plainHeader(cell,label,vertical=false){if(!cell)return;cell.removeAttribute('data-full-label');cell.classList.remove('full-label-cell','full-label-vertical','full-subject-label');cell.textContent=String(label||'').trim();cell.classList.toggle('nataiji-subject-vertical',!!vertical)}
+function removeStats(portal){const labels=/^(الإحصائيات العامة(?: للقسم)?|إحصائيات عامة|Statistiques générales(?: de la classe)?)$/i;qa('h1,h2,h3,h4,h5,h6,p,div,span,strong,b',portal).forEach(el=>{const t=String(el.textContent||'').replace(/\s+/g,' ').trim();if(!labels.test(t))return;const box=el.closest('.general-stats,.statistics,.stats-summary,.class-stats,.summary-stats')||el;box.classList.add('nataiji-remove-stats');const n=box.nextElementSibling;if(n&&(n.matches('table,.table-scroll,.stats,.statistics')||n.querySelector?.('table')))n.classList.add('nataiji-remove-stats')})}
+function findNameIndex(cells){let i=cells.findIndex(c=>/اسم|التلميذ|élève|nom/i.test(c.textContent||''));return i<0&&cells.length>1?1:i}
+function rankRows(table){const head=table?.tHead?.rows?.[0];if(!head)return;const cells=[...head.cells];let rankIdx=cells.findIndex(c=>/الرتبة|rang|classement/i.test(c.textContent||''));let callIdx=cells.findIndex(c=>/رقم النداء|n°\s*d.?appel|appel/i.test(c.textContent||''));if(callIdx>=0&&rankIdx>=0&&callIdx!==rankIdx){plainHeader(cells[callIdx],fr()?'Rang':'الرتبة');[...(table.tBodies?.[0]?.rows||[])].forEach((r,i)=>{if(r.cells?.[callIdx])r.cells[callIdx].textContent=String(i+1)});if(cells[rankIdx]){cells[rankIdx].classList.add('nataiji-duplicate-rank');[...(table.tBodies?.[0]?.rows||[])].forEach(r=>r.cells?.[rankIdx]?.classList.add('nataiji-duplicate-rank'))}}}
+function apply(){if(document.body.dataset.print!=='portal'||document.body.dataset.portalType!=='class')return;const portal=q('#printPortal'),table=q('#printPortal table'),row=table?.tHead?.rows?.[0];if(!portal||!table||!row)return;const s=getState(),cells=[...row.cells],start=2;if(s?.subjects?.length){s.subjects.forEach((sub,j)=>plainHeader(cells[start+j],subjectFull(sub),true));plainHeader(cells[start+s.subjects.length],fr()?'Moyenne':'المعدل');plainHeader(cells[start+s.subjects.length+1],fr()?'Rang':'الرتبة');plainHeader(cells[start+s.subjects.length+2],fr()?'Appréciation':'الملاحظة')}const ni=findNameIndex([...row.cells]);if(ni>=0){row.cells[ni]?.classList.add('nataiji-name-head');[...(table.tBodies?.[0]?.rows||[])].forEach(r=>r.cells?.[ni]?.classList.add('nataiji-name-cell'))}rankRows(table);removeStats(portal)}
+q('#nataiji-full-class-labels')?.remove();
+const style=document.createElement('style');style.id='nataiji-class-report-final-v3';style.textContent=`@media print{
+@page{size:A4 portrait;margin:7mm!important}
+body[data-print="portal"][data-portal-type="class"]{width:210mm!important;max-width:210mm!important;margin:0!important;padding:0!important;overflow:visible!important;background:#fff!important}
+body[data-print="portal"][data-portal-type="class"] #printPortal{width:196mm!important;max-width:196mm!important;min-width:196mm!important;margin:0 auto!important;padding:0!important;transform:none!important;zoom:1!important}
+body[data-print="portal"][data-portal-type="class"] #printPortal .portal-paper{box-sizing:border-box!important;width:196mm!important;max-width:196mm!important;min-width:196mm!important;margin:0!important;padding:5mm 3mm 4mm!important;border:0!important;transform:none!important;zoom:1!important}
+body[data-print="portal"][data-portal-type="class"] #printPortal .final-official-head{width:100%!important;margin:0 0 3mm!important;min-height:31mm!important;display:grid!important;grid-template-columns:1fr 34mm 1fr!important;align-items:start!important;column-gap:3mm!important}
+body[data-print="portal"][data-portal-type="class"] #printPortal .final-official-head img{max-width:25mm!important;max-height:25mm!important;margin:0 auto!important}
+body[data-print="portal"][data-portal-type="class"] #printPortal h1,body[data-print="portal"][data-portal-type="class"] #printPortal h2{margin:1.5mm 0 3mm!important;text-align:center!important;font-size:14pt!important;line-height:1.2!important}
+body[data-print="portal"][data-portal-type="class"] #printPortal table{width:100%!important;max-width:100%!important;border-collapse:collapse!important;table-layout:fixed!important;margin:0!important}
+body[data-print="portal"][data-portal-type="class"] #printPortal th,body[data-print="portal"][data-portal-type="class"] #printPortal td{border:.35mm solid #111!important;text-align:center!important;vertical-align:middle!important;box-sizing:border-box!important;color:#000!important}
+body[data-print="portal"][data-portal-type="class"] #printPortal th{font-size:6.7pt!important;font-weight:800!important;line-height:1.08!important;padding:.8mm .35mm!important;height:22mm!important;white-space:normal!important}
+body[data-print="portal"][data-portal-type="class"] #printPortal td{font-size:7pt!important;line-height:1.15!important;padding:1.15mm .45mm!important;height:7.2mm!important}
+body[data-print="portal"][data-portal-type="class"] #printPortal th.nataiji-subject-vertical{writing-mode:vertical-rl!important;text-orientation:mixed!important;white-space:nowrap!important;height:24mm!important;padding:.7mm .2mm!important}
+body[data-print="portal"][data-portal-type="class"] #printPortal th.nataiji-name-head{width:34mm!important;min-width:34mm!important;max-width:34mm!important;writing-mode:horizontal-tb!important;white-space:normal!important;font-size:7.4pt!important}
+body[data-print="portal"][data-portal-type="class"] #printPortal td.nataiji-name-cell{width:34mm!important;min-width:34mm!important;max-width:34mm!important;font-size:7.4pt!important;font-weight:800!important;line-height:1.2!important;white-space:normal!important;overflow-wrap:anywhere!important;word-break:normal!important;padding:1mm .8mm!important}
+body[data-print="portal"][data-portal-type="class"] #printPortal .nataiji-remove-stats,body[data-print="portal"][data-portal-type="class"] #printPortal .nataiji-duplicate-rank{display:none!important}
+body[data-print="portal"][data-portal-type="class"] #printPortal footer{margin-top:5mm!important;display:flex!important;justify-content:space-between!important;width:100%!important;font-size:7.5pt!important}
+}`;document.head.appendChild(style);
+let timer;const later=(ms=0)=>{clearTimeout(timer);timer=setTimeout(apply,ms)};new MutationObserver(()=>later(20)).observe(document.documentElement,{childList:true,subtree:true});document.addEventListener('click',e=>{if(e.target.closest?.('.report-print,[data-print="class"],[data-report="class"]'))later(40)},true);document.addEventListener('change',()=>later(25),true);window.addEventListener('beforeprint',apply);window.addEventListener('DOMContentLoaded',()=>later(100));setTimeout(apply,0);
 })();
