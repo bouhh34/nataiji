@@ -19,6 +19,7 @@ async function reloadCanonical(){
  localStorage.setItem('nataiji-data',JSON.stringify(state));
  render();
  refreshSelectors();
+ setTimeout(()=>{window.nataijiRefreshOfficialReports?.();window.nataijiFinalizeReports?.()},0);
 }
 async function saveStructure(structure){
  const r=await api('/api/structure',{method:'PUT',body:JSON.stringify({structure})});
