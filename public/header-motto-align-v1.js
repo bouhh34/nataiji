@@ -101,12 +101,25 @@ function openCallNumberManager(){
   };
   back.appendChild(box);document.body.appendChild(back);back.addEventListener('click',e=>{if(e.target===back)closeCallModal()});
 }
+function patchClassPrintPage(){
+  if(document.body.dataset.print!=='portal'||document.body.dataset.portalType!=='class')return;
+  const ps=q('#workflow-page-style');
+  if(ps)ps.textContent='@page{size:A4 portrait;margin:8mm}';
+  let late=q('#nataiji-class-portrait-final');
+  if(!late){late=document.createElement('style');late.id='nataiji-class-portrait-final';document.head.appendChild(late)}
+  late.textContent=`@media print{
+    body[data-print="portal"][data-portal-type="class"]{width:210mm!important;max-width:210mm!important;margin:0!important;padding:0!important;overflow:visible!important}
+    body[data-print="portal"][data-portal-type="class"] #printPortal{box-sizing:border-box!important;width:194mm!important;max-width:194mm!important;min-width:194mm!important;margin:0 auto!important;padding:0!important;transform:none!important;zoom:1!important}
+    body[data-print="portal"][data-portal-type="class"] #printPortal .portal-paper{box-sizing:border-box!important;width:194mm!important;max-width:194mm!important;min-width:194mm!important;margin:0!important;padding:4.5mm 3.5mm!important;border:0!important;transform:none!important;zoom:1!important}
+    body[data-print="portal"][data-portal-type="class"] #printPortal table{width:100%!important;max-width:100%!important;table-layout:fixed!important}
+  }`;
+}
 function patchAll(){patchCallNumberHeaders();patchCallNumberRows();ensureManageButton()}
 let timer=null;function schedule(ms=25){clearTimeout(timer);timer=setTimeout(patchAll,ms)}
 new MutationObserver(()=>schedule(35)).observe(document.documentElement,{childList:true,subtree:true});
 document.addEventListener('click',e=>{if(e.target.closest?.('#langSwitch,[data-report],.report-print,#printList,#printResult'))schedule(20)},true);
 document.addEventListener('change',e=>{if(e.target.matches?.('#classTop,#yearTop,#term,#student'))schedule(20)},true);
-window.addEventListener('beforeprint',patchAll);
+window.addEventListener('beforeprint',()=>{patchAll();patchClassPrintPage()});
 window.addEventListener('DOMContentLoaded',()=>schedule(120));
 setTimeout(patchAll,0);
 })();
