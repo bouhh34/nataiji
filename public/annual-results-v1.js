@@ -111,13 +111,13 @@ function patchBatchFinal(){
   qa('#printBatch .batch-sheet').forEach((root,i)=>{
     const body=q('.sheet tbody',root);if(!body||!state?.pupils?.[i])return;removeAnnualRows(body);
     const baseAvg=rowByLabel(body,/^(المعدل|Moyenne|Moyenne du 3e trimestre|معدل الفصل الثالث)$/i),rankRow=rowByLabel(body,/^(الرتبة|Rang|الرتبة العامة|Rang général)$/i);
-    const ts=terms(),a1=termAverage(i,ts[0]),a2=termAverage(i,ts[1]),a3=termAverage(i,ts[2]),annual=annualAverage(i);
-    if(baseAvg){baseAvg.cells[0].textContent=fr()?'Moyenne du 3e trimestre':'معدل الفصل الثالث';baseAvg.cells[1].innerHTML=`<strong dir="ltr">${fmt(a3)} / 20</strong>`}
+    const ts=terms(),a1=termAverage(i,ts[0]),a2=termAverage(i,ts[1]),a3=termAverage(i,ts[2]),annual=annualAverage(i),absent3=termAbsent(i,ts[2]);
+    if(baseAvg){baseAvg.cells[0].textContent=fr()?'Moyenne du 3e trimestre':'معدل الفصل الثالث';baseAvg.cells[1].innerHTML=absent3?`<strong>${absenceLabel(i)} / ${absenceLabel(i,true)}</strong>`:`<strong dir="ltr">${fmt(a3)} / 20</strong>`}
     body.insertBefore(makeRow('معدل الفصل الثاني','Moyenne du 2e trimestre',`${fmt(a2)} / 20`),rankRow||null);
     body.insertBefore(makeRow('معدل الفصل الأول','Moyenne du 1er trimestre',`${fmt(a1)} / 20`),rankRow||null);
-    body.insertBefore(makeRow('المعدل العام','Moyenne générale',annual==null?'—':`${fmt(annual)} / 20`),rankRow||null);
+    body.insertBefore(makeRow('المعدل العام','Moyenne générale',absent3?`${absenceLabel(i)} / ${absenceLabel(i,true)}`:(annual==null?'—':`${fmt(annual)} / 20`)),rankRow||null);
     if(rankRow){rankRow.cells[0].textContent='الرتبة';if(rankRow.cells[2])rankRow.cells[2].textContent='Rang';rankRow.cells[1].innerHTML=`<strong>${ranks[i]==null?'—':ranks[i]+' / '+(state.pupils||[]).length}</strong>`}
-    const obsRow=rowByLabel(body,/^(الملاحظة|Observation)$/i);if(obsRow){const ok=annual!=null&&annual>=10;if(obsRow.cells[0])obsRow.cells[0].textContent='الملاحظة';if(obsRow.cells[2])obsRow.cells[2].textContent='Observation';obsRow.cells[1].innerHTML=annual==null?'<strong>—</strong>':`<strong>${ok?'ناجح / Admis':'راسب / Non admis'}</strong>`}
+    const obsRow=rowByLabel(body,/^(الملاحظة|Observation)$/i);if(obsRow){const ok=annual!=null&&annual>=10;if(obsRow.cells[0])obsRow.cells[0].textContent='الملاحظة';if(obsRow.cells[2])obsRow.cells[2].textContent='Observation';obsRow.cells[1].innerHTML=absent3?`<strong>${absenceLabel(i)} / ${absenceLabel(i,true)}</strong>`:(annual==null?'<strong>—</strong>':`<strong>${ok?'ناجح / Admis':'راسب / Non admis'}</strong>`)}
     markBoldLabels(root);
   });
 }
