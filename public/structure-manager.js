@@ -53,8 +53,12 @@ function refreshSelectors(){
    ct.innerHTML=state.classes.length?state.classes.map(c=>`<option value="${esc2(c.id)}" ${c.id===state.activeClassId?'selected':''}>${esc2(c.name)}</option>`).join(''):'<option value="">أضف قسمًا من الإعدادات</option>';
    ct.disabled=!state.classes.length||(teacher&&state.classes.length<2);
    ct.onchange=async e=>{
-     const selected=e.target.value;
-     try{if(teacher)await loadTeacherView(selected,state.term);else{const next=currentStructure();next.activeClassId=selected;await saveStructure(next)}}catch{e.target.value=state.activeClassId||''}
+     const selected=e.target.value,previous=state.activeClassId||'';
+     if(!selected||selected===previous)return;
+     ct.disabled=true;
+     try{await window.nataijiSelectClass(selected)}
+     catch(err){console.error('class switch failed',err);ct.value=previous}
+     finally{const live=q('#classTop');if(live&&!window.nataijiUnifiedClassSelector)live.disabled=!state.classes.length||(teacher&&state.classes.length<2)}
    };
  }
  if(tt){
