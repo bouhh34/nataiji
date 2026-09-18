@@ -117,23 +117,43 @@ function bindShares(){
  if(!b){b=document.createElement('button');b.id='sharesBtn';b.className='menu-card';grid.insertBefore(b,q('#inviteBtn')?.nextSibling||q('#settingsBtn')||null)}
  b.innerHTML=`<b>🔗 ${tr('المشاركات','Partages')}</b><span>${tr('عرض من لديه وصول وإلغاء الصلاحية عند الحاجة','Voir les accès accordés et les retirer si nécessaire')}</span>`;b.onclick=sharesModal
 }
+let workspaceSelectorRun=0,workspaceSelectorTimer=null;
 async function bindUnifiedClassSelector(){
  const sel=q('#classTop');if(!sel||!currentUser)return;
+ const run=++workspaceSelectorRun;
  window.nataijiUnifiedClassSelector=true;
- try{const r=await api('/api/workspaces');if(!r)return;sel.innerHTML='';sel.disabled=false;
-  const own=document.createElement('optgroup');own.label=tr('أقسامي','Mes classes');
-  for(const s of r.owned||[])for(const cls of s.classes||[]){const o=document.createElement('option');o.value='own|'+s.schoolId+'|'+cls.id;o.textContent=((r.owned||[]).length>1?s.schoolName+' — ':'')+cls.name;if(s.active&&state?.activeClassId===cls.id)o.selected=true;own.appendChild(o)}
-  if(own.children.length)sel.appendChild(own);
-  const sh=document.createElement('optgroup');sh.label=tr('الأقسام المشتركة معي','Classes partagées avec moi');
-  for(const g of r.shared||[])for(const cls of g.classes||[]){const o=document.createElement('option');o.value='shared|'+g.grantId+'|'+cls.id;o.textContent=(g.schoolName||tr('مدرسة','École'))+' — '+cls.name;if(g.active&&state?.activeClassId===cls.id)o.selected=true;sh.appendChild(o)}
-  if(sh.children.length)sel.appendChild(sh);
-  sel.onchange=async()=>{const [kind,id,classId]=sel.value.split('|');try{
-    if(kind==='shared'){if(currentUser.activeSharedGrant!==id){const rr=await api('/api/shared/switch',{method:'POST',body:JSON.stringify({grantId:id})});currentUser=rr.user;await accountActivate(currentUser);setTimeout(()=>window.nataijiSelectClass?.(classId),180)}else await window.nataijiSelectClass?.(classId);return}
-    if(currentUser.activeSharedGrant||currentUser.schoolId!==id){if(currentUser.activeSharedGrant){const x=await api('/api/shared/switch',{method:'POST',body:JSON.stringify({grantId:''})});currentUser=x.user}if(currentUser.schoolId!==id){const x=await api('/api/schools/switch',{method:'POST',body:JSON.stringify({schoolId:id})});currentUser=x.user}await accountActivate(currentUser);setTimeout(()=>window.nataijiSelectClass?.(classId),180);return}
-    if(state?.activeClassId!==classId)await window.nataijiSelectClass?.(classId)
-  }catch(e){alert(authErr(e.code))}
-  }
- }catch{window.nataijiUnifiedClassSelector=false}
+ try{
+  const r=await api('/api/workspaces');if(!r||run!==workspaceSelectorRun)return;
+  const options=[],owned=r.owned||[],shared=r.shared||[];
+  for(const school of owned)for(const cls of school.classes||[])options.push({kind:'own',id:school.schoolId,classId:cls.id,label:(owned.length>1?school.schoolName+' — ':'')+cls.name,selected:!currentUser.activeSharedGrant&&school.active&&state?.activeClassId===cls.id});
+  for(const grant of shared)for(const cls of grant.classes||[])options.push({kind:'shared',id:grant.grantId,classId:cls.id,label:(grant.schoolName||tr('مدرسة','École'))+' — '+cls.name,selected:currentUser.activeSharedGrant===grant.grantId&&state?.activeClassId===cls.id});
+  if(run!==workspaceSelectorRun)return;
+  const currentValue=sel.value;
+  sel.innerHTML='';
+  const addGroup=(label,kind)=>{const rows=options.filter(x=>x.kind===kind);if(!rows.length)return;const g=document.createElement('optgroup');g.label=label;for(const x of rows){const o=document.createElement('option');o.value=x.kind+'|'+x.id+'|'+x.classId;o.textContent=x.label;if(x.selected)o.selected=true;g.appendChild(o)}sel.appendChild(g)};
+  addGroup(tr('أقسامي','Mes classes'),'own');addGroup(tr('الأقسام المشتركة معي','Classes partagées avec moi'),'shared');
+  // If state changed while loading, select from the authoritative workspace state.
+  const chosen=options.find(x=>x.selected)||options.find(x=>(x.kind+'|'+x.id+'|'+x.classId)===currentValue)||options[0];
+  if(chosen)sel.value=chosen.kind+'|'+chosen.id+'|'+chosen.classId;
+  sel.disabled=!options.length;
+  sel.onchange=async()=>{
+   const [kind,id,classId]=sel.value.split('|');sel.disabled=true;
+   try{
+    if(kind==='shared'){
+     if(currentUser.activeSharedGrant!==id){const rr=await api('/api/shared/switch',{method:'POST',body:JSON.stringify({grantId:id})});currentUser=rr.user;await accountActivate(currentUser);setTimeout(()=>window.nataijiSelectClass?.(classId),80)}
+     else await window.nataijiSelectClass?.(classId);
+    }else{
+     if(currentUser.activeSharedGrant){const x=await api('/api/shared/switch',{method:'POST',body:JSON.stringify({grantId:''})});currentUser=x.user}
+     if(currentUser.schoolId!==id){const x=await api('/api/schools/switch',{method:'POST',body:JSON.stringify({schoolId:id})});currentUser=x.user}
+     await accountActivate(currentUser);setTimeout(()=>window.nataijiSelectClass?.(classId),80);
+    }
+   }catch(e){alert(authErr(e.code));sel.disabled=false}
+  };
+ }catch{if(run===workspaceSelectorRun)window.nataijiUnifiedClassSelector=false}
+}
+function scheduleUnifiedSelector(){
+ clearTimeout(workspaceSelectorTimer);
+ workspaceSelectorTimer=setTimeout(()=>bindUnifiedClassSelector(),60);
 }
 function bindSchools(){
  const grid=q('.settings-grid');if(!grid)return;let b=q('#schoolsBtn');
@@ -166,7 +186,7 @@ function patchOfficialWording(root=document){qa('.doc-republic .doc-line',root).
 function patchSettingsModal(){const r=q('#wf-sr'),i=q('#wf-si');if(r){const l=r.closest('label'),p=l?.querySelector('.workflow-prefix span');if(l?.firstChild)l.firstChild.nodeValue=tr('الإدارة الجهوية بولاية','Direction régionale de l’Éducation – Wilaya de');if(p)p.style.display='none'}if(i){const l=i.closest('label'),p=l?.querySelector('.workflow-prefix span');if(l?.firstChild)l.firstChild.nodeValue=tr('المفتشية بمقاطعة','Inspection – Moughataa de');if(p)p.style.display='none'}}
 const css=document.createElement('style');css.id='auth-access-v2-style';css.textContent=`.auth2-tabs{display:grid;grid-template-columns:repeat(3,1fr);gap:6px;background:#edf4f8;padding:5px;border-radius:12px;margin:16px 0}.auth2-tabs button{border:0;background:transparent;padding:11px 6px;border-radius:9px;font-weight:700;color:#50677a}.auth2-tabs button.on{background:#fff;color:#1288dd;box-shadow:0 1px 4px #0001}.auth2-link{border:0;background:transparent;color:#1288dd;font-weight:700;padding:8px;cursor:pointer}.auth2-note{font-size:12px;color:#718392;line-height:1.55}.auth2-success{color:#147a46!important}.auth2-perms{display:grid;gap:10px;border:1px solid #d6e1e8;border-radius:10px;padding:12px}.auth2-perms label{display:flex!important;align-items:center;gap:8px}.auth2-perms input{width:auto!important}.auth2-code-copy{display:grid;grid-template-columns:1fr auto;gap:8px;align-items:center;margin:10px 0}.auth2-code-copy input{font-size:22px!important;font-weight:900!important;letter-spacing:2px!important;text-align:center!important;background:#f7fbff!important;border:2px solid #b9d9ef!important;color:#0877b8!important}.auth2-code-copy button{border:0;border-radius:10px;background:#1288dd;color:#fff;font-weight:800;padding:12px 16px}.auth2-school-row{width:100%;display:flex;align-items:center;justify-content:space-between;text-align:start;padding:13px;margin:7px 0;border:1px solid #d6e1e8;border-radius:12px;background:#fff}.auth2-school-row.active{border-color:#1288dd;background:#f1f9ff}.auth2-school-row span{display:grid;gap:3px}.auth2-school-row small,.auth2-school-row em{font-size:12px;color:#64748b;font-style:normal}.auth2-subject-perm{display:grid;grid-template-columns:1fr 120px;gap:8px;align-items:center;padding:8px 0;border-bottom:1px solid #edf1f4}.auth2-subject-perm span{display:grid}.auth2-subject-perm small{font-size:11px;color:#718392}.auth2-subject-mode{margin:0!important;padding:8px!important}.auth2-subjects,.auth2-shared-classes{margin-top:12px;border:1px solid #d6e1e8;border-radius:10px;padding:12px}.auth2-class-access{border:1px solid #e2e8f0;border-radius:10px;padding:9px;margin:8px 0}.auth2-class-toggle{display:flex!important;gap:8px;align-items:center}.auth2-class-toggle input{width:auto!important}.auth2-class-scope{display:none;margin-top:9px;padding-top:8px;border-top:1px solid #edf2f7}.auth2-class-scope.enabled{display:grid;gap:8px}.shared-classes-label{font-size:11px;font-weight:800;color:#1288dd;align-self:center;white-space:nowrap}.auth2-subject-scope{display:grid;gap:9px}.auth2-inline{display:flex!important;align-items:center;gap:8px}.auth2-inline input{width:auto!important}.auth2-subject-list{display:grid;grid-template-columns:1fr 1fr;gap:7px;opacity:.45;margin-top:5px}.auth2-subject-list.enabled{opacity:1}.auth2-subject-list label{display:flex!important;align-items:center;gap:7px;border:1px solid #e2e8f0;border-radius:8px;padding:8px}.auth2-subject-list input{width:auto!important}.auth2-subject-list small{display:block;color:#718392;margin-inline-start:auto}.workflow-prefix span[style*="display: none"]{display:none!important}@media(max-width:520px){.auth2-tabs button{font-size:12px;padding:10px 3px}.auth2-subject-list{grid-template-columns:1fr}}`;
 document.head.appendChild(css);
-let timer;function refreshAll(){const legacy=q('#joinCodeBtn');if(legacy)legacy.remove();bindSchools();bindJoinCard();bindInvite();bindShares();bindLogout();enforcePermissions();patchProfileRole();patchOfficialWording();patchSettingsModal();bindUnifiedClassSelector()}
+let timer;function refreshAll(){const legacy=q('#joinCodeBtn');if(legacy)legacy.remove();bindSchools();bindJoinCard();bindInvite();bindShares();bindLogout();enforcePermissions();patchProfileRole();patchOfficialWording();patchSettingsModal();scheduleUnifiedSelector()}
 new MutationObserver(()=>{clearTimeout(timer);timer=setTimeout(refreshAll,35)}).observe(document.body,{childList:true,subtree:true});
 window.addEventListener('beforeprint',()=>patchOfficialWording());
 window.addEventListener('DOMContentLoaded',()=>{setTimeout(()=>{renderAuth('login').catch(()=>{});refreshAll()},80)});
