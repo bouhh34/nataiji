@@ -118,24 +118,43 @@ function workspaceStamp(){const cls=(state?.classes||[]).map(x=>String(x?.id||''
 async function bindUnifiedClassSelector(){
  const sel=q('#classTop');if(!sel||!currentUser)return;
  const run=++workspaceSelectorRun;
- window.nataijiUnifiedClassSelector=true;
+ sel.dataset.nataijiWorkspaceLoading='1';
  try{
   const r=await api('/api/workspaces');if(!r||run!==workspaceSelectorRun)return;
-  const options=[],owned=r.owned||[],shared=r.shared||[];
-  for(const school of owned)for(const cls of school.classes||[])options.push({kind:'own',id:school.schoolId,classId:cls.id,label:(owned.length>1?school.schoolName+' — ':'')+cls.name,selected:!currentUser.activeSharedGrant&&school.active&&state?.activeClassId===cls.id});
-  for(const grant of shared)for(const cls of grant.classes||[])options.push({kind:'shared',id:grant.grantId,classId:cls.id,label:(grant.schoolName||tr('مدرسة','École'))+' — '+cls.name+' — '+(grant.ownerName||tr('المعلم المالك','Enseignant propriétaire')),selected:currentUser.activeSharedGrant===grant.grantId&&state?.activeClassId===cls.id});
+  const options=[],owned=r.owned||[],shared=r.shared||[],seen=new Set();
+  const add=x=>{const k=x.kind+'|'+x.id+'|'+x.classId;if(!x.classId||seen.has(k))return;seen.add(k);options.push(x)};
+  for(const school of owned)for(const cls of school.classes||[])add({kind:'own',id:school.schoolId,classId:cls.id,label:(owned.length>1?school.schoolName+' — ':'')+cls.name,selected:!currentUser.activeSharedGrant&&school.active&&state?.activeClassId===cls.id});
+  for(const grant of shared)for(const cls of grant.classes||[])add({kind:'shared',id:grant.grantId,classId:cls.id,label:(grant.schoolName||tr('مدرسة','École'))+' — '+cls.name+' — '+(grant.ownerName||tr('المعلم المالك','Enseignant propriétaire')),selected:currentUser.activeSharedGrant===grant.grantId&&state?.activeClassId===cls.id});
+  // State is the fallback truth for the current workspace. This prevents an empty
+  // workspace response or a repair race from erasing a class that is already loaded.
+  const localClasses=(state?.classes||[]).filter(x=>x?.id);
+  if(localClasses.length){
+   if(currentUser.activeSharedGrant){
+    const g=shared.find(x=>x.grantId===currentUser.activeSharedGrant)||currentUser.sharedGrants?.[currentUser.activeSharedGrant]||{};
+    for(const cls of localClasses)add({kind:'shared',id:currentUser.activeSharedGrant,classId:cls.id,label:(g.schoolName||tr('مدرسة','École'))+' — '+(cls.name||state.className||tr('القسم الحالي','Classe actuelle'))+' — '+(g.ownerName||tr('المعلم المالك','Enseignant propriétaire')),selected:state?.activeClassId===cls.id})
+   }else{
+    const school=owned.find(x=>x.active)||owned.find(x=>x.schoolId===currentUser.schoolId);
+    if(school)for(const cls of localClasses)add({kind:'own',id:school.schoolId,classId:cls.id,label:(owned.length>1?school.schoolName+' — ':'')+(cls.name||state.className||tr('القسم الحالي','Classe actuelle')),selected:state?.activeClassId===cls.id})
+   }
+  }
   if(run!==workspaceSelectorRun)return;
+  if(!options.length){
+   window.nataijiUnifiedClassSelector=false;window.nataijiWorkspaceSelectorReady=false;
+   delete sel.dataset.nataijiWorkspaceReady;delete sel.dataset.nataijiWorkspaceStamp;delete sel.dataset.nataijiWorkspaceLoading;
+   window.nataijiRenderCoreSelectors?.();window.nataijiRefreshSelectors?.();return
+  }
   const currentValue=sel.value;
+  window.nataijiUnifiedClassSelector=true;window.nataijiWorkspaceSelectorReady=true;sel.dataset.nataijiWorkspaceReady='1';
   sel.innerHTML='';
   const addGroup=(label,kind)=>{const rows=options.filter(x=>x.kind===kind);if(!rows.length)return;const g=document.createElement('optgroup');g.label=label;for(const x of rows){const o=document.createElement('option');o.value=x.kind+'|'+x.id+'|'+x.classId;o.textContent=x.label;if(x.selected)o.selected=true;g.appendChild(o)}sel.appendChild(g)};
   addGroup(tr('أقسامي','Mes classes'),'own');addGroup(tr('الأقسام المشتركة معي','Classes partagées avec moi'),'shared');
-  // If state changed while loading, select from the authoritative workspace state.
-  const chosen=options.find(x=>x.selected)||options.find(x=>(x.kind+'|'+x.id+'|'+x.classId)===currentValue)||options[0];
+  const preferred=String(currentUser.preferredClassId||state?.activeClassId||'');
+  const chosen=options.find(x=>x.selected)||options.find(x=>x.classId===preferred&&(x.kind==='shared'?x.id===currentUser.activeSharedGrant:!currentUser.activeSharedGrant))||options.find(x=>(x.kind+'|'+x.id+'|'+x.classId)===currentValue)||options[0];
   if(chosen)sel.value=chosen.kind+'|'+chosen.id+'|'+chosen.classId;
-  sel.dataset.nataijiWorkspaceStamp=workspaceStamp();
-  sel.disabled=!options.length;
+  sel.dataset.nataijiWorkspaceStamp=workspaceStamp();delete sel.dataset.nataijiWorkspaceLoading;
+  sel.disabled=false;
   sel.onchange=async()=>{
-   const previous=options.find(x=>x.selected),[kind,id,classId]=sel.value.split('|');sel.disabled=true;
+   const previous=options.find(x=>(x.kind+'|'+x.id+'|'+x.classId)===sel.dataset.nataijiPrevious)||options.find(x=>x.selected)||chosen,[kind,id,classId]=sel.value.split('|');sel.dataset.nataijiPrevious=previous?previous.kind+'|'+previous.id+'|'+previous.classId:'';sel.disabled=true;
    try{
     if(kind==='shared'){
      if(currentUser.activeSharedGrant!==id){const rr=await api('/api/shared/switch',{method:'POST',body:JSON.stringify({grantId:id})});currentUser=rr.user;await accountActivate(currentUser);await window.nataijiSelectClass?.(classId)}
@@ -148,7 +167,10 @@ async function bindUnifiedClassSelector(){
     await bindUnifiedClassSelector();
    }catch(e){console.error('workspace switch failed',e);if(previous)sel.value=previous.kind+'|'+previous.id+'|'+previous.classId;sel.disabled=false}
   };
- }catch(e){console.error('workspace selector load failed',e);if(run===workspaceSelectorRun){window.nataijiUnifiedClassSelector=false;sel.disabled=!sel.options.length}}
+ }catch(e){
+  console.error('workspace selector load failed',e);
+  if(run===workspaceSelectorRun){window.nataijiUnifiedClassSelector=false;window.nataijiWorkspaceSelectorReady=false;delete sel.dataset.nataijiWorkspaceReady;delete sel.dataset.nataijiWorkspaceStamp;delete sel.dataset.nataijiWorkspaceLoading;window.nataijiRenderCoreSelectors?.();window.nataijiRefreshSelectors?.()}
+ }
 }
 function scheduleUnifiedSelector(force=false){
  const sel=q('#classTop');if(!sel||!currentUser)return;

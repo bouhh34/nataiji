@@ -2,8 +2,13 @@
 'use strict';
 const clone=x=>structuredClone(x),q=s=>document.querySelector(s),esc2=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 function normalizeLocal(){
- state.classes=Array.isArray(state.classes)?state.classes:[];
- state.terms=Array.isArray(state.terms)?state.terms:[];
+ let classes=(Array.isArray(state.classes)?state.classes:[]).filter(x=>x&&x.id);
+ if(!classes.length){const id=String(state.activeClassId||currentUser?.preferredClassId||currentUser?.classIds?.[0]||'');if(id&&(String(state.className||state.classCode||'').trim()||(state.pupils||[]).length||(state.subjects||[]).length))classes=[{id,name:String(state.className||state.classCode||'القسم الحالي'),nameFr:String(state.classNameFr||''),code:String(state.classCode||'')}]}
+ state.classes=classes;
+ let terms=[...new Set((Array.isArray(state.terms)?state.terms:[]).map(x=>String(x||'').trim()).filter(Boolean))];
+ if(!terms.length&&state.marksByTerm&&typeof state.marksByTerm==='object')terms=[...new Set(Object.keys(state.marksByTerm).map(x=>String(x||'').trim()).filter(Boolean))];
+ if(state.term&&!terms.includes(String(state.term)))terms.unshift(String(state.term));
+ state.terms=terms;
  state.activeClassId=state.classes.some(c=>c.id===state.activeClassId)?state.activeClassId:(state.classes[0]?.id||'');
  state.term=state.terms.includes(state.term)?state.term:(state.terms[0]||'');
  state.classData=state.classData&&typeof state.classData==='object'?state.classData:{};
@@ -49,7 +54,7 @@ function refreshSelectors(){
  const ct=q('#classTop'),tt=q('#term'),teacher=currentUser?.role==='teacher';
  // classTop is owned by the unified workspace selector when available.
  // Do not overwrite its "My classes / Shared classes" groups during render.
- if(ct&&!window.nataijiUnifiedClassSelector){
+ if(ct&&!window.nataijiWorkspaceSelectorReady){
    ct.innerHTML=state.classes.length?state.classes.map(c=>`<option value="${esc2(c.id)}" ${c.id===state.activeClassId?'selected':''}>${esc2(c.name)}</option>`).join(''):'<option value="">أضف قسمًا من الإعدادات</option>';
    ct.disabled=!state.classes.length||(teacher&&state.classes.length<2);
    ct.onchange=async e=>{
@@ -58,7 +63,7 @@ function refreshSelectors(){
      ct.disabled=true;
      try{await window.nataijiSelectClass(selected)}
      catch(err){console.error('class switch failed',err);ct.value=previous}
-     finally{const live=q('#classTop');if(live&&!window.nataijiUnifiedClassSelector)live.disabled=!state.classes.length||(teacher&&state.classes.length<2)}
+     finally{const live=q('#classTop');if(live&&!window.nataijiWorkspaceSelectorReady)live.disabled=!state.classes.length||(teacher&&state.classes.length<2)}
    };
  }
  if(tt){
@@ -83,6 +88,7 @@ function refreshSelectors(){
    };
  }
 }
+window.nataijiRefreshSelectors=refreshSelectors;
 window.nataijiSelectClass=async function(classId){if(!classId)return;if(currentUser?.role==='teacher'){await api('/api/active-selection',{method:'POST',body:JSON.stringify({classId,term:state.term})});await loadTeacherView(classId,state.term)}else{await api('/api/active-selection',{method:'POST',body:JSON.stringify({classId,term:state.term})});const r=await api('/api/state?classId='+encodeURIComponent(classId)+'&term='+encodeURIComponent(state.term||''));const fresh=typeof normalizeState==='function'?normalizeState(r.state):clone(r.state||{});for(const k of Object.keys(state))delete state[k];Object.assign(state,fresh);normalizeLocal();localStorage.setItem('nataiji-data',JSON.stringify(state));render();refreshSelectors()}};
 function structureModal(draft=null){
  if(currentUser?.role!=='admin')return;
