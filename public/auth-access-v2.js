@@ -119,7 +119,8 @@ function bindShares(){
 }
 async function bindUnifiedClassSelector(){
  const sel=q('#classTop');if(!sel||!currentUser)return;
- try{const r=await api('/api/workspaces');if(!r)return;sel.innerHTML='';
+ window.nataijiUnifiedClassSelector=true;
+ try{const r=await api('/api/workspaces');if(!r)return;sel.innerHTML='';sel.disabled=false;
   const own=document.createElement('optgroup');own.label=tr('أقسامي','Mes classes');
   for(const s of r.owned||[])for(const cls of s.classes||[]){const o=document.createElement('option');o.value='own|'+s.schoolId+'|'+cls.id;o.textContent=((r.owned||[]).length>1?s.schoolName+' — ':'')+cls.name;if(s.active&&state?.activeClassId===cls.id)o.selected=true;own.appendChild(o)}
   if(own.children.length)sel.appendChild(own);
@@ -132,7 +133,7 @@ async function bindUnifiedClassSelector(){
     if(state?.activeClassId!==classId)await window.nataijiSelectClass?.(classId)
   }catch(e){alert(authErr(e.code))}
   }
- }catch{}
+ }catch{window.nataijiUnifiedClassSelector=false}
 }
 function bindSchools(){
  const grid=q('.settings-grid');if(!grid)return;let b=q('#schoolsBtn');
