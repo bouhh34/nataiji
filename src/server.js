@@ -90,7 +90,7 @@ app.post('/api/schools',auth,async(req,res)=>{
  await storeSet(schoolKey(id),JSON.stringify(fresh));u.ownedSchoolIds=[...new Set([...(u.ownedSchoolIds||[u.schoolId]),id])];u.schoolId=id;await storeSet(userKey(u.id),JSON.stringify(u));res.status(201).json({ok:true,school:{id,name,nameFr,active:true},user:safeUser(u)})
 });
 app.post('/api/schools/switch',auth,async(req,res)=>{
- const raw=await storeGet(userKey(req.user.id));if(!raw)return res.status(404).json({error:'account_not_found'});const u=JSON.parse(raw),id=String(req.body?.schoolId||''),baseRole=u.baseRole||u.role,owned=new Set(Array.isArray(u.ownedSchoolIds)&&u.ownedSchoolIds.length?u.ownedSchoolIds:(baseRole==='admin'&&u.schoolId?[u.schoolId]:[]));
+ const raw=await storeGet(userKey(req.user.id));if(!raw)return res.status(404).json({error:'account_not_found'});const u=JSON.parse(raw),id=String(req.body?.schoolId||''),owned=new Set(Array.isArray(u.ownedSchoolIds)?u.ownedSchoolIds:(u.role==='admin'&&u.schoolId?[u.schoolId]:[]));
  if(!owned.has(id))return res.status(403).json({error:'forbidden_school'});u.schoolId=id;u.activeSharedGrant='';await storeSet(userKey(u.id),JSON.stringify(u));res.json({ok:true,user:safeUser(u)})
 });
 app.post('/api/auth/logout',auth,async(req,res)=>{await storeDel(sessionKey(parseCookies(req).nataiji_session));res.clearCookie('nataiji_session',{path:'/'});res.json({ok:true})});
