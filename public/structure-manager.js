@@ -23,9 +23,15 @@ async function reloadCanonical(){
 }
 async function saveStructure(structure){
  const r=await api('/api/structure',{method:'PUT',body:JSON.stringify({structure})});
- if(!r?.ok)throw new Error('structure_save_failed');
- await reloadCanonical();
- return r.structure;
+ if(!r?.ok)throw new Error(r?.error||'structure_save_failed');
+ const saved=r.structure||structure;
+ state.classes=clone(saved.classes||[]);state.terms=clone(saved.terms||[]);state.activeClassId=saved.activeClassId||state.classes[0]?.id||'';state.term=saved.term||state.terms[0]||'';
+ state.classData=state.classData&&typeof state.classData==='object'?state.classData:{};
+ for(const cls of state.classes)state.classData[cls.id]=state.classData[cls.id]||{pupils:[],subjects:[],marksByTerm:{}};
+ const keep=new Set(state.classes.map(x=>x.id));for(const id of Object.keys(state.classData))if(!keep.has(id))delete state.classData[id];
+ localStorage.setItem('nataiji-data',JSON.stringify(state));render();refreshSelectors();
+ try{await reloadCanonical()}catch(e){console.warn('Canonical reload after structure save failed',e)}
+ return saved;
 }
 function currentStructure(){normalizeLocal();return{classes:clone(state.classes),terms:clone(state.terms),activeClassId:state.activeClassId||'',term:state.term||''}}
 function refreshSelectors(){
@@ -57,7 +63,7 @@ function structureModal(draft=null){
  p.querySelector('#addClass').onclick=()=>{syncDraft();const id='class-'+crypto.randomUUID();d.classes.push({id,name:'قسم جديد',nameFr:'',code:''});if(!d.activeClassId)d.activeClassId=id;p.remove();structureModal(d)};
  p.querySelectorAll('[data-term-del]').forEach(b=>b.onclick=()=>{syncDraft();d.terms.splice(+b.dataset.termDel,1);if(!d.terms.includes(d.term))d.term=d.terms[0]||'';p.remove();structureModal(d)});
  p.querySelectorAll('[data-class-del]').forEach(b=>b.onclick=()=>{syncDraft();const i=+b.dataset.classDel,id=d.classes[i]?.id;d.classes.splice(i,1);if(d.activeClassId===id)d.activeClassId=d.classes[0]?.id||'';p.remove();structureModal(d)});
- p.querySelector('.action').onclick=async()=>{syncDraft();d.terms=d.terms.map(x=>x.trim()).filter(Boolean);d.classes=d.classes.filter(x=>String(x.name||'').trim()).map(x=>({...x,name:String(x.name).trim(),code:String(x.code||'').trim()}));if(!d.classes.some(x=>x.id===d.activeClassId))d.activeClassId=d.classes[0]?.id||'';if(!d.terms.includes(d.term))d.term=d.terms[0]||'';const msg=p.querySelector('.message'),btn=p.querySelector('.action');btn.disabled=true;msg.textContent='جارٍ الحفظ والتثبيت…';try{await saveStructure(d);msg.textContent='✓ تم حفظ الفصول والأقسام وتثبيتها';setTimeout(()=>p.remove(),220)}catch{btn.disabled=false;msg.textContent='تعذر تثبيت الفصول والأقسام على الخادم'}};
+ p.querySelector('.action').onclick=async()=>{syncDraft();d.terms=d.terms.map(x=>x.trim()).filter(Boolean);d.classes=d.classes.filter(x=>String(x.name||'').trim()).map(x=>({...x,name:String(x.name).trim(),code:String(x.code||'').trim()}));if(!d.classes.some(x=>x.id===d.activeClassId))d.activeClassId=d.classes[0]?.id||'';if(!d.terms.includes(d.term))d.term=d.terms[0]||'';const msg=p.querySelector('.message'),btn=p.querySelector('.action');btn.disabled=true;msg.textContent='جارٍ الحفظ والتثبيت…';try{await saveStructure(d);msg.textContent='✓ تم حفظ الفصول والأقسام وتثبيتها';setTimeout(()=>p.remove(),220)}catch(e){btn.disabled=false;msg.textContent='تعذر تثبيت الفصول والأقسام على الخادم'+(e?.code?(' — '+e.code):'')}};
 }
 function joinModal(){const p=modal('استخدام رمز دعوة',`<p>أدخل رمز الدعوة الذي أرسله لك مدير المدرسة.</p><label>رمز الدعوة<input id="jc" placeholder="NT-XXXXXXXX" autocomplete="one-time-code"></label><button class="primary action">الدخول بالرمز</button><p class="message"></p>`);p.querySelector('.action').onclick=async()=>{const m=p.querySelector('.message'),code=q('#jc').value.trim();if(!code){m.textContent='أدخل رمز الدعوة';return}m.textContent='جارٍ التحقق...';try{await api('/api/auth/logout',{method:'POST'}).catch(()=>{});const r=await window.nataijiLoginByCode(code);currentUser=r.user;p.remove();await startApp()}catch(e){m.textContent=authError(e.code)}}}
 function install(){
