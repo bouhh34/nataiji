@@ -109,22 +109,34 @@ app.delete('/api/account',auth,async(req,res)=>{
  await storeDel(userKey(user.id));if(currentToken)await storeDel(sessionKey(currentToken));res.clearCookie('nataiji_session',{path:'/'});
  res.json({ok:true,scope:'account'})
 });
-app.post('/api/auth/join',async(req,res)=>{const code=String(req.body?.code||'').trim().toUpperCase(),name=String(req.body?.name||'').trim(),email=normEmail(req.body?.email),password=String(req.body?.password||'');if(!code||!name||!email||password.length<8)return res.status(400).json({error:'invalid_input'});const invRaw=await storeGet(inviteKey(code));if(!invRaw)return res.status(404).json({error:'invalid_invite'});const idx=await getIndex();if(idx[email])return res.status(409).json({error:'email_exists'});const inv=JSON.parse(invRaw),id=crypto.randomUUID(),hp=hashPassword(password),user={id,name,email,role:'teacher',schoolId:inv.schoolId,permissions:cleanPermissions(inv.permissions).length?cleanPermissions(inv.permissions):['grades'],classIds:Array.isArray(inv.classIds)?inv.classIds:[],subjectIds:Array.isArray(inv.subjectIds)?inv.subjectIds:[],allSubjects:inv.allSubjects!==false,sessionVersion:0,salt:hp.salt,passwordHash:hp.hash};await storeSet(userKey(id),JSON.stringify(user));idx[email]=id;await setIndex(idx);await storeDel(inviteKey(code));res.status(201).json({user:await createSession(res,user)})});
+app.post('/api/auth/join',async(req,res)=>{const code=String(req.body?.code||'').trim().toUpperCase(),name=String(req.body?.name||'').trim(),email=normEmail(req.body?.email),password=String(req.body?.password||'');if(!code||!name||!email||password.length<8)return res.status(400).json({error:'invalid_input'});const invRaw=await storeGet(inviteKey(code));if(!invRaw)return res.status(404).json({error:'invalid_invite'});const idx=await getIndex();if(idx[email])return res.status(409).json({error:'email_exists'});const inv=JSON.parse(invRaw),id=crypto.randomUUID(),hp=hashPassword(password),classAccess=inv.classAccess&&typeof inv.classAccess==='object'?inv.classAccess:Object.fromEntries((Array.isArray(inv.classIds)?inv.classIds:[]).map(cid=>[cid,{allSubjects:inv.allSubjects!==false,subjectIds:Array.isArray(inv.subjectIds)?inv.subjectIds:[]}])),classIds=Object.keys(classAccess),firstScope=classAccess[classIds[0]]||{allSubjects:true,subjectIds:[]},user={id,name,email,role:'teacher',schoolId:inv.schoolId,permissions:cleanPermissions(inv.permissions).length?cleanPermissions(inv.permissions):['grades'],classIds,classAccess,subjectIds:firstScope.subjectIds||[],allSubjects:firstScope.allSubjects!==false,sessionVersion:0,salt:hp.salt,passwordHash:hp.hash};await storeSet(userKey(id),JSON.stringify(user));idx[email]=id;await setIndex(idx);await storeDel(inviteKey(code));res.status(201).json({user:await createSession(res,user)})});
 app.post('/api/auth/forgot-password',async(req,res)=>{const email=normEmail(req.body?.email),lang=req.body?.lang==='fr'?'fr':'ar';if(!process.env.RESEND_API_KEY||!process.env.RESET_FROM_EMAIL)return res.status(503).json({error:'email_service_unconfigured'});if(!email||!validEmail(email))return res.json({ok:true});const recent=await storeGet(resetRateKey(email));if(recent)return res.json({ok:true});await storeSet(resetRateKey(email),'1',60);const idx=await getIndex(),id=idx[email];if(!id)return res.json({ok:true});const raw=await storeGet(userKey(id));if(!raw)return res.json({ok:true});const user=JSON.parse(raw),token=crypto.randomBytes(32).toString('hex'),origin=(process.env.PUBLIC_BASE_URL||`${req.protocol}://${req.get('host')}`).replace(/\/$/,'');await storeSet(resetKey(token),JSON.stringify({userId:user.id,createdAt:Date.now()}),RESET_TTL);try{await sendResetEmail(user,`${origin}/?reset=${encodeURIComponent(token)}`,lang)}catch(e){await storeDel(resetKey(token));return res.status(e.code==='email_service_unconfigured'?503:502).json({error:e.code||'email_delivery_failed'})}res.json({ok:true})});
 app.post('/api/auth/reset-password',async(req,res)=>{const token=String(req.body?.token||''),password=String(req.body?.password||'');if(token.length<20||password.length<8)return res.status(400).json({error:'invalid_input'});const raw=await storeGet(resetKey(token));if(!raw)return res.status(400).json({error:'invalid_or_expired_reset'});const {userId}=JSON.parse(raw),uRaw=await storeGet(userKey(userId));if(!uRaw){await storeDel(resetKey(token));return res.status(400).json({error:'invalid_or_expired_reset'})}const user=JSON.parse(uRaw),hp=hashPassword(password);user.salt=hp.salt;user.passwordHash=hp.hash;user.sessionVersion=(Number(user.sessionVersion)||0)+1;await storeSet(userKey(user.id),JSON.stringify(user));await storeDel(resetKey(token));res.json({ok:true})});
 app.post('/api/invites',auth,adminOnly,async(req,res)=>{
- const raw=await storeGet(schoolKey(req.user.schoolId)),school=ensureSchoolModel(raw?JSON.parse(raw):{}),requested=String(req.body?.classId||school.activeClassId||''),cls=school.classes.find(c=>c.id===requested);
- if(!cls)return res.status(400).json({error:'invalid_class'});
- const permissions=cleanPermissions(req.body?.permissions);if(!permissions.length)return res.status(400).json({error:'invalid_permissions'});
- const teacherName=String(req.body?.teacherName||'').trim()||'معلم',allSubjects=req.body?.allSubjects!==false;
- let subjectIds=[];
- if(!allSubjects){
-  if(pool){const sq=await pool.query('SELECT subject_id FROM nataiji_subjects WHERE school_id=$1 AND class_id=$2 ORDER BY position,updated_at',[req.user.schoolId,cls.id]),valid=new Set(sq.rows.map(x=>String(x.subject_id)));subjectIds=[...new Set((Array.isArray(req.body?.subjectIds)?req.body.subjectIds:[]).map(String).filter(x=>valid.has(x)))]}
-  if(!subjectIds.length)return res.status(400).json({error:'invalid_subject_scope'})
+ const raw=await storeGet(schoolKey(req.user.schoolId)),school=ensureSchoolModel(raw?JSON.parse(raw):{}),permissions=cleanPermissions(req.body?.permissions);
+ if(!permissions.length)return res.status(400).json({error:'invalid_permissions'});
+ const teacherName=String(req.body?.teacherName||'').trim()||'معلم',requested=req.body?.classAccess&&typeof req.body.classAccess==='object'?req.body.classAccess:null,classAccess={};
+ if(requested){
+  for(const [classId,scope] of Object.entries(requested)){
+   const cls=school.classes.find(c=>c.id===classId);if(!cls)continue;
+   const allSubjects=scope?.allSubjects!==false;let subjectIds=[];
+   if(!allSubjects){
+    const sq=await pool.query('SELECT subject_id FROM nataiji_subjects WHERE school_id=$1 AND class_id=$2 ORDER BY position,updated_at',[req.user.schoolId,classId]),valid=new Set(sq.rows.map(x=>String(x.subject_id)));
+    subjectIds=[...new Set((Array.isArray(scope?.subjectIds)?scope.subjectIds:[]).map(String).filter(x=>valid.has(x)))];
+    if(!subjectIds.length)continue
+   }
+   classAccess[classId]={allSubjects,subjectIds}
+  }
+ }else{
+  const requestedClass=String(req.body?.classId||school.activeClassId||''),cls=school.classes.find(c=>c.id===requestedClass);if(!cls)return res.status(400).json({error:'invalid_class'});
+  const allSubjects=req.body?.allSubjects!==false;let subjectIds=[];
+  if(!allSubjects){const sq=await pool.query('SELECT subject_id FROM nataiji_subjects WHERE school_id=$1 AND class_id=$2 ORDER BY position,updated_at',[req.user.schoolId,cls.id]),valid=new Set(sq.rows.map(x=>String(x.subject_id)));subjectIds=[...new Set((Array.isArray(req.body?.subjectIds)?req.body.subjectIds:[]).map(String).filter(x=>valid.has(x)))];if(!subjectIds.length)return res.status(400).json({error:'invalid_subject_scope'})}
+  classAccess[cls.id]={allSubjects,subjectIds}
  }
- const code='NT-'+crypto.randomBytes(6).toString('hex').toUpperCase(),inv={schoolId:req.user.schoolId,createdBy:req.user.id,teacherName,permissions,classIds:[cls.id],allSubjects,subjectIds,createdAt:new Date().toISOString()};
+ const classIds=Object.keys(classAccess);if(!classIds.length)return res.status(400).json({error:'invalid_class_scope'});
+ const code='NT-'+crypto.randomBytes(6).toString('hex').toUpperCase(),inv={schoolId:req.user.schoolId,createdBy:req.user.id,teacherName,permissions,classIds,classAccess,createdAt:new Date().toISOString()};
  await storeSet(inviteKey(code),JSON.stringify(inv),INVITE_TTL);
- res.status(201).json({code,expiresInDays:7,teacherName,permissions,classId:cls.id,className:cls.name,allSubjects,subjectIds})
+ res.status(201).json({code,expiresInDays:7,teacherName,permissions,classIds,classAccess,classes:school.classes.filter(x=>classIds.includes(x.id)).map(x=>({id:x.id,name:x.name}))})
 });
 
 app.post('/api/auth/code-login',async(req,res)=>{
@@ -137,7 +149,8 @@ app.post('/api/auth/code-login',async(req,res)=>{
   const user=JSON.parse(uRaw);return res.json({user:await createSession(res,user)})
  }
  const invRaw=await storeGet(inviteKey(code));if(!invRaw)return res.status(404).json({error:'invalid_invite'});
- const inv=JSON.parse(invRaw),id=crypto.randomUUID(),user={id,name:String(inv.teacherName||'معلم'),email:'',role:'teacher',schoolId:inv.schoolId,permissions:cleanPermissions(inv.permissions).length?cleanPermissions(inv.permissions):['grades'],classIds:Array.isArray(inv.classIds)?inv.classIds:[],subjectIds:Array.isArray(inv.subjectIds)?inv.subjectIds:[],allSubjects:inv.allSubjects!==false,sessionVersion:0};
+ const inv=JSON.parse(invRaw),id=crypto.randomUUID(),classAccess=inv.classAccess&&typeof inv.classAccess==='object'?inv.classAccess:Object.fromEntries((Array.isArray(inv.classIds)?inv.classIds:[]).map(cid=>[cid,{allSubjects:inv.allSubjects!==false,subjectIds:Array.isArray(inv.subjectIds)?inv.subjectIds:[]}]));
+ const classIds=Object.keys(classAccess),firstScope=classAccess[classIds[0]]||{allSubjects:true,subjectIds:[]},user={id,name:String(inv.teacherName||'معلم'),email:'',role:'teacher',schoolId:inv.schoolId,permissions:cleanPermissions(inv.permissions).length?cleanPermissions(inv.permissions):['grades'],classIds,classAccess,subjectIds:firstScope.subjectIds||[],allSubjects:firstScope.allSubjects!==false,sessionVersion:0};
  await storeSet(userKey(id),JSON.stringify(user));await storeSet(accessCodeKey(code),JSON.stringify({userId:id,schoolId:inv.schoolId,createdAt:new Date().toISOString()}));await storeDel(inviteKey(code));
  res.status(201).json({user:await createSession(res,user)})
 });
