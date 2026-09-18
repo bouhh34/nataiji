@@ -130,9 +130,9 @@ async function bindUnifiedClassSelector(){
   for(const g of r.shared||[])for(const cls of g.classes||[]){const o=document.createElement('option');o.value='shared|'+g.grantId+'|'+cls.id;o.textContent=(g.schoolName||tr('مدرسة','École'))+' — '+cls.name;if(g.active&&state?.activeClassId===cls.id)o.selected=true;sh.appendChild(o)}
   if(sh.children.length)sel.appendChild(sh);
   sel.onchange=async()=>{const [kind,id,classId]=sel.value.split('|');try{
-    if(kind==='shared'){const rr=await api('/api/shared/switch',{method:'POST',body:JSON.stringify({grantId:id})});currentUser=rr.user;await accountActivate(currentUser);setTimeout(()=>{const s=q('#classTop');if(s){const v='shared|'+id+'|'+classId;if([...s.options].some(o=>o.value===v)){s.value=v;s.dispatchEvent(new Event('change',{bubbles:true}))}}},150);return}
-    if(currentUser.activeSharedGrant||currentUser.schoolId!==id){if(currentUser.activeSharedGrant){const x=await api('/api/shared/switch',{method:'POST',body:JSON.stringify({grantId:''})});currentUser=x.user}if(currentUser.schoolId!==id){const x=await api('/api/schools/switch',{method:'POST',body:JSON.stringify({schoolId:id})});currentUser=x.user}await accountActivate(currentUser);setTimeout(()=>{const s=q('#classTop');if(s){s.value='own|'+id+'|'+classId;s.dispatchEvent(new Event('change',{bubbles:true}))}},150);return}
-    if(state?.activeClassId!==classId){state.activeClassId=classId;await window.nataijiReloadCanonical?.(classId)}
+    if(kind==='shared'){if(currentUser.activeSharedGrant!==id){const rr=await api('/api/shared/switch',{method:'POST',body:JSON.stringify({grantId:id})});currentUser=rr.user;await accountActivate(currentUser);setTimeout(()=>window.nataijiSelectClass?.(classId),180)}else await window.nataijiSelectClass?.(classId);return}
+    if(currentUser.activeSharedGrant||currentUser.schoolId!==id){if(currentUser.activeSharedGrant){const x=await api('/api/shared/switch',{method:'POST',body:JSON.stringify({grantId:''})});currentUser=x.user}if(currentUser.schoolId!==id){const x=await api('/api/schools/switch',{method:'POST',body:JSON.stringify({schoolId:id})});currentUser=x.user}await accountActivate(currentUser);setTimeout(()=>window.nataijiSelectClass?.(classId),180);return}
+    if(state?.activeClassId!==classId)await window.nataijiSelectClass?.(classId)
   }catch(e){alert(authErr(e.code))}
   }
  }catch{}
