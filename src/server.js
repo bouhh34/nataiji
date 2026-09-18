@@ -29,11 +29,11 @@ async function initStore(){
 
 const parseCookies=req=>Object.fromEntries((req.headers.cookie||'').split(';').map(v=>v.trim()).filter(Boolean).map(v=>{const i=v.indexOf('=');return i<0?[v,'']:[v.slice(0,i),decodeURIComponent(v.slice(i+1))]}));
 const digest=v=>crypto.createHash('sha256').update(String(v)).digest('hex');
-const sessionKey=t=>'nataiji:session:'+digest(t),userKey=id=>'nataiji:user:'+id,schoolKey=id=>'nataiji:school:'+id+':state',inviteKey=code=>'nataiji:invite:'+code,accessCodeKey=code=>'nataiji:access-code:'+digest(code),resetKey=t=>'nataiji:reset:'+digest(t),resetRateKey=email=>'nataiji:reset-rate:'+digest(email),usersIndexKey='nataiji:users:index';
+const sessionKey=t=>'nataiji:session:'+digest(t),userKey=id=>'nataiji:user:'+id,schoolKey=id=>'nataiji:school:'+id+':state',inviteKey=code=>'nataiji:invite:'+code,accessCodeKey=code=>'nataiji:access-code:'+digest(code),resetKey=t=>'nataiji:reset:'+digest(t),resetRateKey=email=>'nataiji:reset-rate:'+digest(email),grantKey=id=>'nataiji:grant:'+id,ownerGrantsKey=id=>'nataiji:owner-grants:'+id,usersIndexKey='nataiji:users:index';
 const normEmail=v=>String(v||'').trim().toLowerCase();
 const validEmail=v=>/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v);
 const cleanPermissions=v=>[...new Set((Array.isArray(v)?v:[]).filter(x=>['grades','pupils','reports'].includes(x)))];
-const safeUser=u=>({id:u.id,name:u.name,email:u.email||'',role:u.role,schoolId:u.schoolId,ownedSchoolIds:Array.isArray(u.ownedSchoolIds)?u.ownedSchoolIds:(u.role==='admin'&&u.schoolId?[u.schoolId]:[]),permissions:u.permissions||[],classIds:Array.isArray(u.classIds)?u.classIds:[],classAccess:u.classAccess&&typeof u.classAccess==='object'?structuredClone(u.classAccess):{},subjectIds:Array.isArray(u.subjectIds)?u.subjectIds:[],allSubjects:u.allSubjects!==false,sessionVersion:Number(u.sessionVersion)||0});
+const safeUser=u=>{const grants=u.sharedGrants&&typeof u.sharedGrants==='object'?u.sharedGrants:{},g=u.activeSharedGrant?grants[u.activeSharedGrant]:null,baseRole=u.baseRole||u.role,owned=Array.isArray(u.ownedSchoolIds)?u.ownedSchoolIds:(baseRole==='admin'&&u.schoolId?[u.schoolId]:[]);return{id:u.id,name:u.name,email:u.email||'',baseRole,role:g?'teacher':baseRole,schoolId:g?.schoolId||u.schoolId,ownedSchoolIds:owned,activeSharedGrant:g?u.activeSharedGrant:'',sharedGrants:structuredClone(grants),permissions:g?(g.permissions||[]):(u.permissions||[]),classIds:g?Object.keys(g.classAccess||{}):(Array.isArray(u.classIds)?u.classIds:[]),classAccess:g?structuredClone(g.classAccess||{}):(u.classAccess&&typeof u.classAccess==='object'?structuredClone(u.classAccess):{}),subjectIds:g?[]:(Array.isArray(u.subjectIds)?u.subjectIds:[]),allSubjects:g?false:u.allSubjects!==false,sessionVersion:Number(u.sessionVersion)||0}};
 const hashPassword=(password,salt=crypto.randomBytes(16).toString('hex'))=>({salt,hash:crypto.scryptSync(password,salt,64).toString('hex')});
 function verifyPassword(password,u){try{const got=crypto.scryptSync(password,u.salt,64),exp=Buffer.from(u.passwordHash,'hex');return got.length===exp.length&&crypto.timingSafeEqual(got,exp)}catch{return false}}
 async function getIndex(){try{return JSON.parse(await storeGet(usersIndexKey)||'{}')}catch{return {}}}
@@ -71,7 +71,7 @@ async function sendResetEmail(user,link,lang){const key=process.env.RESEND_API_K
 
 app.get('/health',(_req,res)=>res.json({ok:true,app:'نتائجي',storage,emailConfigured:Boolean(process.env.RESEND_API_KEY&&process.env.RESET_FROM_EMAIL)}));
 app.get('/api/auth/status',async(req,res)=>{const idx=await getIndex(),token=parseCookies(req).nataiji_session;let user=null;if(token){const raw=await storeGet(sessionKey(token));if(raw){try{const session=JSON.parse(raw),uRaw=await storeGet(userKey(session.id));if(uRaw){const u=JSON.parse(uRaw);if((Number(u.sessionVersion)||0)===(Number(session.sessionVersion)||0))user=safeUser(u)}}catch{}}}res.json({initialized:Object.keys(idx).length>0,canRegister:true,user,storage,emailConfigured:Boolean(process.env.RESEND_API_KEY&&process.env.RESET_FROM_EMAIL)})});
-app.post('/api/auth/register',async(req,res)=>{const idx=await getIndex(),name=String(req.body?.name||'').trim(),email=normEmail(req.body?.email),password=String(req.body?.password||''),school=String(req.body?.school||'').trim();if(!name||!validEmail(email)||password.length<8)return res.status(400).json({error:'invalid_input'});if(idx[email])return res.status(409).json({error:'email_exists'});const id=crypto.randomUUID(),schoolId=crypto.randomUUID(),hp=hashPassword(password),user={id,name,email,role:'admin',schoolId,ownedSchoolIds:[schoolId],permissions:['all'],classIds:[],sessionVersion:0,salt:hp.salt,passwordHash:hp.hash},fresh=newSchoolState(name,school);await storeSet(userKey(id),JSON.stringify(user));idx[email]=id;await setIndex(idx);await storeSet(schoolKey(schoolId),JSON.stringify(fresh));if(pool){await pool.query('INSERT INTO nataiji_school_settings(school_id,data) VALUES($1,$2::jsonb) ON CONFLICT DO NOTHING',[schoolId,JSON.stringify({school,schoolFr:'',region:'',regionFr:'',inspection:'',inspectionFr:'',year:''})]);await pool.query('INSERT INTO nataiji_structure(school_id,data) VALUES($1,$2::jsonb) ON CONFLICT DO NOTHING',[schoolId,JSON.stringify({classes:[],terms:[],activeClassId:'',term:''})])}res.status(201).json({user:await createSession(res,user)})});
+app.post('/api/auth/register',async(req,res)=>{const idx=await getIndex(),name=String(req.body?.name||'').trim(),email=normEmail(req.body?.email),password=String(req.body?.password||''),school=String(req.body?.school||'').trim();if(!name||!validEmail(email)||password.length<8)return res.status(400).json({error:'invalid_input'});if(idx[email])return res.status(409).json({error:'email_exists'});const id=crypto.randomUUID(),schoolId=crypto.randomUUID(),hp=hashPassword(password),user={id,name,email,role:'admin',baseRole:'admin',schoolId,ownedSchoolIds:[schoolId],sharedGrants:{},activeSharedGrant:'',permissions:['all'],classIds:[],sessionVersion:0,salt:hp.salt,passwordHash:hp.hash},fresh=newSchoolState(name,school);await storeSet(userKey(id),JSON.stringify(user));idx[email]=id;await setIndex(idx);await storeSet(schoolKey(schoolId),JSON.stringify(fresh));if(pool){await pool.query('INSERT INTO nataiji_school_settings(school_id,data) VALUES($1,$2::jsonb) ON CONFLICT DO NOTHING',[schoolId,JSON.stringify({school,schoolFr:'',region:'',regionFr:'',inspection:'',inspectionFr:'',year:''})]);await pool.query('INSERT INTO nataiji_structure(school_id,data) VALUES($1,$2::jsonb) ON CONFLICT DO NOTHING',[schoolId,JSON.stringify({classes:[],terms:[],activeClassId:'',term:''})])}res.status(201).json({user:await createSession(res,user)})});
 app.post('/api/auth/login',async(req,res)=>{const email=normEmail(req.body?.email),password=String(req.body?.password||''),idx=await getIndex(),id=idx[email];if(!id)return res.status(401).json({error:'bad_credentials'});const raw=await storeGet(userKey(id));if(!raw)return res.status(401).json({error:'bad_credentials'});let user=JSON.parse(raw);if(!verifyPassword(password,user))return res.status(401).json({error:'bad_credentials'});user=await migrateTeacherAssignment(user);res.json({user:await createSession(res,user)})});
 app.get('/api/schools',auth,async(req,res)=>{
  const raw=await storeGet(userKey(req.user.id));if(!raw)return res.status(404).json({error:'account_not_found'});const u=JSON.parse(raw),ids=[...new Set(Array.isArray(u.ownedSchoolIds)?u.ownedSchoolIds:(u.role==='admin'&&u.schoolId?[u.schoolId]:[]))],schools=[];
@@ -88,7 +88,7 @@ app.post('/api/schools',auth,async(req,res)=>{
 });
 app.post('/api/schools/switch',auth,async(req,res)=>{
  const raw=await storeGet(userKey(req.user.id));if(!raw)return res.status(404).json({error:'account_not_found'});const u=JSON.parse(raw),id=String(req.body?.schoolId||''),owned=new Set(Array.isArray(u.ownedSchoolIds)?u.ownedSchoolIds:(u.role==='admin'&&u.schoolId?[u.schoolId]:[]));
- if(!owned.has(id))return res.status(403).json({error:'forbidden_school'});u.schoolId=id;u.classIds=[];u.classAccess={};u.subjectIds=[];await storeSet(userKey(u.id),JSON.stringify(u));res.json({ok:true,user:safeUser(u)})
+ if(!owned.has(id))return res.status(403).json({error:'forbidden_school'});u.schoolId=id;u.activeSharedGrant='';await storeSet(userKey(u.id),JSON.stringify(u));res.json({ok:true,user:safeUser(u)})
 });
 app.post('/api/auth/logout',auth,async(req,res)=>{await storeDel(sessionKey(parseCookies(req).nataiji_session));res.clearCookie('nataiji_session',{path:'/'});res.json({ok:true})});
 app.delete('/api/account',auth,async(req,res)=>{
@@ -151,42 +151,22 @@ app.post('/api/invites',auth,adminOnly,async(req,res)=>{
   classAccess[cls.id]={allSubjects,subjectIds}
  }
  const classIds=Object.keys(classAccess);if(!classIds.length)return res.status(400).json({error:'invalid_class_scope'});
- const code='NT-'+crypto.randomBytes(6).toString('hex').toUpperCase(),inv={schoolId:req.user.schoolId,createdBy:req.user.id,teacherName,permissions,classIds,classAccess,createdAt:new Date().toISOString()};
+ const code='NT-'+crypto.randomBytes(6).toString('hex').toUpperCase(),grantId=crypto.randomUUID(),sq=pool?await pool.query('SELECT data FROM nataiji_school_settings WHERE school_id=$1',[req.user.schoolId]):null,sd=sq?.rows?.[0]?.data||{},inv={grantId,schoolId:req.user.schoolId,schoolName:sd.school||'مدرسة',schoolNameFr:sd.schoolFr||'',createdBy:req.user.id,teacherName,permissions,classIds,classAccess,createdAt:new Date().toISOString()};
  await storeSet(inviteKey(code),JSON.stringify(inv),INVITE_TTL);
  res.status(201).json({code,expiresInDays:7,teacherName,permissions,classIds,classAccess,classes:school.classes.filter(x=>classIds.includes(x.id)).map(x=>({id:x.id,name:x.name}))})
 });
 
 app.post('/api/access/attach',auth,async(req,res)=>{
- if(req.user.role!=='teacher')return res.status(403).json({error:'teacher_only'});
- const code=String(req.body?.code||'').trim().toUpperCase();
- if(!/^NT-[A-F0-9]{8,16}$/.test(code))return res.status(400).json({error:'invalid_invite'});
- const accessRaw=await storeGet(accessCodeKey(code));
- if(accessRaw){
-  const access=JSON.parse(accessRaw);
-  if(access.userId!==req.user.id)return res.status(409).json({error:'invite_in_use'});
-  const uRaw=await storeGet(userKey(req.user.id));if(!uRaw)return res.status(404).json({error:'account_not_found'});
-  return res.json({ok:true,user:safeUser(JSON.parse(uRaw)),alreadyAttached:true})
- }
- const invRaw=await storeGet(inviteKey(code));if(!invRaw)return res.status(404).json({error:'invalid_invite'});
- const inv=JSON.parse(invRaw);
- if(inv.schoolId!==req.user.schoolId)return res.status(409).json({error:'different_school_invite'});
- const uRaw=await storeGet(userKey(req.user.id));if(!uRaw)return res.status(404).json({error:'account_not_found'});
- const user=JSON.parse(uRaw),incoming=inv.classAccess&&typeof inv.classAccess==='object'?inv.classAccess:Object.fromEntries((Array.isArray(inv.classIds)?inv.classIds:[]).map(cid=>[cid,{allSubjects:inv.allSubjects!==false,subjectIds:Array.isArray(inv.subjectIds)?inv.subjectIds:[]}]));
- user.classAccess=user.classAccess&&typeof user.classAccess==='object'?user.classAccess:{};
- for(const [classId,scope] of Object.entries(incoming)){
-  const old=user.classAccess[classId];
-  if(!old){user.classAccess[classId]={allSubjects:scope?.allSubjects!==false,subjectIds:[...new Set((scope?.subjectIds||[]).map(String))]};continue}
-  if(old.allSubjects!==false||scope?.allSubjects!==false)user.classAccess[classId]={allSubjects:true,subjectIds:[]};
-  else user.classAccess[classId]={allSubjects:false,subjectIds:[...new Set([...(old.subjectIds||[]),...(scope?.subjectIds||[])].map(String))]}
- }
- user.classIds=Object.keys(user.classAccess);
- user.permissions=[...new Set([...(user.permissions||[]),...cleanPermissions(inv.permissions)])];
- const first=user.classAccess[user.classIds[0]]||{allSubjects:true,subjectIds:[]};user.subjectIds=first.subjectIds||[];user.allSubjects=first.allSubjects!==false;
- await storeSet(userKey(user.id),JSON.stringify(user));
- await storeSet(accessCodeKey(code),JSON.stringify({userId:user.id,schoolId:user.schoolId,createdAt:new Date().toISOString()}));
- await storeDel(inviteKey(code));
- res.json({ok:true,user:safeUser(user),attachedClasses:Object.keys(incoming)})
+ const code=String(req.body?.code||'').trim().toUpperCase();if(!/^NT-[A-F0-9]{8,16}$/.test(code))return res.status(400).json({error:'invalid_invite'});
+ const used=await storeGet(accessCodeKey(code));if(used)return res.status(409).json({error:'invite_in_use'});
+ const invRaw=await storeGet(inviteKey(code));if(!invRaw)return res.status(404).json({error:'invalid_invite'});const inv=JSON.parse(invRaw),uRaw=await storeGet(userKey(req.user.id));if(!uRaw)return res.status(404).json({error:'account_not_found'});const user=JSON.parse(uRaw),grantId=inv.grantId||crypto.randomUUID();
+ user.baseRole=user.baseRole||user.role;user.sharedGrants=user.sharedGrants&&typeof user.sharedGrants==='object'?user.sharedGrants:{};user.sharedGrants[grantId]={grantId,ownerId:inv.createdBy,schoolId:inv.schoolId,schoolName:inv.schoolName||'مدرسة',schoolNameFr:inv.schoolNameFr||'',classAccess:inv.classAccess||{},permissions:cleanPermissions(inv.permissions),teacherName:inv.teacherName||'',createdAt:new Date().toISOString()};user.activeSharedGrant=grantId;await storeSet(userKey(user.id),JSON.stringify(user));
+ const grant={...user.sharedGrants[grantId],recipientId:user.id,recipientName:user.name,revoked:false};await storeSet(grantKey(grantId),JSON.stringify(grant));let ids=[];try{ids=JSON.parse(await storeGet(ownerGrantsKey(inv.createdBy))||'[]')}catch{};ids=[...new Set([...ids,grantId])];await storeSet(ownerGrantsKey(inv.createdBy),JSON.stringify(ids));await storeSet(accessCodeKey(code),JSON.stringify({userId:user.id,grantId,createdAt:new Date().toISOString()}));await storeDel(inviteKey(code));res.json({ok:true,user:safeUser(user),grant})
 });
+app.get('/api/shared',auth,async(req,res)=>{const raw=await storeGet(userKey(req.user.id));if(!raw)return res.status(404).json({error:'account_not_found'});const u=JSON.parse(raw);res.json({ok:true,activeSharedGrant:u.activeSharedGrant||'',grants:Object.values(u.sharedGrants||{})})});
+app.post('/api/shared/switch',auth,async(req,res)=>{const raw=await storeGet(userKey(req.user.id));if(!raw)return res.status(404).json({error:'account_not_found'});const u=JSON.parse(raw),id=String(req.body?.grantId||'');if(id&&!u.sharedGrants?.[id])return res.status(404).json({error:'shared_access_not_found'});if(id){const gr=await storeGet(grantKey(id));if(!gr||JSON.parse(gr).revoked){delete u.sharedGrants[id];u.activeSharedGrant='';await storeSet(userKey(u.id),JSON.stringify(u));return res.status(403).json({error:'shared_access_revoked'})}}u.activeSharedGrant=id;await storeSet(userKey(u.id),JSON.stringify(u));res.json({ok:true,user:safeUser(u)})});
+app.get('/api/shares',auth,async(req,res)=>{if(req.user.baseRole!=='admin'||req.user.activeSharedGrant)return res.status(403).json({error:'forbidden'});let ids=[];try{ids=JSON.parse(await storeGet(ownerGrantsKey(req.user.id))||'[]')}catch{};const grants=[];for(const id of ids){const raw=await storeGet(grantKey(id));if(raw){const g=JSON.parse(raw);if(!g.revoked)grants.push(g)}}res.json({ok:true,grants})});
+app.delete('/api/shares/:id',auth,async(req,res)=>{if(req.user.baseRole!=='admin'||req.user.activeSharedGrant)return res.status(403).json({error:'forbidden'});const id=String(req.params.id),raw=await storeGet(grantKey(id));if(!raw)return res.status(404).json({error:'share_not_found'});const g=JSON.parse(raw);if(g.ownerId!==req.user.id)return res.status(403).json({error:'forbidden'});g.revoked=true;g.revokedAt=new Date().toISOString();await storeSet(grantKey(id),JSON.stringify(g));const ur=await storeGet(userKey(g.recipientId));if(ur){const u=JSON.parse(ur);if(u.sharedGrants)delete u.sharedGrants[id];if(u.activeSharedGrant===id)u.activeSharedGrant='';await storeSet(userKey(u.id),JSON.stringify(u))}res.json({ok:true})});
 
 app.post('/api/auth/code-login',async(req,res)=>{
  const code=String(req.body?.code||'').trim().toUpperCase();
@@ -199,7 +179,7 @@ app.post('/api/auth/code-login',async(req,res)=>{
  }
  const invRaw=await storeGet(inviteKey(code));if(!invRaw)return res.status(404).json({error:'invalid_invite'});
  const inv=JSON.parse(invRaw),id=crypto.randomUUID(),classAccess=inv.classAccess&&typeof inv.classAccess==='object'?inv.classAccess:Object.fromEntries((Array.isArray(inv.classIds)?inv.classIds:[]).map(cid=>[cid,{allSubjects:inv.allSubjects!==false,subjectIds:Array.isArray(inv.subjectIds)?inv.subjectIds:[]}]));
- const classIds=Object.keys(classAccess),firstScope=classAccess[classIds[0]]||{allSubjects:true,subjectIds:[]},user={id,name:String(inv.teacherName||'معلم'),email:'',role:'teacher',schoolId:inv.schoolId,permissions:cleanPermissions(inv.permissions).length?cleanPermissions(inv.permissions):['grades'],classIds,classAccess,subjectIds:firstScope.subjectIds||[],allSubjects:firstScope.allSubjects!==false,sessionVersion:0};
+ const classIds=Object.keys(classAccess),firstScope=classAccess[classIds[0]]||{allSubjects:true,subjectIds:[]},user={id,name:String(inv.teacherName||'معلم'),email:'',role:'teacher',baseRole:'teacher',schoolId:inv.schoolId,sharedGrants:{},activeSharedGrant:'',permissions:cleanPermissions(inv.permissions).length?cleanPermissions(inv.permissions):['grades'],classIds,classAccess,subjectIds:firstScope.subjectIds||[],allSubjects:firstScope.allSubjects!==false,sessionVersion:0};
  await storeSet(userKey(id),JSON.stringify(user));await storeSet(accessCodeKey(code),JSON.stringify({userId:id,schoolId:inv.schoolId,createdAt:new Date().toISOString()}));await storeDel(inviteKey(code));
  res.status(201).json({user:await createSession(res,user)})
 });
