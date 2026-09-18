@@ -148,7 +148,7 @@ async function bindUnifiedClassSelector(){
     await bindUnifiedClassSelector();
    }catch(e){console.error('workspace switch failed',e);if(previous)sel.value=previous.kind+'|'+previous.id+'|'+previous.classId;sel.disabled=false}
   };
- }catch{if(run===workspaceSelectorRun)window.nataijiUnifiedClassSelector=false}
+ }catch(e){console.error('workspace selector load failed',e);if(run===workspaceSelectorRun){window.nataijiUnifiedClassSelector=false;sel.disabled=!sel.options.length}}
 }
 function scheduleUnifiedSelector(force=false){
  const sel=q('#classTop');if(!sel||!currentUser)return;
@@ -190,7 +190,7 @@ document.head.appendChild(css);
 let timer;function refreshAll(){bindSchools();bindJoinCard();bindInvite();bindShares();bindLogout();enforcePermissions();patchProfileRole();patchOfficialWording();patchSettingsModal();scheduleUnifiedSelector()}
 new MutationObserver(()=>{clearTimeout(timer);timer=setTimeout(refreshAll,35)}).observe(document.body,{childList:true,subtree:true});
 window.addEventListener('beforeprint',()=>patchOfficialWording());
-window.addEventListener('DOMContentLoaded',()=>{setTimeout(()=>{renderAuth('login').catch(()=>{});refreshAll()},80)});
+window.addEventListener('DOMContentLoaded',()=>{setTimeout(async()=>{try{await window.__nataijiBootPromise}catch{}if(!currentUser)renderAuth('login',true).catch(()=>{});refreshAll()},80)});
 setInterval(()=>{const l=lang();if(l!==lastLang){lastLang=l;if(q('.auth-gate'))renderAuth(authMode,true);setTimeout(refreshAll,20)}},250);
 setTimeout(refreshAll,0);
 })();

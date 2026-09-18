@@ -59,4 +59,4 @@ $('#printResult').onclick=()=>printOnly('student');$('#printList').onclick=()=>{
 $('#importBtn').onclick=()=>$('#importFile').click();$('#importFile').onchange=e=>{if(e.target.files[0])importCsv(e.target.files[0])};
 $$('[data-report]').forEach(b=>b.onclick=()=>showReport(b.dataset.report));$$('.report-print').forEach(b=>b.onclick=()=>printOnly(b.dataset.print));
 window.addEventListener('afterprint',()=>delete document.body.dataset.print);
-showAuth('resume');
+window.__nataijiBootPromise=showAuth('resume');
