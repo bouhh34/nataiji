@@ -66,7 +66,7 @@ function refreshSelectors(){
    };
  }
 }
-window.nataijiSelectClass=async function(classId){if(!classId)return;if(currentUser?.role==='teacher')await loadTeacherView(classId,state.term);else{const next=currentStructure();next.activeClassId=classId;await saveStructure(next)}};
+window.nataijiSelectClass=async function(classId){if(!classId)return;if(currentUser?.role==='teacher')await loadTeacherView(classId,state.term);else{await api('/api/active-selection',{method:'POST',body:JSON.stringify({classId,term:state.term})});const r=await api('/api/state?classId='+encodeURIComponent(classId)+'&term='+encodeURIComponent(state.term||''));const fresh=typeof normalizeState==='function'?normalizeState(r.state):clone(r.state||{});for(const k of Object.keys(state))delete state[k];Object.assign(state,fresh);normalizeLocal();localStorage.setItem('nataiji-data',JSON.stringify(state));render();refreshSelectors()}};
 function structureModal(draft=null){
  if(currentUser?.role!=='admin')return;
  const d=draft||currentStructure();
