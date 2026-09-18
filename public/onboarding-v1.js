@@ -32,7 +32,7 @@ function bindBiPair(arSel,frSel){
 }
 let open=false,draft={};
 function shouldOpen(){
- try{return currentUser?.role==='admin'&&Array.isArray(state?.classes)&&state.classes.length===0}catch{return false}
+ try{return currentUser?.role==='admin'&&!currentUser?.activeSharedGrant&&state?.onboardingComplete!==true&&Array.isArray(state?.classes)&&state.classes.length===0}catch{return false}
 }
 function defaultAcademicYear(){
  const d=new Date(),y=d.getFullYear(),start=d.getMonth()>=6?y:y-1;
@@ -70,8 +70,9 @@ function step3(){
 async function finishSetup(){
  const btn=q('#nwFinish'),err=q('.nw-error'),code=String(draft.code||'1AF'),names=CLASS_NAMES[code],id='class-'+crypto.randomUUID(),structure={classes:[{id,name:`${code} - ${names[0]}`,nameFr:`${code} - ${names[1]}`,code}],terms:[...TERMS],activeClassId:id,term:TERMS[0]};btn.disabled=true;err.textContent='جارٍ إنشاء القسم وتحميل المواد الرسمية…';
  try{
-  await api('/api/structure',{method:'PUT',body:JSON.stringify({structure})});
-  await api('/api/settings',{method:'PUT',body:JSON.stringify({school:draft.school,schoolFr:draft.schoolFr,region:draft.region,regionFr:draft.regionFr,inspection:draft.inspection,inspectionFr:draft.inspectionFr,year:draft.year,classId:id,className:structure.classes[0].name,classNameFr:structure.classes[0].nameFr,classCode:code})});
+  const existing=await api('/api/structure').catch(()=>({structure:{classes:[],terms:[]}})),old=existing?.structure||{},oldClasses=Array.isArray(old.classes)?old.classes:[],oldTerms=Array.isArray(old.terms)?old.terms:[],merged={classes:[...oldClasses.filter(x=>x.id!==id),...structure.classes],terms:[...new Set([...oldTerms,...TERMS])],activeClassId:id,term:old.term&&[...new Set([...oldTerms,...TERMS])].includes(old.term)?old.term:TERMS[0]};
+  await api('/api/structure',{method:'PUT',body:JSON.stringify({structure:merged,deleteClassIds:[]})});
+  await api('/api/settings',{method:'PUT',body:JSON.stringify({school:draft.school,schoolFr:draft.schoolFr,region:draft.region,regionFr:draft.regionFr,inspection:draft.inspection,inspectionFr:draft.inspectionFr,year:draft.year,classId:id,className:structure.classes[0].name,classNameFr:structure.classes[0].nameFr,classCode:code,onboardingComplete:true})});
   const r=await api('/api/state');currentUser=r.user||currentUser;const fresh=normalizeState(r.state);for(const k of Object.keys(state))delete state[k];Object.assign(state,fresh);localStorage.setItem('nataiji-data',JSON.stringify(state));render();step4()
  }catch(e){btn.disabled=false;err.textContent='تعذر إكمال الإعداد. لم نفقد بيانات المدرسة؛ أعد المحاولة.'}
 }
