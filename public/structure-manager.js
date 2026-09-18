@@ -47,7 +47,9 @@ function currentStructure(){normalizeLocal();return{classes:clone(state.classes)
 function refreshSelectors(){
  normalizeLocal();
  const ct=q('#classTop'),tt=q('#term'),teacher=currentUser?.role==='teacher';
- if(ct){
+ // classTop is owned by the unified workspace selector when available.
+ // Do not overwrite its "My classes / Shared classes" groups during render.
+ if(ct&&!window.nataijiUnifiedClassSelector){
    ct.innerHTML=state.classes.length?state.classes.map(c=>`<option value="${esc2(c.id)}" ${c.id===state.activeClassId?'selected':''}>${esc2(c.name)}</option>`).join(''):'<option value="">أضف قسمًا من الإعدادات</option>';
    ct.disabled=!state.classes.length||(teacher&&state.classes.length<2);
    ct.onchange=async e=>{
