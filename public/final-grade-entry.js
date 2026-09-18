@@ -72,7 +72,7 @@ function patchStudent(root,i){
  }
  const byLabel=re=>rows.find(x=>re.test(String(x.cells?.[0]?.textContent||'').trim()));
  const total=byLabel(/^(المجموع|Total)$/i),avg=byLabel(/^(المعدل|المعدل العام|Moyenne|Moyenne générale)$/i),rankRow=byLabel(/^(الرتبة|Rang)$/i),obs=byLabel(/^(الملاحظة|Observation)$/i);
- if(total?.cells?.[1])total.cells[1].innerHTML=`<strong dir="ltr">${Number(c.sum.toFixed(2))} / ${c.totalMax}</strong>`;
+ if(total?.cells?.[1])total.cells[1].innerHTML=c.absentAll?'<strong>—</strong>':`<strong dir="ltr">${Number(c.sum.toFixed(2))} / ${c.totalMax}</strong>`;
  if(avg?.cells?.[1])avg.cells[1].innerHTML=c.absentAll?`<strong>${absenceLabel(i)}</strong>`:`<strong dir="ltr">${c.avg.toFixed(1)} / 20</strong>`;
  if(rankRow?.cells?.[1])rankRow.cells[1].innerHTML=c.absentAll?'<strong>—</strong>':`<strong>${rank} / ${eligible}</strong>`;
  if(obs?.cells?.[1])obs.cells[1].innerHTML=c.absentAll?`<strong>${absenceLabel(i)} / ${absenceLabel(i,true)}</strong>`:`<strong>${c.avg>=10?'ناجح / Admis':'راسب / Non admis'}</strong>`
