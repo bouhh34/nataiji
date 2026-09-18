@@ -64,6 +64,7 @@ function refreshSelectors(){
    };
  }
 }
+window.nataijiSelectClass=async function(classId){if(!classId)return;if(currentUser?.role==='teacher')await loadTeacherView(classId,state.term);else{const next=currentStructure();next.activeClassId=classId;await saveStructure(next)}};
 function structureModal(draft=null){
  if(currentUser?.role!=='admin')return;
  const d=draft||currentStructure();
