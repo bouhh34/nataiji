@@ -169,7 +169,10 @@ function patchClassReport(root){
 }
 function patchReports(){
   const i=Math.max(0,q('#student')?.selectedIndex??0);patchStudentReport(q('#officialSheet'),i);
-  qa('#printBatch .batch-sheet').forEach((x,j)=>patchStudentReport(x,j));patchClassReport(q('#paperResults'));
+  qa('#printBatch .batch-sheet').forEach((x,j)=>patchStudentReport(x,j));
+  const third=state?.term==='الفصل الثالث'||/الثالث|3e|3ème|3eme/i.test(String(state?.term||''));
+  if(third&&typeof window.nataijiApplyAnnualReports==='function'){window.nataijiApplyAnnualReports();return}
+  patchClassReport(q('#paperResults'));
   if(document.body.dataset.print==='portal'&&document.body.dataset.portalType==='class')patchClassReport(q('#printPortal .portal-paper'));
 }
 
