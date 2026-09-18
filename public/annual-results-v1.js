@@ -52,14 +52,14 @@ function markBoldLabels(root=q('#officialSheet')){
 function patchFinalStudent(){
   const root=q('#officialSheet'),body=q('#sheet');if(!root||!body||!state?.pupils?.length)return;
   removeAnnualRows(body);
-  const i=currentStudentIndex(),baseAvg=rowByLabel(body,/^(المعدل(?: العام)?(?: \(على 20\))?|Moyenne(?: générale)?(?: \(sur 20\))?|Moyenne du 3e trimestre|معدل الفصل الثالث)$/i),rankRow=rowByLabel(body,/^(الرتبة|Rang|الرتبة العامة|Rang général)$/i);
+  const i=currentStudentIndex(),baseAvg=[...body.rows].find(r=>/^(المعدل(?: العام)?|Moyenne(?: générale)?)/i.test(String(r.cells?.[0]?.textContent||'').trim())),rankRow=rowByLabel(body,/^(الرتبة|Rang|الرتبة العامة|Rang général)$/i);
   if(!finalTerm()){
     if(baseAvg)baseAvg.cells[0].textContent=fr()?'Moyenne':'المعدل';
     if(rankRow)rankRow.cells[0].textContent=fr()?'Rang':'الرتبة';
     markBoldLabels(root);return;
   }
   const ts=terms(),a1=termAverage(i,ts[0]),a2=termAverage(i,ts[1]),a3=termAverage(i,ts[2]),annual=annualAverage(i),rank=annualRanks()[i];
-  if(baseAvg){baseAvg.cells[0].textContent=fr()?'Moyenne du 3e trimestre':'معدل الفصل الثالث';baseAvg.cells[1].innerHTML=`<strong dir="ltr">${fmt(a3)} / 20</strong>`}
+  if(baseAvg){if(baseAvg.cells[0])baseAvg.cells[0].textContent='معدل الفصل الثالث';if(baseAvg.cells[2])baseAvg.cells[2].textContent='Moyenne du 3e trimestre';baseAvg.cells[1].innerHTML=`<strong dir="ltr">${fmt(a3)} / 20</strong>`}
   const anchor=rankRow||null;
   body.insertBefore(makeRow('معدل الفصل الثاني','Moyenne du 2e trimestre',`${fmt(a2)} / 20`),anchor);
   body.insertBefore(makeRow('معدل الفصل الأول','Moyenne du 1er trimestre',`${fmt(a1)} / 20`),anchor);
