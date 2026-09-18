@@ -10,7 +10,8 @@ function normalizeLocal(){
  for(const c of state.classes)state.classData[c.id]=state.classData[c.id]||{pupils:[],subjects:[],marksByTerm:{}};
 }
 async function reloadCanonical(){
- const r=await api('/api/state');
+ const teacher=currentUser?.role==='teacher',url=teacher?('/api/state?classId='+encodeURIComponent(state.activeClassId||'')+'&term='+encodeURIComponent(state.term||'')):'/api/state';
+ const r=await api(url);
  currentUser=r.user||currentUser;
  const fresh=typeof normalizeState==='function'?normalizeState(r.state):clone(r.state||{});
  for(const k of Object.keys(state))delete state[k];
@@ -20,6 +21,15 @@ async function reloadCanonical(){
  render();
  refreshSelectors();
  setTimeout(()=>{window.nataijiRefreshOfficialReports?.();window.nataijiFinalizeReports?.()},0);
+}
+async function loadTeacherView(classId,term){
+ const url='/api/state?classId='+encodeURIComponent(classId||'')+'&term='+encodeURIComponent(term||'');
+ const r=await api(url);currentUser=r.user||currentUser;
+ const fresh=typeof normalizeState==='function'?normalizeState(r.state):clone(r.state||{});
+ for(const k of Object.keys(state))delete state[k];Object.assign(state,fresh);normalizeLocal();
+ localStorage.setItem('nataiji-data',JSON.stringify(state));render();refreshSelectors();
+ setTimeout(()=>{window.nataijiRefreshOfficialReports?.();window.nataijiFinalizeReports?.()},0);
+ return state
 }
 async function saveStructure(structure){
  const r=await api('/api/structure',{method:'PUT',body:JSON.stringify({structure})});
@@ -36,21 +46,21 @@ async function saveStructure(structure){
 function currentStructure(){normalizeLocal();return{classes:clone(state.classes),terms:clone(state.terms),activeClassId:state.activeClassId||'',term:state.term||''}}
 function refreshSelectors(){
  normalizeLocal();
- const ct=q('#classTop'),tt=q('#term');
+ const ct=q('#classTop'),tt=q('#term'),teacher=currentUser?.role==='teacher';
  if(ct){
    ct.innerHTML=state.classes.length?state.classes.map(c=>`<option value="${esc2(c.id)}" ${c.id===state.activeClassId?'selected':''}>${esc2(c.name)}</option>`).join(''):'<option value="">أضف قسمًا من الإعدادات</option>';
-   ct.disabled=!state.classes.length||currentUser?.role==='teacher';
+   ct.disabled=!state.classes.length||(teacher&&state.classes.length<2);
    ct.onchange=async e=>{
-     const next=currentStructure();next.activeClassId=e.target.value;
-     try{await saveStructure(next)}catch{e.target.value=state.activeClassId||''}
+     const selected=e.target.value;
+     try{if(teacher)await loadTeacherView(selected,state.term);else{const next=currentStructure();next.activeClassId=selected;await saveStructure(next)}}catch{e.target.value=state.activeClassId||''}
    };
  }
  if(tt){
    tt.innerHTML=state.terms.length?state.terms.map(t=>`<option ${t===state.term?'selected':''}>${esc2(t)}</option>`).join(''):'<option value="">أضف فصلًا دراسيًا</option>';
    tt.disabled=!state.terms.length;
    tt.onchange=async e=>{
-     const next=currentStructure();next.term=e.target.value;
-     try{await saveStructure(next)}catch{e.target.value=state.term||''}
+     const selected=e.target.value;
+     try{if(teacher)await loadTeacherView(state.activeClassId,selected);else{const next=currentStructure();next.term=selected;await saveStructure(next)}}catch{e.target.value=state.term||''}
    };
  }
 }
