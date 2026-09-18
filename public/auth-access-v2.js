@@ -114,6 +114,7 @@ function bindShares(){
  b.innerHTML=`<b>🔗 ${tr('المشاركات','Partages')}</b><span>${tr('عرض من لديه وصول وإلغاء الصلاحية عند الحاجة','Voir les accès accordés et les retirer si nécessaire')}</span>`;b.onclick=sharesModal
 }
 let workspaceSelectorRun=0,workspaceSelectorTimer=null;
+function workspaceStamp(){const cls=(state?.classes||[]).map(x=>String(x?.id||'')+':'+String(x?.name||'')).join(',');return [currentUser?.id||'',currentUser?.schoolId||'',currentUser?.activeSharedGrant||'',state?.activeClassId||'',lang(),cls].join('|')}
 async function bindUnifiedClassSelector(){
  const sel=q('#classTop');if(!sel||!currentUser)return;
  const run=++workspaceSelectorRun;
@@ -131,6 +132,7 @@ async function bindUnifiedClassSelector(){
   // If state changed while loading, select from the authoritative workspace state.
   const chosen=options.find(x=>x.selected)||options.find(x=>(x.kind+'|'+x.id+'|'+x.classId)===currentValue)||options[0];
   if(chosen)sel.value=chosen.kind+'|'+chosen.id+'|'+chosen.classId;
+  sel.dataset.nataijiWorkspaceStamp=workspaceStamp();
   sel.disabled=!options.length;
   sel.onchange=async()=>{
    const previous=options.find(x=>x.selected),[kind,id,classId]=sel.value.split('|');sel.disabled=true;
@@ -148,9 +150,11 @@ async function bindUnifiedClassSelector(){
   };
  }catch{if(run===workspaceSelectorRun)window.nataijiUnifiedClassSelector=false}
 }
-function scheduleUnifiedSelector(){
+function scheduleUnifiedSelector(force=false){
+ const sel=q('#classTop');if(!sel||!currentUser)return;
+ if(!force&&sel.dataset.nataijiWorkspaceStamp===workspaceStamp())return;
  clearTimeout(workspaceSelectorTimer);
- workspaceSelectorTimer=setTimeout(()=>bindUnifiedClassSelector(),60);
+ workspaceSelectorTimer=setTimeout(()=>bindUnifiedClassSelector(),20);
 }
 function bindSchools(){
  const grid=q('.settings-grid');if(!grid)return;let b=q('#schoolsBtn');
