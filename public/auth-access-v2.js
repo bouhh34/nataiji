@@ -140,11 +140,9 @@ async function bindUnifiedClassSelector(){
      else await window.nataijiSelectClass?.(classId);
     }else{
      if(currentUser.activeSharedGrant){const x=await api('/api/shared/switch',{method:'POST',body:JSON.stringify({grantId:''})});currentUser=x.user}
-     // After leaving a shared workspace, currentUser.schoolId is restored from the owner account.
-     // Switch school only when the selected owned workspace is different, then reload once.
      if(currentUser.schoolId!==id){const x=await api('/api/schools/switch',{method:'POST',body:JSON.stringify({schoolId:id})});currentUser=x.user}
-     await accountActivate(currentUser);
-     requestAnimationFrame(()=>window.nataijiSelectClass?.(classId));
+     // For another class in the same owned school, select it first; do not reload the old active class over the choice.
+     if(currentUser.schoolId===id&&state?.activeClassId!==classId&&window.nataijiSelectClass){await window.nataijiSelectClass(classId)}else await accountActivate(currentUser);
     }
    }catch(e){alert(authErr(e.code));sel.disabled=false}
   };
