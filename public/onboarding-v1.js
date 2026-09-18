@@ -11,6 +11,25 @@ const CLASS_NAMES={
  '6AF':['السنة السادسة ابتدائية','6e année fondamentale']
 };
 const TERMS=['الفصل الأول','الفصل الثاني','الفصل الثالث'];
+const AR_FR={
+ 'نواكشوط':'Nouakchott','نواذيبو':'Nouadhibou','آدرار':'Adrar','ادرار':'Adrar','لبراكنة':'Brakna','براكنة':'Brakna','الترارزة':'Trarza','اترارزة':'Trarza','الحوض الشرقي':'Hodh Ech Chargui','الحوض الغربي':'Hodh El Gharbi','لعصابة':'Assaba','كوركول':'Gorgol','كيدي ماغا':'Guidimakha','تكانت':'Tagant','تيرس زمور':'Tiris Zemmour','إنشيري':'Inchiri','انشيري':'Inchiri','داخلة نواذيبو':'Dakhlet Nouadhibou',
+ 'مال':'Mâl','بوكي':'Boghé','بوكيه':'Boghé','ألاك':'Aleg','الاك':'Aleg','مقطع لحجار':'Maghama?','روصو':'Rosso','أطار':'Atar','اطار':'Atar','شنقيط':'Chinguetti','كرمسين':'Keur Macène',
+ 'مدرسة':'École','المدرسة':'École','النجاح':'Nejah','نجاح':'Nejah'
+};
+const FR_AR=Object.fromEntries(Object.entries(AR_FR).map(([a,f])=>[String(f).toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,''),a]));
+const AR_CHAR={'ا':'a','أ':'a','إ':'i','آ':'a','ب':'b','ت':'t','ث':'th','ج':'j','ح':'h','خ':'kh','د':'d','ذ':'dh','ر':'r','ز':'z','س':'s','ش':'ch','ص':'s','ض':'d','ط':'t','ظ':'z','ع':'a','غ':'gh','ف':'f','ق':'q','ك':'k','ل':'l','م':'m','ن':'n','ه':'h','ة':'a','و':'ou','ؤ':'ou','ي':'i','ى':'a','ئ':'i','ء':''};
+function arToFr(v){let z=String(v||'').trim();if(!z)return'';if(AR_FR[z])return AR_FR[z];for(const [a,f] of Object.entries(AR_FR).sort((x,y)=>y[0].length-x[0].length))z=z.replaceAll(a,f);if(!/[\u0600-\u06ff]/.test(z))return z;return z.split(/\s+/).map(w=>{let o='';for(const ch of w)o+=AR_CHAR[ch]??ch;return o?o[0].toUpperCase()+o.slice(1):o}).join(' ')}
+function normFr(v){return String(v||'').trim().toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'')}
+function frWordToAr(w){let x=normFr(w);const exact=FR_AR[x];if(exact)return exact;x=x.replace(/ch/g,'ش').replace(/kh/g,'خ').replace(/gh/g,'غ').replace(/ou/g,'و').replace(/th/g,'ث').replace(/ph/g,'ف').replace(/dj/g,'ج').replace(/sh/g,'ش');const m={a:'ا',b:'ب',c:'ك',d:'د',e:'',f:'ف',g:'غ',h:'ه',i:'ي',j:'ج',k:'ك',l:'ل',m:'م',n:'ن',o:'و',p:'ب',q:'ق',r:'ر',s:'س',t:'ت',u:'و',v:'ف',w:'و',x:'كس',y:'ي',z:'ز'};let o='';for(const ch of x)o+=m[ch]??ch;return o}
+function frToAr(v){let z=String(v||'').trim();if(!z)return'';const exact=FR_AR[normFr(z)];if(exact)return exact;for(const [f,a] of Object.entries(FR_AR).sort((x,y)=>y[0].length-x[0].length)){const re=new RegExp(f.replace(/[.*+?^$()|[\]\\]/g,'\\const TERMS=['الفصل الأول','الفصل الثاني','الفصل الثالث'];'),'ig');if(re.test(normFr(z)))return z.split(/\s+/).map(frWordToAr).join(' ')}return z.split(/\s+/).map(frWordToAr).join(' ')}
+function bindBiPair(arSel,frSel){
+ const a=q(arSel),f=q(frSel);if(!a||!f)return;
+ let autoA='',autoF='',aManual=!!a.value.trim(),fManual=!!f.value.trim();
+ if(a.value.trim()&&!f.value.trim()){f.value=arToFr(a.value);autoF=f.value;fManual=false}
+ else if(f.value.trim()&&!a.value.trim()){a.value=frToAr(f.value);autoA=a.value;aManual=false}
+ a.addEventListener('input',()=>{const next=arToFr(a.value);if(!fManual||!f.value.trim()||f.value===autoF){f.value=next;autoF=next;fManual=false}aManual=true});
+ f.addEventListener('input',()=>{const next=frToAr(f.value);if(!aManual||!a.value.trim()||a.value===autoA){a.value=next;autoA=next;aManual=false}fManual=true});
+}
 let open=false,draft={};
 function shouldOpen(){
  try{return currentUser?.role==='admin'&&Array.isArray(state?.classes)&&state.classes.length===0}catch{return false}
@@ -30,12 +49,13 @@ function shell(step,body,footer=''){
 }
 function step1(){
  syncFromState();shell(1,`<h2>بيانات المدرسة</h2><p>أدخل البيانات الأساسية التي ستظهر في الكشوف والتقارير.</p>
- <label>اسم المدرسة بالعربية <input id="nwSchool" value="${E(draft.school)}" placeholder="مثال: مدرسة النجاح"></label>
- <label>Nom de l’établissement <input id="nwSchoolFr" dir="ltr" value="${E(draft.schoolFr)}" placeholder="Optionnel"></label>
- <div class="nw-two"><label>الإدارة الجهوية <input id="nwRegion" value="${E(draft.region)}" placeholder="اختياري"></label><label>Direction régionale <input id="nwRegionFr" dir="ltr" value="${E(draft.regionFr)}" placeholder="Optionnel"></label></div>
- <div class="nw-two"><label>المفتشية <input id="nwInspection" value="${E(draft.inspection)}" placeholder="اختياري"></label><label>Inspection <input id="nwInspectionFr" dir="ltr" value="${E(draft.inspectionFr)}" placeholder="Optionnel"></label></div>
+ <label>اسم المدرسة بالعربية <input id="nwSchool" value="${E(draft.school)}" placeholder="مثال: مدرسة النجاح"><small class="nw-hint">يُكتب المقابل الفرنسي تلقائيًا ويمكن تعديله</small></label>
+ <label>Nom de l’établissement <input id="nwSchoolFr" dir="ltr" value="${E(draft.schoolFr)}" placeholder="Écriture automatique modifiable"><small class="nw-hint">Si vous écrivez en français, l’arabe est proposé automatiquement</small></label>
+ <div class="nw-two"><label>الإدارة الجهوية للتربية بولاية <input id="nwRegion" value="${E(draft.region)}" placeholder="مثال: لبراكنة"><small class="nw-hint">اكتب اسم الولاية فقط</small></label><label>Direction régionale de l’Éducation – Wilaya de <input id="nwRegionFr" dir="ltr" value="${E(draft.regionFr)}" placeholder="Ex. Brakna"><small class="nw-hint">Traduction/transcription automatique modifiable</small></label></div>
+ <div class="nw-two"><label>المفتشية بمقاطعة <input id="nwInspection" value="${E(draft.inspection)}" placeholder="مثال: مال"><small class="nw-hint">اكتب اسم المقاطعة فقط</small></label><label>Inspection – Moughataa de <input id="nwInspectionFr" dir="ltr" value="${E(draft.inspectionFr)}" placeholder="Ex. Mâl"><small class="nw-hint">Traduction/transcription automatique modifiable</small></label></div>
  <label>السنة الدراسية <input id="nwYear" dir="ltr" value="${E(draft.year)}" placeholder="2026 - 2027"></label>
  <p class="nw-error"></p>`,`<div class="nw-actions"><button class="primary" id="nwNext1">التالي</button></div>`);
+ bindBiPair('#nwSchool','#nwSchoolFr');bindBiPair('#nwRegion','#nwRegionFr');bindBiPair('#nwInspection','#nwInspectionFr');
  q('#nwNext1').onclick=async()=>{const btn=q('#nwNext1'),err=q('.nw-error'),school=q('#nwSchool').value.trim(),year=q('#nwYear').value.trim()||defaultAcademicYear();q('#nwYear').value=year;if(!school){err.textContent='اسم المدرسة مطلوب.';q('#nwSchool').focus();return}Object.assign(draft,{school,schoolFr:q('#nwSchoolFr').value.trim(),region:q('#nwRegion').value.trim(),regionFr:q('#nwRegionFr').value.trim(),inspection:q('#nwInspection').value.trim(),inspectionFr:q('#nwInspectionFr').value.trim(),year});btn.disabled=true;err.textContent='جارٍ تثبيت بيانات المدرسة…';try{await api('/api/settings',{method:'PUT',body:JSON.stringify({...draft,classId:''})});Object.assign(state,{school:draft.school,schoolFr:draft.schoolFr,region:draft.region,regionFr:draft.regionFr,inspection:draft.inspection,inspectionFr:draft.inspectionFr,year:draft.year});localStorage.setItem('nataiji-data',JSON.stringify(state));step2()}catch(e){btn.disabled=false;err.textContent='تعذر حفظ البيانات على الخادم. حاول مرة أخرى.'}}
 }
 function step2(){
@@ -69,7 +89,7 @@ const style=document.createElement('style');style.textContent=`
 .nw-brand{display:flex;align-items:center;gap:12px;margin-bottom:14px}.nw-brand img{width:48px;height:48px;border-radius:14px}.nw-brand div{display:flex;flex-direction:column}.nw-brand b{font-size:20px;color:#12314b}.nw-brand span{font-size:13px;color:#738495}
 .nw-progress{display:grid;grid-template-columns:repeat(4,1fr);gap:6px;margin:12px 0 22px;direction:ltr}.nw-progress i{height:5px;background:#e2e8ee;border-radius:20px}.nw-progress i.on{background:#168fe1}
 .nw-step>small{color:#168fe1;font-weight:800}.nw-step h2{font-size:26px;margin:5px 0 6px;color:#12314b}.nw-step>p{color:#708090;margin:0 0 18px;line-height:1.7}
-.nw-step label{display:block;font-weight:800;color:#24384a;margin:11px 0}.nw-step input{width:100%;box-sizing:border-box;margin-top:6px;border:1px solid #cedbe4;border-radius:12px;padding:13px 14px;background:#fbfdff;font:inherit;outline:none}.nw-step input:focus{border-color:#168fe1;box-shadow:0 0 0 3px #168fe118}
+.nw-step label{display:block;font-weight:800;color:#24384a;margin:11px 0}.nw-step input{width:100%;box-sizing:border-box;margin-top:6px;border:1px solid #cedbe4;border-radius:12px;padding:13px 14px;background:#fbfdff;font:inherit;outline:none}.nw-step input:focus{border-color:#168fe1;box-shadow:0 0 0 3px #168fe118}.nw-hint{display:block;margin-top:5px;color:#7b8b98;font-size:11px;font-weight:500;line-height:1.45}
 .nw-two{display:grid;grid-template-columns:1fr 1fr;gap:10px}.nw-terms{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin:20px 0}.nw-terms div{border:1px solid #d7e4ec;background:#f7fbfe;border-radius:15px;padding:16px;text-align:center;display:flex;flex-direction:column;gap:5px}.nw-terms b{color:#168fe1;font-size:22px}.nw-terms span{font-weight:800}
 .nw-classes{display:grid;grid-template-columns:repeat(2,1fr);gap:9px;margin:16px 0}.nw-class{position:relative;border:1px solid #d5e2ea;border-radius:14px;padding:12px!important;margin:0!important;background:#fbfdff;cursor:pointer;display:grid!important;grid-template-columns:52px 1fr;grid-template-rows:auto auto;align-items:center;gap:2px 8px}.nw-class.selected{border-color:#168fe1;background:#eef8ff;box-shadow:0 0 0 2px #168fe116}.nw-class input{position:absolute;opacity:0;width:1px;height:1px}.nw-class b{grid-row:1/3;font-size:18px;color:#168fe1}.nw-class span{font-weight:800}.nw-class small{color:#7a8893}
 .nw-actions{display:flex;gap:10px;flex-wrap:wrap;margin-top:20px}.nw-actions button{border:1px solid #cbd9e3;background:#fff;border-radius:12px;padding:12px 18px;font:inherit;font-weight:800;cursor:pointer;flex:1}.nw-actions .primary{background:#168fe1;color:#fff;border-color:#168fe1}.nw-actions button:disabled{opacity:.55}.nw-error{min-height:20px;color:#b45309!important;font-weight:700;margin:10px 0 0!important}
