@@ -1,4 +1,4 @@
-const DEFAULT={teacher:'',school:'',schoolFr:'',region:'',regionFr:'',inspection:'',inspectionFr:'',year:'',term:'',className:'',classNameFr:'',classCode:'',subjects:[],pupils:[],marks:[],terms:[],marksByTerm:{},classes:[],activeClassId:'',classData:{}};
+const DEFAULT={teacher:'',school:'',schoolFr:'',region:'',regionFr:'',inspection:'',inspectionFr:'',year:'',term:'',className:'',classNameFr:'',classCode:'',subjects:[],pupils:[],marks:[],terms:[],marksByTerm:{},classes:[],activeClassId:'',classData:{},onboardingComplete:null};
 const $=s=>document.querySelector(s),$$=s=>[...document.querySelectorAll(s)];
 const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 let state=structuredClone(DEFAULT),currentUser=null,storageMode='memory',syncBusy=false;
