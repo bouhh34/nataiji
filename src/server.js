@@ -139,6 +139,38 @@ app.post('/api/invites',auth,adminOnly,async(req,res)=>{
  res.status(201).json({code,expiresInDays:7,teacherName,permissions,classIds,classAccess,classes:school.classes.filter(x=>classIds.includes(x.id)).map(x=>({id:x.id,name:x.name}))})
 });
 
+app.post('/api/access/attach',auth,async(req,res)=>{
+ if(req.user.role!=='teacher')return res.status(403).json({error:'teacher_only'});
+ const code=String(req.body?.code||'').trim().toUpperCase();
+ if(!/^NT-[A-F0-9]{8,16}$/.test(code))return res.status(400).json({error:'invalid_invite'});
+ const accessRaw=await storeGet(accessCodeKey(code));
+ if(accessRaw){
+  const access=JSON.parse(accessRaw);
+  if(access.userId!==req.user.id)return res.status(409).json({error:'invite_in_use'});
+  const uRaw=await storeGet(userKey(req.user.id));if(!uRaw)return res.status(404).json({error:'account_not_found'});
+  return res.json({ok:true,user:safeUser(JSON.parse(uRaw)),alreadyAttached:true})
+ }
+ const invRaw=await storeGet(inviteKey(code));if(!invRaw)return res.status(404).json({error:'invalid_invite'});
+ const inv=JSON.parse(invRaw);
+ if(inv.schoolId!==req.user.schoolId)return res.status(409).json({error:'different_school_invite'});
+ const uRaw=await storeGet(userKey(req.user.id));if(!uRaw)return res.status(404).json({error:'account_not_found'});
+ const user=JSON.parse(uRaw),incoming=inv.classAccess&&typeof inv.classAccess==='object'?inv.classAccess:Object.fromEntries((Array.isArray(inv.classIds)?inv.classIds:[]).map(cid=>[cid,{allSubjects:inv.allSubjects!==false,subjectIds:Array.isArray(inv.subjectIds)?inv.subjectIds:[]}]));
+ user.classAccess=user.classAccess&&typeof user.classAccess==='object'?user.classAccess:{};
+ for(const [classId,scope] of Object.entries(incoming)){
+  const old=user.classAccess[classId];
+  if(!old){user.classAccess[classId]={allSubjects:scope?.allSubjects!==false,subjectIds:[...new Set((scope?.subjectIds||[]).map(String))]};continue}
+  if(old.allSubjects!==false||scope?.allSubjects!==false)user.classAccess[classId]={allSubjects:true,subjectIds:[]};
+  else user.classAccess[classId]={allSubjects:false,subjectIds:[...new Set([...(old.subjectIds||[]),...(scope?.subjectIds||[])].map(String))]}
+ }
+ user.classIds=Object.keys(user.classAccess);
+ user.permissions=[...new Set([...(user.permissions||[]),...cleanPermissions(inv.permissions)])];
+ const first=user.classAccess[user.classIds[0]]||{allSubjects:true,subjectIds:[]};user.subjectIds=first.subjectIds||[];user.allSubjects=first.allSubjects!==false;
+ await storeSet(userKey(user.id),JSON.stringify(user));
+ await storeSet(accessCodeKey(code),JSON.stringify({userId:user.id,schoolId:user.schoolId,createdAt:new Date().toISOString()}));
+ await storeDel(inviteKey(code));
+ res.json({ok:true,user:safeUser(user),attachedClasses:Object.keys(incoming)})
+});
+
 app.post('/api/auth/code-login',async(req,res)=>{
  const code=String(req.body?.code||'').trim().toUpperCase();
  if(!/^NT-[A-F0-9]{8,16}$/.test(code))return res.status(400).json({error:'invalid_invite'});
