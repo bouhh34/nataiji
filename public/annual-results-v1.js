@@ -71,8 +71,15 @@ function patchFinalStudent(){
 
 function fillFinalTable(table){
   if(!finalTerm()||!table||!state?.pupils?.length)return;
-  const ranks=annualRanks(),ts=terms(),subjects=state.subjects||[],rankedCount=(state.pupils||[]).filter((_,i)=>annualAverage(i)!=null).length||state.pupils.length;
+  const ts=terms(),subjects=state.subjects||[];
   const subjectMax=s=>{const n=Number(s?.[3]);return Number.isFinite(n)&&n>0?n:20};
+  const ordered=(state.pupils||[]).map((p,i)=>({p,i,annual:annualAverage(i)})).sort((a,b)=>{
+    const av=a.annual,bv=b.annual;
+    if(av==null&&bv==null)return String(a.p?.[1]||'').localeCompare(String(b.p?.[1]||''),'ar');
+    if(av==null)return 1;if(bv==null)return -1;
+    if(bv!==av)return bv-av;
+    return String(a.p?.[1]||'').localeCompare(String(b.p?.[1]||''),'ar');
+  });
   table.className='nr-table nr-class-table nr-final-class';
   table.setAttribute('dir','rtl');
   table.innerHTML=`<thead><tr>
@@ -84,9 +91,9 @@ function fillFinalTable(table){
     <th class="final-avg"><div class="final-vertical"><span>معدل الأول</span><small dir="ltr">T1 /20</small></div></th>
     <th class="final-avg"><div class="final-vertical"><span>المعدل العام</span><small dir="ltr">Moy. /20</small></div></th>
     <th class="final-obs"><span>الملاحظة</span><small>Observation</small></th>
-  </tr></thead><tbody>${state.pupils.map((p,i)=>{
-    const row=termRows(ts[2])?.[i]||[],a3=termAverage(i,ts[2]),a2=termAverage(i,ts[1]),a1=termAverage(i,ts[0]),annual=annualAverage(i),rank=ranks[i],remark=annual==null?'':(annual>=10?'ناجح':'راسب');
-    return `<tr><td class="final-rank-cell"><b>${rank==null?'—':rank+' / '+rankedCount}</b></td><td class="final-name-cell"><span dir="rtl">${esc(p?.[1]||'')}</span>${p?.[4]?`<small dir="ltr">${esc(p[4])}</small>`:''}</td>${subjects.map((sub,j)=>`<td class="final-mark">${row[j]===''||row[j]==null?'':esc(row[j])}</td>`).join('')}<td class="final-num">${fmt(a3)}</td><td class="final-num">${fmt(a2)}</td><td class="final-num">${fmt(a1)}</td><td class="final-num final-general"><b>${fmt(annual)}</b></td><td class="final-obs-cell"><span>${esc(remark)}</span><small>${annual==null?'':(annual>=10?'Admis':'Non admis')}</small></td></tr>`
+  </tr></thead><tbody>${ordered.map((o,pos)=>{
+    const p=o.p,i=o.i,row=termRows(ts[2])?.[i]||[],a3=termAverage(i,ts[2]),a2=termAverage(i,ts[1]),a1=termAverage(i,ts[0]),annual=o.annual,remark=annual==null?'':(annual>=10?'ناجح':'راسب');
+    return `<tr><td class="final-rank-cell"><b>${annual==null?'—':pos+1}</b></td><td class="final-name-cell"><span dir="rtl">${esc(p?.[1]||'')}</span>${p?.[4]?`<small dir="ltr">${esc(p[4])}</small>`:''}</td>${subjects.map((sub,j)=>`<td class="final-mark">${row[j]===''||row[j]==null?'':esc(row[j])}</td>`).join('')}<td class="final-num">${fmt(a3)}</td><td class="final-num">${fmt(a2)}</td><td class="final-num">${fmt(a1)}</td><td class="final-num final-general"><b>${fmt(annual)}</b></td><td class="final-obs-cell"><span>${esc(remark)}</span><small>${annual==null?'':(annual>=10?'Admis':'Non admis')}</small></td></tr>`
   }).join('')}</tbody>`;
 }
 function buildFinalClassTable(){
