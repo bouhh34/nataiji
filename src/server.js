@@ -301,7 +301,7 @@ app.put('/api/marks',auth,async(req,res)=>{
  if(req.user.role!=='admin'&&!new Set(req.user.permissions||[]).has('grades'))return res.status(403).json({error:'forbidden'});
  const pupils=(await pool.query('SELECT nns FROM nataiji_pupils WHERE school_id=$1 AND class_id=$2 ORDER BY position,updated_at',[req.user.schoolId,classId])).rows;
  let subjects=(await pool.query('SELECT subject_id FROM nataiji_subjects WHERE school_id=$1 AND class_id=$2 ORDER BY position,updated_at',[req.user.schoolId,classId])).rows;
- if(req.user.role==='teacher'){const scope=subjectScopeFor(req.user,classId);if(!scope)return res.status(403).json({error:'forbidden_class'});if(scope.allSubjects===false){const allowedSubjects=new Set(scope.subjectIds||[]);subjects=subjects.filter(x=>allowedSubjects.has(String(x.subject_id)))}}
+ if(req.user.role==='teacher'){const scope=subjectScopeFor(req.user,classId);if(!scope)return res.status(403).json({error:'forbidden_class'});const hidden=new Set(scope.hiddenSubjectIds||[]),editable=scope.fullClass||scope.allSubjects===true?null:new Set(scope.subjectIds||[]);subjects=subjects.filter(x=>!hidden.has(String(x.subject_id))&&(editable===null||editable.has(String(x.subject_id))))}
  const client=await pool.connect();
  try{
   await client.query('BEGIN');
