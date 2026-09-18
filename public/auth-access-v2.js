@@ -86,10 +86,31 @@ function inviteModal2(){
 function joinSchoolModal(){
  const p=modal(tr('الدخول برمز الدعوة','Accès par code d’invitation'),`<p>${tr('أدخل الرمز فقط. سيتم فتح حساب المعلم بالصلاحيات والقسم والمواد التي حددها المدير.','Saisissez uniquement le code. Le compte enseignant s’ouvrira avec la classe, les matières et les autorisations définies par le directeur.')}</p><label>${tr('رمز الدعوة','Code d’invitation')}<input id="auth2JoinCode" dir="ltr" placeholder="NT-XXXXXXXXXXXX" autocomplete="one-time-code"></label><button class="primary action">${tr('الدخول بالرمز','Accéder avec le code')}</button><p class="message"></p>`);p.classList.add('auth2-join-modal');q('.action',p).onclick=async()=>{const btn=q('.action',p),msg=q('.message',p),code=String(q('#auth2JoinCode',p).value||'').trim().toUpperCase();if(!code){msg.textContent=tr('أدخل رمز الدعوة','Saisissez le code d’invitation');return}btn.disabled=true;msg.textContent=tr('جارٍ التحقق من الرمز…','Vérification du code…');try{const rr=await api('/api/auth/code-login',{method:'POST',body:JSON.stringify({code})});p.remove();lastStatus=null;await accountActivate(rr.user)}catch(ex){msg.textContent=authErr(ex.code);btn.disabled=false}}
 }
+function attachInviteModal(){
+ const p=modal(tr('إضافة قسم مشترك برمز','Ajouter une classe partagée par code'),`<p>${tr('أدخل رمز دعوة إضافيًا. سيُضاف القسم أو المواد الجديدة إلى حسابك الحالي دون تسجيل الخروج.','Saisissez un autre code d’invitation. La nouvelle classe ou les nouvelles matières seront ajoutées à votre compte actuel sans déconnexion.')}</p><label>${tr('رمز الدعوة','Code d’invitation')}<input id="auth2AttachCode" dir="ltr" placeholder="NT-XXXXXXXXXXXX" autocomplete="one-time-code"></label><button class="primary action">${tr('إضافة إلى حسابي','Ajouter à mon compte')}</button><p class="message"></p>`);
+ p.classList.add('auth2-join-modal');
+ q('.action',p).onclick=async()=>{
+  const btn=q('.action',p),msg=q('.message',p),code=String(q('#auth2AttachCode',p).value||'').trim().toUpperCase();
+  if(!code){msg.textContent=tr('أدخل رمز الدعوة','Saisissez le code d’invitation');return}
+  btn.disabled=true;msg.textContent=tr('جارٍ إضافة الصلاحية…','Ajout de l’accès…');
+  try{
+   const rr=await api('/api/access/attach',{method:'POST',body:JSON.stringify({code})});
+   currentUser=rr.user||currentUser;lastStatus=null;p.remove();
+   await accountActivate(currentUser)
+  }catch(ex){
+   if(ex.code==='different_school_invite')msg.textContent=tr('هذا الرمز تابع لمدرسة أخرى. يلزم تسجيل الخروج للدخول إلى مدرسة أخرى.','Ce code appartient à une autre école. Déconnectez-vous pour changer d’école.');
+   else if(ex.code==='invite_in_use')msg.textContent=tr('هذا الرمز مرتبط بحساب معلم آخر.','Ce code est déjà lié à un autre compte enseignant.');
+   else msg.textContent=authErr(ex.code);
+   btn.disabled=false
+  }
+ }
+}
 function bindJoinCard(){
  const grid=q('.settings-grid');if(!grid)return;let btn=q('#joinInviteBtn');
- if(!btn){btn=document.createElement('button');btn.id='joinInviteBtn';btn.className='menu-card';btn.innerHTML=`<b>⌁ ${tr('الدخول برمز دعوة','Accès par code d’invitation')}</b><span>${tr('يكفي إدخال الرمز الذي أرسله المدير','Saisissez simplement le code envoyé par le directeur')}</span>`;grid.insertBefore(btn,q('#settingsBtn')||q('#logoutBtn')||null)}
- if(!btn.dataset.bound){btn.dataset.bound='1';btn.onclick=e=>{e.preventDefault();joinSchoolModal()}}
+ if(currentUser?.role==='admin'){btn?.remove();return}
+ if(!btn){btn=document.createElement('button');btn.id='joinInviteBtn';btn.className='menu-card';grid.insertBefore(btn,q('#settingsBtn')||q('#logoutBtn')||null)}
+ btn.innerHTML=`<b>⌁ ${tr('إضافة قسم مشترك برمز','Ajouter une classe partagée par code')}</b><span>${tr('أضف قسمًا أو مواد جديدة إلى حسابك الحالي دون تسجيل الخروج','Ajoutez une classe ou de nouvelles matières à votre compte sans vous déconnecter')}</span>`;
+ btn.onclick=e=>{e.preventDefault();attachInviteModal()}
 }
 function bindInvite(){const b=q('#inviteBtn');if(b&&!b.dataset.auth2Invite){b.dataset.auth2Invite='1';b.onclick=e=>{e?.preventDefault?.();inviteModal2()}}}
 function enforcePermissions(){if(!currentUser)return;const admin=currentUser.role==='admin',perms=new Set(currentUser.permissions||[]),canGrades=admin||perms.has('grades'),canPupils=admin||perms.has('pupils'),canReports=admin||perms.has('reports');qa('[data-view="grades"]').forEach(x=>x.style.display=canGrades?'':'none');qa('[data-view="students"]').forEach(x=>x.style.display=canPupils?'':'none');qa('[data-view="reports"]').forEach(x=>x.style.display=canReports?'':'none');const add=q('#addStudent');if(add)add.style.display=canPupils?'':'none';const imp=q('#importBtn');if(imp)imp.style.display=canPupils?'':'none';const saveBtn=q('#saveGrades');if(saveBtn)saveBtn.style.display=canGrades?'':'none';qa('.mark,.mobile-mark').forEach(x=>x.disabled=!canGrades);['#subjectsBtn','#inviteBtn','#settingsBtn','#structureBtn','#printHeaderBtn','#evaluationBtn'].forEach(s=>{const x=q(s);if(x)x.style.display=admin?'':'none'});const ct=q('#classTop');if(ct&&currentUser.role==='teacher'){ct.disabled=(state?.classes?.length||0)<2;ct.setAttribute('aria-label',tr('الأقسام المشتركة','Classes partagées'));if(!q('#sharedClassesLabel')){const lab=document.createElement('span');lab.id='sharedClassesLabel';lab.className='shared-classes-label';lab.textContent=tr('الأقسام المشتركة','Classes partagées');ct.parentNode?.insertBefore(lab,ct)}else q('#sharedClassesLabel').textContent=tr('الأقسام المشتركة','Classes partagées')}else q('#sharedClassesLabel')?.remove();const current=qa('.view').find(v=>!v.classList.contains('hidden'))?.dataset.page;if((current==='grades'&&!canGrades)||(current==='students'&&!canPupils)||(current==='reports'&&!canReports))setView('home')}
