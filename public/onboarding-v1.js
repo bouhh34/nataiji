@@ -13,7 +13,7 @@ const CLASS_NAMES={
 const TERMS=['الفصل الأول','الفصل الثاني','الفصل الثالث'];
 const AR_FR={
  'نواكشوط':'Nouakchott','نواذيبو':'Nouadhibou','آدرار':'Adrar','ادرار':'Adrar','لبراكنة':'Brakna','براكنة':'Brakna','الترارزة':'Trarza','اترارزة':'Trarza','الحوض الشرقي':'Hodh Ech Chargui','الحوض الغربي':'Hodh El Gharbi','لعصابة':'Assaba','كوركول':'Gorgol','كيدي ماغا':'Guidimakha','تكانت':'Tagant','تيرس زمور':'Tiris Zemmour','إنشيري':'Inchiri','انشيري':'Inchiri','داخلة نواذيبو':'Dakhlet Nouadhibou',
- 'مال':'Mâl','بوكي':'Boghé','بوكيه':'Boghé','ألاك':'Aleg','الاك':'Aleg','مقطع لحجار':'Maghama?','روصو':'Rosso','أطار':'Atar','اطار':'Atar','شنقيط':'Chinguetti','كرمسين':'Keur Macène',
+ 'مال':'Mâl','بوكي':'Boghé','بوكيه':'Boghé','ألاك':'Aleg','الاك':'Aleg','مقطع لحجار':'Magta Lahjar','روصو':'Rosso','أطار':'Atar','اطار':'Atar','شنقيط':'Chinguetti','كرمسين':'Keur Macène',
  'مدرسة':'École','المدرسة':'École','النجاح':'Nejah','نجاح':'Nejah'
 };
 const FR_AR=Object.fromEntries(Object.entries(AR_FR).map(([a,f])=>[String(f).toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,''),a]));
@@ -21,7 +21,7 @@ const AR_CHAR={'ا':'a','أ':'a','إ':'i','آ':'a','ب':'b','ت':'t','ث':'th','
 function arToFr(v){let z=String(v||'').trim();if(!z)return'';if(AR_FR[z])return AR_FR[z];for(const [a,f] of Object.entries(AR_FR).sort((x,y)=>y[0].length-x[0].length))z=z.replaceAll(a,f);if(!/[\u0600-\u06ff]/.test(z))return z;return z.split(/\s+/).map(w=>{let o='';for(const ch of w)o+=AR_CHAR[ch]??ch;return o?o[0].toUpperCase()+o.slice(1):o}).join(' ')}
 function normFr(v){return String(v||'').trim().toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'')}
 function frWordToAr(w){let x=normFr(w);const exact=FR_AR[x];if(exact)return exact;x=x.replace(/ch/g,'ش').replace(/kh/g,'خ').replace(/gh/g,'غ').replace(/ou/g,'و').replace(/th/g,'ث').replace(/ph/g,'ف').replace(/dj/g,'ج').replace(/sh/g,'ش');const m={a:'ا',b:'ب',c:'ك',d:'د',e:'',f:'ف',g:'غ',h:'ه',i:'ي',j:'ج',k:'ك',l:'ل',m:'م',n:'ن',o:'و',p:'ب',q:'ق',r:'ر',s:'س',t:'ت',u:'و',v:'ف',w:'و',x:'كس',y:'ي',z:'ز'};let o='';for(const ch of x)o+=m[ch]??ch;return o}
-function frToAr(v){let z=String(v||'').trim();if(!z)return'';const exact=FR_AR[normFr(z)];if(exact)return exact;for(const [f,a] of Object.entries(FR_AR).sort((x,y)=>y[0].length-x[0].length)){const re=new RegExp(f.replace(/[.*+?^$()|[\]\\]/g,'\\const TERMS=['الفصل الأول','الفصل الثاني','الفصل الثالث'];'),'ig');if(re.test(normFr(z)))return z.split(/\s+/).map(frWordToAr).join(' ')}return z.split(/\s+/).map(frWordToAr).join(' ')}
+function frToAr(v){let z=String(v||'').trim();if(!z)return'';const exact=FR_AR[normFr(z)];if(exact)return exact;return z.split(/\s+/).map(frWordToAr).join(' ')}
 function bindBiPair(arSel,frSel){
  const a=q(arSel),f=q(frSel);if(!a||!f)return;
  let autoA='',autoF='',aManual=!!a.value.trim(),fManual=!!f.value.trim();
