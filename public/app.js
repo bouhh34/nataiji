@@ -36,7 +36,6 @@ async function startApp(){let remote=null;try{const r=await api('/api/state');cu
 $$('[data-view]').forEach(b=>b.onclick=()=>setView(b.dataset.view));
 $$('[data-go]').forEach(b=>b.onclick=()=>setView(b.dataset.go));
 $('#subjectPicker').onchange=renderMobileScores;
-$('#term').onchange=async e=>{const next=e.target.value;if(!next||next===state.term)return;try{if(currentUser?.role==='admin')await api('/api/active-selection',{method:'POST',body:JSON.stringify({classId:state.activeClassId,term:next})});const r=await api('/api/state?classId='+encodeURIComponent(state.activeClassId||'')+'&term='+encodeURIComponent(next));if(!r?.state)throw new Error('term_load_failed');state=normalizeState(r.state);localStorage.setItem('nataiji-data',JSON.stringify(state));render();setView('grades')}catch(err){e.target.value=state.term;alert('تعذر تغيير الفصل. حاول مرة أخرى')}};
 let markCellSaveTail=Promise.resolve();
 function markSaveStatus(text,dirty=false){const el=$('#saveState');if(!el)return;el.textContent=text;el.classList.toggle('dirty',dirty)}
 function persistMarkCell(input){
