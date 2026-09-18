@@ -6,7 +6,7 @@ const ABS='غائب';
 const isFr=()=>localStorage.getItem('nataiji-lang')==='fr';
 const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const maxFor=j=>{const n=Number(state?.subjects?.[j]?.[3]);return Number.isFinite(n)&&n>0?n:20};
-const totalMax=()=>{const key=String(state?.activeClassId||state?.classCode||state?.className||'default');const n=Number(state?.scoringByClass?.[key]?.totalMax??state?.totalMax);return Number.isFinite(n)&&n>0?n:200};
+const totalMax=()=>{const sum=(state?.subjects||[]).reduce((a,_,j)=>a+maxFor(j),0);return sum>0?sum:200};
 const isAbsent=v=>/^(غائب|absent|a)$/i.test(String(v??'').trim());
 const filled=v=>v!==''&&v!=null;
 const numeric=v=>isAbsent(v)?0:(Number.isFinite(Number(v))?Number(v):0);
