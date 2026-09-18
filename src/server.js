@@ -55,6 +55,41 @@ app.get('/api/auth/status',async(req,res)=>{const idx=await getIndex(),token=par
 app.post('/api/auth/register',async(req,res)=>{const idx=await getIndex(),name=String(req.body?.name||'').trim(),email=normEmail(req.body?.email),password=String(req.body?.password||''),school=String(req.body?.school||'').trim();if(!name||!validEmail(email)||password.length<8)return res.status(400).json({error:'invalid_input'});if(idx[email])return res.status(409).json({error:'email_exists'});const id=crypto.randomUUID(),schoolId=crypto.randomUUID(),hp=hashPassword(password),user={id,name,email,role:'admin',schoolId,permissions:['all'],classIds:[],sessionVersion:0,salt:hp.salt,passwordHash:hp.hash},fresh=newSchoolState(name,school);await storeSet(userKey(id),JSON.stringify(user));idx[email]=id;await setIndex(idx);await storeSet(schoolKey(schoolId),JSON.stringify(fresh));if(pool){await pool.query('INSERT INTO nataiji_school_settings(school_id,data) VALUES($1,$2::jsonb) ON CONFLICT DO NOTHING',[schoolId,JSON.stringify({school,schoolFr:'',region:'',regionFr:'',inspection:'',inspectionFr:'',year:''})]);await pool.query('INSERT INTO nataiji_structure(school_id,data) VALUES($1,$2::jsonb) ON CONFLICT DO NOTHING',[schoolId,JSON.stringify({classes:[],terms:[],activeClassId:'',term:''})])}res.status(201).json({user:await createSession(res,user)})});
 app.post('/api/auth/login',async(req,res)=>{const email=normEmail(req.body?.email),password=String(req.body?.password||''),idx=await getIndex(),id=idx[email];if(!id)return res.status(401).json({error:'bad_credentials'});const raw=await storeGet(userKey(id));if(!raw)return res.status(401).json({error:'bad_credentials'});let user=JSON.parse(raw);if(!verifyPassword(password,user))return res.status(401).json({error:'bad_credentials'});user=await migrateTeacherAssignment(user);res.json({user:await createSession(res,user)})});
 app.post('/api/auth/logout',auth,async(req,res)=>{await storeDel(sessionKey(parseCookies(req).nataiji_session));res.clearCookie('nataiji_session',{path:'/'});res.json({ok:true})});
+app.delete('/api/account',auth,async(req,res)=>{
+ const password=String(req.body?.password||''),confirm=String(req.body?.confirm||'').trim();
+ if(!password||!['حذف','DELETE'].includes(confirm.toUpperCase()==='DELETE'?'DELETE':confirm))return res.status(400).json({error:'delete_confirmation_required'});
+ const raw=await storeGet(userKey(req.user.id));if(!raw)return res.status(404).json({error:'account_not_found'});
+ const user=JSON.parse(raw);if(!verifyPassword(password,user))return res.status(401).json({error:'bad_password'});
+ const idx=await getIndex(),currentToken=parseCookies(req).nataiji_session;
+ if(user.role==='admin'){
+  if(!pool)return res.status(503).json({error:'durable_storage_required'});
+  const members=[];
+  for(const [email,id] of Object.entries(idx)){try{const ur=await storeGet(userKey(id));if(!ur)continue;const u=JSON.parse(ur);if(u.schoolId===user.schoolId)members.push({email,id})}catch{}}
+  const ids=members.map(x=>x.id);
+  const extraKeys=[];
+  try{
+   const kv=await pool.query("SELECT key,value FROM kv_store WHERE key LIKE 'nataiji:invite:%' OR key LIKE 'nataiji:session:%' OR key LIKE 'nataiji:reset:%'");
+   for(const row of kv.rows){try{const v=JSON.parse(row.value);if((row.key.startsWith('nataiji:invite:')&&v.schoolId===user.schoolId)||(row.key.startsWith('nataiji:session:')&&ids.includes(v.id))||(row.key.startsWith('nataiji:reset:')&&ids.includes(v.userId)))extraKeys.push(row.key)}catch{}}
+   const client=await pool.connect();
+   try{await client.query('BEGIN');for(const table of ['nataiji_marks','nataiji_pupils','nataiji_subjects','nataiji_class_settings','nataiji_migrations','nataiji_school_settings','nataiji_structure'])await client.query('DELETE FROM '+table+' WHERE school_id=$1',[user.schoolId]);await client.query('COMMIT')}catch(e){await client.query('ROLLBACK');throw e}finally{client.release()}
+  }catch(e){console.error('account school cleanup failed',user.schoolId,e);return res.status(500).json({error:'account_delete_failed'})}
+  for(const x of members)delete idx[x.email];
+  await setIndex(idx);
+  for(const k of extraKeys)await storeDel(k);
+  for(const x of members)await storeDel(userKey(x.id));
+  await storeDel(schoolKey(user.schoolId));
+  if(currentToken)await storeDel(sessionKey(currentToken));
+  res.clearCookie('nataiji_session',{path:'/'});
+  return res.json({ok:true,scope:'school',deletedUsers:members.length})
+ }
+ delete idx[user.email];await setIndex(idx);
+ if(pool){
+  const kv=await pool.query("SELECT key,value FROM kv_store WHERE key LIKE 'nataiji:session:%' OR key LIKE 'nataiji:reset:%'");
+  for(const row of kv.rows){try{const v=JSON.parse(row.value);if((row.key.startsWith('nataiji:session:')&&v.id===user.id)||(row.key.startsWith('nataiji:reset:')&&v.userId===user.id))await storeDel(row.key)}catch{}}
+ }
+ await storeDel(userKey(user.id));if(currentToken)await storeDel(sessionKey(currentToken));res.clearCookie('nataiji_session',{path:'/'});
+ res.json({ok:true,scope:'account'})
+});
 app.post('/api/auth/join',async(req,res)=>{const code=String(req.body?.code||'').trim().toUpperCase(),name=String(req.body?.name||'').trim(),email=normEmail(req.body?.email),password=String(req.body?.password||'');if(!code||!name||!email||password.length<8)return res.status(400).json({error:'invalid_input'});const invRaw=await storeGet(inviteKey(code));if(!invRaw)return res.status(404).json({error:'invalid_invite'});const idx=await getIndex();if(idx[email])return res.status(409).json({error:'email_exists'});const inv=JSON.parse(invRaw),id=crypto.randomUUID(),hp=hashPassword(password),user={id,name,email,role:'teacher',schoolId:inv.schoolId,permissions:cleanPermissions(inv.permissions).length?cleanPermissions(inv.permissions):['grades'],classIds:Array.isArray(inv.classIds)?inv.classIds:[],sessionVersion:0,salt:hp.salt,passwordHash:hp.hash};await storeSet(userKey(id),JSON.stringify(user));idx[email]=id;await setIndex(idx);await storeDel(inviteKey(code));res.status(201).json({user:await createSession(res,user)})});
 app.post('/api/auth/forgot-password',async(req,res)=>{const email=normEmail(req.body?.email),lang=req.body?.lang==='fr'?'fr':'ar';if(!process.env.RESEND_API_KEY||!process.env.RESET_FROM_EMAIL)return res.status(503).json({error:'email_service_unconfigured'});if(!email||!validEmail(email))return res.json({ok:true});const recent=await storeGet(resetRateKey(email));if(recent)return res.json({ok:true});await storeSet(resetRateKey(email),'1',60);const idx=await getIndex(),id=idx[email];if(!id)return res.json({ok:true});const raw=await storeGet(userKey(id));if(!raw)return res.json({ok:true});const user=JSON.parse(raw),token=crypto.randomBytes(32).toString('hex'),origin=(process.env.PUBLIC_BASE_URL||`${req.protocol}://${req.get('host')}`).replace(/\/$/,'');await storeSet(resetKey(token),JSON.stringify({userId:user.id,createdAt:Date.now()}),RESET_TTL);try{await sendResetEmail(user,`${origin}/?reset=${encodeURIComponent(token)}`,lang)}catch(e){await storeDel(resetKey(token));return res.status(e.code==='email_service_unconfigured'?503:502).json({error:e.code||'email_delivery_failed'})}res.json({ok:true})});
 app.post('/api/auth/reset-password',async(req,res)=>{const token=String(req.body?.token||''),password=String(req.body?.password||'');if(token.length<20||password.length<8)return res.status(400).json({error:'invalid_input'});const raw=await storeGet(resetKey(token));if(!raw)return res.status(400).json({error:'invalid_or_expired_reset'});const {userId}=JSON.parse(raw),uRaw=await storeGet(userKey(userId));if(!uRaw){await storeDel(resetKey(token));return res.status(400).json({error:'invalid_or_expired_reset'})}const user=JSON.parse(uRaw),hp=hashPassword(password);user.salt=hp.salt;user.passwordHash=hp.hash;user.sessionVersion=(Number(user.sessionVersion)||0)+1;await storeSet(userKey(user.id),JSON.stringify(user));await storeDel(resetKey(token));res.json({ok:true})});
