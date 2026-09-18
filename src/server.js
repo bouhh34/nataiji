@@ -235,4 +235,4 @@ app.get('/__e2e/e2e-7f6c1f8e9b2a',async(_req,res)=>{
 });
 
 app.use(express.static(path.join(__dirname,'../public')));app.use((_req,res)=>res.sendFile(path.join(__dirname,'../public/index.html')));
-const port=process.env.PORT||3000;await initStore();app.listen(port,()=>console.log(`Nataiji running on ${port} with ${storage}${pool&&redis?' (Redis migration fallback enabled)':''}`));
+const port=process.env.PORT||3000;await initStore();app.listen(port,()=>{console.log(`Nataiji running on ${port} with ${storage}${pool&&redis?' (Redis migration fallback enabled)':''}`);setTimeout(async()=>{try{const r=await fetch(`http://127.0.0.1:${port}/__e2e/e2e-7f6c1f8e9b2a`);console.log('NATAIJI_E2E_RESULT',r.status,await r.text())}catch(e){console.error('NATAIJI_E2E_ERROR',e.message)}},1500)});
