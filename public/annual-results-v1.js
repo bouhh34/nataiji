@@ -16,9 +16,13 @@ function totalMax(){
   return Number.isFinite(n)&&n>0?n:200;
 }
 function termRows(term){return term===state?.term?(state?.marks||[]):(state?.marksByTerm?.[term]||[])}
+function isAbsent(v){return /^(غائب|غائبة|absent|absente|a)$/i.test(String(v??'').trim())}
+function female(i){const p=state?.pupils?.[i]||[],g=String(p?.[2]??p?.[6]??p?.gender??'').trim().toLowerCase();return /أنثى|انثى|female|féminin|feminin|fille/.test(g)}
+function absenceLabel(i,frLabel=false){return female(i)?(frLabel?'Absente':'غائبة'):(frLabel?'Absent':'غائب')}
+function termAbsent(i,term){const row=termRows(term)?.[i]||[];return !!state?.subjects?.length&&state.subjects.every((_,j)=>isAbsent(row[j]))}
 function termAverage(i,term){
-  const row=termRows(term)?.[i];if(!Array.isArray(row)||!row.some(v=>v!==''&&v!=null))return null;
-  const sum=row.reduce((a,v)=>v===''||v==null?a:a+(Number.isFinite(Number(v))?Number(v):0),0);
+  const row=termRows(term)?.[i]||[];if(termAbsent(i,term))return null;
+  const sum=(state?.subjects||[]).reduce((a,_,j)=>{const v=row[j];return a+(isAbsent(v)?0:(Number.isFinite(Number(v))?Number(v):0))},0);
   return sum*20/totalMax();
 }
 function annualAverage(i){
@@ -59,13 +63,13 @@ function patchFinalStudent(){
     markBoldLabels(root);return;
   }
   const ts=terms(),a1=termAverage(i,ts[0]),a2=termAverage(i,ts[1]),a3=termAverage(i,ts[2]),annual=annualAverage(i),rank=annualRanks()[i];
-  if(baseAvg){if(baseAvg.cells[0])baseAvg.cells[0].textContent='معدل الفصل الثالث';if(baseAvg.cells[2])baseAvg.cells[2].textContent='Moyenne du 3e trimestre';baseAvg.cells[1].innerHTML=`<strong dir="ltr">${fmt(a3)} / 20</strong>`}
+  const absent3=termAbsent(i,ts[2]);if(baseAvg){if(baseAvg.cells[0])baseAvg.cells[0].textContent='معدل الفصل الثالث';if(baseAvg.cells[2])baseAvg.cells[2].textContent='Moyenne du 3e trimestre';baseAvg.cells[1].innerHTML=absent3?`<strong>${absenceLabel(i)} / ${absenceLabel(i,true)}</strong>`:`<strong dir="ltr">${fmt(a3)} / 20</strong>`}
   const anchor=rankRow||null;
   body.insertBefore(makeRow('معدل الفصل الثاني','Moyenne du 2e trimestre',`${fmt(a2)} / 20`),anchor);
   body.insertBefore(makeRow('معدل الفصل الأول','Moyenne du 1er trimestre',`${fmt(a1)} / 20`),anchor);
-  body.insertBefore(makeRow('المعدل العام','Moyenne générale',annual==null?'—':`${fmt(annual)} / 20`),anchor);
+  body.insertBefore(makeRow('المعدل العام','Moyenne générale',absent3?`${absenceLabel(i)} / ${absenceLabel(i,true)}`:(annual==null?'—':`${fmt(annual)} / 20`)),anchor);
   if(rankRow){rankRow.cells[0].textContent='الرتبة';rankRow.cells[2].textContent='Rang';rankRow.cells[1].innerHTML=`<strong>${rank==null?'—':rank+' / '+(state.pupils||[]).length}</strong>`;rankRow.cells[0].classList.add('report-black-label','report-summary-label');rankRow.cells[2].classList.add('report-black-label','report-summary-label')}
-  const obsRow=rowByLabel(body,/^(الملاحظة|Observation)$/i);if(obsRow){const ok=annual!=null&&annual>=10;obsRow.cells[0].textContent='الملاحظة';obsRow.cells[2].textContent='Observation';obsRow.cells[1].innerHTML=annual==null?'<strong>—</strong>':`<strong>${ok?'ناجح / Admis':'راسب / Non admis'}</strong>`}
+  const obsRow=rowByLabel(body,/^(الملاحظة|Observation)$/i);if(obsRow){const ok=annual!=null&&annual>=10;obsRow.cells[0].textContent='الملاحظة';obsRow.cells[2].textContent='Observation';obsRow.cells[1].innerHTML=absent3?`<strong>${absenceLabel(i)} / ${absenceLabel(i,true)}</strong>`:(annual==null?'<strong>—</strong>':`<strong>${ok?'ناجح / Admis':'راسب / Non admis'}</strong>`)}
   markBoldLabels(root);
 }
 
@@ -92,8 +96,8 @@ function fillFinalTable(table){
     <th class="final-avg"><div class="final-vertical"><span>المعدل العام</span><small dir="ltr">Moy. /20</small></div></th>
     <th class="final-obs"><span>الملاحظة</span><small>Observation</small></th>
   </tr></thead><tbody>${ordered.map((o,pos)=>{
-    const p=o.p,i=o.i,row=termRows(ts[2])?.[i]||[],a3=termAverage(i,ts[2]),a2=termAverage(i,ts[1]),a1=termAverage(i,ts[0]),annual=o.annual,remark=annual==null?'':(annual>=10?'ناجح':'راسب');
-    return `<tr><td class="final-rank-cell"><b>${annual==null?'—':pos+1}</b></td><td class="final-name-cell"><span dir="rtl">${esc(p?.[1]||'')}</span>${p?.[4]?`<small dir="ltr">${esc(p[4])}</small>`:''}</td>${subjects.map((sub,j)=>`<td class="final-mark">${row[j]===''||row[j]==null?'':esc(row[j])}</td>`).join('')}<td class="final-num">${fmt(a3)}</td><td class="final-num">${fmt(a2)}</td><td class="final-num">${fmt(a1)}</td><td class="final-num final-general"><b>${fmt(annual)}</b></td><td class="final-obs-cell"><span>${esc(remark)}</span><small>${annual==null?'':(annual>=10?'Admis':'Non admis')}</small></td></tr>`
+    const p=o.p,i=o.i,row=termRows(ts[2])?.[i]||[],absent3=termAbsent(i,ts[2]),a3=termAverage(i,ts[2]),a2=termAverage(i,ts[1]),a1=termAverage(i,ts[0]),annual=o.annual,remark=absent3?absenceLabel(i):(annual==null?'':(annual>=10?'ناجح':'راسب'));
+    return `<tr><td class="final-rank-cell"><b>${annual==null?'—':pos+1}</b></td><td class="final-name-cell"><span dir="rtl">${esc(p?.[1]||'')}</span>${p?.[4]?`<small dir="ltr">${esc(p[4])}</small>`:''}</td>${subjects.map((sub,j)=>`<td class="final-mark">${isAbsent(row[j])?esc(absenceLabel(i)):row[j]===''||row[j]==null?'':esc(row[j])}</td>`).join('')}<td class="final-num">${absent3?esc(absenceLabel(i)):fmt(a3)}</td><td class="final-num">${fmt(a2)}</td><td class="final-num">${fmt(a1)}</td><td class="final-num final-general"><b>${absent3?esc(absenceLabel(i)):fmt(annual)}</b></td><td class="final-obs-cell"><span>${esc(remark)}</span><small>${absent3?esc(absenceLabel(i,true)):(annual==null?'':(annual>=10?'Admis':'Non admis'))}</small></td></tr>`
   }).join('')}</tbody>`;
 }
 function buildFinalClassTable(){
