@@ -109,6 +109,7 @@ function syncClassData(){
 let autoSaveTimer;
 function queueSave(){clearTimeout(autoSaveTimer);autoSaveTimer=setTimeout(()=>{try{save(true)}catch{}},220)}
 function applyClassProfile(level,force=false){
+  if(currentUser?.role==='teacher')return false;
   const profile=CLASS_PROFILES[level],cfg=ensureScoring();if(!profile||!cfg)return false;
   if(!force&&cfg.customized)return false;
   if(!force&&cfg.profileVersion===PROFILE_VERSION&&cfg.profileLevel===level)return false;
@@ -125,6 +126,10 @@ function applyClassProfile(level,force=false){
 }
 function ensureClassProfile(){
   const cfg=ensureScoring(),level=detectLevel();if(!cfg)return;
+  if(currentUser?.role==='teacher'){
+    (state.subjects||[]).forEach(s=>{if(!Number.isFinite(Number(s[3]))||Number(s[3])<=0)s[3]=20});
+    const visibleTotal=(state.subjects||[]).reduce((a,s)=>a+subjectMax(s),0);state.totalMax=visibleTotal||200;cfg.totalMax=state.totalMax;return
+  }
   state.totalMax=Number(cfg.totalMax)||200;
   if(level&&!cfg.customized&&(cfg.profileVersion!==PROFILE_VERSION||cfg.profileLevel!==level))applyClassProfile(level,false);
   (state.subjects||[]).forEach(s=>{if(!Number.isFinite(Number(s[3]))||Number(s[3])<=0)s[3]=20});
