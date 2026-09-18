@@ -20,12 +20,12 @@ const annualAvg=i=>{const a=TERMS.map(t=>termAvg(i,t));return a.some(v=>v==null)
 const annualRanks=()=>{const a=(state?.pupils||[]).map((_,i)=>annualAvg(i));return a.map(v=>v==null?null:1+a.filter(x=>x!=null&&x>v).length)};
 const currentCalc=i=>{const row=currentRows()?.[i]||[],sum=state.subjects.reduce((a,_,j)=>a+numeric(row[j]),0),absentAll=allAbsent(row);return{sum,avg:sum*20/totalMax(),totalMax:totalMax(),complete:true,absentAll}};
 
-/* Core calculation: blank = incomplete, absent = entered and worth zero. */
+/* Core calculation: blank = zero; partial absence = zero for that subject; full absence = status only. */
 calc=function(i){return currentCalc(i)};
 ranks=function(){const vals=(state?.pupils||[]).map((_,i)=>currentCalc(i));return vals.map(v=>v.absentAll?null:1+vals.filter(x=>!x.absentAll&&x.avg>v.avg).length)};
 cleanMark=function(v,max=20){const s=String(v??'').trim();if(!s)return'';if(isAbsent(s))return ABS;const n=Number(s),m=Number(max);if(!Number.isFinite(n))return s;return Math.max(0,Math.min(Number.isFinite(m)&&m>0?m:20,n))};
 
-function commitEntry(input,final=false){const i=+input.dataset.i,j=+input.dataset.j;if(!state?.marks?.[i])return;let raw=String(input.value??'').trim(),value=raw;if(isAbsent(raw))value=ABS;else if(raw==='')value='';else if(Number.isFinite(Number(raw)))value=Math.max(0,Math.min(maxFor(j),Number(raw)));else if(final)value='';state.marks[i][j]=value;input.value=value;input.classList.toggle('absent-mark',value===ABS);markDirty();renderDashboard();scheduleReports();}
+function commitEntry(input,final=false){const i=+input.dataset.i,j=+input.dataset.j;if(!state?.marks?.[i])return;let raw=String(input.value??'').trim(),value=raw;if(isAbsent(raw))value=absenceLabel(i);else if(raw==='')value='';else if(Number.isFinite(Number(raw)))value=Math.max(0,Math.min(maxFor(j),Number(raw)));else if(final)value='';state.marks[i][j]=value;input.value=value;input.classList.toggle('absent-mark',isAbsent(value));markDirty();renderDashboard();scheduleReports();}
 function pupilFemale(i){const p=state?.pupils?.[i]||[],g=String(p?.[2]??p?.[6]??p?.gender??'').trim().toLowerCase();return /أنثى|انثى|female|féminin|feminin|fille/.test(g)}
 function absenceLabel(i,frLabel=false){return pupilFemale(i)?(frLabel?'Absente':'غائبة'):(frLabel?'Absent':'غائب')}
 function addAbsentButton(input){const parent=input.parentElement;if(!parent||parent.querySelector('.absent-btn'))return;const i=+input.dataset.i,b=document.createElement('button');b.type='button';b.className='absent-btn';b.textContent=absenceLabel(i);b.onclick=e=>{e.preventDefault();e.stopPropagation();input.value=absenceLabel(i);commitEntry(input,true)};parent.appendChild(b)}
