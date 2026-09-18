@@ -15,8 +15,12 @@ let open=false,draft={};
 function shouldOpen(){
  try{return currentUser?.role==='admin'&&Array.isArray(state?.classes)&&state.classes.length===0}catch{return false}
 }
+function defaultAcademicYear(){
+ const d=new Date(),y=d.getFullYear(),start=d.getMonth()>=6?y:y-1;
+ return start+' - '+(start+1);
+}
 function syncFromState(){
- draft.school=String(state?.school||'');draft.schoolFr=String(state?.schoolFr||'');draft.region=String(state?.region||'');draft.regionFr=String(state?.regionFr||'');draft.inspection=String(state?.inspection||'');draft.inspectionFr=String(state?.inspectionFr||'');draft.year=String(state?.year||'');draft.code=draft.code||'1AF';
+ draft.school=String(state?.school||'');draft.schoolFr=String(state?.schoolFr||'');draft.region=String(state?.region||'');draft.regionFr=String(state?.regionFr||'');draft.inspection=String(state?.inspection||'');draft.inspectionFr=String(state?.inspectionFr||'');draft.year=String(state?.year||'').trim()||defaultAcademicYear();draft.code=draft.code||'1AF';
 }
 function shell(step,body,footer=''){
  let root=q('#nataijiOnboarding');
@@ -32,7 +36,7 @@ function step1(){
  <div class="nw-two"><label>المفتشية <input id="nwInspection" value="${E(draft.inspection)}" placeholder="اختياري"></label><label>Inspection <input id="nwInspectionFr" dir="ltr" value="${E(draft.inspectionFr)}" placeholder="Optionnel"></label></div>
  <label>السنة الدراسية <input id="nwYear" dir="ltr" value="${E(draft.year)}" placeholder="2026 - 2027"></label>
  <p class="nw-error"></p>`,`<div class="nw-actions"><button class="primary" id="nwNext1">التالي</button></div>`);
- q('#nwNext1').onclick=async()=>{const btn=q('#nwNext1'),err=q('.nw-error'),school=q('#nwSchool').value.trim(),year=q('#nwYear').value.trim();if(!school||!year){err.textContent='اسم المدرسة والسنة الدراسية مطلوبان.';return}Object.assign(draft,{school,schoolFr:q('#nwSchoolFr').value.trim(),region:q('#nwRegion').value.trim(),regionFr:q('#nwRegionFr').value.trim(),inspection:q('#nwInspection').value.trim(),inspectionFr:q('#nwInspectionFr').value.trim(),year});btn.disabled=true;err.textContent='جارٍ تثبيت بيانات المدرسة…';try{await api('/api/settings',{method:'PUT',body:JSON.stringify({...draft,classId:''})});Object.assign(state,{school:draft.school,schoolFr:draft.schoolFr,region:draft.region,regionFr:draft.regionFr,inspection:draft.inspection,inspectionFr:draft.inspectionFr,year:draft.year});localStorage.setItem('nataiji-data',JSON.stringify(state));step2()}catch(e){btn.disabled=false;err.textContent='تعذر حفظ البيانات على الخادم. حاول مرة أخرى.'}}
+ q('#nwNext1').onclick=async()=>{const btn=q('#nwNext1'),err=q('.nw-error'),school=q('#nwSchool').value.trim(),year=q('#nwYear').value.trim()||defaultAcademicYear();q('#nwYear').value=year;if(!school){err.textContent='اسم المدرسة مطلوب.';q('#nwSchool').focus();return}Object.assign(draft,{school,schoolFr:q('#nwSchoolFr').value.trim(),region:q('#nwRegion').value.trim(),regionFr:q('#nwRegionFr').value.trim(),inspection:q('#nwInspection').value.trim(),inspectionFr:q('#nwInspectionFr').value.trim(),year});btn.disabled=true;err.textContent='جارٍ تثبيت بيانات المدرسة…';try{await api('/api/settings',{method:'PUT',body:JSON.stringify({...draft,classId:''})});Object.assign(state,{school:draft.school,schoolFr:draft.schoolFr,region:draft.region,regionFr:draft.regionFr,inspection:draft.inspection,inspectionFr:draft.inspectionFr,year:draft.year});localStorage.setItem('nataiji-data',JSON.stringify(state));step2()}catch(e){btn.disabled=false;err.textContent='تعذر حفظ البيانات على الخادم. حاول مرة أخرى.'}}
 }
 function step2(){
  shell(2,`<h2>الفصول الدراسية</h2><p>سيتم إعداد الفصول الثلاثة الرسمية تلقائيًا، ويمكنك تعديلها لاحقًا من الإعدادات.</p><div class="nw-terms"><div><b>1</b><span>الفصل الأول</span></div><div><b>2</b><span>الفصل الثاني</span></div><div><b>3</b><span>الفصل الثالث</span></div></div>`,`<div class="nw-actions"><button id="nwBack2">السابق</button><button class="primary" id="nwNext2">التالي</button></div>`);
