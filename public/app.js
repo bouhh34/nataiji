@@ -37,6 +37,23 @@ $$('[data-view]').forEach(b=>b.onclick=()=>setView(b.dataset.view));
 $$('[data-go]').forEach(b=>b.onclick=()=>setView(b.dataset.go));
 $('#subjectPicker').onchange=renderMobileScores;
 $('#term').onchange=async e=>{state.term=e.target.value;markDirty();await save(true);renderReports()};
+let markCellSaveTail=Promise.resolve();
+function markSaveStatus(text,dirty=false){const el=$('#saveState');if(!el)return;el.textContent=text;el.classList.toggle('dirty',dirty)}
+function persistMarkCell(input){
+ const i=Number(input?.dataset?.i),j=Number(input?.dataset?.j);
+ if(!Number.isInteger(i)||!Number.isInteger(j))return;
+ const pupil=state.pupils?.[i],subject=state.subjects?.[j],pupilKey=String(pupil?.[7]||pupil?.[0]||''),subjectId=String(subject?.[4]||'');
+ if(!pupilKey||!subjectId)return;
+ const value=state.marks?.[i]?.[j]??input.value??'';
+ state.marksByTerm=state.marksByTerm&&typeof state.marksByTerm==='object'?state.marksByTerm:{};
+ state.marksByTerm[state.term]=structuredClone(state.marks);
+ if(state.classData?.[state.activeClassId]){state.classData[state.activeClassId].marksByTerm=state.classData[state.activeClassId].marksByTerm||{};state.classData[state.activeClassId].marksByTerm[state.term]=structuredClone(state.marks)}
+ markSaveStatus('جارٍ تثبيت الدرجة...',true);
+ const run=async()=>{try{const r=await api('/api/mark',{method:'PUT',body:JSON.stringify({classId:state.activeClassId,term:state.term,pupilKey,subjectId,value})});if(!r?.ok)throw new Error('mark_save_failed');localStorage.setItem('nataiji-data',JSON.stringify(state));markSaveStatus('✓ محفوظ تلقائيًا',false)}catch(e){markSaveStatus('فشل حفظ الدرجة — استخدم حفظ النتائج',true)}};
+ const job=markCellSaveTail.then(run,run);markCellSaveTail=job.catch(()=>{});
+}
+document.addEventListener('change',e=>{const t=e.target;if(t?.matches?.('.mark,.mobile-mark'))persistMarkCell(t)},true);
+
 $('#saveGrades').onclick=async()=>{if(syncBusy)return;const b=$('#saveGrades'),old=b.textContent;b.disabled=true;b.textContent='جارٍ حفظ الدرجات...';try{const r=await api('/api/marks',{method:'PUT',body:JSON.stringify({classId:state.activeClassId,term:state.term,marks:state.marks})});if(!r?.ok)throw new Error('marks_save_failed');state.marks=structuredClone(r.marks||state.marks);state.marksByTerm=state.marksByTerm&&typeof state.marksByTerm==='object'?state.marksByTerm:{};state.marksByTerm[state.term]=structuredClone(state.marks);if(state.classData?.[state.activeClassId]){state.classData[state.activeClassId].marksByTerm=state.classData[state.activeClassId].marksByTerm||{};state.classData[state.activeClassId].marksByTerm[state.term]=structuredClone(state.marks)}localStorage.setItem('nataiji-data',JSON.stringify(state));b.textContent='✓ تم تثبيت الدرجات على الخادم';renderReports()}catch(e){b.textContent='فشل حفظ الدرجات';throw e}finally{setTimeout(()=>{b.textContent=old;b.disabled=false},1200)}};
 $('#student').onchange=renderReports;$('#showResult').onclick=renderReports;$('#addStudent').onclick=addStudent;$('#settingsBtn').onclick=openSettings;$('#subjectsBtn').onclick=openSubjects;$('#inviteBtn').onclick=openInvite;
 $('#logoutBtn').onclick=async()=>{try{await api('/api/auth/logout',{method:'POST',body:'{}'})}catch{}currentUser=null;await showAuth('login')};
