@@ -133,18 +133,18 @@ async function bindUnifiedClassSelector(){
   if(chosen)sel.value=chosen.kind+'|'+chosen.id+'|'+chosen.classId;
   sel.disabled=!options.length;
   sel.onchange=async()=>{
-   const [kind,id,classId]=sel.value.split('|');sel.disabled=true;
+   const previous=options.find(x=>x.selected),[kind,id,classId]=sel.value.split('|');sel.disabled=true;
    try{
     if(kind==='shared'){
-     if(currentUser.activeSharedGrant!==id){const rr=await api('/api/shared/switch',{method:'POST',body:JSON.stringify({grantId:id})});currentUser=rr.user;await accountActivate(currentUser);setTimeout(()=>window.nataijiSelectClass?.(classId),80)}
+     if(currentUser.activeSharedGrant!==id){const rr=await api('/api/shared/switch',{method:'POST',body:JSON.stringify({grantId:id})});currentUser=rr.user;await accountActivate(currentUser);await window.nataijiSelectClass?.(classId)}
      else await window.nataijiSelectClass?.(classId);
     }else{
      if(currentUser.activeSharedGrant){const x=await api('/api/shared/switch',{method:'POST',body:JSON.stringify({grantId:''})});currentUser=x.user}
-     if(currentUser.schoolId!==id){const x=await api('/api/schools/switch',{method:'POST',body:JSON.stringify({schoolId:id})});currentUser=x.user}
-     // For another class in the same owned school, select it first; do not reload the old active class over the choice.
-     if(currentUser.schoolId===id&&state?.activeClassId!==classId&&window.nataijiSelectClass){await window.nataijiSelectClass(classId)}else await accountActivate(currentUser);
+     if(currentUser.schoolId!==id){const x=await api('/api/schools/switch',{method:'POST',body:JSON.stringify({schoolId:id})});currentUser=x.user;await accountActivate(currentUser)}
+     if(state?.activeClassId!==classId)await window.nataijiSelectClass?.(classId);
     }
-   }catch(e){alert(authErr(e.code));sel.disabled=false}
+    await bindUnifiedClassSelector();
+   }catch(e){console.error('workspace switch failed',e);if(previous)sel.value=previous.kind+'|'+previous.id+'|'+previous.classId;sel.disabled=false}
   };
  }catch{if(run===workspaceSelectorRun)window.nataijiUnifiedClassSelector=false}
 }
