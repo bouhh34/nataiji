@@ -141,6 +141,28 @@ async function overlayCanonicalMarks(full,schoolId){
  return full;
 }
 
+app.put('/api/mark',auth,async(req,res)=>{
+ if(!pool)return res.status(503).json({error:'durable_storage_required'});
+ const sq=await pool.query('SELECT data FROM nataiji_structure WHERE school_id=$1',[req.user.schoolId]),st=sq.rows[0]?.data||{classes:[],terms:[]};
+ const allowed=req.user.role==='admin'?(st.classes||[]).map(x=>x.id):(req.user.classIds||[]);
+ const classId=String(req.body?.classId||st.activeClassId||''),term=String(req.body?.term||st.term||''),pupilKey=String(req.body?.pupilKey||''),subjectId=String(req.body?.subjectId||''),value=req.body?.value;
+ if(!classId||!allowed.includes(classId)||!st.classes?.some(x=>x.id===classId)||!st.terms?.includes(term)||!pupilKey||!subjectId)return res.status(400).json({error:'invalid_mark'});
+ if(req.user.role!=='admin'&&!new Set(req.user.permissions||[]).has('grades'))return res.status(403).json({error:'forbidden'});
+ const [pq,sjq]=await Promise.all([
+  pool.query('SELECT 1 FROM nataiji_pupils WHERE school_id=$1 AND class_id=$2 AND nns=$3',[req.user.schoolId,classId,pupilKey]),
+  pool.query('SELECT 1 FROM nataiji_subjects WHERE school_id=$1 AND class_id=$2 AND subject_id=$3',[req.user.schoolId,classId,subjectId])
+ ]);
+ if(!pq.rowCount||!sjq.rowCount)return res.status(404).json({error:'mark_target_not_found'});
+ const v=value==null?'':String(value).trim();
+ if(v==='')await pool.query('DELETE FROM nataiji_marks WHERE school_id=$1 AND class_id=$2 AND term=$3 AND pupil_key=$4 AND subject_id=$5',[req.user.schoolId,classId,term,pupilKey,subjectId]);
+ else await pool.query(`INSERT INTO nataiji_marks(school_id,class_id,term,pupil_key,subject_id,value,updated_at)
+ VALUES($1,$2,$3,$4,$5,$6,now())
+ ON CONFLICT(school_id,class_id,term,pupil_key,subject_id)
+ DO UPDATE SET value=EXCLUDED.value,updated_at=now()`,[req.user.schoolId,classId,term,pupilKey,subjectId,v]);
+ await pool.query('INSERT INTO nataiji_migrations(school_id,class_id,resource) VALUES($1,$2,$3) ON CONFLICT DO NOTHING',[req.user.schoolId,classId,'marks-v1']);
+ res.json({ok:true,classId,term,pupilKey,subjectId,value:v,savedAt:new Date().toISOString()});
+});
+
 app.put('/api/marks',auth,async(req,res)=>{
  if(!pool)return res.status(503).json({error:'durable_storage_required'});
  const sq=await pool.query('SELECT data FROM nataiji_structure WHERE school_id=$1',[req.user.schoolId]),st=sq.rows[0]?.data||{classes:[],terms:[]};
