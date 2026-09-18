@@ -86,7 +86,7 @@ function install(){
  if(grid&&!q('#joinCodeBtn')){const b=document.createElement('button');b.id='joinCodeBtn';b.className='menu-card';b.innerHTML='<b>⌁ لدي رمز دعوة</b><span>الدخول إلى المدرسة باستخدام رمز الدعوة فقط</span>';grid.insertBefore(b,q('#logoutBtn'));b.onclick=joinModal}
  refreshSelectors();
 }
-function installWhenReady(){install();if(!state?.terms?.length||!state?.activeClassId)setTimeout(install,120)}
+function installWhenReady(){install()}
 window.addEventListener('DOMContentLoaded',installWhenReady);
 const oldRender=render;render=function(){oldRender();install()};
 })();
