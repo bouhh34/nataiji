@@ -32,7 +32,14 @@ function bindBiPair(arSel,frSel){
 }
 let open=false,draft={};
 function shouldOpen(){
- try{return currentUser?.role==='admin'&&!currentUser?.activeSharedGrant&&state?.onboardingComplete!==true&&Array.isArray(state?.classes)&&state.classes.length===0}catch{return false}
+ try{
+  if(currentUser?.role!=='admin'||currentUser?.activeSharedGrant)return false;
+  // Existing account data is authoritative. Never show first-run setup merely because
+  // a transient client render has not populated the class selector yet.
+  if(state?.onboardingComplete===true)return false;
+  if((Array.isArray(state?.classes)&&state.classes.length>0)||(Array.isArray(state?.pupils)&&state.pupils.length>0)||String(state?.school||'').trim())return false;
+  return state?.onboardingComplete===false;
+ }catch{return false}
 }
 function defaultAcademicYear(){
  const d=new Date(),y=d.getFullYear(),start=d.getMonth()>=6?y:y-1;
