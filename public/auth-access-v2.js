@@ -173,14 +173,21 @@ async function bindUnifiedClassSelector(){
   sel.innerHTML='';
   const addGroup=(label,kind)=>{const rows=options.filter(x=>x.kind===kind);if(!rows.length)return;const g=document.createElement('optgroup');g.label=label;for(const x of rows){const o=document.createElement('option');o.value=x.kind+'|'+x.id+'|'+x.classId;o.textContent=x.label;if(x.selected)o.selected=true;g.appendChild(o)}sel.appendChild(g)};
   addGroup(tr('أقسامي','Mes classes'),'own');addGroup(tr('الأقسام المشتركة معي','Classes partagées avec moi'),'shared');
-  const preferred=String(currentUser.preferredClassId||state?.activeClassId||'');
-  const chosen=options.find(x=>x.selected)||options.find(x=>x.classId===preferred&&(x.kind==='shared'?x.id===currentUser.activeSharedGrant:!currentUser.activeSharedGrant))||options.find(x=>(x.kind+'|'+x.id+'|'+x.classId)===currentValue)||options[0];
+  const preferred=String(window.__nataijiPendingClassId||state?.activeClassId||currentUser.preferredClassId||'');
+  const pendingValue=String(sel.dataset.nataijiRequestedValue||'');
+  const chosen=options.find(x=>(x.kind+'|'+x.id+'|'+x.classId)===pendingValue)||options.find(x=>x.classId===preferred&&(x.kind==='shared'?x.id===currentUser.activeSharedGrant:!currentUser.activeSharedGrant))||options.find(x=>x.selected)||options.find(x=>(x.kind+'|'+x.id+'|'+x.classId)===currentValue)||options[0];
   if(chosen)sel.value=chosen.kind+'|'+chosen.id+'|'+chosen.classId;
   sel.dataset.nataijiWorkspaceStamp=workspaceStamp();delete sel.dataset.nataijiWorkspaceLoading;
   sel.disabled=false;
   sel.onchange=async()=>{
    const requestedValue=sel.value;
-   const previous=options.find(x=>(x.kind+'|'+x.id+'|'+x.classId)===sel.dataset.nataijiPrevious)||options.find(x=>x.selected)||chosen,[kind,id,classId]=requestedValue.split('|');sel.dataset.nataijiPrevious=previous?previous.kind+'|'+previous.id+'|'+previous.classId:'';sel.disabled=true;
+   const previous=options.find(x=>(x.kind+'|'+x.id+'|'+x.classId)===sel.dataset.nataijiPrevious)||options.find(x=>x.selected)||chosen,[kind,id,classId]=requestedValue.split('|');
+   sel.dataset.nataijiPrevious=previous?previous.kind+'|'+previous.id+'|'+previous.classId:'';
+   sel.dataset.nataijiRequestedValue=requestedValue;
+   sel.dataset.nataijiNavigationBusy='1';
+   sel.setAttribute('aria-busy','true');
+   sel.value=requestedValue;
+   window.__nataijiPendingClassId=classId;
    try{
     if(kind==='shared'){
      if(currentUser.activeSharedGrant!==id){const rr=await api('/api/shared/switch',{method:'POST',body:JSON.stringify({grantId:id})});currentUser=rr.user;await accountActivate(currentUser);await window.nataijiSelectClass?.(classId)}
@@ -190,10 +197,24 @@ async function bindUnifiedClassSelector(){
      if(currentUser.schoolId!==id){const x=await api('/api/schools/switch',{method:'POST',body:JSON.stringify({schoolId:id})});currentUser=x.user;await accountActivate(currentUser)}
      if(state?.activeClassId!==classId)await window.nataijiSelectClass?.(classId);
     }
+    // Rebind once using the authoritative requested value after the new state is loaded.
+    delete sel.dataset.nataijiNavigationBusy;
     await bindUnifiedClassSelector();
     const live=q('#classTop');
     if(live&&[...live.options].some(o=>o.value===requestedValue))live.value=requestedValue;
-   }catch(e){console.error('workspace switch failed',e);if(previous)sel.value=previous.kind+'|'+previous.id+'|'+previous.classId;sel.disabled=false}
+   }catch(e){
+    console.error('workspace switch failed',e);
+    if(previous)sel.value=previous.kind+'|'+previous.id+'|'+previous.classId
+   }finally{
+    const live=q('#classTop');
+    if(live){
+     live.removeAttribute('aria-busy');
+     delete live.dataset.nataijiNavigationBusy;
+     delete live.dataset.nataijiRequestedValue;
+     live.disabled=false
+    }
+    delete window.__nataijiPendingClassId
+   }
   };
  }catch(e){
   console.error('workspace selector load failed',e);
@@ -202,6 +223,7 @@ async function bindUnifiedClassSelector(){
 }
 function scheduleUnifiedSelector(force=false){
  const sel=q('#classTop');if(!sel||!currentUser)return;
+ if(sel.dataset.nataijiNavigationBusy==='1')return;
  if(!force&&sel.dataset.nataijiWorkspaceStamp===workspaceStamp())return;
  clearTimeout(workspaceSelectorTimer);
  workspaceSelectorTimer=setTimeout(()=>bindUnifiedClassSelector(),20);
