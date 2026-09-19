@@ -210,7 +210,38 @@ app.get('/api/workspaces',auth,async(req,res)=>{
 });
 app.get('/api/shared',auth,async(req,res)=>{const raw=await storeGet(userKey(req.user.id));if(!raw)return res.status(404).json({error:'account_not_found'});const u=JSON.parse(raw);res.json({ok:true,activeSharedGrant:u.activeSharedGrant||'',grants:Object.values(u.sharedGrants||{})})});
 app.post('/api/shared/switch',auth,async(req,res)=>{const raw=await storeGet(userKey(req.user.id));if(!raw)return res.status(404).json({error:'account_not_found'});const u=JSON.parse(raw),id=String(req.body?.grantId||'');if(id&&!u.sharedGrants?.[id])return res.status(404).json({error:'shared_access_not_found'});if(id){const gr=await storeGet(grantKey(id));if(!gr||JSON.parse(gr).revoked){delete u.sharedGrants[id];u.activeSharedGrant='';await storeSet(userKey(u.id),JSON.stringify(u));return res.status(403).json({error:'shared_access_revoked'})}}u.activeSharedGrant=id;u.workspaceMode=id?'shared':'owned';u.workspaceSelections=u.workspaceSelections&&typeof u.workspaceSelections==='object'?u.workspaceSelections:{};if(id&&!u.workspaceSelections['shared:'+id])u.workspaceSelections['shared:'+id]={classId:Object.keys(u.sharedGrants?.[id]?.classAccess||{})[0]||'',term:''};await storeSet(userKey(u.id),JSON.stringify(u));res.json({ok:true,user:safeUser(u)})});
-app.get('/api/shares',auth,async(req,res)=>{if(req.user.baseRole!=='admin'||req.user.activeSharedGrant)return res.status(403).json({error:'forbidden'});let ids=[];try{ids=JSON.parse(await storeGet(ownerGrantsKey(req.user.id))||'[]')}catch{};const grants=[];for(const id of ids){const raw=await storeGet(grantKey(id));if(raw){const g=JSON.parse(raw);if(!g.revoked)grants.push(g)}}res.json({ok:true,grants})});
+app.get('/api/shares',auth,async(req,res)=>{
+ if(req.user.baseRole!=='admin'||req.user.activeSharedGrant)return res.status(403).json({error:'forbidden'});
+ let ids=[];try{ids=JSON.parse(await storeGet(ownerGrantsKey(req.user.id))||'[]')}catch{}
+ const grants=[],schoolCache=new Map();
+ const metaFor=async schoolId=>{
+  if(schoolCache.has(schoolId))return schoolCache.get(schoolId);
+  const meta={classes:new Map(),subjects:new Map()};
+  if(pool){
+   const st=(await pool.query('SELECT data FROM nataiji_structure WHERE school_id=$1',[schoolId])).rows[0]?.data||{};
+   for(const cls of st.classes||[])meta.classes.set(String(cls.id),{id:String(cls.id),name:String(cls.name||''),nameFr:String(cls.nameFr||''),code:String(cls.code||'')});
+   const rows=(await pool.query('SELECT class_id,subject_id,data FROM nataiji_subjects WHERE school_id=$1 ORDER BY class_id,position,updated_at',[schoolId])).rows;
+   for(const row of rows){
+    const cid=String(row.class_id),d=Array.isArray(row.data)?row.data:[],arr=meta.subjects.get(cid)||[];
+    arr.push({id:String(row.subject_id),name:String(d[0]||''),nameFr:String(d[2]||'')});meta.subjects.set(cid,arr)
+   }
+  }
+  schoolCache.set(schoolId,meta);return meta
+ };
+ for(const id of ids){
+  const raw=await storeGet(grantKey(id));if(!raw)continue;
+  const g=JSON.parse(raw);if(g.revoked)continue;
+  const meta=await metaFor(g.schoolId),classDetails=[];
+  for(const [classId,scope] of Object.entries(g.classAccess||{})){
+   const cls=meta.classes.get(String(classId))||{id:String(classId),name:String(classId),nameFr:'',code:''};
+   const subs=meta.subjects.get(String(classId))||[],hidden=new Set((scope?.hiddenSubjectIds||[]).map(String)),edit=new Set((scope?.subjectIds||[]).map(String)),full=scope?.fullClass===true||scope?.allSubjects===true;
+   const visible=subs.filter(s=>!hidden.has(s.id)),editSubjects=full?visible:visible.filter(s=>edit.has(s.id)),viewSubjects=full?[]:visible.filter(s=>!edit.has(s.id)),hiddenSubjects=subs.filter(s=>hidden.has(s.id));
+   classDetails.push({...cls,fullClass:full,editSubjects,viewSubjects,hiddenSubjects})
+  }
+  grants.push({...g,classDetails})
+ }
+ res.json({ok:true,grants})
+});
 app.delete('/api/shares/:id',auth,async(req,res)=>{if(req.user.baseRole!=='admin'||req.user.activeSharedGrant)return res.status(403).json({error:'forbidden'});const id=String(req.params.id),raw=await storeGet(grantKey(id));if(!raw)return res.status(404).json({error:'share_not_found'});const g=JSON.parse(raw);if(g.ownerId!==req.user.id)return res.status(403).json({error:'forbidden'});g.revoked=true;g.revokedAt=new Date().toISOString();await storeSet(grantKey(id),JSON.stringify(g));const ur=await storeGet(userKey(g.recipientId));if(ur){const u=JSON.parse(ur);if(u.sharedGrants)delete u.sharedGrants[id];if(u.activeSharedGrant===id)u.activeSharedGrant='';await storeSet(userKey(u.id),JSON.stringify(u))}res.json({ok:true})});
 app.put('/api/shares/:id',auth,async(req,res)=>{if(req.user.baseRole!=='admin'||req.user.activeSharedGrant)return res.status(403).json({error:'forbidden'});const id=String(req.params.id),raw=await storeGet(grantKey(id));if(!raw)return res.status(404).json({error:'share_not_found'});const g=JSON.parse(raw);if(g.ownerId!==req.user.id||g.revoked)return res.status(403).json({error:'forbidden'});const permissions=cleanPermissions(req.body?.permissions);if(!permissions.length)return res.status(400).json({error:'invalid_permissions'});const st=(await pool.query('SELECT data FROM nataiji_structure WHERE school_id=$1',[g.schoolId])).rows[0]?.data||{},requested=req.body?.classAccess&&typeof req.body.classAccess==='object'?req.body.classAccess:{},classAccess={};for(const [classId,scope] of Object.entries(requested)){if(!st.classes?.some(x=>x.id===classId))continue;const rows=(await pool.query('SELECT subject_id FROM nataiji_subjects WHERE school_id=$1 AND class_id=$2',[g.schoolId,classId])).rows,valid=new Set(rows.map(x=>String(x.subject_id))),fullClass=scope?.fullClass===true,allSubjects=fullClass||scope?.allSubjects===true,subjectIds=[...new Set((scope?.subjectIds||[]).map(String).filter(x=>valid.has(x)))],hiddenSubjectIds=fullClass?[]:[...new Set((scope?.hiddenSubjectIds||[]).map(String).filter(x=>valid.has(x)))];classAccess[classId]={fullClass,allSubjects,subjectIds,hiddenSubjectIds}}if(!Object.keys(classAccess).length)return res.status(400).json({error:'invalid_class_scope'});g.permissions=permissions;g.classAccess=classAccess;g.updatedAt=new Date().toISOString();await storeSet(grantKey(id),JSON.stringify(g));const ur=await storeGet(userKey(g.recipientId));if(ur){const u=JSON.parse(ur);if(u.sharedGrants?.[id])u.sharedGrants[id]={...u.sharedGrants[id],permissions,classAccess,updatedAt:g.updatedAt};await storeSet(userKey(u.id),JSON.stringify(u))}res.json({ok:true,grant:g})});
 
