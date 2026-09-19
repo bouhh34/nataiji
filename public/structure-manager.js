@@ -68,10 +68,20 @@ function refreshSelectors(){
    ct.onchange=async e=>{
      const selected=e.target.value,previous=state.activeClassId||'';
      if(!selected||selected===previous)return;
-     ct.disabled=true;
+     // Keep the native select enabled. Disabling it inside Android's change event
+     // can visually restore the previous option even though the page already switched.
+     ct.setAttribute('aria-busy','true');
+     ct.value=selected;
      try{await window.nataijiSelectClass(selected)}
      catch(err){console.error('class switch failed',err);ct.value=previous}
-     finally{const live=q('#classTop');if(live&&!window.nataijiWorkspaceSelectorReady)live.disabled=!state.classes.length||(teacher&&state.classes.length<2)}
+     finally{
+       const live=q('#classTop');
+       if(live&&!window.nataijiWorkspaceSelectorReady){
+         live.removeAttribute('aria-busy');
+         live.disabled=!state.classes.length||(teacher&&state.classes.length<2);
+         if(state.activeClassId)live.value=state.activeClassId
+       }
+     }
    };
  }
  if(tt){
@@ -85,7 +95,9 @@ function refreshSelectors(){
      state.term=selected;
      try{localStorage.setItem('nataiji-data',JSON.stringify(state))}catch{}
      tt.value=selected;
-     tt.disabled=true;
+     // Do not disable a native Android select during its own change event.
+     // Keep the chosen text painted while the server request runs.
+     tt.setAttribute('aria-busy','true');
      try{
        if(teacher){await api('/api/active-selection',{method:'POST',body:JSON.stringify({classId:state.activeClassId,term:selected})});await loadTeacherView(state.activeClassId,selected);}
        else{
@@ -107,26 +119,50 @@ function refreshSelectors(){
        try{localStorage.setItem('nataiji-data',JSON.stringify(state))}catch{}
        const live=q('#term');if(live)live.value=previous
      }
-     finally{const live=q('#term');if(live){live.disabled=!state.terms.length;if(state.term)live.value=state.term}}
+     finally{const live=q('#term');if(live){live.removeAttribute('aria-busy');live.disabled=!state.terms.length;if(state.term)live.value=state.term}}
    };
  }
 }
 window.nataijiRefreshSelectors=refreshSelectors;
+let classNavigationSeq=0;
 window.nataijiSelectClass=async function(classId){
  if(!classId)return;
- const requestedClass=String(classId),requestedTerm=String(state.term||'');
- if(currentUser?.role==='teacher'){
-  await api('/api/active-selection',{method:'POST',body:JSON.stringify({classId:requestedClass,term:requestedTerm})});
-  await loadTeacherView(requestedClass,requestedTerm);
- }else{
-  await api('/api/active-selection',{method:'POST',body:JSON.stringify({classId:requestedClass,term:requestedTerm})});
-  const r=await api('/api/state?classId='+encodeURIComponent(requestedClass)+'&term='+encodeURIComponent(requestedTerm));
-  if(!r?.state)throw new Error('class_load_failed');
-  const fresh=typeof normalizeState==='function'?normalizeState(r.state):clone(r.state||{});
-  fresh.activeClassId=requestedClass;
-  if(requestedTerm)fresh.term=requestedTerm;
-  for(const k of Object.keys(state))delete state[k];Object.assign(state,fresh);normalizeLocal();
-  localStorage.setItem('nataiji-data',JSON.stringify(state));render();refreshSelectors();
+ const requestedClass=String(classId),requestedTerm=String(state.term||''),previousClass=String(state.activeClassId||''),seq=++classNavigationSeq;
+ // Make the user's choice authoritative immediately so any observer/render that
+ // runs while the request is pending cannot repaint the previous class.
+ state.activeClassId=requestedClass;
+ window.__nataijiPendingClassId=requestedClass;
+ try{localStorage.setItem('nataiji-data',JSON.stringify(state))}catch{}
+ try{
+  if(currentUser?.role==='teacher'){
+   const saved=await api('/api/active-selection',{method:'POST',body:JSON.stringify({classId:requestedClass,term:requestedTerm})});
+   if(saved?.user)currentUser=saved.user;
+   if(seq!==classNavigationSeq)return;
+   await loadTeacherView(requestedClass,requestedTerm);
+  }else{
+   await api('/api/active-selection',{method:'POST',body:JSON.stringify({classId:requestedClass,term:requestedTerm})});
+   if(seq!==classNavigationSeq)return;
+   const r=await api('/api/state?classId='+encodeURIComponent(requestedClass)+'&term='+encodeURIComponent(requestedTerm));
+   if(seq!==classNavigationSeq)return;
+   if(!r?.state)throw new Error('class_load_failed');
+   const fresh=typeof normalizeState==='function'?normalizeState(r.state):clone(r.state||{});
+   fresh.activeClassId=requestedClass;
+   if(requestedTerm)fresh.term=requestedTerm;
+   for(const k of Object.keys(state))delete state[k];Object.assign(state,fresh);normalizeLocal();
+   localStorage.setItem('nataiji-data',JSON.stringify(state));render();refreshSelectors();
+  }
+ }catch(err){
+  if(seq===classNavigationSeq){
+   state.activeClassId=previousClass;
+   try{localStorage.setItem('nataiji-data',JSON.stringify(state))}catch{}
+  }
+  throw err
+ }finally{
+  if(seq===classNavigationSeq){
+   delete window.__nataijiPendingClassId;
+   const live=q('#classTop');
+   if(live&&!window.nataijiWorkspaceSelectorReady&&state.activeClassId)live.value=state.activeClassId
+  }
  }
 };
 function structureModal(draft=null){
