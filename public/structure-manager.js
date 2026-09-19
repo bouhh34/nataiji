@@ -88,38 +88,42 @@ function refreshSelectors(){
    tt.innerHTML=state.terms.length?state.terms.map(t=>`<option value="${esc2(t)}" ${t===state.term?'selected':''}>${esc2(t)}</option>`).join(''):'<option value="">أضف فصلًا دراسيًا</option>';
    tt.disabled=!state.terms.length;
    tt.onchange=async e=>{
-     const selected=e.target.value,previous=state.term||'';
+     const selected=e.target.value,previous=String(state.term||''),classId=String(state.activeClassId||''),seq=(window.__nataijiTermNavigationSeq=(window.__nataijiTermNavigationSeq||0)+1);
      if(!selected||selected===previous)return;
-     // Commit the user's visible choice before any async request. This prevents
-     // another render from painting the previous term while the request is pending.
-     state.term=selected;
-     try{localStorage.setItem('nataiji-data',JSON.stringify(state))}catch{}
+     window.__nataijiPendingTerm=selected;
      tt.value=selected;
-     // Do not disable a native Android select during its own change event.
-     // Keep the chosen text painted while the server request runs.
      tt.setAttribute('aria-busy','true');
      try{
-       if(teacher){await api('/api/active-selection',{method:'POST',body:JSON.stringify({classId:state.activeClassId,term:selected})});await loadTeacherView(state.activeClassId,selected);}
-       else{
-         await api('/api/active-selection',{method:'POST',body:JSON.stringify({classId:state.activeClassId,term:selected})});
-         const r=await api('/api/state?classId='+encodeURIComponent(state.activeClassId||'')+'&term='+encodeURIComponent(selected));
-         if(!r?.state)throw new Error('term_load_failed');
-         const fresh=typeof normalizeState==='function'?normalizeState(r.state):clone(r.state||{});
-         // Keep the selected term authoritative even if the response still echoes
-         // the previous active term during the same navigation cycle.
-         fresh.activeClassId=state.activeClassId;
+       if(teacher){
+         await api('/api/active-selection',{method:'POST',body:JSON.stringify({classId,term:selected})});
+         if(seq!==window.__nataijiTermNavigationSeq)return;
+         await loadTeacherView(classId,selected);
+       }else{
+         await api('/api/active-selection',{method:'POST',body:JSON.stringify({classId,term:selected})});
+         if(seq!==window.__nataijiTermNavigationSeq)return;
+         const rr=await api('/api/state?classId='+encodeURIComponent(classId)+'&term='+encodeURIComponent(selected));
+         if(seq!==window.__nataijiTermNavigationSeq)return;
+         if(!rr?.state)throw new Error('term_load_failed');
+         const fresh=typeof normalizeState==='function'?normalizeState(rr.state):clone(rr.state||{});
+         fresh.activeClassId=classId;
          fresh.term=selected;
-         for(const k of Object.keys(state))delete state[k];Object.assign(state,fresh);normalizeLocal();
-         localStorage.setItem('nataiji-data',JSON.stringify(state));render();refreshSelectors();
-         const live=q('#term');if(live)live.value=selected
+         const termMarks=fresh.marksByTerm?.[selected]??fresh.classData?.[classId]?.marksByTerm?.[selected];
+         if(Array.isArray(termMarks))fresh.marks=clone(termMarks);
+         for(const k of Object.keys(state))delete state[k];
+         Object.assign(state,fresh);normalizeLocal();
+         localStorage.setItem('nataiji-data',JSON.stringify(state));
+         render();refreshSelectors();
        }
      }catch(err){
        console.error('term switch failed',err);
-       state.term=previous;
-       try{localStorage.setItem('nataiji-data',JSON.stringify(state))}catch{}
-       const live=q('#term');if(live)live.value=previous
+       if(seq===window.__nataijiTermNavigationSeq){const live=q('#term');if(live)live.value=previous}
+     }finally{
+       if(seq===window.__nataijiTermNavigationSeq){
+         delete window.__nataijiPendingTerm;
+         const live=q('#term');
+         if(live){live.removeAttribute('aria-busy');live.disabled=!state.terms.length;if(state.term)live.value=state.term}
+       }
      }
-     finally{const live=q('#term');if(live){live.removeAttribute('aria-busy');live.disabled=!state.terms.length;if(state.term)live.value=state.term}}
    };
  }
 }
@@ -128,11 +132,7 @@ let classNavigationSeq=0;
 window.nataijiSelectClass=async function(classId){
  if(!classId)return;
  const requestedClass=String(classId),requestedTerm=String(state.term||''),previousClass=String(state.activeClassId||''),seq=++classNavigationSeq;
- // Make the user's choice authoritative immediately so any observer/render that
- // runs while the request is pending cannot repaint the previous class.
- state.activeClassId=requestedClass;
  window.__nataijiPendingClassId=requestedClass;
- try{localStorage.setItem('nataiji-data',JSON.stringify(state))}catch{}
  try{
   if(currentUser?.role==='teacher'){
    const saved=await api('/api/active-selection',{method:'POST',body:JSON.stringify({classId:requestedClass,term:requestedTerm})});
@@ -142,20 +142,21 @@ window.nataijiSelectClass=async function(classId){
   }else{
    await api('/api/active-selection',{method:'POST',body:JSON.stringify({classId:requestedClass,term:requestedTerm})});
    if(seq!==classNavigationSeq)return;
-   const r=await api('/api/state?classId='+encodeURIComponent(requestedClass)+'&term='+encodeURIComponent(requestedTerm));
+   const rr=await api('/api/state?classId='+encodeURIComponent(requestedClass)+'&term='+encodeURIComponent(requestedTerm));
    if(seq!==classNavigationSeq)return;
-   if(!r?.state)throw new Error('class_load_failed');
-   const fresh=typeof normalizeState==='function'?normalizeState(r.state):clone(r.state||{});
+   if(!rr?.state)throw new Error('class_load_failed');
+   const fresh=typeof normalizeState==='function'?normalizeState(rr.state):clone(rr.state||{});
    fresh.activeClassId=requestedClass;
    if(requestedTerm)fresh.term=requestedTerm;
-   for(const k of Object.keys(state))delete state[k];Object.assign(state,fresh);normalizeLocal();
-   localStorage.setItem('nataiji-data',JSON.stringify(state));render();refreshSelectors();
+   const termMarks=fresh.marksByTerm?.[fresh.term]??fresh.classData?.[requestedClass]?.marksByTerm?.[fresh.term];
+   if(Array.isArray(termMarks))fresh.marks=clone(termMarks);
+   for(const k of Object.keys(state))delete state[k];
+   Object.assign(state,fresh);normalizeLocal();
+   localStorage.setItem('nataiji-data',JSON.stringify(state));
+   render();refreshSelectors();
   }
  }catch(err){
-  if(seq===classNavigationSeq){
-   state.activeClassId=previousClass;
-   try{localStorage.setItem('nataiji-data',JSON.stringify(state))}catch{}
-  }
+  if(seq===classNavigationSeq){const live=q('#classTop');if(live&&!window.nataijiWorkspaceSelectorReady)live.value=previousClass}
   throw err
  }finally{
   if(seq===classNavigationSeq){
