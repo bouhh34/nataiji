@@ -12,7 +12,7 @@ const config: CapacitorConfig = {
   android: {
     allowMixedContent: false,
     backgroundColor: '#f4f8fb',
-    adjustMarginsForEdgeToEdge: 'auto'
+    adjustMarginsForEdgeToEdge: 'disable'
   },
   ios: {
     backgroundColor: '#f4f8fb',
