@@ -1,0 +1,50 @@
+name: iOS mobile smoke build
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - mobile-release-v1
+    paths:
+      - 'public/**'
+      - 'src/**'
+      - 'package.json'
+      - 'capacitor.config.ts'
+      - '.github/workflows/mobile-ios-smoke.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  build-ios-simulator:
+    runs-on: macos-15
+    timeout-minutes: 30
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      - name: Install dependencies
+        run: npm install --no-audit --no-fund
+
+      - name: Generate iOS project
+        run: npx cap add ios
+
+      - name: Sync web and native configuration
+        run: npx cap sync ios
+
+      - name: Build iOS simulator app
+        run: |
+          xcodebuild             -workspace ios/App/App.xcworkspace             -scheme App             -configuration Debug             -sdk iphonesimulator             -derivedDataPath build/ios             CODE_SIGNING_ALLOWED=NO             build
+
+      - name: Upload simulator app
+        uses: actions/upload-artifact@v4
+        with:
+          name: nataiji-ios-simulator
+          path: build/ios/Build/Products/Debug-iphonesimulator/App.app
+          if-no-files-found: error
+          retention-days: 14
