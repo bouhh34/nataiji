@@ -21,7 +21,29 @@ function markDirty(){if($('#saveState')){$('#saveState').textContent='توجد �
 function cleanMark(v){if(v==='')return '';v=Number(v);if(!Number.isFinite(v))return '';return Math.max(0,Math.min(20,v))}
 function bindMarks(){$$('.mark').forEach(x=>x.oninput=e=>{const v=cleanMark(e.target.value);e.target.value=v;state.marks[+e.target.dataset.i][+e.target.dataset.j]=v;markDirty();renderDashboard()})}
 function renderMobileScores(){const j=Number($('#subjectPicker').value)||0;$('#mobileScores').innerHTML=`<div class="subject-title"><b>${esc(state.subjects[j]?.[0])}</b><span>الدرجة من 20</span></div>`+state.pupils.map((p,i)=>`<label class="score-row"><span><b>${i+1}. ${esc(p[1])}</b><small>${esc(p[0])}</small></span><input class="mobile-mark" inputmode="decimal" data-i="${i}" data-j="${j}" value="${state.marks[i]?.[j]??''}" placeholder="—"><em>/20</em></label>`).join('');$$('.mobile-mark').forEach(x=>x.oninput=e=>{const v=cleanMark(e.target.value);e.target.value=v;state.marks[+e.target.dataset.i][+e.target.dataset.j]=v;markDirty();renderDashboard()})}
-function renderDashboard(){const total=state.pupils.length*state.subjects.length,filled=state.marks.flat().filter(x=>x!==''&&x!=null).length,rows=state.pupils.map((_,i)=>calc(i)),eligible=rows.filter(x=>x?.absentAll!==true),avgs=eligible.map(x=>Number(x?.avg)||0);$('#statStudents').textContent=state.pupils.length;$('#statAverage').textContent=avgs.length?(avgs.reduce((a,b)=>a+b,0)/avgs.length).toFixed(1)+'/20':'—';$('#statComplete').textContent=(total?Math.round(filled/total*100):0)+'%';$('#statNeeds').textContent=avgs.filter(x=>x<10).length;$('#subjectProgress').innerHTML=state.subjects.map((s,j)=>{const n=state.marks.filter(r=>r[j]!==''&&r[j]!=null).length,p=state.pupils.length?Math.round(n/state.pupils.length*100):0;return `<div><span>${esc(s[0])}<small>${n}/${state.pupils.length}</small></span><i><b style="width:${p}%"></b></i><strong>${p}%</strong></div>`}).join('')}
+function renderDashboard(){
+ const total=state.pupils.length*state.subjects.length,
+       filled=state.marks.flat().filter(x=>x!==''&&x!=null).length,
+       complete=total>0&&filled===total,
+       rows=state.pupils.map((_,i)=>calc(i)),
+       eligible=rows.filter(x=>x?.absentAll!==true),
+       avgs=eligible.map(x=>Number(x?.avg)||0),
+       avgEl=$('#statAverage'),needsEl=$('#statNeeds');
+ $('#statStudents').textContent=state.pupils.length;
+ $('#statComplete').textContent=(total?Math.round(filled/total*100):0)+'%';
+ avgEl.textContent=complete&&avgs.length?(avgs.reduce((a,b)=>a+b,0)/avgs.length).toFixed(1)+'/20':'—';
+ needsEl.textContent=complete?avgs.filter(x=>x<10).length:'—';
+ [avgEl,needsEl].forEach(el=>{
+   if(!el)return;
+   const article=el.closest('article');if(!article)return;
+   let note=article.querySelector('.stat-pending');
+   if(!complete&&total>0){
+     if(!note){note=document.createElement('small');note.className='stat-pending';article.appendChild(note)}
+     note.textContent='تظهر بعد اكتمال الدرجات';
+   }else if(note)note.remove();
+ });
+ $('#subjectProgress').innerHTML=state.subjects.map((s,j)=>{const n=state.marks.filter(r=>r[j]!==''&&r[j]!=null).length,p=state.pupils.length?Math.round(n/state.pupils.length*100):0;return `<div><span>${esc(s[0])}<small>${n}/${state.pupils.length}</small></span><i><b style="width:${p}%"></b></i><strong>${p}%</strong></div>`}).join('')
+}
 function renderReports(){if(!state.pupils.length){$('#sheet').innerHTML='';return}const i=Number($('#student').value)||0,p=state.pupils[i],c=calc(i),rank=ranks()[i];$('#sheet').innerHTML=state.subjects.map((s,j)=>`<tr><td>${esc(s[0])}</td><td>${state.marks[i]?.[j]??''}</td><td></td></tr>`).join('')+`<tr><td>المجموع</td><td>${c.sum}</td><td></td></tr><tr><td>المعدل</td><td>${c.avg.toFixed(1)}</td><td></td></tr><tr><td>الرتبة</td><td>${rank}</td><td></td></tr>`;$('#sheetNns').textContent=p[0];$('#sheetName').textContent=p[1];$('#sheetSchool').textContent=state.school||'—';$('#sheetRegion').textContent=state.region||'—';$('#sheetInspection').textContent=state.inspection||'—';$('#sheetYear').textContent=state.year;$('#sheetTerm').textContent=state.term;$('#paperList').innerHTML=state.pupils.map((p,i)=>`<tr><td>${i+1}</td><td>${esc(p[0])}</td><td>${esc(p[1])}</td><td>${esc(p[2])}</td><td>${esc(p[3])}</td></tr>`).join('');$('#classReportTitle').textContent=`امتحان ${state.term} ${state.className}`;const rs=ranks();$('#paperResults').innerHTML=`<thead><tr><th>#</th><th>التلميذ</th>${state.subjects.map(s=>`<th>${esc(s[0])}</th>`).join('')}<th>المعدل</th><th>الرتبة</th></tr></thead><tbody>${state.pupils.map((p,i)=>`<tr><td>${i+1}</td><td>${esc(p[1])}</td>${state.marks[i].map(x=>`<td>${x}</td>`).join('')}<td>${calc(i).avg.toFixed(1)}</td><td>${rs[i]}</td></tr>`).join('')}</tbody>`}
 function modal(title,body){const p=document.createElement('div');p.className='modal';p.innerHTML=`<div class="modal-card"><div class="modal-head"><h2>${title}</h2><button class="x">×</button></div>${body}</div>`;document.body.appendChild(p);p.querySelector('.x').onclick=()=>p.remove();p.onclick=e=>{if(e.target===p)p.remove()};return p}
 async function addStudent(){if(currentUser?.role!=='admin'&&!currentUser?.permissions?.includes('pupils'))return;const p=modal('إضافة تلميذ','<label>NNS<input id="an"></label><label>اسم التلميذ<input id="aa"></label><label>الجنس<select id="ag"><option>ذكر</option><option>أنثى</option></select></label><label>تاريخ الميلاد<input id="ad" type="date"></label><button class="primary action">إضافة التلميذ</button><p class="message"></p>');p.querySelector('.action').onclick=async()=>{const n=$('#an').value.trim(),a=$('#aa').value.trim();if(!n||!a)return p.querySelector('.message').textContent='أدخل الرقم المدرسي والاسم';if(state.pupils.some(x=>x[0]===n))return p.querySelector('.message').textContent='الرقم المدرسي موجود مسبقًا';state.pupils.push([n,a,$('#ag').value,$('#ad').value]);state.marks.push(state.subjects.map(()=>''));await save(true);render();p.remove()}}
