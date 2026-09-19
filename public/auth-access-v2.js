@@ -179,7 +179,8 @@ async function bindUnifiedClassSelector(){
   sel.dataset.nataijiWorkspaceStamp=workspaceStamp();delete sel.dataset.nataijiWorkspaceLoading;
   sel.disabled=false;
   sel.onchange=async()=>{
-   const previous=options.find(x=>(x.kind+'|'+x.id+'|'+x.classId)===sel.dataset.nataijiPrevious)||options.find(x=>x.selected)||chosen,[kind,id,classId]=sel.value.split('|');sel.dataset.nataijiPrevious=previous?previous.kind+'|'+previous.id+'|'+previous.classId:'';sel.disabled=true;
+   const requestedValue=sel.value;
+   const previous=options.find(x=>(x.kind+'|'+x.id+'|'+x.classId)===sel.dataset.nataijiPrevious)||options.find(x=>x.selected)||chosen,[kind,id,classId]=requestedValue.split('|');sel.dataset.nataijiPrevious=previous?previous.kind+'|'+previous.id+'|'+previous.classId:'';sel.disabled=true;
    try{
     if(kind==='shared'){
      if(currentUser.activeSharedGrant!==id){const rr=await api('/api/shared/switch',{method:'POST',body:JSON.stringify({grantId:id})});currentUser=rr.user;await accountActivate(currentUser);await window.nataijiSelectClass?.(classId)}
@@ -190,6 +191,8 @@ async function bindUnifiedClassSelector(){
      if(state?.activeClassId!==classId)await window.nataijiSelectClass?.(classId);
     }
     await bindUnifiedClassSelector();
+    const live=q('#classTop');
+    if(live&&[...live.options].some(o=>o.value===requestedValue))live.value=requestedValue;
    }catch(e){console.error('workspace switch failed',e);if(previous)sel.value=previous.kind+'|'+previous.id+'|'+previous.classId;sel.disabled=false}
   };
  }catch(e){
