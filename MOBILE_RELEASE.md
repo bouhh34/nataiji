@@ -62,3 +62,21 @@ Do not submit until the web acceptance flow passes: login -> class -> subjects -
 4. Prepare signed Android AAB for Play Console.
 5. Configure Apple Developer Team/signing and create a TestFlight archive.
 6. Complete store privacy/data-safety and age-rating declarations.
+
+
+## Phase 2 execution — completed on 19 Sep 2026
+- Added `assets/logo.svg` as the native asset source.
+- Added `@capacitor/assets` and generated branded Android and iOS app icons/splash assets in CI.
+- Verified a new Android debug APK with generated launcher icons and light/dark splash resources.
+- Added and validated a Google Play release workflow. The unsigned release AAB dry run completed successfully.
+- Prepared the same workflow to sign the AAB automatically once the Android keystore secrets are supplied.
+- Added an iOS App Store signed-archive workflow with optional automatic TestFlight upload once Apple signing/API secrets are supplied.
+- Added a disposable production smoke test that created two independent schools, exercised all 3 terms, seeded the official 2AF subjects, saved marks, verified persistence after logout/login, verified cross-school isolation, and deleted both test accounts afterward.
+- Production smoke result: PostgreSQL durable storage confirmed; school isolation confirmed; 3 terms confirmed; 7 official 2AF subjects confirmed; login persistence confirmed.
+
+### Remaining external credentials / manual-device gates
+1. Install the branded Android APK on at least one physical Android phone and validate UI/PDF behavior.
+2. Add Android release keystore secrets, then generate the signed Play AAB.
+3. Provide Apple Developer Team/distribution certificate/provisioning profile, then generate the signed IPA and TestFlight upload.
+4. Provide the final public support email and support URL for store metadata.
+5. Capture final App Store / Google Play screenshots after device QA.
