@@ -255,6 +255,108 @@ style.textContent=`
     break-after:auto!important;
     page-break-after:auto!important;
   }
+
+  /* The class-print button prints a cloned document through #printPortal.
+     Keep the final-term report within the real A4 printable width and keep
+     the signatures in the same page flow. These rules are portal-only. */
+  body[data-print="portal"][data-portal-type="class"] #printPortal{
+    width:190mm!important;
+    max-width:190mm!important;
+    overflow:visible!important;
+  }
+  body[data-print="portal"][data-portal-type="class"] #printPortal .portal-paper{
+    box-sizing:border-box!important;
+    width:190mm!important;
+    max-width:190mm!important;
+    min-width:0!important;
+    min-height:0!important;
+    height:auto!important;
+    padding:2.2mm 4mm!important;
+    margin:0!important;
+    overflow:visible!important;
+    position:relative!important;
+  }
+  body[data-print="portal"][data-portal-type="class"] #printPortal .table-scroll{
+    width:100%!important;
+    max-width:100%!important;
+    min-width:0!important;
+    overflow:visible!important;
+  }
+  body[data-print="portal"][data-portal-type="class"] #printPortal #paperResults,
+  body[data-print="portal"][data-portal-type="class"] #printPortal table.nr-final-class{
+    width:100%!important;
+    max-width:100%!important;
+    min-width:0!important;
+    table-layout:fixed!important;
+    border-collapse:collapse!important;
+    margin:.4mm 0 0!important;
+  }
+  body[data-print="portal"][data-portal-type="class"] #printPortal table.nr-final-class th,
+  body[data-print="portal"][data-portal-type="class"] #printPortal table.nr-final-class td{
+    box-sizing:border-box!important;
+    padding:.12mm .18mm!important;
+    line-height:.98!important;
+  }
+  body[data-print="portal"][data-portal-type="class"] #printPortal table.nr-final-class thead th,
+  body[data-print="portal"][data-portal-type="class"] #printPortal table.nr-final-class .final-sub,
+  body[data-print="portal"][data-portal-type="class"] #printPortal table.nr-final-class .final-avg{
+    height:19mm!important;
+    min-height:19mm!important;
+  }
+  body[data-print="portal"][data-portal-type="class"] #printPortal table.nr-final-class .final-vertical{
+    height:18.3mm!important;
+    gap:.1mm!important;
+    font-size:5.65pt!important;
+  }
+  body[data-print="portal"][data-portal-type="class"] #printPortal table.nr-final-class .final-vertical small{
+    font-size:5.05pt!important;
+  }
+  body[data-print="portal"][data-portal-type="class"] #printPortal table.nr-final-class tbody td{
+    height:4.55mm!important;
+    min-height:4.55mm!important;
+    max-height:4.55mm!important;
+    font-size:5.95pt!important;
+  }
+  body[data-print="portal"][data-portal-type="class"] #printPortal table.nr-final-class .final-name-cell{
+    font-size:5.75pt!important;
+    line-height:.98!important;
+  }
+  body[data-print="portal"][data-portal-type="class"] #printPortal table.nr-final-class .final-name-cell small{
+    font-size:4.55pt!important;
+    margin-top:0!important;
+  }
+  body[data-print="portal"][data-portal-type="class"] #printPortal table.nr-final-class .final-obs-cell{
+    font-size:5.35pt!important;
+    line-height:.96!important;
+  }
+  body[data-print="portal"][data-portal-type="class"] #printPortal table.nr-final-class .final-obs-cell small{
+    font-size:4.35pt!important;
+    margin-top:0!important;
+  }
+  body[data-print="portal"][data-portal-type="class"] #printPortal .nr-class-signatures{
+    display:grid!important;
+    grid-template-columns:1fr 1fr!important;
+    margin:2.2mm 15mm 0!important;
+    gap:38mm!important;
+    padding:0!important;
+    font-size:7pt!important;
+    break-before:avoid!important;
+    page-break-before:avoid!important;
+    break-inside:avoid!important;
+    page-break-inside:avoid!important;
+  }
+  body[data-print="portal"][data-portal-type="class"] #printPortal .nr-class-signatures b{
+    font-size:7.5pt!important;
+  }
+  body[data-print="portal"][data-portal-type="class"] #printPortal .nr-class-signatures span{
+    font-size:6pt!important;
+    margin-top:.2mm!important;
+  }
+  body[data-print="portal"][data-portal-type="class"] #printPortal .nr-class-signatures i{
+    width:34mm!important;
+    margin-top:3.5mm!important;
+    border-bottom:1px dotted #000!important;
+  }
 }
 `;
 document.head.appendChild(style);
