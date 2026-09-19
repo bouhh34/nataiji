@@ -64,11 +64,18 @@ function renderCompactMobileScores(){
      input.addEventListener('change',()=>rowState(row,state.marks?.[i]?.[j]??input.value));
    }
    if(button&&input){
-     button.addEventListener('click',()=>{
-       // final-grade-entry attaches the canonical absence behavior; this is a safe fallback
-       // for the first render before that enhancer runs.
-       setTimeout(()=>rowState(row,input.value),0)
-     })
+     // Safe first-render behavior. final-grade-entry may later replace this onclick
+     // with its canonical handler, so there is no duplicate listener.
+     button.onclick=e=>{
+       e.preventDefault();e.stopPropagation();
+       const value=absentLabel(i);
+       input.value=value;
+       if(state.marks?.[i])state.marks[i][j]=value;
+       try{markDirty()}catch{}
+       try{renderDashboard()}catch{}
+       rowState(row,value);
+       input.dispatchEvent(new Event('change',{bubbles:true}))
+     }
    }
  })
 }
