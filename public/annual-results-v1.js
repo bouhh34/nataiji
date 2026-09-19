@@ -38,26 +38,22 @@ function termAverage(i,term){
   return sum*20/totalMax();
 }
 function annualAverage(i){
-  const avgs=terms().map(t=>termAverage(i,t));if(avgs.some(v=>v==null))return null;
-  /* Official yearly weighting: T1×1 + T2×2 + T3×3, divided by 6.
-     Each trimester average is already normalized to /20, so the yearly result stays /20. */
+  const ts=terms();
+  /* Final annual average: (T1×1 + T2×2 + T3×3) / 6.
+     A trimester explicitly marked absent is a resolved trimester with 0
+     contribution; an unentered trimester keeps the annual result pending. */
+  const avgs=ts.map(t=>termAbsent(i,t)?0:termAverage(i,t));
+  if(avgs.some(v=>v==null))return null;
   return (avgs[0]+2*avgs[1]+3*avgs[2])/6;
 }
 function ranksFromValues(vals){
   return vals.map(v=>v==null?null:1+vals.filter(x=>x!=null&&x>v).length);
 }
 function annualRanks(){
-  const pupils=state?.pupils||[],ts=terms(),annual=pupils.map((_,i)=>annualAverage(i));
-  const termHasData=t=>pupils.some((_,i)=>termAverage(i,t)!=null||termAbsent(i,t));
-  /* On the final-trimester sheet, use the annual ranking once all three
-     trimesters exist. Before that, keep the rank useful by falling back to
-     the most recent trimester that actually has saved results. */
-  if(ts.every(termHasData))return ranksFromValues(annual);
-  for(let k=ts.length-1;k>=0;k--){
-    if(!termHasData(ts[k]))continue;
-    return ranksFromValues(pupils.map((_,i)=>termAverage(i,ts[k])));
-  }
-  return pupils.map(()=>null);
+  /* The final-trimester rank is always based on the weighted annual average,
+     never on a single trimester. Pending annual averages remain unranked. */
+  const vals=(state?.pupils||[]).map((_,i)=>annualAverage(i));
+  return ranksFromValues(vals);
 }
 function callNo(p,i){return String(p?.[5]??'').trim()||String(i+1)}
 function currentStudentIndex(){return Math.max(0,q('#student')?.selectedIndex??0)}
@@ -103,10 +99,12 @@ function fillFinalTable(table){
   const subjectMax=s=>{const n=Number(s?.[3]);return Number.isFinite(n)&&n>0?n:20};
   const annualRankValues=annualRanks();
   const ordered=(state.pupils||[]).map((p,i)=>({p,i,annual:annualAverage(i),rank:annualRankValues[i]})).sort((a,b)=>{
-    const av=a.annual,bv=b.annual;
-    if(av==null&&bv==null)return String(a.p?.[1]||'').localeCompare(String(b.p?.[1]||''),'ar');
-    if(av==null)return 1;if(bv==null)return -1;
-    if(bv!==av)return bv-av;
+    /* Display order follows the annual rank. Unranked pupils stay after ranked
+       pupils; ties keep the same rank and are ordered by name only. */
+    if(a.rank==null&&b.rank==null)return String(a.p?.[1]||'').localeCompare(String(b.p?.[1]||''),'ar');
+    if(a.rank==null)return 1;
+    if(b.rank==null)return -1;
+    if(a.rank!==b.rank)return a.rank-b.rank;
     return String(a.p?.[1]||'').localeCompare(String(b.p?.[1]||''),'ar');
   });
   table.className='nr-table nr-class-table nr-final-class';
