@@ -6,6 +6,7 @@ window.__nataijiReportMobilePreviewV2=true;
 const q=(s,r=document)=>r.querySelector(s);
 const qa=(s,r=document)=>[...r.querySelectorAll(s)];
 const mmPx=mm=>mm*96/25.4;
+const appState=()=>{try{return state}catch{return null}};
 const frames=new Map();
 let raf=0;
 
@@ -16,7 +17,7 @@ function activeType(){
 function naturalWidth(type){
  if(type==='student')return 185;
  if(type==='list')return 190;
- const count=Number((window.state||globalThis.state)?.subjects?.length||0);
+ const count=Number(appState()?.subjects?.length||0);
  return count>=10?287:202
 }
 function target(type){
@@ -197,7 +198,9 @@ document.addEventListener('click',e=>{
    }
  }
  const tab=e.target.closest?.('.report-tabs [data-report]');
- if(tab)prepare(tab.dataset.report)
+ if(tab){prepare(tab.dataset.report);return}
+ const reportsNav=e.target.closest?.('[data-view="reports"]');
+ if(reportsNav)setTimeout(()=>prepare(activeType()),80)
 },true);
 
 document.addEventListener('change',e=>{
