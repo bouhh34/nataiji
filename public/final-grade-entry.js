@@ -22,24 +22,64 @@ ranks=function(){
  const vals=(state?.pupils||[]).map((_,i)=>calcRow(i));
  return vals.map(v=>v.absentAll?null:1+vals.filter(x=>!x.absentAll&&x.avg>v.avg).length)
 };
-cleanMark=function(v,max=20){
- const s=String(v??'').trim();if(!s)return'';
- if(isAbsent(s))return s;
- const n=Number(s),m=Number(max);if(!Number.isFinite(n))return s;
- return Math.max(0,Math.min(Number.isFinite(m)&&m>0?m:20,n))
-};
+function validateGradeValue(raw,max=20){
+ const s=String(raw??'').trim(),m=Number(max),limit=Number.isFinite(m)&&m>0?m:20;
+ if(s==='')return{ok:true,value:'',max:limit};
+ if(isAbsent(s))return{ok:true,value:s,max:limit,absent:true};
+ const n=Number(s);
+ if(!Number.isFinite(n))return{ok:false,reason:'not_number',max:limit,value:s};
+ if(n<0)return{ok:false,reason:'below_zero',max:limit,value:n};
+ if(n>limit)return{ok:false,reason:'above_max',max:limit,value:n};
+ return{ok:true,value:n,max:limit}
+}
+function gradeErrorMessage(result){
+ if(isFr()){
+  if(result?.reason==='above_max')return`La note ne peut pas dépasser ${result.max}.`;
+  if(result?.reason==='below_zero')return'La note ne peut pas être inférieure à 0.';
+  return'Saisissez une note valide ou choisissez Absent.'
+ }
+ if(result?.reason==='above_max')return`الدرجة لا يمكن أن تتجاوز ${result.max}.`;
+ if(result?.reason==='below_zero')return'الدرجة لا يمكن أن تكون أقل من 0.';
+ return'أدخل درجة صحيحة أو اختر غائب.'
+}
+let gradeToastTimer;
+function showGradeValidationError(input,result){
+ if(input){input.classList.add('grade-invalid');input.setAttribute('aria-invalid','true')}
+ let toast=q('#nataiji-grade-error-toast');
+ if(!toast){toast=document.createElement('div');toast.id='nataiji-grade-error-toast';toast.className='grade-error-toast';toast.setAttribute('role','alert');document.body.appendChild(toast)}
+ toast.textContent='⚠ '+gradeErrorMessage(result);toast.classList.add('show');
+ clearTimeout(gradeToastTimer);gradeToastTimer=setTimeout(()=>toast.classList.remove('show'),2600);
+ try{markSaveStatus(gradeErrorMessage(result),true)}catch{}
+ return false
+}
+function clearGradeValidationError(input){
+ if(input){input.classList.remove('grade-invalid');input.removeAttribute('aria-invalid')}
+}
+cleanMark=function(v,max=20){const r=validateGradeValue(v,max);return r.ok?r.value:String(v??'').trim()};
 
 function commitEntry(input,final=false){
  const i=Number(input?.dataset?.i),j=Number(input?.dataset?.j);
- if(!Number.isInteger(i)||!Number.isInteger(j)||!state?.marks?.[i])return;
- const raw=String(input.value??'').trim();let value=raw;
- if(isAbsent(raw))value=absenceLabel(i);
- else if(raw==='')value='';
- else if(Number.isFinite(Number(raw)))value=Math.max(0,Math.min(maxFor(j),Number(raw)));
- else if(final)value='';
- state.marks[i][j]=value;input.value=value;input.classList.toggle('absent-mark',isAbsent(value));
- try{markDirty()}catch{}try{renderDashboard()}catch{}scheduleReports()
+ if(!Number.isInteger(i)||!Number.isInteger(j)||!state?.marks?.[i])return false;
+ const raw=String(input.value??'').trim(),check=validateGradeValue(raw,maxFor(j));
+ if(!check.ok)return showGradeValidationError(input,check);
+ clearGradeValidationError(input);
+ let value=check.value;
+ if(check.absent)value=absenceLabel(i);
+ state.marks[i][j]=value;
+ if(final||check.absent)input.value=value;
+ input.classList.toggle('absent-mark',isAbsent(value));
+ try{markDirty()}catch{}try{renderDashboard()}catch{}scheduleReports();
+ return true
 }
+window.nataijiValidateGradeValue=validateGradeValue;
+window.nataijiShowGradeValidationError=showGradeValidationError;
+window.nataijiClearGradeValidationError=clearGradeValidationError;
+window.nataijiFindInvalidMark=function(){
+ for(let i=0;i<(state?.pupils||[]).length;i++)for(let j=0;j<(state?.subjects||[]).length;j++){
+  const r=validateGradeValue(state?.marks?.[i]?.[j],maxFor(j));if(!r.ok)return{i,j,...r}
+ }
+ return null
+};
 function enhanceInputs(){
  qa('.mark,.mobile-mark').forEach(input=>{
   const i=Number(input.dataset.i);
@@ -100,6 +140,8 @@ try{
 const style=document.createElement('style');style.id='nataiji-final-grade-entry-style';style.textContent=`
 .absent-btn{border:1px solid #d8a11e!important;background:#fff8df!important;color:#815500!important;border-radius:7px!important;padding:4px 7px!important;margin-inline-start:4px!important;font-weight:800!important;font-size:11px!important;white-space:nowrap}
 .mark.absent-mark,.mobile-mark.absent-mark{font-weight:900!important;color:#8a5700!important;background:#fff8df!important}
+.mark.grade-invalid,.mobile-mark.grade-invalid{border-color:#d92d20!important;background:#fff5f4!important;color:#b42318!important;box-shadow:0 0 0 3px rgba(217,45,32,.12)!important}
+.grade-error-toast{position:fixed;left:50%;bottom:84px;z-index:99999;transform:translate(-50%,18px);opacity:0;pointer-events:none;max-width:min(92vw,430px);padding:10px 14px;border:1px solid #f1b4ae;border-radius:12px;background:#fff7f6;color:#b42318;font-size:13px;font-weight:800;line-height:1.45;text-align:center;box-shadow:0 10px 30px rgba(82,22,18,.16);transition:opacity .16s ease,transform .16s ease}.grade-error-toast.show{opacity:1;transform:translate(-50%,0)}
 .absence-text{color:#000!important;font-weight:900!important}.report-dense .sheet th,.report-dense .sheet td{font-size:.92em!important;padding:.8mm 1mm!important}.report-ultra .sheet th,.report-ultra .sheet td{font-size:.82em!important;padding:.5mm .7mm!important}@media print{body[data-print="batch"] .batch-page.two .batch-sheet.report-dense .sheet th,body[data-print="batch"] .batch-page.two .batch-sheet.report-dense .sheet td{height:3.6mm!important;font-size:6.1pt!important}body[data-print="batch"] .batch-page.two .batch-sheet.report-ultra .sheet th,body[data-print="batch"] .batch-page.two .batch-sheet.report-ultra .sheet td{height:3.1mm!important;font-size:5.6pt!important}}
 .report-black-label,#officialSheet .sheet th,#officialSheet .info span{color:#000!important;font-weight:900!important}
 @media screen and (max-width:800px){
