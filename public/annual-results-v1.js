@@ -22,9 +22,14 @@ function termAbsent(i,term){const row=termRows(term)?.[i]||[];return !!state?.su
 function termAverage(i,term){
   const row=termRows(term)?.[i]||[],subjects=state?.subjects||[];
   if(!subjects.length||termAbsent(i,term))return null;
-  const complete=subjects.every((_,j)=>{const v=row[j];return v!==''&&v!=null&&(isAbsent(v)||Number.isFinite(Number(v)))});
-  if(!complete)return null;
-  const sum=subjects.reduce((a,_,j)=>{const v=row[j];return a+(isAbsent(v)?0:Number(v))},0);
+  /* Keep trimester averages consistent with the normal class/result calculation:
+     entered marks contribute their value, blanks/absences contribute 0, and the
+     result is normalized by the configured total maximum. Requiring every
+     subject to be filled hid T1/T2 averages for pupils whose trimester already
+     had a valid partial result in the ordinary class report. */
+  const hasRecorded=subjects.some((_,j)=>{const v=row[j];return v!==''&&v!=null&&(isAbsent(v)||Number.isFinite(Number(v)))});
+  if(!hasRecorded)return null;
+  const sum=subjects.reduce((a,_,j)=>{const v=row[j];return a+(v===''||v==null||isAbsent(v)||!Number.isFinite(Number(v))?0:Number(v))},0);
   return sum*20/totalMax();
 }
 function annualAverage(i){
