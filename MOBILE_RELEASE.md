@@ -41,3 +41,24 @@ Production URL: `https://nataiji.onrender.com`
 
 ## Release gate
 Do not submit until the web acceptance flow passes: login -> class -> subjects -> students -> grades -> results -> ranking -> reports -> two student bulletins per A4, and account/school isolation has been tested with at least two independent schools.
+
+
+## Phase 1 execution — completed on 19 Sep 2026
+- Work isolated on branch `mobile-release-v1`; production `main` was not modified.
+- Android Capacitor project is generated in CI and a debug APK builds successfully.
+- Android CI installs/targets Android API 36 tooling.
+- iOS Capacitor project is generated in CI and builds successfully for the iPhone Simulator without signing.
+- TypeScript was added because Capacitor CLI requires it for `capacitor.config.ts`.
+- Account-deletion wording in the privacy page now matches the existing in-app deletion flow.
+
+### Current build artifacts
+- Android CI artifact: `nataiji-android-debug`.
+- iOS simulator CI artifact: `nataiji-ios-simulator`.
+
+### Next release gates
+1. Physical Android test of login, section/term switching, grades, reports/PDF, invite/share flows and account deletion.
+2. Replace generic web-only icon assets with store-ready PNG/adaptive Android and iOS app-icon sets.
+3. Add final public support email and support URL.
+4. Prepare signed Android AAB for Play Console.
+5. Configure Apple Developer Team/signing and create a TestFlight archive.
+6. Complete store privacy/data-safety and age-rating declarations.
