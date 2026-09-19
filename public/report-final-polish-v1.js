@@ -223,13 +223,31 @@ style.textContent=`
     font-size:7.7pt!important;
   }
   body[data-print="class"] #classReport #paperResults.nr-final-class .final-name-cell{
-    font-size:7.55pt!important;
-    line-height:1.05!important;
-    padding-right:.45mm!important;
+    vertical-align:middle!important;
+    text-align:right!important;
+    font-size:8.1pt!important;
+    line-height:1.02!important;
+    padding:.35mm .7mm!important;
   }
-  body[data-print="class"] #classReport #paperResults.nr-final-class .final-name-cell small{
-    font-size:5.75pt!important;
-    margin-top:.15mm!important;
+  body[data-print="class"] #classReport #paperResults.nr-final-class .final-name-cell > span{
+    display:block!important;
+    direction:rtl!important;
+    text-align:right!important;
+    font-size:8.15pt!important;
+    font-weight:900!important;
+    line-height:1!important;
+    white-space:nowrap!important;
+  }
+  body[data-print="class"] #classReport #paperResults.nr-final-class .final-name-cell > small{
+    display:block!important;
+    direction:ltr!important;
+    text-align:left!important;
+    font-size:5.45pt!important;
+    font-weight:600!important;
+    line-height:1!important;
+    opacity:.92!important;
+    margin-top:.3mm!important;
+    white-space:nowrap!important;
   }
   body[data-print="class"] #classReport #paperResults.nr-final-class .final-mark,
   body[data-print="class"] #classReport #paperResults.nr-final-class .final-num,
