@@ -2,12 +2,6 @@ name: Mobile production smoke test
 
 on:
   workflow_dispatch:
-  push:
-    branches:
-      - mobile-release-v1
-    paths:
-      - 'scripts/mobile-production-smoke.mjs'
-      - '.github/workflows/mobile-production-smoke.yml'
 
 permissions:
   contents: read
