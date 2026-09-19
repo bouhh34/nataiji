@@ -29,7 +29,7 @@ function rowState(row,value){
  row.classList.toggle('is-empty',!filled)
 }
 function renderCompactMobileScores(){
- const host=q('#mobileScores'),picker=q('#subjectPicker');if(!host||!picker||!window.state)return;
+ const host=q('#mobileScores'),picker=q('#subjectPicker');if(!host||!picker||typeof state==='undefined')return;
  const j=Number(picker.value)||0,sub=state.subjects?.[j],m=maxOf(sub);
  if(!sub){host.innerHTML='';return}
  const currentName=String(sub?.[0]||''),maxLabel=fr()?'Note sur':'من';
