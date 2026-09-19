@@ -109,7 +109,8 @@ function polishStructure(modal){
 }
 
 function enhance(root=document){
- qa('.modal',root).forEach(modal=>{
+ const modals=root?.matches?.('.modal')?[root]:qa('.modal',root);
+ modals.forEach(modal=>{
    translateModal(modal);
    enhanceSubjects(modal);
    inviteSummary(modal);
@@ -165,7 +166,7 @@ const css=document.createElement('style');css.id='nataiji-admin-ux-polish-v1-sty
 }
 `;document.head.appendChild(css);
 
-new MutationObserver(m=>{for(const x of m){for(const n of x.addedNodes){if(n.nodeType===1)enhance(n.matches?.('.modal')?n:n)}}}).observe(document.documentElement,{subtree:true,childList:true});
+new MutationObserver(m=>{for(const x of m){for(const n of x.addedNodes){if(n.nodeType!==1)continue;const modal=n.matches?.('.modal')?n:n.closest?.('.modal');if(modal)enhance(modal)}}}).observe(document.documentElement,{subtree:true,childList:true});
 window.addEventListener('DOMContentLoaded',()=>enhance());
 setTimeout(()=>enhance(),500);
 })();
