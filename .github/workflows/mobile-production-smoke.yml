@@ -1,0 +1,31 @@
+name: Mobile production smoke test
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - mobile-release-v1
+    paths:
+      - 'scripts/mobile-production-smoke.mjs'
+      - '.github/workflows/mobile-production-smoke.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  smoke:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      - name: Run disposable production smoke test
+        env:
+          NATAIJI_BASE_URL: https://nataiji.onrender.com
+        run: node scripts/mobile-production-smoke.mjs
