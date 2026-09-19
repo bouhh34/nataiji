@@ -5,6 +5,7 @@ on:
   push:
     branches:
       - mobile-release-v1
+      - main
     paths:
       - 'public/**'
       - 'src/**'
