@@ -18,7 +18,12 @@ function termRows(term){return term===state?.term?(state?.marks||[]):(state?.mar
 function isAbsent(v){return /^(غائب|غائبة|absent|absente|a)$/i.test(String(v??'').trim())}
 function female(i){const p=state?.pupils?.[i]||[],g=String(p?.[2]??p?.[6]??p?.gender??'').trim().toLowerCase();return /أنثى|انثى|female|féminin|feminin|fille/.test(g)}
 function absenceLabel(i,frLabel=false){return female(i)?(frLabel?'Absente':'غائبة'):(frLabel?'Absent':'غائب')}
-function termAbsent(i,term){const row=termRows(term)?.[i]||[];return !!state?.subjects?.length&&state.subjects.every((_,j)=>isAbsent(row[j]))}
+function termAbsent(i,term){
+  const row=termRows(term)?.[i]||[],subjects=state?.subjects||[];
+  if(!subjects.length)return false;
+  const recorded=subjects.map((_,j)=>row[j]).filter(v=>v!==''&&v!=null);
+  return recorded.length>0&&recorded.every(isAbsent);
+}
 function termAverage(i,term){
   const row=termRows(term)?.[i]||[],subjects=state?.subjects||[];
   if(!subjects.length||termAbsent(i,term))return null;
@@ -38,9 +43,21 @@ function annualAverage(i){
      Each trimester average is already normalized to /20, so the yearly result stays /20. */
   return (avgs[0]+2*avgs[1]+3*avgs[2])/6;
 }
-function annualRanks(){
-  const vals=(state?.pupils||[]).map((_,i)=>annualAverage(i));
+function ranksFromValues(vals){
   return vals.map(v=>v==null?null:1+vals.filter(x=>x!=null&&x>v).length);
+}
+function annualRanks(){
+  const pupils=state?.pupils||[],ts=terms(),annual=pupils.map((_,i)=>annualAverage(i));
+  const termHasData=t=>pupils.some((_,i)=>termAverage(i,t)!=null||termAbsent(i,t));
+  /* On the final-trimester sheet, use the annual ranking once all three
+     trimesters exist. Before that, keep the rank useful by falling back to
+     the most recent trimester that actually has saved results. */
+  if(ts.every(termHasData))return ranksFromValues(annual);
+  for(let k=ts.length-1;k>=0;k--){
+    if(!termHasData(ts[k]))continue;
+    return ranksFromValues(pupils.map((_,i)=>termAverage(i,ts[k])));
+  }
+  return pupils.map(()=>null);
 }
 function callNo(p,i){return String(p?.[5]??'').trim()||String(i+1)}
 function currentStudentIndex(){return Math.max(0,q('#student')?.selectedIndex??0)}
@@ -104,8 +121,8 @@ function fillFinalTable(table){
     <th class="final-avg"><div class="final-vertical"><span>المعدل العام</span><small dir="ltr">Moy. /20</small></div></th>
     <th class="final-obs"><span>الملاحظة</span><small>Observation</small></th>
   </tr></thead><tbody>${ordered.map((o,pos)=>{
-    const p=o.p,i=o.i,row=termRows(ts[2])?.[i]||[],absent3=termAbsent(i,ts[2]),a3=termAverage(i,ts[2]),a2=termAverage(i,ts[1]),a1=termAverage(i,ts[0]),annual=o.annual,remark=absent3?absenceLabel(i):(annual==null?'':(annual>=10?'ناجح':'راسب'));
-    return `<tr><td class="final-rank-cell"><b>${o.rank==null?'—':o.rank}</b></td><td class="final-name-cell"><span dir="rtl">${esc(p?.[1]||'')}</span>${p?.[4]?`<small dir="ltr">${esc(p[4])}</small>`:''}</td>${subjects.map((sub,j)=>`<td class="final-mark">${isAbsent(row[j])?esc(absenceLabel(i)):row[j]===''||row[j]==null?'':esc(row[j])}</td>`).join('')}<td class="final-num">${absent3?esc(absenceLabel(i)):fmt(a3)}</td><td class="final-num">${fmt(a2)}</td><td class="final-num">${fmt(a1)}</td><td class="final-num final-general"><b>${absent3?esc(absenceLabel(i)):fmt(annual)}</b></td><td class="final-obs-cell"><span>${esc(remark)}</span><small>${absent3?esc(absenceLabel(i,true)):(annual==null?'':(annual>=10?'Admis':'Non admis'))}</small></td></tr>`
+    const p=o.p,i=o.i,row=termRows(ts[2])?.[i]||[],absent3=termAbsent(i,ts[2]),absent2=termAbsent(i,ts[1]),absent1=termAbsent(i,ts[0]),a3=termAverage(i,ts[2]),a2=termAverage(i,ts[1]),a1=termAverage(i,ts[0]),annual=o.annual,remark=absent3?absenceLabel(i):(annual==null?'':(annual>=10?'ناجح':'راسب'));
+    return `<tr><td class="final-rank-cell"><b>${o.rank==null?'—':o.rank}</b></td><td class="final-name-cell"><span dir="rtl">${esc(p?.[1]||'')}</span>${p?.[4]?`<small dir="ltr">${esc(p[4])}</small>`:''}</td>${subjects.map((sub,j)=>`<td class="final-mark">${isAbsent(row[j])?esc(absenceLabel(i)):row[j]===''||row[j]==null?'':esc(row[j])}</td>`).join('')}<td class="final-num">${absent3?esc(absenceLabel(i)):fmt(a3)}</td><td class="final-num">${absent2?esc(absenceLabel(i)):fmt(a2)}</td><td class="final-num">${absent1?esc(absenceLabel(i)):fmt(a1)}</td><td class="final-num final-general"><b>${absent3?esc(absenceLabel(i)):fmt(annual)}</b></td><td class="final-obs-cell"><span>${esc(remark)}</span><small>${absent3?esc(absenceLabel(i,true)):(annual==null?'':(annual>=10?'Admis':'Non admis'))}</small></td></tr>`
   }).join('')}</tbody>`;
 }
 function buildFinalClassTable(){
