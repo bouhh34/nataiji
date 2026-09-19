@@ -338,15 +338,15 @@ style.textContent=`
      still fit without hard-coding the class curriculum. */
   body[data-print="portal"][data-portal-type="class"] #printPortal table.nr-final-class th:first-child,
   body[data-print="portal"][data-portal-type="class"] #printPortal table.nr-final-class td:first-child{
-    width:5%!important;
+    width:4%!important;
   }
   body[data-print="portal"][data-portal-type="class"] #printPortal table.nr-final-class th:nth-child(2),
   body[data-print="portal"][data-portal-type="class"] #printPortal table.nr-final-class td:nth-child(2){
-    width:20%!important;
+    width:24%!important;
   }
   body[data-print="portal"][data-portal-type="class"] #printPortal table.nr-final-class th:last-child,
   body[data-print="portal"][data-portal-type="class"] #printPortal table.nr-final-class td:last-child{
-    width:9%!important;
+    width:8%!important;
   }
   body[data-print="portal"][data-portal-type="class"] #printPortal table.nr-final-class th:nth-last-child(2),
   body[data-print="portal"][data-portal-type="class"] #printPortal table.nr-final-class td:nth-last-child(2),
@@ -354,7 +354,7 @@ style.textContent=`
   body[data-print="portal"][data-portal-type="class"] #printPortal table.nr-final-class td:nth-last-child(3),
   body[data-print="portal"][data-portal-type="class"] #printPortal table.nr-final-class th:nth-last-child(4),
   body[data-print="portal"][data-portal-type="class"] #printPortal table.nr-final-class td:nth-last-child(4){
-    width:7%!important;
+    width:6.5%!important;
   }
   body[data-print="portal"][data-portal-type="class"] #printPortal table.nr-final-class thead th,
   body[data-print="portal"][data-portal-type="class"] #printPortal table.nr-final-class .final-sub,
@@ -382,12 +382,33 @@ style.textContent=`
     font-size:7.8pt!important;
   }
   body[data-print="portal"][data-portal-type="class"] #printPortal table.nr-final-class .final-name-cell{
-    font-size:7.6pt!important;
-    line-height:1.05!important;
+    display:table-cell!important;
+    vertical-align:middle!important;
+    text-align:right!important;
+    font-size:7.9pt!important;
+    line-height:1.03!important;
+    padding:.35mm .7mm!important;
+    white-space:normal!important;
   }
-  body[data-print="portal"][data-portal-type="class"] #printPortal table.nr-final-class .final-name-cell small{
-    font-size:5.8pt!important;
-    margin-top:.15mm!important;
+  body[data-print="portal"][data-portal-type="class"] #printPortal table.nr-final-class .final-name-cell > span{
+    display:block!important;
+    direction:rtl!important;
+    text-align:right!important;
+    font-size:7.9pt!important;
+    font-weight:800!important;
+    line-height:1.02!important;
+    white-space:nowrap!important;
+  }
+  body[data-print="portal"][data-portal-type="class"] #printPortal table.nr-final-class .final-name-cell > small{
+    display:block!important;
+    direction:ltr!important;
+    text-align:left!important;
+    font-size:5.25pt!important;
+    font-weight:500!important;
+    line-height:1!important;
+    opacity:.82!important;
+    margin-top:.35mm!important;
+    white-space:nowrap!important;
   }
   body[data-print="portal"][data-portal-type="class"] #printPortal table.nr-final-class .final-obs-cell{
     font-size:7pt!important;
