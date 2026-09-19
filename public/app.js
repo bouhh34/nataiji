@@ -14,7 +14,27 @@ function setView(name){$$('.view').forEach(v=>v.classList.toggle('hidden',v.data
 function applyPermissions(){const admin=currentUser?.role==='admin',canPupils=admin||currentUser?.permissions?.includes('pupils');['#subjectsBtn','#inviteBtn','#settingsBtn'].forEach(s=>{const el=$(s);if(el)el.style.display=admin?'':'none'});if($('#addStudent'))$('#addStudent').style.display=canPupils?'':'none';if($('#importBtn'))$('#importBtn').style.display=canPupils?'':'none';const small=$('#teacherName small');if(small)small.textContent=admin?'مدير / صلاحيات كاملة':'معلم / إدخال النتائج'}
 function selectorClasses(){const rows=(Array.isArray(state.classes)?state.classes:[]).filter(x=>x&&x.id);if(rows.length)return rows;const id=String(state.activeClassId||currentUser?.preferredClassId||currentUser?.classIds?.[0]||'');if(id&&(String(state.className||state.classCode||'').trim()||(state.pupils||[]).length||(state.subjects||[]).length))return[{id,name:String(state.className||state.classCode||'القسم الحالي'),nameFr:String(state.classNameFr||''),code:String(state.classCode||'')}];return[]}
 function selectorTerms(){let rows=[...new Set((Array.isArray(state.terms)?state.terms:[]).map(x=>String(x||'').trim()).filter(Boolean))];if(!rows.length&&state.marksByTerm&&typeof state.marksByTerm==='object')rows=[...new Set(Object.keys(state.marksByTerm).map(x=>String(x||'').trim()).filter(Boolean))];const current=String(state.term||'').trim();if(current&&!rows.includes(current))rows.unshift(current);return rows}
-function renderCoreSelectors(){const y=$('#yearTop');if(y){y.dir='ltr';y.innerHTML=`<option value="${esc(state.year)}">${esc(state.year)}</option>`}const tt=$('#term'),terms=selectorTerms();if(tt){const active=terms.includes(String(state.term||''))?String(state.term):terms[0]||'';tt.innerHTML=terms.length?terms.map(t=>`<option value="${esc(t)}" ${t===active?'selected':''}>${esc(t)}</option>`).join(''):'<option value="">أضف فصلًا دراسيًا</option>';if(active){tt.value=active;if(!state.term)state.term=active}tt.disabled=!terms.length}const ct=$('#classTop');if(ct&&!window.nataijiWorkspaceSelectorReady){const classes=selectorClasses(),active=classes.some(x=>x.id===state.activeClassId)?state.activeClassId:(classes[0]?.id||'');ct.innerHTML=classes.length?classes.map(x=>`<option value="${esc(x.id)}" ${x.id===active?'selected':''}>${esc(x.name||x.code||'القسم الحالي')}</option>`).join(''):'<option value="">أضف قسمًا من الإعدادات</option>';if(active)ct.value=active;ct.disabled=!classes.length}}
+function sameSelectValues(el,values){const current=[...el.options].map(o=>String(o.value));return current.length===values.length&&current.every((v,i)=>v===String(values[i]))}
+function renderCoreSelectors(){
+ const y=$('#yearTop');
+ if(y){y.dir='ltr';if(y.options.length!==1||String(y.value)!==String(state.year)){y.innerHTML=`<option value="${esc(state.year)}">${esc(state.year)}</option>`}}
+ const tt=$('#term'),terms=selectorTerms();
+ if(tt){
+  const active=terms.includes(String(state.term||''))?String(state.term):terms[0]||'';
+  const values=terms.length?terms:[''];
+  if(!sameSelectValues(tt,values))tt.innerHTML=terms.length?terms.map(t=>`<option value="${esc(t)}">${esc(t)}</option>`).join(''):'<option value="">أضف فصلًا دراسيًا</option>';
+  if(active&&tt.value!==active)tt.value=active;
+  if(active&&!state.term)state.term=active;
+  tt.disabled=!terms.length
+ }
+ const ct=$('#classTop');
+ if(ct&&!window.nataijiWorkspaceSelectorReady){
+  const classes=selectorClasses(),active=classes.some(x=>x.id===state.activeClassId)?state.activeClassId:(classes[0]?.id||''),values=classes.length?classes.map(x=>x.id):[''];
+  if(!sameSelectValues(ct,values))ct.innerHTML=classes.length?classes.map(x=>`<option value="${esc(x.id)}">${esc(x.name||x.code||'القسم الحالي')}</option>`).join(''):'<option value="">أضف قسمًا من الإعدادات</option>';
+  if(active&&ct.value!==active)ct.value=active;
+  ct.disabled=!classes.length
+ }
+}
 window.nataijiRenderCoreSelectors=renderCoreSelectors;
 function render(){state.marks=state.pupils.map((_,i)=>state.subjects.map((_,j)=>state.marks?.[i]?.[j]??''));const displayName=currentUser?.name||state.teacher;$('#teacherName').childNodes[0].nodeValue=displayName;$('#welcomeName').textContent=displayName;renderCoreSelectors();$('#subjectPicker').innerHTML=state.subjects.map((s,i)=>`<option value="${i}">${esc(s[0])}</option>`).join('');$('#scoreHead').innerHTML=`<tr><th>#</th><th>اسم التلميذ</th>${state.subjects.map(s=>`<th>${esc(s[0])}<br><small>/20</small></th>`).join('')}</tr>`;$('#scores').innerHTML=state.pupils.map((p,i)=>`<tr><td>${i+1}</td><td class="sticky-name">${esc(p[1])}</td>${state.subjects.map((_,j)=>`<td><input class="mark" inputmode="decimal" data-i="${i}" data-j="${j}" value="${state.marks[i][j]}"></td>`).join('')}</tr>`).join('');$('#list').innerHTML=state.pupils.map((p,i)=>`<tr><td>${i+1}</td><td>${esc(p[0])}</td><td>${esc(p[1])}</td><td>${esc(p[2])}</td><td>${esc(p[3])}</td></tr>`).join('');$('#student').innerHTML=state.pupils.map((p,i)=>`<option value="${i}">${esc(p[1])}</option>`).join('');bindMarks();renderMobileScores();renderDashboard();renderReports();applyPermissions()}
 function markDirty(){if($('#saveState')){$('#saveState').textContent='توجد تغييرات غير محفوظة';$('#saveState').classList.add('dirty')}}
