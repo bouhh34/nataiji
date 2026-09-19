@@ -9,7 +9,8 @@
     "mobile:android": "npx cap open android",
     "mobile:ios": "npx cap open ios",
     "mobile:prepare:android": "npx cap add android && npx cap sync android",
-    "mobile:prepare:ios": "npx cap add ios && npx cap sync ios"
+    "mobile:prepare:ios": "npx cap add ios && npx cap sync ios",
+    "mobile:doctor": "npx cap doctor"
   },
   "engines": {
     "node": ">=20"
