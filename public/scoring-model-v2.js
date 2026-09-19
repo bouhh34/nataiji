@@ -6,16 +6,14 @@ const qa=(s,r=document)=>[...r.querySelectorAll(s)];
 const isFr=()=>localStorage.getItem('nataiji-lang')==='fr';
 const escHtml=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const subjectMax=s=>{const n=Number(s?.[3]);return Number.isFinite(n)&&n>0?n:20};
-const PROFILE_VERSION=1;
+const PROFILE_VERSION=2;
 
 /* Default scales taken from the school bulletin models supplied by the user.
    Each row is: Arabic name, French/Latin label, maximum mark. */
 const CLASS_PROFILES={
   1:{totalMax:200,subjects:[
     ['التربية الإسلامية','Éducation islamique',40],
-    ['القراءة','Lecture',40],
-    ['التعبير','Expression',20],
-    ['الكتابة','Écriture',20],
+    ['اللغة العربية','Langue arabe',80],
     ['التربية المدنية','Éducation civique',15],
     ['الرياضيات','Mathématiques',40],
     ['التربية الفنية','Éducation artistique',15],
@@ -27,9 +25,7 @@ const CLASS_PROFILES={
     ['الحساب','Calcul',40],
     ['التربية المدنية','Éducation civique',15],
     ['التربية الفنية','Éducation artistique',15],
-    ['Langage','Langage',20],
-    ['Lecture','Lecture',10],
-    ['Ecriture','Écriture',10],
+    ['Français','Français',40],
     ['الرياضة','Éducation physique',10]
   ]},
   3:{totalMax:200,subjects:[
@@ -94,7 +90,7 @@ function ensureScoring(){
   if(typeof cfg.customized!=='boolean')cfg.customized=false;
   return cfg;
 }
-function overallMax(){const cfg=ensureScoring();const n=Number(cfg?.totalMax ?? state?.totalMax);return Number.isFinite(n)&&n>0?n:200}
+function overallMax(){const sum=(state?.subjects||[]).reduce((a,s)=>a+subjectMax(s),0),n=sum||Number(state?.totalMax)||200;const cfg=ensureScoring();if(cfg)cfg.totalMax=n;if(state)state.totalMax=n;return n}
 function normName(v){return String(v||'').trim().toLowerCase().replace(/[ًٌٍَُِّْـ]/g,'').replace(/\s+/g,' ')}
 function remapRows(rows,oldSubjects,newSubjects){
   const old=(oldSubjects||[]).map(s=>normName(s?.[0])),same=(oldSubjects||[]).length===newSubjects.length;
@@ -130,8 +126,8 @@ function ensureClassProfile(){
     (state.subjects||[]).forEach(s=>{if(!Number.isFinite(Number(s[3]))||Number(s[3])<=0)s[3]=20});
     const visibleTotal=(state.subjects||[]).reduce((a,s)=>a+subjectMax(s),0);state.totalMax=visibleTotal||200;cfg.totalMax=state.totalMax;return
   }
-  state.totalMax=Number(cfg.totalMax)||200;
-  if(level&&!cfg.customized&&(cfg.profileVersion!==PROFILE_VERSION||cfg.profileLevel!==level))applyClassProfile(level,false);
+  state.totalMax=(state.subjects||[]).reduce((a,s)=>a+subjectMax(s),0)||Number(cfg.totalMax)||200;cfg.totalMax=state.totalMax;
+  if(level&&!state.subjects.length&&!cfg.customized)applyClassProfile(level,false);
   (state.subjects||[]).forEach(s=>{if(!Number.isFinite(Number(s[3]))||Number(s[3])<=0)s[3]=20});
 }
 function rawSum(i){const row=state?.marks?.[i]||[];return row.reduce((a,v)=>v===''||v==null?a:a+(Number.isFinite(Number(v))?Number(v):0),0)}
@@ -210,7 +206,14 @@ const originalRender=render;render=function(){ensureClassProfile();originalRende
 const originalRenderReports=renderReports;renderReports=function(){ensureClassProfile();originalRenderReports();patchReports()};
 const originalFinalize=window.nataijiFinalizeReports;window.nataijiFinalizeReports=function(){originalFinalize?.();patchGradeUi();patchReports()};
 
-function install(){ensureClassProfile();patchGradeUi();patchReports();const b=q('#subjectsBtn');if(b)b.onclick=e=>{e?.preventDefault?.();openScoringSubjects()};const picker=q('#subjectPicker');if(picker&&!picker.dataset.scoringBound){picker.dataset.scoringBound='1';picker.addEventListener('change',()=>setTimeout(()=>{renderMobileScores();patchGradeUi()},0))}}
+const normalizedPrimaryClasses=new Set();
+async function normalizePrimaryCanonical(){
+ if(currentUser?.role!=='admin'||currentUser?.activeSharedGrant||!state?.activeClassId)return;
+ const level=detectLevel(),key=String(state.activeClassId);if(![1,2].includes(level)||normalizedPrimaryClasses.has(key))return;
+ normalizedPrimaryClasses.add(key);
+ try{const r=await api('/api/subjects/normalize-primary',{method:'POST',body:JSON.stringify({classId:key})});if(!r?.changed)return;const fresh=await api('/api/state?classId='+encodeURIComponent(key)+'&term='+encodeURIComponent(state.term||''));currentUser=fresh.user||currentUser;const next=normalizeState(fresh.state);for(const k of Object.keys(state))delete state[k];Object.assign(state,next);localStorage.setItem('nataiji-data',JSON.stringify(state));render();window.nataijiRefreshSelectors?.()}catch(e){console.error('primary subject normalization failed',e)}
+}
+function install(){ensureClassProfile();patchGradeUi();patchReports();normalizePrimaryCanonical();const b=q('#subjectsBtn');if(b)b.onclick=e=>{e?.preventDefault?.();openScoringSubjects()};const picker=q('#subjectPicker');if(picker&&!picker.dataset.scoringBound){picker.dataset.scoringBound='1';picker.addEventListener('change',()=>setTimeout(()=>{renderMobileScores();patchGradeUi()},0))}}
 
 const css=document.createElement('style');css.textContent=`
 .score-total-box{padding:12px;border:1px solid #d5e2eb;border-radius:10px;background:#f7fbfd;margin-bottom:14px}.score-total-box label{margin:0!important}.score-total-box small{display:block;margin-top:7px;color:#607789;line-height:1.5}.score-subject-head,.scoring-subject-row{display:grid;grid-template-columns:minmax(0,1fr) 110px 40px;gap:8px;align-items:center}.score-subject-head{font-size:12px;color:#647988;margin:4px 0}.scoring-subject-row{margin:7px 0}.scoring-subject-row input{width:100%!important;margin:0!important}.scoring-subject-row button{height:44px;border:0;background:#fee;color:#a22;border-radius:8px}.score-max-summary{margin:12px 0 4px;font-weight:800}.score-warning{min-height:20px;color:#a55b00;font-size:12px;line-height:1.45}.score-total-box input{font-size:18px;font-weight:800}#scoreNewSubject,#scoreResetProfile{width:100%;min-height:44px;margin-top:8px;border:1px solid #d3e0e9;background:#fff;border-radius:8px;color:#31536d;font-weight:800}@media(max-width:560px){.score-subject-head,.scoring-subject-row{grid-template-columns:minmax(0,1fr) 88px 38px}}
