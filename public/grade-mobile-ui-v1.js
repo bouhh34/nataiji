@@ -55,6 +55,7 @@ function renderCompactMobileScores(){
  qa('.compact-score-row',host).forEach(row=>{
    const input=q('.mobile-mark',row),button=q('.absent-btn',row),i=Number(input?.dataset.i);
    if(input){
+     input.dataset.lastValid=String(state.marks?.[i]?.[j]??'');
      input.addEventListener('input',()=>{
        const check=validate(input.value,m);
        if(!check.ok){
@@ -65,16 +66,17 @@ function renderCompactMobileScores(){
        }
        row.classList.remove('is-invalid');
        if(typeof window.nataijiClearGradeValidationError==='function')window.nataijiClearGradeValidationError(input);else input.classList.remove('grade-invalid');
-       const value=check.value;
-       if(state.marks?.[i])state.marks[i][j]=value;
-       try{markDirty()}catch{}
-       try{renderDashboard()}catch{}
-       rowState(row,value)
+       rowState(row,check.value)
      });
      input.addEventListener('change',()=>{
        const check=validate(input.value,m);
        if(!check.ok){row.classList.add('is-invalid');return}
-       row.classList.remove('is-invalid');rowState(row,state.marks?.[i]?.[j]??check.value)
+       row.classList.remove('is-invalid');
+       const value=check.absent?absentLabel(i):check.value;
+       if(state.marks?.[i])state.marks[i][j]=value;
+       input.value=value;input.dataset.lastValid=String(value??'');
+       try{markDirty()}catch{}try{renderDashboard()}catch{}
+       rowState(row,value)
      });
    }
    if(button&&input){
