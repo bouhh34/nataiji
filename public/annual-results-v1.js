@@ -39,11 +39,15 @@ function termAverage(i,term){
 }
 function annualAverage(i){
   const ts=terms();
-  /* Final annual average: (T1×1 + T2×2 + T3×3) / 6.
-     A trimester explicitly marked absent is a resolved trimester with 0
-     contribution; an unentered trimester keeps the annual result pending. */
-  const avgs=ts.map(t=>termAbsent(i,t)?0:termAverage(i,t));
-  if(avgs.some(v=>v==null))return null;
+  /* Final annual average required for the 3rd-trimester report:
+     (T1×1 + T2×2 + T3×3) / 6.
+     A missing or absent trimester contributes 0, matching the established
+     school-report behaviour and keeping the annual average/rank visible. */
+  const avgs=ts.map(t=>{
+    if(termAbsent(i,t))return 0;
+    const v=termAverage(i,t);
+    return v==null?0:v;
+  });
   return (avgs[0]+2*avgs[1]+3*avgs[2])/6;
 }
 function ranksFromValues(vals){
