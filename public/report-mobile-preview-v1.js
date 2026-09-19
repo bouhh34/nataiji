@@ -190,9 +190,12 @@ document.addEventListener('click',e=>{
      e.preventDefault();e.stopImmediatePropagation();
      refreshCanonical();
      requestAnimationFrame(()=>requestAnimationFrame(()=>{
+       /* Keep print mode active for the whole native print/PDF preview.
+          Clearing it after a fixed 250 ms can make Android render a blank A4
+          because the printable report gets hidden while the preview is still
+          being generated. app.js/afterprint owns the cleanup safely. */
        document.body.dataset.print=type;
        window.print();
-       setTimeout(()=>{delete document.body.dataset.print;fitActive(4)},250)
      }));
      return
    }
