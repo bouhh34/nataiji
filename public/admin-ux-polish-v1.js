@@ -62,22 +62,31 @@ function inviteSummary(modal){
  const action=q('.action',modal);if(!action)return;
  if(!box){box=document.createElement('div');box.className='auth2-invite-summary';action.parentNode.insertBefore(box,action)}
  const update=()=>{
-   const classParts=[];
+   const classParts=[];let editableCount=0,fullAccess=false,selectedClasses=0;
    qa('.auth2-class-access',modal).forEach(card=>{
      if(!q('.auth2-share-class',card)?.checked)return;
+     selectedClasses++;
      const name=q('.auth2-class-toggle b',card)?.textContent?.trim()||'';
      const full=!!q('input[type="radio"][value="full"]:checked',card);
-     if(full){classParts.push((fr()?'Accès complet: ':'صلاحيات كاملة: ')+name);return}
+     if(full){fullAccess=true;classParts.push((fr()?'Accès complet: ':'صلاحيات كاملة: ')+name);return}
      let edit=0,view=0,hide=0;
      qa('.auth2-subject-mode',card).forEach(sel=>{if(sel.value==='edit')edit++;else if(sel.value==='hide')hide++;else view++});
+     editableCount+=edit;
      classParts.push(fr()?name+`: ${edit} modif., ${view} lecture, ${hide} masquée(s)`:name+`: تعديل ${edit}، عرض ${view}، إخفاء ${hide}`);
    });
    const perms=qa('.auth2-perms input:checked',modal).map(x=>({grades:fr()?'Notes':'الدرجات',pupils:fr()?'Élèves':'التلاميذ',reports:fr()?'Rapports':'التقارير'}[x.value]||x.value));
+   const gradesEnabled=!!q('.auth2-perms input[value="grades"]:checked',modal);
+   const readOnlyGrades=gradesEnabled&&selectedClasses>0&&!fullAccess&&editableCount===0;
+   const warning=readOnlyGrades
+     ?'<strong class="auth2-invite-warning">⚠ '+(fr()
+       ?'L’accès aux notes est activé, mais toutes les matières sont en lecture seule. L’enseignant pourra consulter les notes sans les modifier.'
+       :'صلاحية الدرجات مفعّلة، لكن جميع المواد مضبوطة على «عرض فقط». سيتمكن المعلم من مشاهدة الدرجات دون تعديلها.')+'</strong>'
+     :'';
    const html='<b>'+(fr()?'Résumé avant création':'ملخص الصلاحيات قبل إنشاء الرمز')+'</b><span>'+(
      classParts.length?classParts.join(' • '):(fr()?'Aucune classe sélectionnée':'لم يتم اختيار قسم')
    )+'</span><small>'+(
      fr()?'Autorisations générales : ':'الصلاحيات العامة: '
-   )+(perms.length?perms.join(' + '):(fr()?'aucune':'لا توجد'))+'</small>';
+   )+(perms.length?perms.join(' + '):(fr()?'aucune':'لا توجد'))+'</small>'+warning;
    if(box.innerHTML!==html)box.innerHTML=html;
  };
  if(!modal.dataset.uxInviteSummary){
@@ -160,6 +169,11 @@ const css=document.createElement('style');css.id='nataiji-admin-ux-polish-v1-sty
 .auth2-invite-summary b{color:#0c7fc5!important;font-size:12.5px!important}
 .auth2-invite-summary span{font-size:12px!important;font-weight:700!important}
 .auth2-invite-summary small{font-size:11px!important;color:#657c8c!important}
+.auth2-invite-warning{
+ display:block!important;margin-top:4px!important;padding:8px 9px!important;border:1px solid #e8c65a!important;
+ border-radius:9px!important;background:#fff9df!important;color:#7b5b00!important;font-size:11.5px!important;
+ font-weight:800!important;line-height:1.55!important
+}
 .auth2-invite>.modal-card>.action,.auth2-invite .modal-card>.action{width:100%!important;min-height:46px!important;border-radius:11px!important}
 @media(max-width:650px){
  .nataiji-subjects-compact .modal-card{max-height:92dvh!important}
