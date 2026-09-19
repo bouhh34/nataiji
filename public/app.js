@@ -20,7 +20,7 @@ function renderCoreSelectors(){
  if(y){y.dir='ltr';if(y.options.length!==1||String(y.value)!==String(state.year)){y.innerHTML=`<option value="${esc(state.year)}">${esc(state.year)}</option>`}}
  const tt=$('#term'),terms=selectorTerms();
  if(tt){
-  const active=terms.includes(String(state.term||''))?String(state.term):terms[0]||'';
+  const pendingTerm=String(window.__nataijiPendingTerm||'');const active=terms.includes(pendingTerm)?pendingTerm:(terms.includes(String(state.term||''))?String(state.term):terms[0]||'');
   const values=terms.length?terms:[''];
   if(!sameSelectValues(tt,values))tt.innerHTML=terms.length?terms.map(t=>`<option value="${esc(t)}">${esc(t)}</option>`).join(''):'<option value="">أضف فصلًا دراسيًا</option>';
   if(active&&tt.value!==active)tt.value=active;
@@ -29,7 +29,7 @@ function renderCoreSelectors(){
  }
  const ct=$('#classTop');
  if(ct&&!window.nataijiWorkspaceSelectorReady){
-  const classes=selectorClasses(),active=classes.some(x=>x.id===state.activeClassId)?state.activeClassId:(classes[0]?.id||''),values=classes.length?classes.map(x=>x.id):[''];
+  const classes=selectorClasses(),pendingClass=String(window.__nataijiPendingClassId||''),active=classes.some(x=>String(x.id)===pendingClass)?pendingClass:(classes.some(x=>x.id===state.activeClassId)?state.activeClassId:(classes[0]?.id||'')),values=classes.length?classes.map(x=>x.id):[''];
   if(!sameSelectValues(ct,values))ct.innerHTML=classes.length?classes.map(x=>`<option value="${esc(x.id)}">${esc(x.name||x.code||'القسم الحالي')}</option>`).join(''):'<option value="">أضف قسمًا من الإعدادات</option>';
   if(active&&ct.value!==active)ct.value=active;
   ct.disabled=!classes.length
