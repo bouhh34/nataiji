@@ -11,9 +11,8 @@ const WEIGHTS=[1,2,3];
 const fmt=n=>Number.isFinite(Number(n))?Number(n).toFixed(1):'—';
 
 function totalMax(){
-  const key=String(state?.activeClassId||state?.classCode||state?.className||'default');
-  const n=Number(state?.scoringByClass?.[key]?.totalMax ?? state?.totalMax);
-  return Number.isFinite(n)&&n>0?n:200;
+  const sum=(state?.subjects||[]).reduce((a,s)=>{const n=Number(s?.[3]);return a+(Number.isFinite(n)&&n>0?n:20)},0);
+  return sum>0?sum:200;
 }
 function termRows(term){return term===state?.term?(state?.marks||[]):(state?.marksByTerm?.[term]||[])}
 function isAbsent(v){return /^(غائب|غائبة|absent|absente|a)$/i.test(String(v??'').trim())}
