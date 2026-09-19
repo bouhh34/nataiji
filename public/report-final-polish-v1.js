@@ -163,6 +163,70 @@ style.textContent=`
     page-break-inside:avoid!important;
   }
 
+  /* Final (3rd trimester) class report: keep all 20 pupils on one A4.
+     This table has extra annual-average columns, so override the generic
+     class-print padding that otherwise forces rows 14-20 onto page 2. */
+  body[data-print="class"] #classReport #paperResults.nr-final-class{
+    width:100%!important;
+    max-width:100%!important;
+    table-layout:fixed!important;
+    border-collapse:collapse!important;
+    font-size:6.55pt!important;
+    margin-top:.5mm!important;
+  }
+  body[data-print="class"] #classReport #paperResults.nr-final-class th,
+  body[data-print="class"] #classReport #paperResults.nr-final-class td{
+    box-sizing:border-box!important;
+    padding:.18mm .22mm!important;
+    line-height:1!important;
+  }
+  body[data-print="class"] #classReport #paperResults.nr-final-class thead th{
+    height:22mm!important;
+    min-height:22mm!important;
+    font-size:6.15pt!important;
+  }
+  body[data-print="class"] #classReport #paperResults.nr-final-class .final-sub,
+  body[data-print="class"] #classReport #paperResults.nr-final-class .final-avg{
+    height:22mm!important;
+    min-height:22mm!important;
+  }
+  body[data-print="class"] #classReport #paperResults.nr-final-class .final-vertical{
+    height:21mm!important;
+    gap:.2mm!important;
+    font-size:6.05pt!important;
+  }
+  body[data-print="class"] #classReport #paperResults.nr-final-class .final-vertical small{
+    font-size:5.45pt!important;
+  }
+  body[data-print="class"] #classReport #paperResults.nr-final-class tbody td{
+    height:5.05mm!important;
+    min-height:5.05mm!important;
+    max-height:5.05mm!important;
+    font-size:6.35pt!important;
+  }
+  body[data-print="class"] #classReport #paperResults.nr-final-class .final-name-cell{
+    font-size:6.15pt!important;
+    line-height:1!important;
+    padding-right:.3mm!important;
+  }
+  body[data-print="class"] #classReport #paperResults.nr-final-class .final-name-cell small{
+    font-size:4.9pt!important;
+    margin-top:0!important;
+  }
+  body[data-print="class"] #classReport #paperResults.nr-final-class .final-mark,
+  body[data-print="class"] #classReport #paperResults.nr-final-class .final-num,
+  body[data-print="class"] #classReport #paperResults.nr-final-class .final-rank-cell{
+    font-size:6.15pt!important;
+  }
+  body[data-print="class"] #classReport #paperResults.nr-final-class .final-obs-cell{
+    font-size:5.8pt!important;
+    line-height:1!important;
+  }
+  body[data-print="class"] #classReport #paperResults.nr-final-class .final-obs-cell small{
+    font-size:4.75pt!important;
+    margin-top:0!important;
+  }
+
   body[data-print="list"] #listReport table{
     width:100%!important;
     min-width:0!important;
