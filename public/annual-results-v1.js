@@ -8,7 +8,7 @@ const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&
 const TERMS_DEFAULT=['الفصل الأول','الفصل الثاني','الفصل الثالث'];
 const terms=()=>{const a=Array.isArray(state?.terms)?state.terms.filter(Boolean):[];return [a[0]||TERMS_DEFAULT[0],a[1]||TERMS_DEFAULT[1],a[2]||TERMS_DEFAULT[2]]};
 const WEIGHTS=[1,2,3];
-const fmt=n=>Number.isFinite(Number(n))?Number(n).toFixed(1):'—';
+const fmt=n=>n===''||n==null||!Number.isFinite(Number(n))?'—':Number(n).toFixed(1);
 
 function totalMax(){
   const sum=(state?.subjects||[]).reduce((a,s)=>{const n=Number(s?.[3]);return a+(Number.isFinite(n)&&n>0?n:20)},0);
@@ -20,8 +20,11 @@ function female(i){const p=state?.pupils?.[i]||[],g=String(p?.[2]??p?.[6]??p?.ge
 function absenceLabel(i,frLabel=false){return female(i)?(frLabel?'Absente':'غائبة'):(frLabel?'Absent':'غائب')}
 function termAbsent(i,term){const row=termRows(term)?.[i]||[];return !!state?.subjects?.length&&state.subjects.every((_,j)=>isAbsent(row[j]))}
 function termAverage(i,term){
-  const row=termRows(term)?.[i]||[];if(termAbsent(i,term))return null;
-  const sum=(state?.subjects||[]).reduce((a,_,j)=>{const v=row[j];return a+(isAbsent(v)?0:(Number.isFinite(Number(v))?Number(v):0))},0);
+  const row=termRows(term)?.[i]||[],subjects=state?.subjects||[];
+  if(!subjects.length||termAbsent(i,term))return null;
+  const complete=subjects.every((_,j)=>{const v=row[j];return v!==''&&v!=null&&(isAbsent(v)||Number.isFinite(Number(v)))});
+  if(!complete)return null;
+  const sum=subjects.reduce((a,_,j)=>{const v=row[j];return a+(isAbsent(v)?0:Number(v))},0);
   return sum*20/totalMax();
 }
 function annualAverage(i){
@@ -76,7 +79,8 @@ function fillFinalTable(table){
   if(!finalTerm()||!table||!state?.pupils?.length)return;
   const ts=terms(),subjects=state.subjects||[];
   const subjectMax=s=>{const n=Number(s?.[3]);return Number.isFinite(n)&&n>0?n:20};
-  const ordered=(state.pupils||[]).map((p,i)=>({p,i,annual:annualAverage(i)})).sort((a,b)=>{
+  const annualRankValues=annualRanks();
+  const ordered=(state.pupils||[]).map((p,i)=>({p,i,annual:annualAverage(i),rank:annualRankValues[i]})).sort((a,b)=>{
     const av=a.annual,bv=b.annual;
     if(av==null&&bv==null)return String(a.p?.[1]||'').localeCompare(String(b.p?.[1]||''),'ar');
     if(av==null)return 1;if(bv==null)return -1;
@@ -96,7 +100,7 @@ function fillFinalTable(table){
     <th class="final-obs"><span>الملاحظة</span><small>Observation</small></th>
   </tr></thead><tbody>${ordered.map((o,pos)=>{
     const p=o.p,i=o.i,row=termRows(ts[2])?.[i]||[],absent3=termAbsent(i,ts[2]),a3=termAverage(i,ts[2]),a2=termAverage(i,ts[1]),a1=termAverage(i,ts[0]),annual=o.annual,remark=absent3?absenceLabel(i):(annual==null?'':(annual>=10?'ناجح':'راسب'));
-    return `<tr><td class="final-rank-cell"><b>${annual==null?'—':pos+1}</b></td><td class="final-name-cell"><span dir="rtl">${esc(p?.[1]||'')}</span>${p?.[4]?`<small dir="ltr">${esc(p[4])}</small>`:''}</td>${subjects.map((sub,j)=>`<td class="final-mark">${isAbsent(row[j])?esc(absenceLabel(i)):row[j]===''||row[j]==null?'':esc(row[j])}</td>`).join('')}<td class="final-num">${absent3?esc(absenceLabel(i)):fmt(a3)}</td><td class="final-num">${fmt(a2)}</td><td class="final-num">${fmt(a1)}</td><td class="final-num final-general"><b>${absent3?esc(absenceLabel(i)):fmt(annual)}</b></td><td class="final-obs-cell"><span>${esc(remark)}</span><small>${absent3?esc(absenceLabel(i,true)):(annual==null?'':(annual>=10?'Admis':'Non admis'))}</small></td></tr>`
+    return `<tr><td class="final-rank-cell"><b>${o.rank==null?'—':o.rank}</b></td><td class="final-name-cell"><span dir="rtl">${esc(p?.[1]||'')}</span>${p?.[4]?`<small dir="ltr">${esc(p[4])}</small>`:''}</td>${subjects.map((sub,j)=>`<td class="final-mark">${isAbsent(row[j])?esc(absenceLabel(i)):row[j]===''||row[j]==null?'':esc(row[j])}</td>`).join('')}<td class="final-num">${absent3?esc(absenceLabel(i)):fmt(a3)}</td><td class="final-num">${fmt(a2)}</td><td class="final-num">${fmt(a1)}</td><td class="final-num final-general"><b>${absent3?esc(absenceLabel(i)):fmt(annual)}</b></td><td class="final-obs-cell"><span>${esc(remark)}</span><small>${absent3?esc(absenceLabel(i,true)):(annual==null?'':(annual>=10?'Admis':'Non admis'))}</small></td></tr>`
   }).join('')}</tbody>`;
 }
 function buildFinalClassTable(){
