@@ -9,6 +9,7 @@ on:
       - 'public/**'
       - 'src/**'
       - 'package.json'
+      - 'assets/**'
       - 'capacitor.config.ts'
       - '.github/workflows/mobile-android-debug.yml'
 
@@ -53,6 +54,9 @@ jobs:
 
       - name: Generate Android project
         run: npx cap add android
+
+      - name: Generate branded Android icons and splash assets
+        run: npm run mobile:assets:android
 
       - name: Sync web and native configuration
         run: npx cap sync android
