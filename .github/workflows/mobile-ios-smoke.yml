@@ -9,6 +9,7 @@ on:
       - 'public/**'
       - 'src/**'
       - 'package.json'
+      - 'assets/**'
       - 'capacitor.config.ts'
       - '.github/workflows/mobile-ios-smoke.yml'
 
@@ -33,6 +34,9 @@ jobs:
 
       - name: Generate iOS project
         run: npx cap add ios
+
+      - name: Generate branded iOS icons and splash assets
+        run: npm run mobile:assets:ios
 
       - name: Sync web and native configuration
         run: npx cap sync ios
