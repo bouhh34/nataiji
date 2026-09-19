@@ -80,6 +80,11 @@ function refreshSelectors(){
    tt.onchange=async e=>{
      const selected=e.target.value,previous=state.term||'';
      if(!selected||selected===previous)return;
+     // Commit the user's visible choice before any async request. This prevents
+     // another render from painting the previous term while the request is pending.
+     state.term=selected;
+     try{localStorage.setItem('nataiji-data',JSON.stringify(state))}catch{}
+     tt.value=selected;
      tt.disabled=true;
      try{
        if(teacher){await api('/api/active-selection',{method:'POST',body:JSON.stringify({classId:state.activeClassId,term:selected})});await loadTeacherView(state.activeClassId,selected);}
@@ -96,8 +101,13 @@ function refreshSelectors(){
          localStorage.setItem('nataiji-data',JSON.stringify(state));render();refreshSelectors();
          const live=q('#term');if(live)live.value=selected
        }
-     }catch(err){console.error('term switch failed',err);tt.value=previous}
-     finally{const live=q('#term');if(live)live.disabled=!state.terms.length}
+     }catch(err){
+       console.error('term switch failed',err);
+       state.term=previous;
+       try{localStorage.setItem('nataiji-data',JSON.stringify(state))}catch{}
+       const live=q('#term');if(live)live.value=previous
+     }
+     finally{const live=q('#term');if(live){live.disabled=!state.terms.length;if(state.term)live.value=state.term}}
    };
  }
 }
