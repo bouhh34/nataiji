@@ -88,8 +88,13 @@ function enhanceInputs(){
   input.onchange=()=>commitEntry(input,true);
   input.onblur=()=>commitEntry(input,true);
   input.classList.toggle('absent-mark',isAbsent(input.value));
-  let b=input.parentElement?.querySelector('.absent-btn');
-  if(!b&&input.parentElement){b=document.createElement('button');b.type='button';b.className='absent-btn';input.parentElement.appendChild(b)}
+  /* The compact mobile grade row already owns one absence button as a sibling
+     of the score field. Reuse that canonical button instead of looking only
+     inside the input's direct parent, which created a second "غائب" button. */
+  const compactRow=input.closest?.('.compact-score-row');
+  const buttonHost=compactRow?.querySelector?.('.score-controls')||input.parentElement;
+  let b=buttonHost?.querySelector?.('.absent-btn')||compactRow?.querySelector?.('.absent-btn');
+  if(!b&&buttonHost){b=document.createElement('button');b.type='button';b.className='absent-btn';buttonHost.appendChild(b)}
   if(b){b.textContent=absenceLabel(i);b.onclick=e=>{e.preventDefault();e.stopPropagation();input.value=absenceLabel(i);commitEntry(input,true);input.dispatchEvent(new Event('change',{bubbles:true}))}}
  })
 }
