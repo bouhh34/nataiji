@@ -242,7 +242,7 @@ style.textContent=`
     display:block!important;
     direction:ltr!important;
     text-align:left!important;
-    font-size:5.45pt!important;
+    font-size:5.95pt!important;
     font-weight:600!important;
     line-height:1!important;
     opacity:.92!important;
@@ -421,7 +421,7 @@ style.textContent=`
     display:block!important;
     direction:ltr!important;
     text-align:left!important;
-    font-size:5.45pt!important;
+    font-size:5.95pt!important;
     font-weight:600!important;
     line-height:1!important;
     opacity:.92!important;
