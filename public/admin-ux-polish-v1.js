@@ -113,6 +113,8 @@ function translateModal(modal){
 
 function polishStructure(modal){
  const addTerm=q('#addTerm',modal),addClass=q('#addClass',modal);
+ if(!addTerm&&!addClass)return;
+ modal.classList.add('nataiji-structure-polish');
  if(addTerm){addTerm.classList.add('ux-secondary-action');addTerm.textContent='+ إضافة فصل دراسي'}
  if(addClass){addClass.classList.add('ux-secondary-action');addClass.textContent='+ إضافة قسم'}
  const save=q('.action.primary',modal);if(save)save.classList.add('ux-primary-action');
@@ -134,6 +136,10 @@ const css=document.createElement('style');css.id='nataiji-admin-ux-polish-v1-sty
  box-shadow:none!important
 }
 .ux-primary-action{min-height:46px!important;border-radius:11px!important;font-weight:800!important}
+.nataiji-structure-polish .ux-primary-action{
+ width:100%!important;display:block!important;margin:18px 0 0!important;min-height:52px!important;
+ border-radius:12px!important;font-size:15px!important;text-align:center!important
+}
 .nataiji-subjects-compact .modal-card{padding-bottom:26px!important}
 .nataiji-subjects-compact .bi-subject{
  display:block!important;padding:9px 10px!important;margin:7px 0!important;border-radius:12px!important
