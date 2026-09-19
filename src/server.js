@@ -317,6 +317,17 @@ async function overlayCanonicalMarks(full,schoolId){
  return full;
 }
 
+const validAbsentMark=v=>/^(غائب|غائبة|absent|absente|a)$/i.test(String(v??'').trim());
+const validateStoredMark=(value,subjectData)=>{
+ const v=value==null?'':String(value).trim(),d=Array.isArray(subjectData)?subjectData:[],nMax=Number(d[3]),max=Number.isFinite(nMax)&&nMax>0?nMax:20;
+ if(v==='')return{ok:true,value:'',max};
+ if(validAbsentMark(v))return{ok:true,value:v,max,absent:true};
+ const n=Number(v);
+ if(!Number.isFinite(n))return{ok:false,error:'invalid_mark_value',value:v,max};
+ if(n<0||n>max)return{ok:false,error:'mark_out_of_range',value:n,max};
+ return{ok:true,value:String(n),max}
+};
+
 app.put('/api/mark',auth,async(req,res)=>{
  if(!pool)return res.status(503).json({error:'durable_storage_required'});
  const sq=await pool.query('SELECT data FROM nataiji_structure WHERE school_id=$1',[req.user.schoolId]),st=sq.rows[0]?.data||{classes:[],terms:[]};
@@ -326,10 +337,12 @@ app.put('/api/mark',auth,async(req,res)=>{
  if(req.user.role!=='admin'&&!new Set(req.user.permissions||[]).has('grades'))return res.status(403).json({error:'forbidden'});if(req.user.role==='teacher'&&!subjectAllowed(req.user,classId,subjectId))return res.status(403).json({error:'subject_forbidden'});
  const [pq,sjq]=await Promise.all([
   pool.query('SELECT 1 FROM nataiji_pupils WHERE school_id=$1 AND class_id=$2 AND nns=$3',[req.user.schoolId,classId,pupilKey]),
-  pool.query('SELECT 1 FROM nataiji_subjects WHERE school_id=$1 AND class_id=$2 AND subject_id=$3',[req.user.schoolId,classId,subjectId])
+  pool.query('SELECT data FROM nataiji_subjects WHERE school_id=$1 AND class_id=$2 AND subject_id=$3',[req.user.schoolId,classId,subjectId])
  ]);
  if(!pq.rowCount||!sjq.rowCount)return res.status(404).json({error:'mark_target_not_found'});
- const v=value==null?'':String(value).trim();
+ const checked=validateStoredMark(value,sjq.rows[0]?.data);
+ if(!checked.ok)return res.status(422).json({error:checked.error,max:checked.max,value:checked.value,subjectId,pupilKey});
+ const v=checked.value;
  if(v==='')await pool.query('DELETE FROM nataiji_marks WHERE school_id=$1 AND class_id=$2 AND term=$3 AND pupil_key=$4 AND subject_id=$5',[req.user.schoolId,classId,term,pupilKey,subjectId]);
  else await pool.query(`INSERT INTO nataiji_marks(school_id,class_id,term,pupil_key,subject_id,value,updated_at)
  VALUES($1,$2,$3,$4,$5,$6,now())
@@ -346,8 +359,9 @@ app.put('/api/marks',auth,async(req,res)=>{
  if(!classId||!ids.includes(classId)||!st.classes?.some(x=>x.id===classId)||!st.terms?.includes(term)||!marks)return res.status(400).json({error:'invalid_marks'});
  if(req.user.role!=='admin'&&!new Set(req.user.permissions||[]).has('grades'))return res.status(403).json({error:'forbidden'});
  const pupils=(await pool.query('SELECT nns FROM nataiji_pupils WHERE school_id=$1 AND class_id=$2 ORDER BY position,updated_at',[req.user.schoolId,classId])).rows;
- let subjects=(await pool.query('SELECT subject_id FROM nataiji_subjects WHERE school_id=$1 AND class_id=$2 ORDER BY position,updated_at',[req.user.schoolId,classId])).rows;
+ let subjects=(await pool.query('SELECT subject_id,data FROM nataiji_subjects WHERE school_id=$1 AND class_id=$2 ORDER BY position,updated_at',[req.user.schoolId,classId])).rows;
  if(req.user.role==='teacher'){const scope=subjectScopeFor(req.user,classId);if(!scope)return res.status(403).json({error:'forbidden_class'});const hidden=new Set(scope.hiddenSubjectIds||[]),editable=scope.fullClass||scope.allSubjects===true?null:new Set(scope.subjectIds||[]);subjects=subjects.filter(x=>!hidden.has(String(x.subject_id))&&(editable===null||editable.has(String(x.subject_id))))}
+ for(let i=0;i<pupils.length;i++)for(let j=0;j<subjects.length;j++){const checked=validateStoredMark(marks?.[i]?.[j],subjects[j]?.data);if(!checked.ok)return res.status(422).json({error:checked.error,max:checked.max,value:checked.value,pupilIndex:i,subjectIndex:j,subjectId:String(subjects[j]?.subject_id||'')})}
  const client=await pool.connect();
  try{
   await client.query('BEGIN');
