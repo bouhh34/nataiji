@@ -63,11 +63,10 @@ function commitEntry(input,final=false){
  const raw=String(input.value??'').trim(),check=validateGradeValue(raw,maxFor(j));
  if(!check.ok)return showGradeValidationError(input,check);
  clearGradeValidationError(input);
- let value=check.value;
- if(check.absent)value=absenceLabel(i);
- state.marks[i][j]=value;
- if(final||check.absent)input.value=value;
+ let value=check.value;if(check.absent)value=absenceLabel(i);
  input.classList.toggle('absent-mark',isAbsent(value));
+ if(!final&&!check.absent)return true;
+ state.marks[i][j]=value;input.value=value;input.dataset.lastValid=String(value??'');
  try{markDirty()}catch{}try{renderDashboard()}catch{}scheduleReports();
  return true
 }
@@ -82,8 +81,8 @@ window.nataijiFindInvalidMark=function(){
 };
 function enhanceInputs(){
  qa('.mark,.mobile-mark').forEach(input=>{
-  const i=Number(input.dataset.i);
-  input.inputMode='text';
+  const i=Number(input.dataset.i),j=Number(input.dataset.j);
+  input.inputMode='text';if(input.dataset.lastValid===undefined)input.dataset.lastValid=String(state?.marks?.[i]?.[j]??'');
   input.placeholder=isFr()?'Note ou Absent':'درجة أو غائب';
   input.oninput=()=>commitEntry(input,false);
   input.onchange=()=>commitEntry(input,true);
