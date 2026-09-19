@@ -1,164 +1,178 @@
 (()=>{
 'use strict';
-if(window.__nataijiReportMobilePreviewV1)return;
-window.__nataijiReportMobilePreviewV1=true;
+if(window.__nataijiReportMobilePreviewV2)return;
+window.__nataijiReportMobilePreviewV2=true;
 
 const q=(s,r=document)=>r.querySelector(s);
-let stage=null,raf=0,lastHeight=0;
+const qa=(s,r=document)=>[...r.querySelectorAll(s)];
+const mmPx=mm=>mm*96/25.4;
+const frames=new Map();
+let raf=0;
 
-function ensureStage(){
- const sheet=q('#officialSheet');
- if(!sheet)return null;
- if(sheet.parentElement?.classList.contains('report-preview-stage')){
-  stage=sheet.parentElement;return sheet
- }
- stage=document.createElement('div');
- stage.className='report-preview-stage';
- stage.setAttribute('aria-label','معاينة كشف الدرجات');
- sheet.parentNode.insertBefore(stage,sheet);
- stage.appendChild(sheet);
- return sheet
+function activeType(){
+ const b=q('.report-tabs [data-report].active');
+ return b?.dataset?.report||'student'
 }
-
-function fit(){
+function naturalWidth(type){
+ if(type==='student')return 185;
+ if(type==='list')return 190;
+ const count=Number((window.state||globalThis.state)?.subjects?.length||0);
+ return count>=10?287:202
+}
+function target(type){
+ if(type==='student')return q('#officialSheet');
+ if(type==='class')return q('#classReport .paper');
+ if(type==='list')return q('#listReport .paper');
+ return null
+}
+function host(type){
+ if(type==='student')return q('#studentReport');
+ if(type==='class')return q('#classReport');
+ if(type==='list')return q('#listReport');
+ return null
+}
+function ensureFrame(type){
+ const doc=target(type),root=host(type);if(!doc||!root)return null;
+ if(doc.parentElement?.classList.contains('report-preview-stage-v2')){
+  frames.set(type,doc.parentElement);return doc.parentElement
+ }
+ const stage=document.createElement('div');
+ stage.className='report-preview-stage-v2';
+ stage.dataset.previewType=type;
+ stage.setAttribute('aria-label',type==='student'?'معاينة كشف التلميذ':type==='class'?'معاينة كشف القسم':'معاينة لائحة التلاميذ');
+ doc.parentNode.insertBefore(stage,doc);
+ stage.appendChild(doc);
+ frames.set(type,stage);
+ return stage
+}
+function refreshCanonical(){
+ try{window.nataijiRefreshOfficialReports?.()}catch(e){console.error('official report refresh failed',e)}
+ try{window.nataijiFinalizeReports?.()}catch(e){console.error('final report refresh failed',e)}
+}
+function fitOne(type){
+ if(!matchMedia('(max-width:760px)').matches||document.body.dataset.print)return;
+ const root=host(type),doc=target(type),stage=ensureFrame(type);
+ if(!root||!doc||!stage||root.classList.contains('hidden'))return false;
+ const widthMm=naturalWidth(type);
+ stage.style.setProperty('--preview-natural-width',widthMm+'mm');
+ doc.style.setProperty('--preview-natural-width',widthMm+'mm');
+ // Wait until the currently selected report has actually been painted.
+ const h=Math.max(doc.scrollHeight,doc.offsetHeight),available=Math.max(220,root.clientWidth-4);
+ if(h<80||available<100)return false;
+ const scale=Math.min(1,(available-12)/mmPx(widthMm));
+ stage.style.setProperty('--report-preview-scale',String(scale));
+ stage.style.height=Math.ceil(h*scale+12)+'px';
+ stage.dataset.ready='1';
+ return true
+}
+function fitActive(retries=4){
  cancelAnimationFrame(raf);
  raf=requestAnimationFrame(()=>{
-  const sheet=ensureStage();if(!sheet||!stage)return;
-  if(!matchMedia('(max-width:760px)').matches||document.body.dataset.print){
-   stage.style.removeProperty('--report-preview-scale');
-   stage.style.removeProperty('--report-preview-height');
-   stage.style.height='';
-   return
-  }
-  // The preview deliberately keeps an A4-like document width, then scales the
-  // complete sheet to the phone. Printing remains untouched by screen-only CSS.
-  const available=Math.max(240,stage.clientWidth-12);
-  const natural=Math.max(1,sheet.offsetWidth);
-  const scale=Math.min(1,available/natural);
-  const height=Math.ceil(sheet.offsetHeight*scale+12);
-  stage.style.setProperty('--report-preview-scale',String(scale));
-  stage.style.setProperty('--report-preview-height',height+'px');
-  if(Math.abs(height-lastHeight)>1){stage.style.height=height+'px';lastHeight=height}
+  const type=activeType();
+  refreshCanonical();
+  const ok=fitOne(type);
+  if(!ok&&retries>0)setTimeout(()=>fitActive(retries-1),90)
  })
 }
+function prepare(type){
+ refreshCanonical();
+ ensureFrame(type);
+ [0,50,140,320].forEach(ms=>setTimeout(()=>{if(activeType()===type)fitOne(type)},ms))
+}
+function restoreForPrint(){
+ for(const stage of frames.values()){stage.style.height='';stage.dataset.ready='0'}
+}
+function refitAfterPrint(){setTimeout(()=>fitActive(5),80)}
 
 const css=document.createElement('style');
-css.id='nataiji-report-mobile-preview-v1-style';
+css.id='nataiji-report-mobile-preview-v2-style';
 css.textContent=`
 @media screen and (max-width:760px){
- #studentReport{min-width:0!important;overflow:visible!important}
- .report-preview-stage{
+ #studentReport,#classReport,#listReport{min-width:0!important;overflow:visible!important}
+ .report-preview-stage-v2{
    position:relative!important;
    width:100%!important;
    min-width:0!important;
-   height:var(--report-preview-height,auto);
-   margin:10px 0 2px!important;
+   margin:10px 0 4px!important;
    padding:6px!important;
    overflow:hidden!important;
    border:1px solid #dbe5ec!important;
    border-radius:12px!important;
    background:#eef3f7!important;
-   box-shadow:inset 0 1px 0 rgba(255,255,255,.8)!important;
+   box-shadow:inset 0 1px 0 rgba(255,255,255,.86)!important;
    direction:ltr!important;
  }
- .report-preview-stage>#officialSheet{
+ .report-preview-stage-v2[data-ready="0"]{min-height:18px!important}
+ .report-preview-stage-v2>#officialSheet,
+ .report-preview-stage-v2>.paper{
    box-sizing:border-box!important;
    position:absolute!important;
    top:6px!important;
    left:50%!important;
-   width:185mm!important;
+   width:var(--preview-natural-width)!important;
+   min-width:var(--preview-natural-width)!important;
    max-width:none!important;
-   min-width:185mm!important;
-   min-height:240mm!important;
    margin:0!important;
-   padding:8mm!important;
    transform:translateX(-50%) scale(var(--report-preview-scale,1))!important;
    transform-origin:top center!important;
-   overflow:hidden!important;
+   overflow:visible!important;
    background:#fff!important;
-   border:1.5px solid #202020!important;
+   color:#111!important;
+   border:1px solid #cfd9df!important;
    box-shadow:0 7px 22px rgba(28,52,70,.13)!important;
  }
- /* Match the PDF's numeric reading order without changing the print document. */
- .report-preview-stage>#officialSheet table.sheet td:nth-child(2),
- .report-preview-stage>#officialSheet .nr-stat td,
- .report-preview-stage>#officialSheet bdi,
- .report-preview-stage>#officialSheet [dir="ltr"]{
-   direction:ltr!important;
-   unicode-bidi:isolate!important;
- }
- .report-preview-stage>#officialSheet table.sheet td:nth-child(2){
-   text-align:center!important;
-   white-space:nowrap!important;
- }
- /* Recreate the print-quality header inside the scaled phone preview. */
- .report-preview-stage>#officialSheet .nr-head{
+ .report-preview-stage-v2>#officialSheet{padding:8mm!important;min-height:240mm!important;border:1.5px solid #202020!important}
+ .report-preview-stage-v2>.paper{padding:6mm!important;min-height:250mm!important}
+ .report-preview-stage-v2 .table-scroll{overflow:visible!important;width:100%!important}
+ .report-preview-stage-v2 table{width:100%!important;max-width:100%!important}
+ .report-preview-stage-v2[data-preview-type="list"] table{min-width:0!important;table-layout:fixed!important;font-size:9.4pt!important}
+ .report-preview-stage-v2[data-preview-type="list"] th,
+ .report-preview-stage-v2[data-preview-type="list"] td{height:7.5mm!important;padding:1mm!important}
+ .report-preview-stage-v2[data-preview-type="class"] .nr-class-table{min-width:0!important;width:100%!important;table-layout:fixed!important}
+ .report-preview-stage-v2[data-preview-type="class"] .nr-class-v2 .plain-head,
+ .report-preview-stage-v2[data-preview-type="class"] .nr-class-v2 .sub-head{height:31mm!important}
+ .report-preview-stage-v2[data-preview-type="class"] .nr-class-v2 .vertical-label{height:24.5mm!important}
+ .report-preview-stage-v2[data-preview-type="class"] .nr-class-v2 tbody td{height:8.2mm!important}
+ .report-preview-stage-v2 .nr-head{
    grid-template-columns:minmax(0,1fr) 30mm minmax(0,1fr)!important;
    gap:6mm!important;
-   font-size:10pt!important;
+   font-size:9.5pt!important;
    line-height:1.35!important;
  }
- .report-preview-stage>#officialSheet .nr-center img{
-   width:24mm!important;
-   height:24mm!important;
- }
- .report-preview-stage>#officialSheet .doc-head.final-official-head{
+ .report-preview-stage-v2 .nr-center img{width:24mm!important;height:24mm!important}
+ .report-preview-stage-v2 .doc-head.final-official-head{
    grid-template-columns:minmax(0,1fr) 42mm minmax(0,1fr)!important;
    gap:6mm!important;
    font-size:9.2pt!important;
    line-height:1.38!important;
  }
- .report-preview-stage>#officialSheet .doc-basmala{
-   font-size:9pt!important;
-   white-space:nowrap!important;
-   margin-bottom:.8mm!important;
- }
- .report-preview-stage>#officialSheet .doc-center img{
-   width:25mm!important;
-   height:25mm!important;
- }
- .report-preview-stage>#officialSheet .nr-title,
- .report-preview-stage>#officialSheet h1{
-   font-size:17pt!important;
-   margin:5mm 0 1mm!important;
-   text-align:center!important;
- }
- .report-preview-stage>#officialSheet .nr-term{
-   font-size:10pt!important;
-   margin-bottom:3mm!important;
- }
- .report-preview-stage>#officialSheet .nr-name{
-   font-size:10.5pt!important;
-   padding:2mm 3mm!important;
- }
- .report-preview-stage>#officialSheet .info{font-size:9.5pt!important}
- .report-preview-stage>#officialSheet table.sheet{
-   width:100%!important;
-   min-width:0!important;
-   table-layout:fixed!important;
-   border-collapse:collapse!important;
-   font-size:10.5pt!important;
- }
- .report-preview-stage>#officialSheet table.sheet th,
- .report-preview-stage>#officialSheet table.sheet td{
-   height:7mm!important;
-   padding:1.6mm 2mm!important;
-   border:1.2px solid #000!important;
- }
- .report-preview-stage>#officialSheet .nr-signatures{
-   font-size:10pt!important;
-   margin-top:5mm!important;
- }
- .report-preview-stage>#officialSheet .nr-signatures i{margin-top:10mm!important}
+ .report-preview-stage-v2 .doc-basmala{font-size:9pt!important;white-space:nowrap!important;margin-bottom:.8mm!important}
+ .report-preview-stage-v2 .doc-center img{width:25mm!important;height:25mm!important}
+ .report-preview-stage-v2>#officialSheet .nr-title,
+ .report-preview-stage-v2>#officialSheet h1{font-size:17pt!important;margin:5mm 0 1mm!important;text-align:center!important}
+ .report-preview-stage-v2>#officialSheet .nr-term{font-size:10pt!important;margin-bottom:3mm!important}
+ .report-preview-stage-v2>#officialSheet .nr-name{font-size:10.5pt!important;padding:2mm 3mm!important}
+ .report-preview-stage-v2>#officialSheet .info{font-size:9.5pt!important}
+ .report-preview-stage-v2>#officialSheet table.sheet{font-size:10.5pt!important;table-layout:fixed!important;border-collapse:collapse!important}
+ .report-preview-stage-v2>#officialSheet table.sheet th,
+ .report-preview-stage-v2>#officialSheet table.sheet td{height:7mm!important;padding:1.6mm 2mm!important;border:1.2px solid #000!important}
+ .report-preview-stage-v2>#officialSheet table.sheet td:nth-child(2),
+ .report-preview-stage-v2>#officialSheet .nr-stat td,
+ .report-preview-stage-v2>#officialSheet bdi{direction:ltr!important;unicode-bidi:isolate!important;text-align:center!important;white-space:nowrap!important}
+ .report-preview-stage-v2>#officialSheet .nr-signatures{font-size:10pt!important;margin-top:5mm!important}
+ .report-preview-stage-v2>#officialSheet .nr-signatures i{margin-top:10mm!important}
+ #classReport>.report-preview-stage-v2 + .report-print,
+ #listReport>.report-preview-stage-v2 + .report-print{margin-top:10px!important}
 }
 @media print{
- .report-preview-stage{display:contents!important}
- .report-preview-stage>#officialSheet{
+ .report-preview-stage-v2{display:contents!important}
+ .report-preview-stage-v2>#officialSheet,
+ .report-preview-stage-v2>.paper{
    position:static!important;
    transform:none!important;
-   width:185mm!important;
+   width:auto!important;
    min-width:0!important;
-   max-width:185mm!important;
+   max-width:none!important;
    margin:0 auto!important;
    box-shadow:none!important;
  }
@@ -166,27 +180,37 @@ css.textContent=`
 `;
 document.head.appendChild(css);
 
-function install(){
- const sheet=ensureStage();if(!sheet)return;
- fit();
- if(!stage.dataset.previewObserved){
-  stage.dataset.previewObserved='1';
-  new ResizeObserver(fit).observe(stage);
-  new MutationObserver(fit).observe(sheet,{childList:true,subtree:true,characterData:true,attributes:true});
- }
-}
-
-window.addEventListener('resize',fit,{passive:true});
-window.addEventListener('orientationchange',()=>setTimeout(fit,120),{passive:true});
-window.addEventListener('beforeprint',()=>{if(stage)stage.style.height=''});
-window.addEventListener('afterprint',()=>setTimeout(fit,60));
+// Intercept class/list printing so the report is fully rebuilt before print begins.
 document.addEventListener('click',e=>{
- if(e.target.closest?.('#showResult,[data-report="student"],#student'))setTimeout(fit,60)
+ const btn=e.target.closest?.('.report-print[data-print]');
+ if(btn){
+   const type=btn.dataset.print;
+   if(type==='class'||type==='list'){
+     e.preventDefault();e.stopImmediatePropagation();
+     refreshCanonical();
+     requestAnimationFrame(()=>requestAnimationFrame(()=>{
+       document.body.dataset.print=type;
+       window.print();
+       setTimeout(()=>{delete document.body.dataset.print;fitActive(4)},250)
+     }));
+     return
+   }
+ }
+ const tab=e.target.closest?.('.report-tabs [data-report]');
+ if(tab)prepare(tab.dataset.report)
 },true);
+
 document.addEventListener('change',e=>{
- if(e.target.matches?.('#student,#term,#classTop,#yearTop'))setTimeout(fit,60)
+ if(e.target.matches?.('#student,#term,#classTop,#yearTop'))setTimeout(()=>{refreshCanonical();fitActive(5)},40)
 },true);
-window.addEventListener('DOMContentLoaded',()=>setTimeout(install,350));
-setTimeout(install,0);
-setTimeout(install,900);
+document.addEventListener('click',e=>{
+ if(e.target.closest?.('#showResult'))setTimeout(()=>{refreshCanonical();fitActive(5)},40)
+},true);
+window.addEventListener('resize',()=>fitActive(4),{passive:true});
+window.addEventListener('orientationchange',()=>setTimeout(()=>fitActive(5),140),{passive:true});
+window.addEventListener('beforeprint',restoreForPrint);
+window.addEventListener('afterprint',refitAfterPrint);
+window.addEventListener('DOMContentLoaded',()=>setTimeout(()=>prepare(activeType()),420));
+setTimeout(()=>prepare(activeType()),80);
+setTimeout(()=>prepare(activeType()),1100);
 })();
