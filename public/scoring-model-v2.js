@@ -221,7 +221,10 @@ const css=document.createElement('style');css.textContent=`
 document.head.appendChild(css);
 
 new MutationObserver(()=>{const b=q('#subjectsBtn');if(b)b.onclick=e=>{e?.preventDefault?.();openScoringSubjects()}}).observe(document.documentElement,{childList:true,subtree:true});
-document.addEventListener('change',e=>{if(e.target.matches?.('#classTop'))setTimeout(()=>{ensureClassProfile();render();install()},40)},true);
+// Class navigation already performs the canonical render after its server state is loaded.
+ // Do not render 40ms after the native change event: that used the previous class state
+ // and could repaint the selector with the old class while navigation was still in flight.
+document.addEventListener('change',e=>{if(e.target.matches?.('#classTop'))setTimeout(()=>{patchGradeUi();patchReports()},250)},true);
 window.addEventListener('beforeprint',()=>{patchGradeUi();patchReports()});
 window.addEventListener('DOMContentLoaded',()=>setTimeout(install,900));
 setTimeout(install,0);setTimeout(install,1400);
