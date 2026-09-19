@@ -2,6 +2,11 @@ name: Android Play release bundle
 
 on:
   workflow_dispatch:
+  push:
+    branches:
+      - mobile-release-v1
+    paths:
+      - '.github/workflows/mobile-android-release.yml'
 
 permissions:
   contents: read
