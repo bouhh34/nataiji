@@ -77,8 +77,9 @@ function patchStudent(root,i){
  if(rankRow?.cells?.[1])rankRow.cells[1].innerHTML=c.absentAll?'<strong>—</strong>':`<strong>${rank} / ${eligible}</strong>`;
  if(obs?.cells?.[1])obs.cells[1].innerHTML=c.absentAll?`<strong>${absenceLabel(i)} / ${absenceLabel(i,true)}</strong>`:`<strong>${c.avg>=10?'ناجح / Admis':'راسب / Non admis'}</strong>`
 }
+function applyReportDensity(root){if(!root)return;const n=state?.subjects?.length||0;root.classList.toggle('report-dense',n>9);root.classList.toggle('report-ultra',n>12)}
 function patchReportsNow(){
- enhanceInputs();
+ enhanceInputs();applyReportDensity(q('#officialSheet'));qa('#printBatch .batch-sheet').forEach(applyReportDensity);
  const third=state?.term==='الفصل الثالث'||/الثالث|3e|3ème|3eme/i.test(String(state?.term||''));
  if(third&&typeof window.nataijiApplyAnnualReports==='function'){window.nataijiApplyAnnualReports();window.nataijiApplyEvaluation?.();return}
  const i=Math.max(0,q('#student')?.selectedIndex??0);patchStudent(q('#officialSheet'),i);
@@ -99,7 +100,7 @@ try{
 const style=document.createElement('style');style.id='nataiji-final-grade-entry-style';style.textContent=`
 .absent-btn{border:1px solid #d8a11e!important;background:#fff8df!important;color:#815500!important;border-radius:7px!important;padding:4px 7px!important;margin-inline-start:4px!important;font-weight:800!important;font-size:11px!important;white-space:nowrap}
 .mark.absent-mark,.mobile-mark.absent-mark{font-weight:900!important;color:#8a5700!important;background:#fff8df!important}
-.absence-text{color:#000!important;font-weight:900!important}
+.absence-text{color:#000!important;font-weight:900!important}.report-dense .sheet th,.report-dense .sheet td{font-size:.92em!important;padding:.8mm 1mm!important}.report-ultra .sheet th,.report-ultra .sheet td{font-size:.82em!important;padding:.5mm .7mm!important}@media print{body[data-print="batch"] .batch-page.two .batch-sheet.report-dense .sheet th,body[data-print="batch"] .batch-page.two .batch-sheet.report-dense .sheet td{height:3.6mm!important;font-size:6.1pt!important}body[data-print="batch"] .batch-page.two .batch-sheet.report-ultra .sheet th,body[data-print="batch"] .batch-page.two .batch-sheet.report-ultra .sheet td{height:3.1mm!important;font-size:5.6pt!important}}
 .report-black-label,#officialSheet .sheet th,#officialSheet .info span{color:#000!important;font-weight:900!important}
 @media screen and (max-width:800px){
  .student-sheet-scroll #officialSheet{width:820px!important;min-width:820px!important}
