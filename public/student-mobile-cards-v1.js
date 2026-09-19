@@ -72,42 +72,42 @@ style.textContent=`
 @media(max-width:720px){
   [data-page="students"] .student-table-desktop-wrap{display:none!important}
   [data-page="students"] .student-mobile-cards{
-    display:grid!important;gap:10px;margin:12px 0 14px;direction:rtl
+    display:grid!important;gap:8px;margin:10px 0 12px;direction:rtl
   }
   .student-mobile-card{
-    border:1px solid #dbe6ed;border-radius:14px;background:#fff;padding:12px;
+    border:1px solid #dbe6ed;border-radius:13px;background:#fff;padding:10px;
     box-shadow:0 1px 2px #17324a08;overflow:hidden
   }
   .student-mobile-top{
-    display:grid;grid-template-columns:36px minmax(0,1fr) auto;align-items:center;gap:10px
+    display:grid;grid-template-columns:34px minmax(0,1fr) auto;align-items:center;gap:8px
   }
   .student-call{
-    width:34px;height:34px;border-radius:10px;background:#eef7fc;color:#167fbf;
+    width:32px;height:32px;border-radius:9px;background:#eef7fc;color:#167fbf;
     display:grid;place-items:center;font-weight:900;font-size:14px
   }
   .student-mobile-name{min-width:0;display:grid;gap:2px}
   .student-mobile-name b{
-    color:#20394c;font-size:15px;line-height:1.4;white-space:normal;overflow-wrap:anywhere
+    color:#20394c;font-size:14.5px;line-height:1.32;white-space:normal;overflow-wrap:anywhere
   }
   .student-mobile-name small{
     color:#8797a3;font-size:10.5px;white-space:normal;overflow-wrap:anywhere
   }
   .student-sex{
-    border:1px solid #dbe5ea;background:#f8fafb;border-radius:999px;padding:5px 8px;
+    border:1px solid #dbe5ea;background:#f8fafb;border-radius:999px;padding:4px 7px;
     color:#536d7d;font-size:11px;font-weight:700;white-space:nowrap
   }
   .student-mobile-meta{
-    display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:10px;padding-top:10px;
+    display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:7px;padding-top:7px;
     border-top:1px solid #edf2f5
   }
-  .student-mobile-meta>div{display:grid;gap:3px;min-width:0}
-  .student-mobile-meta span{color:#84939e;font-size:10px}
-  .student-mobile-meta strong{color:#334f62;font-size:12px;font-weight:700;overflow-wrap:anywhere}
+  .student-mobile-meta>div{display:flex;align-items:center;justify-content:space-between;gap:5px;min-width:0}
+  .student-mobile-meta span{color:#84939e;font-size:9.5px;white-space:nowrap}
+  .student-mobile-meta strong{color:#334f62;font-size:11px;font-weight:700;overflow-wrap:anywhere;min-width:12px;text-align:left}
   .student-mobile-actions{
-    display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:10px
+    display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:7px
   }
   .student-mobile-actions button{
-    min-height:39px;border-radius:9px;font-size:12px;font-weight:800;background:#fff;
+    min-height:36px;border-radius:9px;font-size:11.5px;font-weight:800;background:#fff;
     box-shadow:none;margin:0!important;padding:7px 10px!important
   }
   .student-mobile-actions .mobile-edit-pupil{
