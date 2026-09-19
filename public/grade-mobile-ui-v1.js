@@ -14,12 +14,14 @@ function absentLabel(i){
  if(fr())return female?'Absente':'Absent';
  return female?'غائبة':'غائب'
 }
-function clamp(raw,max){
+function validate(raw,max){
+ if(typeof window.nataijiValidateGradeValue==='function')return window.nataijiValidateGradeValue(raw,max);
  const s=String(raw??'').trim();
- if(!s)return'';
- if(absent(s))return s;
- const n=Number(s);if(!Number.isFinite(n))return s;
- return Math.max(0,Math.min(max,n))
+ if(!s||absent(s))return{ok:true,value:s,max};
+ const n=Number(s);if(!Number.isFinite(n))return{ok:false,reason:'not_number',max,value:s};
+ if(n<0)return{ok:false,reason:'below_zero',max,value:n};
+ if(n>max)return{ok:false,reason:'above_max',max,value:n};
+ return{ok:true,value:n,max}
 }
 function rowState(row,value){
  if(!row)return;
@@ -54,14 +56,26 @@ function renderCompactMobileScores(){
    const input=q('.mobile-mark',row),button=q('.absent-btn',row),i=Number(input?.dataset.i);
    if(input){
      input.addEventListener('input',()=>{
-       const value=clamp(input.value,m);
-       if(Number.isFinite(Number(value))||value==='')input.value=value;
+       const check=validate(input.value,m);
+       if(!check.ok){
+         row.classList.add('is-invalid');
+         if(typeof window.nataijiShowGradeValidationError==='function')window.nataijiShowGradeValidationError(input,check);
+         else input.classList.add('grade-invalid');
+         return
+       }
+       row.classList.remove('is-invalid');
+       if(typeof window.nataijiClearGradeValidationError==='function')window.nataijiClearGradeValidationError(input);else input.classList.remove('grade-invalid');
+       const value=check.value;
        if(state.marks?.[i])state.marks[i][j]=value;
        try{markDirty()}catch{}
        try{renderDashboard()}catch{}
        rowState(row,value)
      });
-     input.addEventListener('change',()=>rowState(row,state.marks?.[i]?.[j]??input.value));
+     input.addEventListener('change',()=>{
+       const check=validate(input.value,m);
+       if(!check.ok){row.classList.add('is-invalid');return}
+       row.classList.remove('is-invalid');rowState(row,state.marks?.[i]?.[j]??check.value)
+     });
    }
    if(button&&input){
      // Safe first-render behavior. final-grade-entry may later replace this onclick
@@ -90,11 +104,11 @@ if(picker){
 
 document.addEventListener('input',e=>{
  const input=e.target?.closest?.('.compact-score-row .mobile-mark');if(!input)return;
- rowState(input.closest('.compact-score-row'),input.value)
+ const row=input.closest('.compact-score-row');if(input.classList.contains('grade-invalid')){row?.classList.add('is-invalid');return}row?.classList.remove('is-invalid');rowState(row,input.value)
 },true);
 document.addEventListener('change',e=>{
  const input=e.target?.closest?.('.compact-score-row .mobile-mark');if(!input)return;
- rowState(input.closest('.compact-score-row'),input.value)
+ const row=input.closest('.compact-score-row');if(input.classList.contains('grade-invalid')){row?.classList.add('is-invalid');return}row?.classList.remove('is-invalid');rowState(row,input.value)
 },true);
 
 const css=document.createElement('style');css.id='nataiji-grade-mobile-v1-style';css.textContent=`
@@ -126,6 +140,8 @@ const css=document.createElement('style');css.id='nataiji-grade-mobile-v1-style'
  .compact-score-row .absent-btn{position:static!important;display:inline-flex!important;align-items:center!important;justify-content:center!important;width:auto!important;min-width:47px!important;max-width:59px!important;height:36px!important;margin:0!important;padding:0 6px!important;border:1px solid #dfc46a!important;border-radius:9px!important;background:#fffaf0!important;color:#805f00!important;font-size:10.8px!important;font-weight:800!important;line-height:1!important;white-space:nowrap!important;box-shadow:none!important;transition:background .15s ease,border-color .15s ease,transform .08s ease!important}
  .compact-score-row .absent-btn:active{transform:scale(.97)!important}
  .compact-score-row.has-mark .mobile-mark{border-color:#b9d8e9!important;background:#fafdff!important}
+ .compact-score-row.is-invalid{background:linear-gradient(90deg,rgba(255,244,243,.15),rgba(255,244,243,.72))!important}
+ .compact-score-row.is-invalid .mobile-mark{border-color:#d92d20!important;background:#fff5f4!important;color:#b42318!important;box-shadow:0 0 0 3px rgba(217,45,32,.10)!important}
  .compact-score-row.is-absent{background:linear-gradient(90deg,rgba(255,249,226,.28),rgba(255,249,226,.72))!important}
  .compact-score-row.is-absent .mobile-mark{background:#fffaf0!important;border-color:#e6cc78!important;color:#8a6200!important;font-size:11.7px!important;font-weight:700!important}
  .compact-score-row.is-absent .absent-btn{background:#f4c84d!important;border-color:#d9ad2f!important;color:#674800!important}
