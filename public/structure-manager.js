@@ -28,11 +28,19 @@ async function reloadCanonical(){
  setTimeout(()=>{window.nataijiRefreshOfficialReports?.();window.nataijiFinalizeReports?.()},0);
 }
 async function loadTeacherView(classId,term){
- const url='/api/state?classId='+encodeURIComponent(classId||'')+'&term='+encodeURIComponent(term||'');
+ const requestedClass=String(classId||''),requestedTerm=String(term||'');
+ const url='/api/state?classId='+encodeURIComponent(requestedClass)+'&term='+encodeURIComponent(requestedTerm);
  const r=await api(url);currentUser=r.user||currentUser;
  const fresh=typeof normalizeState==='function'?normalizeState(r.state):clone(r.state||{});
+ // The requested selector values are the source of truth for this navigation.
+ // Some state responses can still carry the previous active selection for one render,
+ // which made the page switch correctly while the select box displayed the old value.
+ if(requestedClass)fresh.activeClassId=requestedClass;
+ if(requestedTerm)fresh.term=requestedTerm;
  for(const k of Object.keys(state))delete state[k];Object.assign(state,fresh);normalizeLocal();
  localStorage.setItem('nataiji-data',JSON.stringify(state));render();refreshSelectors();
+ const liveClass=q('#classTop'),liveTerm=q('#term');
+ if(liveTerm&&requestedTerm)liveTerm.value=requestedTerm;
  setTimeout(()=>{window.nataijiRefreshOfficialReports?.();window.nataijiFinalizeReports?.()},0);
  return state
 }
@@ -80,8 +88,13 @@ function refreshSelectors(){
          const r=await api('/api/state?classId='+encodeURIComponent(state.activeClassId||'')+'&term='+encodeURIComponent(selected));
          if(!r?.state)throw new Error('term_load_failed');
          const fresh=typeof normalizeState==='function'?normalizeState(r.state):clone(r.state||{});
+         // Keep the selected term authoritative even if the response still echoes
+         // the previous active term during the same navigation cycle.
+         fresh.activeClassId=state.activeClassId;
+         fresh.term=selected;
          for(const k of Object.keys(state))delete state[k];Object.assign(state,fresh);normalizeLocal();
-         localStorage.setItem('nataiji-data',JSON.stringify(state));render()
+         localStorage.setItem('nataiji-data',JSON.stringify(state));render();refreshSelectors();
+         const live=q('#term');if(live)live.value=selected
        }
      }catch(err){console.error('term switch failed',err);tt.value=previous}
      finally{const live=q('#term');if(live)live.disabled=!state.terms.length}
@@ -89,7 +102,23 @@ function refreshSelectors(){
  }
 }
 window.nataijiRefreshSelectors=refreshSelectors;
-window.nataijiSelectClass=async function(classId){if(!classId)return;if(currentUser?.role==='teacher'){await api('/api/active-selection',{method:'POST',body:JSON.stringify({classId,term:state.term})});await loadTeacherView(classId,state.term)}else{await api('/api/active-selection',{method:'POST',body:JSON.stringify({classId,term:state.term})});const r=await api('/api/state?classId='+encodeURIComponent(classId)+'&term='+encodeURIComponent(state.term||''));const fresh=typeof normalizeState==='function'?normalizeState(r.state):clone(r.state||{});for(const k of Object.keys(state))delete state[k];Object.assign(state,fresh);normalizeLocal();localStorage.setItem('nataiji-data',JSON.stringify(state));render();refreshSelectors()}};
+window.nataijiSelectClass=async function(classId){
+ if(!classId)return;
+ const requestedClass=String(classId),requestedTerm=String(state.term||'');
+ if(currentUser?.role==='teacher'){
+  await api('/api/active-selection',{method:'POST',body:JSON.stringify({classId:requestedClass,term:requestedTerm})});
+  await loadTeacherView(requestedClass,requestedTerm);
+ }else{
+  await api('/api/active-selection',{method:'POST',body:JSON.stringify({classId:requestedClass,term:requestedTerm})});
+  const r=await api('/api/state?classId='+encodeURIComponent(requestedClass)+'&term='+encodeURIComponent(requestedTerm));
+  if(!r?.state)throw new Error('class_load_failed');
+  const fresh=typeof normalizeState==='function'?normalizeState(r.state):clone(r.state||{});
+  fresh.activeClassId=requestedClass;
+  if(requestedTerm)fresh.term=requestedTerm;
+  for(const k of Object.keys(state))delete state[k];Object.assign(state,fresh);normalizeLocal();
+  localStorage.setItem('nataiji-data',JSON.stringify(state));render();refreshSelectors();
+ }
+};
 function structureModal(draft=null){
  if(currentUser?.role!=='admin')return;
  const d=draft||currentStructure();
