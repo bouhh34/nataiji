@@ -171,60 +171,78 @@ style.textContent=`
     max-width:100%!important;
     table-layout:fixed!important;
     border-collapse:collapse!important;
-    font-size:6.55pt!important;
-    margin-top:.5mm!important;
+    font-size:7.25pt!important;
+    margin-top:1mm!important;
   }
   body[data-print="class"] #classReport #paperResults.nr-final-class th,
   body[data-print="class"] #classReport #paperResults.nr-final-class td{
     box-sizing:border-box!important;
-    padding:.18mm .22mm!important;
-    line-height:1!important;
+    padding:.3mm .28mm!important;
+    line-height:1.04!important;
+  }
+  body[data-print="class"] #classReport #paperResults.nr-final-class th:first-child,
+  body[data-print="class"] #classReport #paperResults.nr-final-class td:first-child{width:5%!important}
+  body[data-print="class"] #classReport #paperResults.nr-final-class th:nth-child(2),
+  body[data-print="class"] #classReport #paperResults.nr-final-class td:nth-child(2){width:20%!important}
+  body[data-print="class"] #classReport #paperResults.nr-final-class th:last-child,
+  body[data-print="class"] #classReport #paperResults.nr-final-class td:last-child{width:9%!important}
+  body[data-print="class"] #classReport #paperResults.nr-final-class th:nth-last-child(2),
+  body[data-print="class"] #classReport #paperResults.nr-final-class td:nth-last-child(2),
+  body[data-print="class"] #classReport #paperResults.nr-final-class th:nth-last-child(3),
+  body[data-print="class"] #classReport #paperResults.nr-final-class td:nth-last-child(3),
+  body[data-print="class"] #classReport #paperResults.nr-final-class th:nth-last-child(4),
+  body[data-print="class"] #classReport #paperResults.nr-final-class td:nth-last-child(4){width:7%!important}
+  body[data-print="class"] #classReport #paperResults.nr-final-class .final-vertical em{
+    font-style:normal!important;
+    font-size:6.05pt!important;
+    font-weight:600!important;
+    opacity:1!important;
   }
   body[data-print="class"] #classReport #paperResults.nr-final-class thead th{
-    height:22mm!important;
-    min-height:22mm!important;
-    font-size:6.15pt!important;
+    height:31mm!important;
+    min-height:31mm!important;
+    font-size:7pt!important;
   }
   body[data-print="class"] #classReport #paperResults.nr-final-class .final-sub,
   body[data-print="class"] #classReport #paperResults.nr-final-class .final-avg{
-    height:22mm!important;
-    min-height:22mm!important;
+    height:31mm!important;
+    min-height:31mm!important;
   }
   body[data-print="class"] #classReport #paperResults.nr-final-class .final-vertical{
-    height:21mm!important;
-    gap:.2mm!important;
-    font-size:6.05pt!important;
+    height:30mm!important;
+    gap:.55mm!important;
+    font-size:7.8pt!important;
   }
   body[data-print="class"] #classReport #paperResults.nr-final-class .final-vertical small{
-    font-size:5.45pt!important;
-  }
-  body[data-print="class"] #classReport #paperResults.nr-final-class tbody td{
-    height:5.05mm!important;
-    min-height:5.05mm!important;
-    max-height:5.05mm!important;
     font-size:6.35pt!important;
   }
+  body[data-print="class"] #classReport #paperResults.nr-final-class tbody td{
+    height:7.15mm!important;
+    min-height:7.15mm!important;
+    max-height:7.15mm!important;
+    font-size:7.7pt!important;
+  }
   body[data-print="class"] #classReport #paperResults.nr-final-class .final-name-cell{
-    font-size:6.15pt!important;
-    line-height:1!important;
-    padding-right:.3mm!important;
+    font-size:7.55pt!important;
+    line-height:1.05!important;
+    padding-right:.45mm!important;
   }
   body[data-print="class"] #classReport #paperResults.nr-final-class .final-name-cell small{
-    font-size:4.9pt!important;
-    margin-top:0!important;
+    font-size:5.75pt!important;
+    margin-top:.15mm!important;
   }
   body[data-print="class"] #classReport #paperResults.nr-final-class .final-mark,
   body[data-print="class"] #classReport #paperResults.nr-final-class .final-num,
   body[data-print="class"] #classReport #paperResults.nr-final-class .final-rank-cell{
-    font-size:6.15pt!important;
+    font-size:7.25pt!important;
   }
   body[data-print="class"] #classReport #paperResults.nr-final-class .final-obs-cell{
-    font-size:5.8pt!important;
-    line-height:1!important;
+    font-size:6.8pt!important;
+    line-height:1.02!important;
   }
   body[data-print="class"] #classReport #paperResults.nr-final-class .final-obs-cell small{
-    font-size:4.75pt!important;
-    margin-top:0!important;
+    font-size:5.4pt!important;
+    margin-top:.1mm!important;
   }
 
   body[data-print="list"] #listReport table{
