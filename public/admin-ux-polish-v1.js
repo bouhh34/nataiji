@@ -73,11 +73,12 @@ function inviteSummary(modal){
      classParts.push(fr()?name+`: ${edit} modif., ${view} lecture, ${hide} masquée(s)`:name+`: تعديل ${edit}، عرض ${view}، إخفاء ${hide}`);
    });
    const perms=qa('.auth2-perms input:checked',modal).map(x=>({grades:fr()?'Notes':'الدرجات',pupils:fr()?'Élèves':'التلاميذ',reports:fr()?'Rapports':'التقارير'}[x.value]||x.value));
-   box.innerHTML='<b>'+(fr()?'Résumé avant création':'ملخص الصلاحيات قبل إنشاء الرمز')+'</b><span>'+(
+   const html='<b>'+(fr()?'Résumé avant création':'ملخص الصلاحيات قبل إنشاء الرمز')+'</b><span>'+(
      classParts.length?classParts.join(' • '):(fr()?'Aucune classe sélectionnée':'لم يتم اختيار قسم')
    )+'</span><small>'+(
      fr()?'Autorisations générales : ':'الصلاحيات العامة: '
    )+(perms.length?perms.join(' + '):(fr()?'aucune':'لا توجد'))+'</small>';
+   if(box.innerHTML!==html)box.innerHTML=html;
  };
  if(!modal.dataset.uxInviteSummary){
    modal.dataset.uxInviteSummary='1';
@@ -166,7 +167,7 @@ const css=document.createElement('style');css.id='nataiji-admin-ux-polish-v1-sty
 }
 `;document.head.appendChild(css);
 
-new MutationObserver(m=>{for(const x of m){for(const n of x.addedNodes){if(n.nodeType!==1)continue;const modal=n.matches?.('.modal')?n:n.closest?.('.modal');if(modal)enhance(modal)}}}).observe(document.documentElement,{subtree:true,childList:true});
+new MutationObserver(m=>{for(const x of m){for(const n of x.addedNodes){if(n.nodeType!==1)continue;if(n.closest?.('.auth2-invite-summary'))continue;const modal=n.matches?.('.modal')?n:n.closest?.('.modal');if(modal)enhance(modal)}}}).observe(document.documentElement,{subtree:true,childList:true});
 window.addEventListener('DOMContentLoaded',()=>enhance());
 setTimeout(()=>enhance(),500);
 })();
