@@ -148,6 +148,7 @@ window.addEventListener('DOMContentLoaded',bind);
 window.addEventListener('storage',e=>{if(e.key==='nataiji-lang')schedule()});
 document.addEventListener('click',e=>{
   if(e.target.closest?.('[data-view="students"]'))setTimeout(bind,40);
+  if(e.target.closest?.('#langSwitch'))setTimeout(schedule,60);
 },true);
 setTimeout(bind,400);
 })();
