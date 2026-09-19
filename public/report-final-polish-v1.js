@@ -121,7 +121,7 @@ style.textContent=`
 
   body[data-print="class"] #classReport .nr-class-table{
     margin-top:.6mm!important;
-    font-size:8pt!important;
+    font-size:9pt!important;
     table-layout:fixed!important;
   }
   body[data-print="class"] #classReport .nr-class-v2 .plain-head,
@@ -315,51 +315,74 @@ style.textContent=`
     padding:.25mm .28mm!important;
     line-height:.98!important;
   }
+  /* Give the pupil name real reading space; keep rank/observation compact.
+     Remaining columns share the width automatically, so added/removed subjects
+     still fit without hard-coding the class curriculum. */
+  body[data-print="portal"][data-portal-type="class"] #printPortal table.nr-final-class th:first-child,
+  body[data-print="portal"][data-portal-type="class"] #printPortal table.nr-final-class td:first-child{
+    width:5%!important;
+  }
+  body[data-print="portal"][data-portal-type="class"] #printPortal table.nr-final-class th:nth-child(2),
+  body[data-print="portal"][data-portal-type="class"] #printPortal table.nr-final-class td:nth-child(2){
+    width:20%!important;
+  }
+  body[data-print="portal"][data-portal-type="class"] #printPortal table.nr-final-class th:last-child,
+  body[data-print="portal"][data-portal-type="class"] #printPortal table.nr-final-class td:last-child{
+    width:9%!important;
+  }
+  body[data-print="portal"][data-portal-type="class"] #printPortal table.nr-final-class th:nth-last-child(2),
+  body[data-print="portal"][data-portal-type="class"] #printPortal table.nr-final-class td:nth-last-child(2),
+  body[data-print="portal"][data-portal-type="class"] #printPortal table.nr-final-class th:nth-last-child(3),
+  body[data-print="portal"][data-portal-type="class"] #printPortal table.nr-final-class td:nth-last-child(3),
+  body[data-print="portal"][data-portal-type="class"] #printPortal table.nr-final-class th:nth-last-child(4),
+  body[data-print="portal"][data-portal-type="class"] #printPortal table.nr-final-class td:nth-last-child(4){
+    width:7%!important;
+  }
   body[data-print="portal"][data-portal-type="class"] #printPortal table.nr-final-class thead th,
   body[data-print="portal"][data-portal-type="class"] #printPortal table.nr-final-class .final-sub,
   body[data-print="portal"][data-portal-type="class"] #printPortal table.nr-final-class .final-avg{
-    height:26mm!important;
-    min-height:26mm!important;
+    height:31mm!important;
+    min-height:31mm!important;
   }
   body[data-print="portal"][data-portal-type="class"] #printPortal table.nr-final-class .final-vertical{
-    height:25.2mm!important;
-    gap:.35mm!important;
-    font-size:7.15pt!important;
+    height:30mm!important;
+    gap:.55mm!important;
+    font-size:8pt!important;
   }
   body[data-print="portal"][data-portal-type="class"] #printPortal table.nr-final-class .final-vertical small{
-    font-size:5.95pt!important;
+    font-size:6.6pt!important;
   }
   body[data-print="portal"][data-portal-type="class"] #printPortal table.nr-final-class .final-vertical em{
-    font-size:5.55pt!important;
+    font-size:6.15pt!important;
     font-weight:600!important;
     opacity:1!important;
   }
   body[data-print="portal"][data-portal-type="class"] #printPortal table.nr-final-class tbody td{
-    height:6.15mm!important;
-    min-height:6.15mm!important;
-    max-height:6.15mm!important;
-    font-size:7pt!important;
+    height:7.2mm!important;
+    min-height:7.2mm!important;
+    max-height:7.2mm!important;
+    font-size:7.8pt!important;
   }
   body[data-print="portal"][data-portal-type="class"] #printPortal table.nr-final-class .final-name-cell{
-    font-size:6.85pt!important;
-    line-height:1!important;
+    font-size:7.6pt!important;
+    line-height:1.05!important;
   }
   body[data-print="portal"][data-portal-type="class"] #printPortal table.nr-final-class .final-name-cell small{
-    font-size:5.35pt!important;
-    margin-top:0!important;
+    font-size:5.8pt!important;
+    margin-top:.15mm!important;
   }
   body[data-print="portal"][data-portal-type="class"] #printPortal table.nr-final-class .final-obs-cell{
-    font-size:6.35pt!important;
-    line-height:.98!important;
+    font-size:7pt!important;
+    line-height:1!important;
   }
   body[data-print="portal"][data-portal-type="class"] #printPortal table.nr-final-class .final-obs-cell small{
-    font-size:5.1pt!important;
-    margin-top:0!important;
+    font-size:5.55pt!important;
+    margin-top:.1mm!important;
   }
   body[data-print="portal"][data-portal-type="class"] #printPortal .nr-class-signatures{
     display:grid!important;
     grid-template-columns:1fr 1fr!important;
-    margin:4.5mm 15mm 0!important;
+    margin:5mm 15mm 0!important;
     gap:38mm!important;
     padding:0!important;
     font-size:8pt!important;
@@ -372,7 +395,7 @@ style.textContent=`
     font-size:8.5pt!important;
   }
   body[data-print="portal"][data-portal-type="class"] #printPortal .nr-class-signatures span{
-    font-size:6.8pt!important;
+    font-size:7.2pt!important;
     margin-top:.2mm!important;
   }
   body[data-print="portal"][data-portal-type="class"] #printPortal .nr-class-signatures i{
