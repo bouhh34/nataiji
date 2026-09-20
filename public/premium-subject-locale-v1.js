@@ -10,22 +10,22 @@ const stateValue=()=>{try{return state}catch{return null}};
 const normalize=v=>String(v||'').normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase();
 const subjectIcon=v=>{
  const n=normalize(v);
- if(/اسلام|islam/.test(n))return'book-open';
- if(/فيزياء|physique|physics/.test(n))return'flask';
- if(/عرب|arabe|lecture|قراءة|كتاب|ecriture|كتابة|expression|تعبير/.test(n))return'book';
- if(/حساب|رياضيات|math|calcul/.test(n))return'hash';
- if(/مدني|civique|citoy/.test(n))return'flag';
- if(/فني|artist|dessin/.test(n))return'edit-3';
- if(/فرنس|francais/.test(n))return'message-circle';
- if(/بدني|رياضة|physique|sport/.test(n))return'activity';
- if(/علوم|science|طبيع/.test(n))return'feather';
- return'bookmark';
+ if(/اسلام|islam/.test(n))return{icon:'book-open',tone:'emerald'};
+ if(/فيزياء|physique|physics/.test(n))return{icon:'activity',tone:'gold'};
+ if(/عرب|arabe|lecture|قراءة|كتاب|ecriture|كتابة|expression|تعبير/.test(n))return{icon:'book',tone:'gold'};
+ if(/حساب|رياضيات|math|calcul/.test(n))return{icon:'hash',tone:'blue'};
+ if(/مدني|civique|citoy/.test(n))return{icon:'flag',tone:'emerald'};
+ if(/فني|artist|dessin/.test(n))return{icon:'edit-3',tone:'gold'};
+ if(/فرنس|francais/.test(n))return{icon:'message-circle',tone:'blue'};
+ if(/بدني|رياضة|sport/.test(n))return{icon:'activity',tone:'emerald'};
+ if(/علوم|science|طبيع/.test(n))return{icon:'feather',tone:'leaf'};
+ return{icon:'bookmark',tone:'navy'};
 };
 const fallbackNames={'محمد':'Mohamed','محمود':'Mahmoud','أحمد':'Ahmed','احمد':'Ahmed','عمر':'Oumar','علي':'Ali','إبراهيم':'Ibrahim','ابراهيم':'Ibrahim','مريم':'Mariem','سيدي':'Sidi','سالم':'Salem','منى':'Mouna','فاطمة':'Fatimetou','أمين':'Amine','امين':'Amine','فاضل':'Fadel','الشيخ':'Cheikh','المختار':'Moctar'};
 const letters={'ا':'a','أ':'a','إ':'i','آ':'a','ب':'b','ت':'t','ث':'th','ج':'j','ح':'h','خ':'kh','د':'d','ذ':'dh','ر':'r','ز':'z','س':'s','ش':'ch','ص':'s','ض':'d','ط':'t','ظ':'z','ع':'a','غ':'gh','ف':'f','ق':'q','ك':'k','ل':'l','م':'m','ن':'n','ه':'h','ة':'a','و':'ou','ؤ':'ou','ي':'i','ى':'a','ئ':'i','ء':''};
 function latinName(v){return String(v||'').trim().split(/\s+/).map(w=>fallbackNames[w]||([...w].map(c=>letters[c]??c).join('').replace(/^./,c=>c.toUpperCase()))).join(' ')}
 function localizedPupil(p){if(!p)return'';return isFr()?(String(p?.[4]||'').trim()||latinName(p?.[1])):String(p?.[1]||p?.[4]||'').trim()}
-function addIcon(host,name){if(!host)return;let wrap=host.querySelector(':scope > .subject-premium-icon');if(!wrap){wrap=document.createElement('span');wrap.className='subject-premium-icon';wrap.setAttribute('aria-hidden','true');host.prepend(wrap)}if(wrap.dataset.icon===name)return;wrap.dataset.icon=name;wrap.innerHTML=`<i data-feather="${name}"></i>`}
+function addIcon(host,spec){if(!host)return;const x=typeof spec==='string'?{icon:spec,tone:'emerald'}:spec;let wrap=host.querySelector(':scope > .subject-premium-icon');if(!wrap){wrap=document.createElement('span');wrap.className='subject-premium-icon';wrap.setAttribute('aria-hidden','true');host.prepend(wrap)}wrap.dataset.tone=x.tone;wrap.dataset.icon=x.icon;wrap.innerHTML=`<i data-feather="${x.icon}"></i>`}
 function localizeGradeRows(s){
  const rows=qa('#mobileScores .compact-score-row');
  rows.forEach((row,i)=>{const p=s.pupils?.[i],b=q('.score-student b',row);if(!p||!b)return;const name=localizedPupil(p),next=`${i+1}. ${name}`;if(b.textContent!==next)b.textContent=next;b.dir=isFr()?'ltr':'rtl';const input=q('.mobile-mark',row);if(input)input.setAttribute('aria-label',`${name} — ${isFr()?'note':'النتيجة'}`)});
@@ -49,7 +49,7 @@ window.addEventListener('DOMContentLoaded',()=>setTimeout(apply,250));setTimeout
 
 const css=document.createElement('style');css.id='premium-subject-locale-style';css.textContent=`
 .grade-subject-copy{position:relative;padding-inline-start:39px!important}.grade-subject-copy>.subject-premium-icon{position:absolute;inset-inline-start:0;top:50%;transform:translateY(-50%)}
-.subject-premium-icon{display:inline-flex!important;align-items:center!important;justify-content:center!important;width:30px!important;height:30px!important;flex:0 0 30px!important;border-radius:9px!important;background:linear-gradient(145deg,#fff,#eaf7f3)!important;border:1px solid rgba(12,136,108,.18)!important;color:#087d67!important;box-shadow:0 4px 10px rgba(8,43,75,.07)!important;vertical-align:middle!important;margin-inline-end:8px!important}
+.subject-premium-icon{display:inline-flex!important;align-items:center!important;justify-content:center!important;width:30px!important;height:30px!important;flex:0 0 30px!important;border-radius:9px!important;background:linear-gradient(145deg,#fff,#eaf7f3)!important;border:1px solid rgba(12,136,108,.18)!important;color:#087d67!important;box-shadow:0 4px 10px rgba(8,43,75,.07)!important;vertical-align:middle!important;margin-inline-end:8px!important}\n.subject-premium-icon[data-tone="gold"]{background:#fff7e4!important;color:#b98725!important;border-color:#efdba9!important}.subject-premium-icon[data-tone="blue"]{background:#edf5fb!important;color:#174f7e!important;border-color:#d4e3ee!important}.subject-premium-icon[data-tone="leaf"]{background:#eaf8ef!important;color:#2c8552!important;border-color:#cfead9!important}.subject-premium-icon[data-tone="navy"]{background:#eef3f7!important;color:#163f61!important;border-color:#d7e2e9!important}
 .subject-premium-icon svg{width:16px!important;height:16px!important;stroke-width:1.9!important}
 #subjectProgress>div>span{display:flex!important;align-items:center!important;min-width:0!important}
 .lang-fr #mobileScores .score-student b{direction:ltr!important;text-align:left!important}.lang-fr #mobileScores .score-student small{text-align:left!important}
