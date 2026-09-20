@@ -10,7 +10,7 @@ const lang=()=>localStorage.getItem('nataiji-lang')||'ar';
 function textNodes(root){const w=document.createTreeWalker(root,NodeFilter.SHOW_TEXT),a=[];let n;while(n=w.nextNode())a.push(n);return a}
 const withoutGlyph=v=>String(v||'').replace(/^[⌂▤♙▧☷▥♧⚙↪⌁☏✦🌐🏫🔗⌫▦*]+\s*/u,'').trim();
 const termFr=v=>({'الفصل الأول':'1er trimestre','الفصل الثاني':'2e trimestre','الفصل الثالث':'3e trimestre'}[String(v||'').trim()]||v);
-const classFr=c=>{const raw=String(c?.name||c?.code||'').trim(),code=String(c?.code||raw.match(/[1-6]AF/i)?.[0]||'').toUpperCase(),names={'1AF':'1re année fondamentale','2AF':'2e année fondamentale','3AF':'3e année fondamentale','4AF':'4e année fondamentale','5AF':'5e année fondamentale','6AF':'6e année fondamentale'};return c?.nameFr||([code,names[code]].filter(Boolean).join(' - '))||raw};
+const classFr=c=>{const raw=String(c?.name||c?.code||'').trim(),code=String(c?.code||raw.match(/[1-6]AF/i)?.[0]||'').toUpperCase(),names={'1AF':'1re année fondamentale','2AF':'2e année fondamentale','3AF':'3e année fondamentale','4AF':'4e année fondamentale','5AF':'5e année fondamentale','6AF':'6e année fondamentale'},saved=String(c?.nameFr||'').trim(),validSaved=saved&&!/[\u0600-\u06ff]/.test(saved);return validSaved?saved:([code,names[code]].filter(Boolean).join(' - ')||raw)};
 function setText(el,value){const v=String(value??'');if(el&&el.textContent!==v)el.textContent=v}
 function localizeSchoolData(){let s;try{s=state}catch{return}if(!s)return;const fr=lang()==='fr';
  const classes=Array.isArray(s.classes)?s.classes:[];document.querySelectorAll('#classTop option').forEach(o=>{const c=classes.find(x=>String(x.id)===String(o.value));if(c)setText(o,fr?classFr(c):(c.name||c.code||c.nameFr))});
