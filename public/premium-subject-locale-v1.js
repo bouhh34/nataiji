@@ -11,13 +11,14 @@ const normalize=v=>String(v||'').normalize('NFD').replace(/[\u0300-\u036f]/g,'')
 const subjectIcon=v=>{
  const n=normalize(v);
  if(/اسلام|islam/.test(n))return'book-open';
+ if(/فيزياء|physique|physics/.test(n))return'flask';
  if(/عرب|arabe|lecture|قراءة|كتاب|ecriture|كتابة|expression|تعبير/.test(n))return'book';
  if(/حساب|رياضيات|math|calcul/.test(n))return'hash';
  if(/مدني|civique|citoy/.test(n))return'flag';
  if(/فني|artist|dessin/.test(n))return'edit-3';
  if(/فرنس|francais/.test(n))return'message-circle';
  if(/بدني|رياضة|physique|sport/.test(n))return'activity';
- if(/علوم|science/.test(n))return'globe';
+ if(/علوم|science|طبيع/.test(n))return'feather';
  return'bookmark';
 };
 const fallbackNames={'محمد':'Mohamed','محمود':'Mahmoud','أحمد':'Ahmed','احمد':'Ahmed','عمر':'Oumar','علي':'Ali','إبراهيم':'Ibrahim','ابراهيم':'Ibrahim','مريم':'Mariem','سيدي':'Sidi','سالم':'Salem','منى':'Mouna','فاطمة':'Fatimetou','أمين':'Amine','امين':'Amine','فاضل':'Fadel','الشيخ':'Cheikh','المختار':'Moctar'};
