@@ -54,5 +54,8 @@ The implementation preserves the selected direction's midnight navy, Mauritanian
 - Mobile-device screenshots supplied after the first release revealed stale mixed-language component state. The language switch now reloads the interface from the saved locale, so all dynamic cards, grade controls, absence labels, and navigation rebuild consistently.
 - The authentication shell now references `/nataiji-brand-mark.png` directly; browser verification confirmed the new mark on the French sign-in screen.
 - French report controls are translated while `.official-sheet`, `.paper`, class/list reports, and the print portal remain protected from interface translation.
+- A second real-device capture exposed duplicated icons while Feather was loading. Icon decoration is now idempotent for both pending `<i>` placeholders and rendered SVGs.
+- Class, trimester, and subject selectors now read their saved French fields (with official primary-grade fallbacks) in French and their Arabic fields in Arabic. Printed lists and official sheets remain outside this localization pass.
+- Premium CSS, the local icon library, the luxury runtime, locale direction, favicon, and logo are loaded from the initial HTML head to eliminate the legacy-theme flash on refresh.
 
 final result: passed
