@@ -24,7 +24,8 @@
     "express": "^5.1.0",
     "nodemailer": "^10.0.10",
     "pg": "^8.16.3",
-    "redis": "^4.7.0"
+    "redis": "^4.7.0",
+    "@capacitor/status-bar": "^8.0.0"
   },
   "devDependencies": {
     "@capacitor/cli": "^8.0.0",
