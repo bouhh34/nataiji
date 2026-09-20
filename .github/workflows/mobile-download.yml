@@ -1,0 +1,58 @@
+name: Publish downloadable Android APK
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - main
+    paths:
+      - '.github/workflows/mobile-download.yml'
+      - 'public/**'
+      - 'src/**'
+      - 'package.json'
+      - 'package-lock.json'
+      - 'capacitor.config.ts'
+
+permissions:
+  contents: write
+
+jobs:
+  publish-apk:
+    runs-on: ubuntu-latest
+    timeout-minutes: 35
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '21'
+      - name: Locate Android SDK manager
+        run: |
+          SDKMANAGER="$(find "$ANDROID_HOME/cmdline-tools" -type f -name sdkmanager | head -n 1)"
+          test -n "$SDKMANAGER"
+          echo "SDKMANAGER=$SDKMANAGER" >> "$GITHUB_ENV"
+      - name: Install Android platform
+        run: |
+          yes | "$SDKMANAGER" --licenses >/dev/null || true
+          "$SDKMANAGER" "platform-tools" "platforms;android-36"
+      - run: npm ci --no-audit --no-fund
+      - run: npx cap add android
+      - run: npm run mobile:assets:android
+      - run: npx cap sync android
+      - name: Build installable APK
+        working-directory: android
+        run: ./gradlew assembleDebug --no-daemon
+      - name: Prepare public filename
+        run: cp android/app/build/outputs/apk/debug/app-debug.apk Nataiji-Android.apk
+      - name: Publish stable download
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: download-latest
+          name: Nataiji Android Download
+          prerelease: true
+          body: نسخة أندرويد تجريبية قابلة للتثبيت مباشرة من موقع نتائجي.
+          files: Nataiji-Android.apk

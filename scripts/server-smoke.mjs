@@ -30,6 +30,9 @@ try{
   if(!health.ok||health.storage!=='memory')throw new Error(`unexpected health response: ${JSON.stringify(health)}`);
   const home=await request('/',200);
   if(!(await home.text()).includes('نتائجي'))throw new Error('home page is missing the product name');
+  const download=await request('/download.html',200);
+  const downloadHtml=await download.text();
+  if(!downloadHtml.includes('Nataiji-Android.apk')||!downloadHtml.includes('إضافة إلى الشاشة الرئيسية'))throw new Error('download page is missing mobile installation actions');
   const auth=await (await request('/api/auth/status',200)).json();
   if(auth.storage!=='memory'||auth.canRegister!==true)throw new Error(`unexpected auth status: ${JSON.stringify(auth)}`);
   console.log('Nataiji server smoke test passed');
