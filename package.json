@@ -4,6 +4,7 @@
   "private": true,
   "type": "module",
   "scripts": {
+    "dev": "node scripts/dev-server.mjs",
     "start": "node --import ./src/gmail-mail-bridge.js src/server.js",
     "check": "node --check src/server.js && node --check src/gmail-mail-bridge.js && node scripts/server-smoke.mjs",
     "mobile:sync": "npx cap sync",
@@ -12,8 +13,8 @@
     "mobile:prepare:android": "npx cap add android && npx cap sync android",
     "mobile:prepare:ios": "npx cap add ios && npx cap sync ios",
     "mobile:doctor": "npx cap doctor",
-    "mobile:assets:android": "capacitor-assets generate --android --iconBackgroundColor '#f7fbff' --iconBackgroundColorDark '#102c45' --splashBackgroundColor '#f4f8fb' --splashBackgroundColorDark '#102c45'",
-    "mobile:assets:ios": "capacitor-assets generate --ios --iconBackgroundColor '#f7fbff' --iconBackgroundColorDark '#102c45' --splashBackgroundColor '#f4f8fb' --splashBackgroundColorDark '#102c45'"
+    "mobile:assets:android": "capacitor-assets generate --android --iconBackgroundColor '#fbfaf6' --iconBackgroundColorDark '#082b4b' --splashBackgroundColor '#fbfaf6' --splashBackgroundColorDark '#082b4b'",
+    "mobile:assets:ios": "capacitor-assets generate --ios --iconBackgroundColor '#fbfaf6' --iconBackgroundColorDark '#082b4b' --splashBackgroundColor '#fbfaf6' --splashBackgroundColorDark '#082b4b'"
   },
   "engines": {
     "node": ">=20"

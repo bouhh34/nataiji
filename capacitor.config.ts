@@ -11,17 +11,17 @@ const config: CapacitorConfig = {
   },
   android: {
     allowMixedContent: false,
-    backgroundColor: '#f4f8fb',
+    backgroundColor: '#082b4b',
     adjustMarginsForEdgeToEdge: 'disable'
   },
   ios: {
-    backgroundColor: '#f4f8fb',
+    backgroundColor: '#fbfaf6',
     contentInset: 'automatic'
   },
   plugins: {
     StatusBar: {
       style: 'DARK',
-      backgroundColor: '#f4f8fb',
+      backgroundColor: '#fbfaf6',
       overlaysWebView: false
     }
   }
