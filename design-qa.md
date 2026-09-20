@@ -51,5 +51,8 @@ The implementation preserves the selected direction's midnight navy, Mauritanian
 ## Follow-up polish
 
 - Generate native Android/iOS launcher and splash variants when their platform folders are created by the release workflow; the new high-resolution source is already in `assets/logo.png`.
+- Mobile-device screenshots supplied after the first release revealed stale mixed-language component state. The language switch now reloads the interface from the saved locale, so all dynamic cards, grade controls, absence labels, and navigation rebuild consistently.
+- The authentication shell now references `/nataiji-brand-mark.png` directly; browser verification confirmed the new mark on the French sign-in screen.
+- French report controls are translated while `.official-sheet`, `.paper`, class/list reports, and the print portal remain protected from interface translation.
 
 final result: passed
