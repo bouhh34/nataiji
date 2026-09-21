@@ -140,7 +140,7 @@ async function sharesModal(){
 function bindShares(){
  const grid=q('.settings-grid');if(!grid)return;let b=q('#sharesBtn');if(currentUser?.baseRole!=='admin'||currentUser?.activeSharedGrant){b?.remove();return}
  if(!b){b=document.createElement('button');b.id='sharesBtn';b.className='menu-card';grid.insertBefore(b,q('#inviteBtn')?.nextSibling||q('#settingsBtn')||null)}
- stableMarkup(b,`<b>🔗 ${tr('المشاركات','Partages')}</b><span>${tr('عرض من لديه وصول وإلغاء الصلاحية عند الحاجة','Voir les accès accordés et les retirer si nécessaire')}</span>`);b.onclick=sharesModal
+ stableMarkup(b,`<b>${tr('المشاركات','Partages')}</b><span>${tr('عرض من لديه وصول وإلغاء الصلاحية عند الحاجة','Voir les accès accordés et les retirer si nécessaire')}</span>`);b.onclick=sharesModal
 }
 let workspaceSelectorRun=0,workspaceSelectorTimer=null;
 function workspaceStamp(){const cls=(state?.classes||[]).map(x=>String(x?.id||'')+':'+String(x?.name||'')).join(',');return [currentUser?.id||'',currentUser?.schoolId||'',currentUser?.activeSharedGrant||'',state?.activeClassId||'',lang(),cls].join('|')}
@@ -247,7 +247,7 @@ function bindSchools(){
  const grid=q('.settings-grid');if(!grid)return;let b=q('#schoolsBtn');
  if(currentUser?.baseRole!=='admin'||currentUser?.activeSharedGrant){b?.remove();return}
  if(!b){b=document.createElement('button');b.id='schoolsBtn';b.className='menu-card';grid.insertBefore(b,q('#structureBtn')||grid.firstChild)}
- stableMarkup(b,`<b>🏫 ${tr('مدارسي','Mes écoles')}</b><span>${tr('إضافة مدرسة أو الانتقال بين مدارس حسابك المستقلة','Ajouter une école ou changer d’espace scolaire indépendant')}</span>`);b.onclick=schoolsModal
+ stableMarkup(b,`<b>${tr('مدارسي','Mes écoles')}</b><span>${tr('إضافة مدرسة أو الانتقال بين مدارس حسابك المستقلة','Ajouter une école ou changer d’espace scolaire indépendant')}</span>`);b.onclick=schoolsModal
 }
 function bindJoinCard(){
  const grid=q('.settings-grid');if(!grid)return;let btn=q('#joinInviteBtn');
