@@ -13,7 +13,7 @@ function assert(name, ok, detail=''){
 
 const required = [
   'public/index.html','public/manifest.webmanifest','public/sw.js',
-  'public/privacy.html','public/terms.html','public/release-100-v1.css','public/nataiji-final-visual-v1.css',
+  'public/privacy.html','public/terms.html','public/release-100-v1.css','public/nataiji-final-visual-v1.css','public/nataiji-premium-v2.css','public/nataiji-premium-v2.js',
   'public/nataiji-brand-mark.png','capacitor.config.ts',
   '.github/workflows/mobile-android-release.yml',
   '.github/workflows/mobile-ios-appstore.yml',
@@ -33,11 +33,13 @@ assert('viewport safe area', /viewport-fit=cover/.test(index));
 assert('rtl-ltr boot direction', /document\.documentElement\.dir/.test(index));
 assert('final mobile css loaded', /release-100-v1\.css/.test(index));
 assert('final visual polish loaded', /nataiji-final-visual-v1\.css/.test(index));
+assert('premium v2 visual layer loaded last', /nataiji-premium-v2\.css/.test(index) && /nataiji-premium-v2\.js/.test(index));
 assert('privacy page exists', exists('public/privacy.html'));
 assert('terms page exists', exists('public/terms.html'));
-assert('PWA cache version current', /nataiji-shell-v18/.test(sw));
+assert('PWA cache version current', /nataiji-shell-v20/.test(sw));
 assert('PWA caches final mobile css', /release-100-v1\.css/.test(sw));
 assert('PWA caches final visual polish', /nataiji-final-visual-v1\.css/.test(sw));
+assert('PWA caches premium v2 layer', /nataiji-premium-v2\.css/.test(sw) && /nataiji-premium-v2\.js/.test(sw));
 assert('PWA excludes API cache', /pathname\.startsWith\("\/api\/"\)/.test(sw));
 assert('auth copy avoids ambiguous temporary storage', !/وضع تخزين مؤقت|Mode de stockage temporaire/.test(read('public/auth-access-v2.js')));
 assert('French auth direction is explicit', /lang-fr \.auth-gate/.test(read('public/auth-access-v2.js')) || /lang-fr \.auth-gate/.test(read('public/interface-language-fix.js')));
@@ -61,10 +63,13 @@ assert('Android dependency present', Boolean(pkg.dependencies?.['@capacitor/andr
 assert('iOS dependency present', Boolean(pkg.dependencies?.['@capacitor/ios']));
 
 const css = read('public/release-100-v1.css');
+const premiumV2 = read('public/nataiji-premium-v2.css');
 assert('home CTA normal-flow guard', /welcome button[\s\S]*position:static!important/.test(css));
 assert('subject wrapping guard', /subject-progress-name[\s\S]*word-break:normal!important/.test(css));
 assert('mobile report controls guard', /report-tabs[\s\S]*grid-template-columns:repeat\(3/.test(css));
 assert('safe-area bottom nav', /safe-area-inset-bottom/.test(css));
+assert('premium v2 is screen-scoped and print-safe', /@media screen/.test(premiumV2) && /@media print/.test(premiumV2));
+assert('premium v2 keeps official report content untouched', !/official-sheet[^\n]*display:none/.test(premiumV2));
 
 console.log('\nNataiji final release audit');
 for (const c of checks) console.log(`${c.ok?'PASS':'FAIL'}  ${c.name}${c.detail?' — '+c.detail:''}`);
