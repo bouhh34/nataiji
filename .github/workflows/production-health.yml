@@ -1,0 +1,47 @@
+name: Production health
+
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: '17 */6 * * *'
+
+permissions:
+  contents: read
+
+jobs:
+  health:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Check Nataiji production health with cold-start retry
+        shell: bash
+        run: |
+          set -euo pipefail
+          URL="https://nataiji.onrender.com/health"
+          body=""
+          code="000"
+          for attempt in $(seq 1 15); do
+            echo "Health attempt $attempt/15"
+            response=$(curl --silent --show-error --max-time 20 --write-out $'\n%{http_code}' "$URL" || true)
+            code=$(printf '%s\n' "$response" | tail -n1)
+            body=$(printf '%s\n' "$response" | sed '$d')
+            if [ "$code" = "200" ]; then break; fi
+            sleep 8
+          done
+          echo "HTTP $code"
+          echo "$body"
+          test "$code" = "200"
+          HEALTH_JSON="$body" node --input-type=module - <<'NODE'
+          const h=JSON.parse(process.env.HEALTH_JSON||'{}');
+          const failures=[];
+          if(h.ok!==true) failures.push('ok');
+          if(!['postgres','redis'].includes(h.storage)) failures.push('durable storage');
+          if(h.storage==='postgres' && h.databaseOk!==true) failures.push('database');
+          if(h.emailConfigured!==true) failures.push('email');
+          if(h.superAdminConfigured!==true) failures.push('super admin');
+          if(failures.length){
+            console.error('Production health gate failed:',failures.join(', '));
+            process.exit(1);
+          }
+          console.log('Production health gate passed:', JSON.stringify(h));
+          NODE
