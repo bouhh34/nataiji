@@ -1,0 +1,211 @@
+/* Nataiji production mobile hardening — 2026-09-21
+   Loaded last so it only resolves verified responsive regressions. */
+
+@media screen and (max-width:760px){
+  /* Header: give the long class label more room without crushing the year. */
+  header{
+    grid-template-columns:minmax(0,1.28fr) minmax(112px,.72fr)!important;
+    gap:10px!important;
+  }
+  header .profile{grid-column:1/-1!important;min-width:0!important}
+  header #classTop,header #yearTop{
+    min-width:0!important;
+    width:100%!important;
+    height:48px!important;
+    padding-inline:12px 34px!important;
+    font-size:14px!important;
+    line-height:1.2!important;
+  }
+  html[lang="fr"] header #classTop{font-size:13px!important}
+  header #yearTop{min-width:112px!important}
+
+  /* Home hero: CTA must always remain in normal flow below the copy. */
+  [data-page="home"] .welcome{
+    display:grid!important;
+    grid-template-columns:minmax(0,1fr)!important;
+    align-items:start!important;
+    gap:14px!important;
+    min-height:0!important;
+    height:auto!important;
+    padding:24px 22px!important;
+    overflow:hidden!important;
+  }
+  [data-page="home"] .welcome>div{
+    display:block!important;
+    min-width:0!important;
+    width:100%!important;
+  }
+  [data-page="home"] .welcome h1{
+    max-width:100%!important;
+    margin:8px 0 9px!important;
+    font-size:clamp(25px,7vw,31px)!important;
+    line-height:1.28!important;
+    overflow-wrap:normal!important;
+    word-break:normal!important;
+  }
+  [data-page="home"] .welcome p{
+    width:100%!important;
+    max-width:none!important;
+    margin:0!important;
+    padding:0!important;
+    font-size:13px!important;
+    line-height:1.7!important;
+  }
+  [data-page="home"] .welcome button{
+    position:static!important;
+    inset:auto!important;
+    justify-self:start!important;
+    align-self:start!important;
+    width:auto!important;
+    max-width:100%!important;
+    min-height:48px!important;
+    margin:0!important;
+    padding:12px 18px!important;
+    white-space:normal!important;
+  }
+
+  /* Term status: never split Arabic/French subject names letter-by-letter. */
+  #subjectProgress.progress-list>div{
+    display:grid!important;
+    grid-template-columns:minmax(0,1fr) 48px!important;
+    grid-template-rows:auto auto!important;
+    align-items:center!important;
+    gap:9px 12px!important;
+    min-height:82px!important;
+    padding:11px 0!important;
+  }
+  #subjectProgress.progress-list>div>span{
+    grid-column:1/-1!important;
+    display:grid!important;
+    grid-template-columns:32px minmax(0,1fr) auto!important;
+    grid-template-rows:auto!important;
+    align-items:center!important;
+    column-gap:9px!important;
+    width:100%!important;
+    min-width:0!important;
+    max-width:none!important;
+    overflow:visible!important;
+  }
+  #subjectProgress.progress-list>div>span>.subject-premium-icon{
+    grid-column:1!important;
+    grid-row:1!important;
+    width:32px!important;
+    height:32px!important;
+    margin:0!important;
+  }
+  #subjectProgress .subject-progress-name{
+    grid-column:2!important;
+    grid-row:1!important;
+    min-width:0!important;
+    margin:0!important;
+    font-size:14px!important;
+    font-weight:800!important;
+    line-height:1.45!important;
+    white-space:normal!important;
+    overflow-wrap:normal!important;
+    word-break:normal!important;
+    hyphens:none!important;
+  }
+  #subjectProgress.progress-list>div>span>small{
+    grid-column:3!important;
+    grid-row:1!important;
+    margin:0!important;
+    font-size:11px!important;
+    white-space:nowrap!important;
+    direction:ltr!important;
+  }
+  #subjectProgress.progress-list>div>i{
+    grid-column:1!important;
+    grid-row:2!important;
+    width:100%!important;
+    min-width:0!important;
+    margin:0!important;
+  }
+  #subjectProgress.progress-list>div>strong{
+    grid-column:2!important;
+    grid-row:2!important;
+    width:48px!important;
+    text-align:center!important;
+    direction:ltr!important;
+    white-space:nowrap!important;
+  }
+
+  /* Grades: keep pupil names readable and score controls tap-safe. */
+  .compact-score-row{
+    grid-template-columns:minmax(0,1fr) auto!important;
+    column-gap:8px!important;
+  }
+  .score-student b{
+    overflow-wrap:normal!important;
+    word-break:normal!important;
+  }
+  .score-controls{flex-wrap:nowrap!important}
+  .compact-score-row .mobile-mark{font-size:17px!important}
+
+  /* Reports: controls fit narrow phones and preview cannot force page overflow. */
+  [data-page="reports"] .report-tabs{
+    display:grid!important;
+    grid-template-columns:repeat(3,minmax(0,1fr))!important;
+    gap:7px!important;
+  }
+  [data-page="reports"] .report-tabs button{
+    min-width:0!important;
+    min-height:46px!important;
+    padding:9px 7px!important;
+    font-size:12px!important;
+    white-space:normal!important;
+    line-height:1.35!important;
+  }
+  [data-page="reports"] .report-actions{
+    display:grid!important;
+    grid-template-columns:1fr!important;
+    gap:10px!important;
+  }
+  [data-page="reports"] .report-actions select,
+  [data-page="reports"] .report-actions button{
+    width:100%!important;
+    min-width:0!important;
+    min-height:48px!important;
+  }
+
+  /* Bottom navigation remains readable above Android/iOS safe areas. */
+  .bottom-nav{
+    height:calc(76px + env(safe-area-inset-bottom))!important;
+    padding-bottom:env(safe-area-inset-bottom)!important;
+  }
+  .bottom-nav button{min-width:0!important}
+  .bottom-nav span{
+    display:block!important;
+    max-width:100%!important;
+    overflow:hidden!important;
+    text-overflow:ellipsis!important;
+    white-space:nowrap!important;
+  }
+}
+
+@media screen and (max-width:380px){
+  header{
+    grid-template-columns:minmax(0,1.34fr) minmax(104px,.66fr)!important;
+    gap:8px!important;
+  }
+  header #classTop,header #yearTop{
+    height:46px!important;
+    padding-inline:10px 30px!important;
+    font-size:12.5px!important;
+  }
+  [data-page="home"] .welcome{padding:21px 18px!important}
+  [data-page="home"] .welcome h1{font-size:24px!important}
+  #subjectProgress .subject-progress-name{font-size:13px!important}
+  #subjectProgress.progress-list>div>span{
+    grid-template-columns:30px minmax(0,1fr) auto!important;
+    column-gap:7px!important;
+  }
+  .compact-score-row .mobile-mark{width:54px!important}
+  .compact-score-row .absent-btn{min-width:43px!important}
+}
+
+@media screen and (min-width:761px){
+  /* Long labels should truncate cleanly instead of stretching the header. */
+  header #classTop{max-width:360px!important}
+  header #classTop,header #yearTop{text-overflow:ellipsis!important}
+}
