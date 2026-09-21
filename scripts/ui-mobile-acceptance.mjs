@@ -61,6 +61,8 @@ try{
   const moreTitles=await page.locator('[data-page="more"] .menu-card > b').evaluateAll(nodes=>nodes.map(n=>n.textContent?.trim()||''));
   const legacyGlyph=/[⌂▤♙▧☷▥♧⚙↪⌁☏🌐🏫🔗⌫▦⬇]/u;
   check('More menu uses one icon system',moreTitles.every(x=>!legacyGlyph.test(x)),JSON.stringify(moreTitles));
+  const subjectsIcon=await page.locator('#subjectsBtn b svg').count();
+  check('Subjects menu keeps its icon after scoring refresh',subjectsIcon===1,String(subjectsIcon));
 
   await page.locator('.bottom-nav button[data-view="reports"]').click();
   await page.locator('[data-page="reports"]').waitFor({state:'visible',timeout:7000});
