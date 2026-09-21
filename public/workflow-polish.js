@@ -91,7 +91,7 @@ function reports(){
  tools.append(preview);
  if(navigator.share){
   const choose=document.createElement('input');choose.type='file';choose.accept='application/pdf';choose.hidden=true;
-  const share=document.createElement('button');share.type='button';share.textContent=t('مشاركة PDF محفوظ','Partager un PDF enregistré');
+  const share=document.createElement('button');share.type='button';share.textContent=t('مشاركة ملف PDF','Partager un fichier PDF');
   const message=document.createElement('small');message.className='report-share-note';message.setAttribute('role','status');
   share.onclick=()=>{if(!choose.files?.length){message.textContent=t('احفظ التقرير بصيغة PDF عبر زر الطباعة ثم اختر الملف.','Enregistrez le rapport en PDF avec Imprimer, puis choisissez le fichier.');choose.click();return}
    const files=[choose.files[0]];if(!navigator.canShare?.({files})){message.textContent=t('شارك الملف من تطبيق الملفات على هاتفك.','Partagez ce fichier depuis l’application Fichiers.');return}

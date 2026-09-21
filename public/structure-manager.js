@@ -180,7 +180,7 @@ function structureModal(draft=null){
 function install(){
  normalizeLocal();
  const grid=q('.settings-grid');
- if(grid&&!q('#structureBtn')){const b=document.createElement('button');b.id='structureBtn';b.className='menu-card';b.innerHTML='<b>▦ الفصول الدراسية والأقسام</b><span>إضافة وتعديل الفصول والأقسام مع حفظ دائم</span>';grid.insertBefore(b,q('#subjectsBtn'));b.onclick=()=>structureModal()}
+ if(grid&&!q('#structureBtn')){const b=document.createElement('button');b.id='structureBtn';b.className='menu-card';b.innerHTML='<b>الفصول الدراسية والأقسام</b><span>إضافة وتعديل الفصول والأقسام مع حفظ دائم</span>';grid.insertBefore(b,q('#subjectsBtn'));b.onclick=()=>structureModal()}
  refreshSelectors();
 }
 function installWhenReady(){install()}

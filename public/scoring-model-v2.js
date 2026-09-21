@@ -155,7 +155,7 @@ function patchGradeUi(){
   ensureClassProfile();
   const hr=q('#scoreHead tr');if(hr)state.subjects.forEach((s,j)=>{const c=hr.cells?.[j+2];if(c)c.innerHTML=`${esc(s[0])}<br><small dir="ltr">/${subjectMax(s)}</small>`});
   qa('#scores .mark').forEach(x=>{const j=+x.dataset.j,m=subjectMax(state.subjects?.[j]);x.max=String(m);x.title=`0 - ${m}`});
-  const b=q('#subjectsBtn');if(b)b.innerHTML=isFr()?'<b>▥ Matières et barèmes</b><span>Définir le maximum de chaque matière et le total général</span>':'<b>▥ المواد والدرجات القصوى</b><span>تحديد درجة كل مادة والمجموع العام</span>';
+  const b=q('#subjectsBtn');if(b)b.innerHTML=isFr()?'<b>Matières et barèmes</b><span>Définir le maximum de chaque matière et le total général</span>':'<b>المواد والدرجات القصوى</b><span>تحديد درجة كل مادة والمجموع العام</span>';
 }
 function patchStudentReport(root,i){
   if(!root||!state?.pupils?.[i])return;const rows=qa('tbody tr',root.querySelector('.sheet')),n=state.subjects.length;

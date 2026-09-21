@@ -55,6 +55,13 @@ try{
   check('subject label has usable mobile width',Boolean(sb&&sb.width>=90),JSON.stringify({box:sb,style:subjectStyle}));
   check('subject label does not force letter breaking',subjectStyle.wordBreak==='normal',JSON.stringify(subjectStyle));
 
+  await page.locator('.bottom-nav button[data-view="more"]').click();
+  await page.locator('[data-page="more"]').waitFor({state:'visible',timeout:7000});
+  await page.waitForTimeout(140);
+  const moreTitles=await page.locator('[data-page="more"] .menu-card > b').evaluateAll(nodes=>nodes.map(n=>n.textContent?.trim()||''));
+  const legacyGlyph=/[⌂▤♙▧☷▥♧⚙↪⌁☏🌐🏫🔗⌫▦⬇]/u;
+  check('More menu uses one icon system',moreTitles.every(x=>!legacyGlyph.test(x)),JSON.stringify(moreTitles));
+
   await page.locator('.bottom-nav button[data-view="reports"]').click();
   await page.locator('[data-page="reports"]').waitFor({state:'visible',timeout:7000});
   const reportTabs=page.locator('[data-page="reports"] .report-tabs');
