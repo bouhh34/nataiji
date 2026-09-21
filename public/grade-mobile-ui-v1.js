@@ -37,7 +37,7 @@ function renderCompactMobileScores(){
  if(!sub){host.innerHTML='';return}
  const currentName=String(fr()?(sub?.[2]||sub?.[0]||''):(sub?.[0]||sub?.[2]||'')),maxLabel=fr()?'Note sur':'من';
  host.innerHTML=`<div class="subject-title grade-subject-title">
-   <div class="grade-subject-copy"><small>${fr()?'Matière actuelle':'المادة الحالية'}</small><b>${esc(currentName)}</b></div>
+   <div class="grade-subject-copy"><span class="subject-premium-icon grade-current-subject-icon" aria-hidden="true"></span><small>${fr()?'Matière actuelle':'المادة الحالية'}</small><b>${esc(currentName)}</b></div>
    <span class="grade-max-chip" dir="ltr">${esc(maxLabel)} ${m}</span>
   </div>`+(state.pupils||[]).map((p,i)=>{
    const value=state.marks?.[i]?.[j]??'',cls=absent(value)?' is-absent':String(value).trim()!==''?' has-mark':' is-empty',nns=String(p?.[0]||'').trim();
@@ -132,41 +132,41 @@ const css=document.createElement('style');css.id='nataiji-grade-mobile-v1-style'
  [data-page="grades"] .section-head h2{font-size:20px!important;line-height:1.15!important}
  [data-page="grades"] .section-head small{font-size:11px!important}
  [data-page="grades"] #saveGrades{min-height:40px!important;padding:9px 13px!important;border-radius:10px!important;font-size:13px!important;box-shadow:0 3px 9px rgba(18,136,221,.14)}
- [data-page="grades"] .filters{gap:8px!important;margin-bottom:7px!important}
- [data-page="grades"] .filters label{grid-template-columns:50px minmax(0,1fr)!important;gap:7px!important;font-size:13px!important}
- [data-page="grades"] .filters select{height:41px!important;border-radius:10px!important;padding-inline:11px!important;font-size:14px!important;outline:none!important;transition:border-color .15s ease,box-shadow .15s ease!important}
+ [data-page="grades"] .filters{gap:7px!important;margin-bottom:6px!important;padding:11px!important;border-radius:15px!important}
+ [data-page="grades"] .filters label{grid-template-columns:46px minmax(0,1fr)!important;gap:6px!important;font-size:12.5px!important}
+ [data-page="grades"] .filters select{height:39px!important;min-height:39px!important;border-radius:10px!important;padding-inline:10px!important;font-size:13.5px!important;outline:none!important;transition:border-color .15s ease,box-shadow .15s ease!important}
  [data-page="grades"] .filters select:focus{border-color:#238fd1!important;box-shadow:0 0 0 3px rgba(35,143,209,.10)!important}
- .grade-subject-title{min-height:48px!important;margin:6px 0 1px!important;padding:7px 9px!important;border:1px solid #dcebf4!important;border-radius:11px!important;background:#eef7fc!important;align-items:center!important;gap:9px!important}
+ .grade-subject-title{min-height:46px!important;margin:5px 0 1px!important;padding:6px 9px!important;border:1px solid #dcebf4!important;border-radius:11px!important;background:#eef7fc!important;align-items:center!important;gap:8px!important}
  .grade-subject-copy{min-width:0!important;display:flex!important;flex-direction:column!important;gap:2px!important}
  .grade-subject-copy small{font-size:10.5px!important;font-weight:600!important;color:#768b9b!important}
  .grade-subject-copy b{font-size:14.7px!important;line-height:1.23!important;color:#183a52!important;font-weight:800!important;overflow-wrap:anywhere!important}
  .grade-max-chip{flex:none!important;display:inline-flex!important;align-items:center!important;justify-content:center!important;min-width:58px!important;height:29px!important;padding:0 8px!important;border-radius:999px!important;background:#fff!important;border:1px solid #cfe2ee!important;color:#5c7587!important;font-size:11.5px!important;font-weight:800!important;white-space:nowrap!important}
- .compact-score-row{display:grid!important;grid-template-columns:minmax(0,1fr) auto!important;align-items:center!important;column-gap:9px!important;min-height:56px!important;padding:6px 2px!important;border-bottom:1px solid #edf2f5!important;background:transparent!important;transition:background .15s ease!important}
+ .compact-score-row{display:grid!important;grid-template-columns:minmax(0,1fr) auto!important;align-items:center!important;column-gap:8px!important;min-height:52px!important;padding:4px 2px!important;border-bottom:1px solid #edf2f5!important;background:transparent!important;transition:background .15s ease!important}
  .compact-score-row:last-child{border-bottom:0!important}
  .score-student{min-width:0!important;display:block!important;line-height:1.3!important}
  .score-student b{display:block!important;font-size:14.4px!important;font-weight:800!important;color:#17364d!important;line-height:1.32!important;overflow-wrap:anywhere!important}
  .score-student small{display:block!important;margin-top:2px!important;color:#91a0aa!important;font-size:9.5px!important;font-weight:500!important;direction:ltr!important;text-align:right!important;white-space:nowrap!important;overflow:hidden!important;text-overflow:ellipsis!important;max-width:150px!important}
- .score-controls{display:flex!important;align-items:center!important;justify-content:flex-start!important;gap:5px!important;direction:ltr!important;min-width:0!important}
- .score-field{display:flex!important;align-items:center!important;gap:2px!important;direction:ltr!important}
- .compact-score-row .mobile-mark{width:61px!important;height:40px!important;margin:0!important;padding:0 5px!important;border:1px solid #cad9e3!important;border-radius:9px!important;background:#fff!important;color:#17364d!important;text-align:center!important;font-size:16px!important;font-weight:600!important;line-height:40px!important;box-shadow:none!important;outline:none!important;transition:border-color .15s ease,box-shadow .15s ease,background .15s ease!important}
+ .score-controls{display:grid!important;grid-template-columns:88px 58px!important;align-items:center!important;justify-content:start!important;gap:5px!important;direction:ltr!important;min-width:151px!important}
+ .score-field{display:grid!important;grid-template-columns:60px 26px!important;align-items:center!important;gap:2px!important;direction:ltr!important;width:88px!important}
+ .compact-score-row .mobile-mark{width:60px!important;height:38px!important;min-height:38px!important;margin:0!important;padding:0 5px!important;border:1px solid #cad9e3!important;border-radius:9px!important;background:#fff!important;color:#17364d!important;text-align:center!important;font-size:16px!important;font-weight:600!important;line-height:38px!important;box-shadow:none!important;outline:none!important;transition:border-color .15s ease,box-shadow .15s ease,background .15s ease!important}
  .compact-score-row .mobile-mark:focus{border-color:#218fd2!important;box-shadow:0 0 0 3px rgba(33,143,210,.12)!important;background:#fff!important}
- .compact-score-row .score-field em{min-width:23px!important;margin:0 0 0 -2px!important;font-style:normal!important;color:#80919d!important;font-size:11.5px!important;font-weight:700!important;white-space:nowrap!important;letter-spacing:-.1px!important}
- .compact-score-row .absent-btn{position:static!important;display:inline-flex!important;align-items:center!important;justify-content:center!important;width:auto!important;min-width:47px!important;max-width:59px!important;height:36px!important;margin:0!important;padding:0 6px!important;border:1px solid #dfc46a!important;border-radius:9px!important;background:#fffaf0!important;color:#805f00!important;font-size:10.8px!important;font-weight:800!important;line-height:1!important;white-space:nowrap!important;box-shadow:none!important;transition:background .15s ease,border-color .15s ease,transform .08s ease!important}
+ .compact-score-row .score-field em{width:26px!important;min-width:26px!important;margin:0!important;font-style:normal!important;color:#80919d!important;font-size:11.5px!important;font-weight:700!important;white-space:nowrap!important;letter-spacing:-.1px!important;text-align:left!important}
+ .compact-score-row .absent-btn{position:static!important;display:inline-flex!important;align-items:center!important;justify-content:center!important;width:58px!important;min-width:58px!important;max-width:58px!important;height:34px!important;min-height:34px!important;margin:0!important;padding:0 5px!important;border:1px solid #dbe4e5!important;border-radius:9px!important;background:#fff!important;color:#6f7f83!important;font-size:10.5px!important;font-weight:750!important;line-height:1!important;white-space:nowrap!important;box-shadow:none!important;transition:background .15s ease,border-color .15s ease,color .15s ease,transform .08s ease!important}
  .compact-score-row .absent-btn:active{transform:scale(.97)!important}
  .compact-score-row.has-mark .mobile-mark{border-color:#b9d8e9!important;background:#fafdff!important}
  .compact-score-row.is-invalid{background:linear-gradient(90deg,rgba(255,244,243,.15),rgba(255,244,243,.72))!important}
  .compact-score-row.is-invalid .mobile-mark{border-color:#d92d20!important;background:#fff5f4!important;color:#b42318!important;box-shadow:0 0 0 3px rgba(217,45,32,.10)!important}
  .compact-score-row.is-absent{background:linear-gradient(90deg,rgba(255,249,226,.28),rgba(255,249,226,.72))!important}
  .compact-score-row.is-absent .mobile-mark{background:#fffaf0!important;border-color:#e6cc78!important;color:#8a6200!important;font-size:11.7px!important;font-weight:700!important}
- .compact-score-row.is-absent .absent-btn{background:#f4c84d!important;border-color:#d9ad2f!important;color:#674800!important}
+ .compact-score-row.is-absent .absent-btn{background:#f4c84d!important;border-color:#d9ad2f!important;color:#674800!important;box-shadow:0 0 0 3px rgba(214,173,73,.10)!important}
  [data-page="grades"] .save-state{margin-top:9px!important;padding:7px 10px!important;border-radius:9px!important;background:#f7fafc!important;color:#738694!important;font-size:10.5px!important}
  [data-page="grades"] .save-state.dirty{background:#fff8e9!important;color:#9a6500!important}
 }
 @media(max-width:380px){
- .compact-score-row{column-gap:6px!important}
+ .compact-score-row{column-gap:6px!important;min-height:50px!important;padding-block:3px!important}
  .score-student b{font-size:13.4px!important}
- .compact-score-row .mobile-mark{width:56px!important}
- .compact-score-row .absent-btn{min-width:44px!important;max-width:55px!important;padding-inline:5px!important;font-size:10.2px!important}
+ .compact-score-row .mobile-mark{width:56px!important;height:37px!important;min-height:37px!important;line-height:37px!important}
+ .score-controls{grid-template-columns:84px 54px!important;min-width:143px!important}.score-field{grid-template-columns:56px 26px!important;width:84px!important}.compact-score-row .absent-btn{width:54px!important;min-width:54px!important;max-width:54px!important;height:33px!important;min-height:33px!important;padding-inline:4px!important;font-size:10px!important}
  .compact-score-row .score-field em{min-width:23px!important;font-size:10.8px!important}
 }
 `;document.head.appendChild(css);
