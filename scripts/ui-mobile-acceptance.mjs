@@ -67,10 +67,11 @@ try{
   check('approved home header layout is active',await homeHeader.count()===1,String(await homeHeader.count()));
   check('approved educational hero is active',await homeHero.count()===1&&await homeHero.locator('.np-home-hero-art').count()===1,String(await homeHero.locator('.np-home-hero-art').count()));
   check('approved compact progress card is active',await homeProgress.count()===1&&await homeShowAll.count()===1,JSON.stringify({progress:await homeProgress.count(),showAll:await homeShowAll.count()}));
-  const visibleRowsBefore=await page.locator('#subjectProgress > .np-home-subject-row:visible').count();
+  const countVisibleSubjectRows=()=>page.locator('#subjectProgress > .np-home-subject-row').evaluateAll(rows=>rows.filter(r=>{const s=getComputedStyle(r);const b=r.getBoundingClientRect();return s.display!=='none'&&s.visibility!=='hidden'&&b.width>0&&b.height>0}).length);
+  const visibleRowsBefore=await countVisibleSubjectRows();
   await homeShowAll.click();
   await page.waitForTimeout(80);
-  const visibleRowsAfter=await page.locator('#subjectProgress > .np-home-subject-row:visible').count();
+  const visibleRowsAfter=await countVisibleSubjectRows();
   check('show-all expands subject rows without data loss',visibleRowsAfter>=visibleRowsBefore&&visibleRowsAfter>0,JSON.stringify({visibleRowsBefore,visibleRowsAfter}));
 
   const firstSubject=page.locator('#subjectProgress .subject-progress-name').first();
