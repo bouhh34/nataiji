@@ -16,6 +16,10 @@ const check=(name,ok,detail='')=>{console.log(`${ok?'PASS':'FAIL'}  ${name}${det
 try{
   await page.goto(base,{waitUntil:'domcontentloaded',timeout:30000});
   await page.locator('[data-auth2="register"]').waitFor({state:'visible',timeout:10000});
+  const authAbsentControls=await page.locator('.auth-box .absent-btn').count();
+  const authText=await page.locator('.auth-box').innerText();
+  check('auth screen never shows grade absence controls',authAbsentControls===0&&!/(^|\s)(غائب|غائبة|Absent|Absente)(\s|$)/u.test(authText),JSON.stringify({authAbsentControls,authText}));
+
   await page.locator('[data-auth2="register"]').click();
   await page.locator('#auth2Form input[name="name"]').fill('Mobile QA Teacher');
   await page.locator('#auth2Form input[name="email"]').fill('mobile.owner@example.com');
@@ -54,6 +58,38 @@ try{
   const subjectStyle=await firstSubject.evaluate(el=>({wordBreak:getComputedStyle(el).wordBreak,overflowWrap:getComputedStyle(el).overflowWrap,whiteSpace:getComputedStyle(el).whiteSpace,text:el.textContent}));
   check('subject label has usable mobile width',Boolean(sb&&sb.width>=90),JSON.stringify({box:sb,style:subjectStyle}));
   check('subject label does not force letter breaking',subjectStyle.wordBreak==='normal',JSON.stringify(subjectStyle));
+
+  await page.locator('.bottom-nav button[data-view="grades"]').click();
+  await page.locator('[data-page="grades"]').waitFor({state:'visible',timeout:7000});
+  await page.waitForTimeout(250);
+  const firstMark=page.locator('.compact-score-row .mobile-mark').first();
+  await firstMark.waitFor({state:'visible',timeout:7000});
+  await firstMark.fill('0');
+  await firstMark.blur();
+  const saveResponse=page.waitForResponse(r=>r.url().includes('/api/marks')&&r.request().method()==='PUT'&&r.status()===200,{timeout:10000});
+  await page.locator('#saveGrades').click();
+  await saveResponse;
+  await page.reload({waitUntil:'domcontentloaded'});
+  await page.locator('.app-shell').waitFor({state:'visible',timeout:12000});
+  await page.locator('.bottom-nav button[data-view="grades"]').click();
+  await page.locator('[data-page="grades"]').waitFor({state:'visible',timeout:7000});
+  await page.waitForTimeout(250);
+  const persistedZero=await page.locator('.compact-score-row .mobile-mark').first().inputValue();
+  check('zero grade persists distinctly from empty',persistedZero==='0',persistedZero);
+
+  const firstRow=page.locator('.compact-score-row').first();
+  const absentButton=firstRow.locator('.absent-btn');
+  const absentInput=firstRow.locator('.mobile-mark');
+  await absentButton.click();
+  await page.waitForTimeout(80);
+  const absentValue=await absentInput.inputValue();
+  const absentPressed=await absentButton.getAttribute('aria-pressed');
+  check('absence is an explicit selected state',/^(غائب|غائبة|Absent|Absente)$/u.test(absentValue)&&absentPressed==='true',JSON.stringify({absentValue,absentPressed}));
+  await absentButton.click();
+  await page.waitForTimeout(80);
+  const clearedValue=await absentInput.inputValue();
+  const clearedPressed=await absentButton.getAttribute('aria-pressed');
+  check('absence can be cleared back to not-entered',clearedValue===''&&clearedPressed==='false',JSON.stringify({clearedValue,clearedPressed}));
 
   await page.locator('.bottom-nav button[data-view="more"]').click();
   await page.locator('[data-page="more"]').waitFor({state:'visible',timeout:7000});
