@@ -1,0 +1,29 @@
+/* Nataiji Visual Lab v1 — visual-only foundation. No application logic. */
+@media screen {
+:root{
+ --nv-navy:#072d4d;--nv-navy2:#0a4960;--nv-green:#07816a;--nv-green2:#0aa07e;
+ --nv-gold:#d5aa45;--nv-paper:#fff;--nv-bg:#f5f8f7;--nv-text:#102f49;--nv-muted:#7b8c96;
+ --nv-line:#dce6e8;--nv-r12:12px;--nv-r18:18px;--nv-r24:24px;--nv-shadow:0 8px 24px rgba(8,43,75,.055)
+}
+body{font-feature-settings:"kern";letter-spacing:0}
+header,.card,.stats article,.menu-card{background:rgba(255,255,255,.98)!important;border:1px solid var(--nv-line)!important;box-shadow:var(--nv-shadow)!important}
+header select,.filters select,.report-actions select{min-height:52px!important;border:1px solid #d6e1e4!important;border-radius:14px!important;background:#fff!important;color:var(--nv-text)!important}
+.primary,.tools button,.report-actions button{min-height:48px!important;border-radius:14px!important;font-weight:800!important}
+.section-head small{color:var(--nv-green)!important;font-weight:800!important}.section-head h2{color:var(--nv-text)!important}
+.bottom-nav{box-shadow:0 -8px 24px rgba(8,43,75,.045)!important}
+}
+@media screen and (max-width:760px){
+ main{max-width:680px!important;margin:auto!important;padding:12px 14px 92px!important}
+ header{border-radius:20px!important;padding:12px 14px!important;gap:10px!important}
+ header .profile{min-height:54px!important}
+ header select{height:56px!important;font-size:14px!important}
+ .card{border-radius:20px!important;padding:18px!important}
+ .section-head{padding-bottom:14px!important;margin-bottom:14px!important}
+ .section-head h2{font-size:24px!important;line-height:1.15!important}
+ .section-head small{font-size:12px!important}
+ .stats{gap:10px!important}
+ .stats article{border-radius:18px!important}
+ .bottom-nav{height:76px!important}
+ .bottom-nav button svg{width:25px!important;height:25px!important}
+ .bottom-nav button span{font-size:11px!important}
+}
