@@ -40,7 +40,7 @@ assert('PWA caches final mobile css', /release-100-v1\.css/.test(sw));
 assert('PWA caches final visual polish', /nataiji-final-visual-v1\.css/.test(sw));
 assert('PWA excludes API cache', /pathname\.startsWith\("\/api\/"\)/.test(sw));
 assert('auth copy avoids ambiguous temporary storage', !/وضع تخزين مؤقت|Mode de stockage temporaire/.test(read('public/auth-access-v2.js')));
-assert('French auth direction is explicit', /lang-fr \\.auth-gate/.test(read('public/auth-access-v2.js')) || /lang-fr \\.auth-gate/.test(read('public/interface-language-fix.js')));
+assert('French auth direction is explicit', /lang-fr \.auth-gate/.test(read('public/auth-access-v2.js')) || /lang-fr \.auth-gate/.test(read('public/interface-language-fix.js')));
 assert('install card has no legacy text glyph', !/[⬇↓↔]/u.test(read('public/app-power-v1.js')));
 assert('dynamic sharing cards use canonical icons', /data-feather=\"share-2\"/.test(read('public/auth-access-v2.js')) && /data-feather=\"link\"/.test(read('public/auth-access-v2.js')));
 assert('grade enhancer scoped to real grade inputs', /input\.mark\[data-i\]\[data-j\],input\.mobile-mark\[data-i\]\[data-j\]/.test(read('public/final-grade-entry.js')));
