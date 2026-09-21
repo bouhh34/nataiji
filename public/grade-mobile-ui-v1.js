@@ -9,6 +9,32 @@ const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&
 const fr=()=>localStorage.getItem('nataiji-lang')==='fr';
 const absent=v=>/^(غائب|غائبة|absent|absente|a)$/i.test(String(v??'').trim());
 const maxOf=s=>{const n=Number(s?.[3]);return Number.isFinite(n)&&n>0?n:20};
+const normalizeSubject=v=>String(v||'').normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase();
+const currentSubjectIconKey=v=>{
+ const n=normalizeSubject(v);
+ if(/اسلام|islam/.test(n))return'islamic';
+ if(/عرب|arabe/.test(n))return'arabic';
+ if(/حساب|رياضيات|math|calcul/.test(n))return'math';
+ if(/مدني|civique|citoy/.test(n))return'civic';
+ if(/فني|artist|dessin/.test(n))return'art';
+ if(/فرنس|francais/.test(n))return'french';
+ if(/بدني|رياضة|education physique|sport/.test(n))return'sport';
+ return'generic';
+};
+const currentSubjectIconMarkup=key=>{
+ const common='viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"';
+ const icons={
+  islamic:`<svg ${common}><path d="M5 20h14"/><path d="M7 20v-7.2c0-2.2 1.5-4.2 3.7-4.8"/><path d="M17 20v-7.2c0-2.2-1.5-4.2-3.7-4.8"/><path d="M12 3.2c1.2 1.1 1.8 2.2 1.8 3.3 0 1-.8 1.9-1.8 1.9s-1.8-.9-1.8-1.9c0-1.1.6-2.2 1.8-3.3Z"/><path d="M9.2 20v-4.4a2.8 2.8 0 0 1 5.6 0V20"/></svg>`,
+  arabic:`<svg ${common}><path d="M4 5.5c2.8-.8 5.1-.2 8 1.6v12.2c-2.9-1.8-5.2-2.3-8-1.5V5.5Z"/><path d="M20 5.5c-2.8-.8-5.1-.2-8 1.6v12.2c2.9-1.8 5.2-2.3 8-1.5V5.5Z"/></svg>`,
+  math:`<svg ${common}><rect x="5" y="3.5" width="14" height="17" rx="2.2"/><path d="M8 7.5h8"/><path d="M8.2 12h1.6M14.2 12h1.6M8.2 15.5h1.6M14.2 15.5h1.6M8.2 18.5h1.6M14.2 18.5h1.6"/></svg>`,
+  civic:`<svg ${common}><path d="M6 21V4"/><path d="M6 5c4-2.2 7 2 12 0v9c-5 2-8-2.2-12 0"/></svg>`,
+  art:`<svg ${common}><path d="M12 3.2c-5.2 0-9 3.5-9 8.1 0 4.7 4.1 8.5 9.1 8.5h1.1c1.4 0 2.1-.9 2.1-1.9 0-.8-.5-1.3-.5-2 0-.9.8-1.5 1.8-1.5H18c2 0 3-1.4 3-3.3 0-4.5-3.7-7.9-9-7.9Z"/><circle cx="7.7" cy="9.2" r=".8" fill="currentColor" stroke="none"/><circle cx="10.5" cy="6.8" r=".8" fill="currentColor" stroke="none"/><circle cx="14.2" cy="7.3" r=".8" fill="currentColor" stroke="none"/><circle cx="16.5" cy="10.1" r=".8" fill="currentColor" stroke="none"/></svg>`,
+  french:`<svg ${common}><path d="M4.2 5.5h15.6v10.2a3 3 0 0 1-3 3H10l-4.4 2v-2.8a3 3 0 0 1-1.4-2.5V5.5Z"/><path d="M8 9.3h8M8 12.7h5.5"/></svg>`,
+  sport:`<svg ${common}><circle cx="14.7" cy="4.8" r="1.8"/><path d="m12.5 9.2 2.4 2.2 2.7.7"/><path d="m12.7 8.4-2.2 3.4-3.1 1.4"/><path d="m12 12.5-1.1 4.1-3.2 3"/><path d="m13.2 12.4 3 3.2 3.1 1.1"/></svg>`,
+  generic:`<svg ${common}><path d="M6 4.5h9a3 3 0 0 1 3 3v12H9a3 3 0 0 1-3-3v-12Z"/><path d="M9 8h6M9 11h6"/></svg>`
+ };
+ return icons[key]||icons.generic;
+};
 function absentLabel(i){
  const p=state?.pupils?.[i]||[],g=String(p?.[2]??p?.[6]??p?.gender??'').trim().toLowerCase(),female=/أنثى|انثى|female|féminin|feminin|fille/.test(g);
  if(fr())return female?'Absente':'Absent';
@@ -36,8 +62,9 @@ function renderCompactMobileScores(){
  const j=Number(picker.value)||0,sub=state.subjects?.[j],m=maxOf(sub);
  if(!sub){host.innerHTML='';return}
  const currentName=String(fr()?(sub?.[2]||sub?.[0]||''):(sub?.[0]||sub?.[2]||'')),maxLabel=fr()?'Note sur':'من';
+ const iconKey=currentSubjectIconKey(`${sub?.[0]||''} ${sub?.[2]||currentName}`);
  host.innerHTML=`<div class="subject-title grade-subject-title">
-   <div class="grade-subject-copy"><span class="subject-premium-icon grade-current-subject-icon" aria-hidden="true"></span><small>${fr()?'Matière actuelle':'المادة الحالية'}</small><b>${esc(currentName)}</b></div>
+   <div class="grade-subject-copy"><span class="subject-premium-icon grade-current-subject-icon" data-icon="${iconKey}" aria-hidden="true">${currentSubjectIconMarkup(iconKey)}</span><small>${fr()?'Matière actuelle':'المادة الحالية'}</small><b>${esc(currentName)}</b></div>
    <span class="grade-max-chip" dir="ltr">${esc(maxLabel)} ${m}</span>
   </div>`+(state.pupils||[]).map((p,i)=>{
    const value=state.marks?.[i]?.[j]??'',cls=absent(value)?' is-absent':String(value).trim()!==''?' has-mark':' is-empty',nns=String(p?.[0]||'').trim();
@@ -141,11 +168,11 @@ const css=document.createElement('style');css.id='nataiji-grade-mobile-v1-style'
  .grade-subject-copy small{font-size:10.5px!important;font-weight:600!important;color:#768b9b!important}
  .grade-subject-copy b{font-size:14.7px!important;line-height:1.23!important;color:#183a52!important;font-weight:800!important;overflow-wrap:anywhere!important}
  .grade-max-chip{flex:none!important;display:inline-flex!important;align-items:center!important;justify-content:center!important;min-width:58px!important;height:29px!important;padding:0 8px!important;border-radius:999px!important;background:#fff!important;border:1px solid #cfe2ee!important;color:#5c7587!important;font-size:11.5px!important;font-weight:800!important;white-space:nowrap!important}
- .compact-score-row{display:grid!important;grid-template-columns:minmax(0,1fr) auto!important;align-items:center!important;column-gap:8px!important;min-height:52px!important;padding:4px 2px!important;border-bottom:1px solid #edf2f5!important;background:transparent!important;transition:background .15s ease!important}
+ #mobileScores .compact-score-row{display:grid!important;grid-template-columns:minmax(0,1fr) auto!important;align-items:center!important;column-gap:8px!important;height:58px!important;min-height:58px!important;max-height:58px!important;padding:3px 2px!important;border-bottom:1px solid #edf2f5!important;background:transparent!important;transition:background .15s ease!important}
  .compact-score-row:last-child{border-bottom:0!important}
  .score-student{min-width:0!important;display:block!important;line-height:1.3!important}
- .score-student b{display:block!important;font-size:14.4px!important;font-weight:800!important;color:#17364d!important;line-height:1.32!important;overflow-wrap:anywhere!important}
- .score-student small{display:block!important;margin-top:2px!important;color:#91a0aa!important;font-size:9.5px!important;font-weight:500!important;direction:ltr!important;text-align:right!important;white-space:nowrap!important;overflow:hidden!important;text-overflow:ellipsis!important;max-width:150px!important}
+ .score-student b{display:block!important;font-size:14px!important;font-weight:800!important;color:#17364d!important;line-height:1.22!important;overflow-wrap:anywhere!important}
+ .score-student small{display:block!important;margin-top:1px!important;color:#91a0aa!important;font-size:9px!important;font-weight:500!important;line-height:1.1!important;direction:ltr!important;text-align:right!important;white-space:nowrap!important;overflow:hidden!important;text-overflow:ellipsis!important;max-width:150px!important}
  .score-controls{display:grid!important;grid-template-columns:88px 58px!important;align-items:center!important;justify-content:start!important;gap:5px!important;direction:ltr!important;min-width:151px!important}
  .score-field{display:grid!important;grid-template-columns:60px 26px!important;align-items:center!important;gap:2px!important;direction:ltr!important;width:88px!important}
  .compact-score-row .mobile-mark{width:60px!important;height:38px!important;min-height:38px!important;margin:0!important;padding:0 5px!important;border:1px solid #cad9e3!important;border-radius:9px!important;background:#fff!important;color:#17364d!important;text-align:center!important;font-size:16px!important;font-weight:600!important;line-height:38px!important;box-shadow:none!important;outline:none!important;transition:border-color .15s ease,box-shadow .15s ease,background .15s ease!important}
@@ -163,7 +190,7 @@ const css=document.createElement('style');css.id='nataiji-grade-mobile-v1-style'
  [data-page="grades"] .save-state.dirty{background:#fff8e9!important;color:#9a6500!important}
 }
 @media(max-width:380px){
- .compact-score-row{column-gap:6px!important;min-height:50px!important;padding-block:3px!important}
+ #mobileScores .compact-score-row{column-gap:6px!important;height:56px!important;min-height:56px!important;max-height:56px!important;padding-block:3px!important}
  .score-student b{font-size:13.4px!important}
  .compact-score-row .mobile-mark{width:56px!important;height:37px!important;min-height:37px!important;line-height:37px!important}
  .score-controls{grid-template-columns:84px 54px!important;min-width:143px!important}.score-field{grid-template-columns:56px 26px!important;width:84px!important}.compact-score-row .absent-btn{width:54px!important;min-width:54px!important;max-width:54px!important;height:33px!important;min-height:33px!important;padding-inline:4px!important;font-size:10px!important}
