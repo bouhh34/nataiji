@@ -11,6 +11,20 @@ jobs:
   mobile-ui:
     runs-on: ubuntu-latest
     timeout-minutes: 15
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_DB: nataiji_ui
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: local_test_password
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 12
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
@@ -26,7 +40,7 @@ jobs:
         env:
           NODE_ENV: development
           PORT: '3221'
-          DATABASE_URL: ''
+          DATABASE_URL: postgresql://postgres:local_test_password@127.0.0.1:5432/nataiji_ui
           REDIS_URL: ''
           SUPER_ADMIN_EMAIL: mobile.owner@example.com
           SUPER_ADMIN_NAME: Mobile QA Owner
