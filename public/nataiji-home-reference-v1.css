@@ -492,3 +492,38 @@
     padding:0!important;
   }
 }
+
+
+/* Home closeout: slightly denser hero, no ad placeholder reserved. */
+@media screen and (max-width:760px){
+  [data-page="home"] .np-home-hero{
+    min-height:134px!important;
+    padding:13px 15px!important;
+    grid-template-columns:76px minmax(0,1fr)!important;
+    gap:4px 9px!important;
+  }
+  [data-page="home"] .np-home-hero h1{
+    font-size:24px!important;
+    margin:3px 0 5px!important;
+  }
+  [data-page="home"] .np-home-hero p{
+    font-size:10.5px!important;
+    line-height:1.4!important;
+  }
+  [data-page="home"] .np-home-hero .np-home-cta{
+    min-height:37px!important;
+    padding:7px 13px!important;
+  }
+  [data-page="home"] .np-home-hero-art{
+    width:72px!important;
+    height:80px!important;
+  }
+  [data-page="home"] .np-home-hero-art svg:nth-child(1){
+    width:58px!important;
+    height:58px!important;
+  }
+  [data-page="home"] .np-home-hero-art svg:nth-child(2){
+    width:31px!important;
+    height:31px!important;
+  }
+}
