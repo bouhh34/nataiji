@@ -25,10 +25,11 @@ function validate(raw,max){
 }
 function rowState(row,value){
  if(!row)return;
- const filled=String(value??'').trim()!=='',isAbsent=absent(value);
+ const filled=String(value??'').trim()!=='',isAbsent=absent(value),btn=q('.absent-btn',row);
  row.classList.toggle('has-mark',filled&&!isAbsent);
  row.classList.toggle('is-absent',isAbsent);
- row.classList.toggle('is-empty',!filled)
+ row.classList.toggle('is-empty',!filled);
+ if(btn)btn.setAttribute('aria-pressed',isAbsent?'true':'false')
 }
 function renderCompactMobileScores(){
  const host=q('#mobileScores'),picker=q('#subjectPicker');if(!host||!picker||typeof state==='undefined')return;
@@ -85,6 +86,16 @@ function renderCompactMobileScores(){
      // with its canonical handler, so there is no duplicate listener.
      button.onclick=e=>{
        e.preventDefault();e.stopPropagation();
+       if(absent(input.value)){
+         input.value='';
+         if(state.marks?.[i])state.marks[i][j]='';
+         try{markDirty()}catch{}
+         try{renderDashboard()}catch{}
+         rowState(row,'');
+         input.dispatchEvent(new Event('change',{bubbles:true}));
+         input.focus();
+         return
+       }
        const value=absentLabel(i);
        input.value=value;
        if(state.marks?.[i])state.marks[i][j]=value;
