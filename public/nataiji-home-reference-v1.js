@@ -60,10 +60,7 @@ function decorateHero(){
     hero.appendChild(art);
   }
   const cta=q('button',hero);
-  if(cta){
-    qa('.npv2-button-icon,.np-home-cta-icon',cta).forEach(x=>x.remove());
-    feather(cta,'bar-chart-2','np-home-cta-icon');
-  }
+  if(cta)cta.classList.add('np-home-cta');
   const small=q('small',hero);
   if(small)small.textContent=isFr()?'Tableau de bord':'لوحة النتائج';
 }
@@ -78,8 +75,8 @@ function decorateStats(){
     const value=q('#'+id),card=value?.closest('article');
     if(!card)return;
     card.classList.add('np-home-stat','np-home-stat-'+key);
-    qa('.npv2-stat-icon,.np-home-stat-icon',card).forEach(x=>x.remove());
-    feather(card,iconName,'np-home-stat-icon');
+    const existing=q('.npv2-stat-icon',card);
+    if(existing)existing.classList.add('np-home-stat-icon');
   });
 }
 function subjectIcon(name){
@@ -124,15 +121,8 @@ function decorateProgress(){
     if(!label)return;
     let name=q('.subject-progress-name',label);
     const raw=name?.textContent || [...label.childNodes].filter(n=>n.nodeType===Node.TEXT_NODE).map(n=>n.textContent||'').join(' ').trim();
-    let icon=q('.subject-premium-icon',label);
-    if(icon){
-      icon.classList.add('np-home-subject-icon');
-      const wanted=subjectIcon(raw);
-      const current=icon.querySelector('svg,i');
-      if(current?.getAttribute('data-feather')!==wanted && current?.dataset?.feather!==wanted){
-        icon.innerHTML='<i data-feather="'+wanted+'"></i>';
-      }
-    }
+    const icon=q('.subject-premium-icon',label);
+    if(icon)icon.classList.add('np-home-subject-icon');
   });
 }
 function apply(){
