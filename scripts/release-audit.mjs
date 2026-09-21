@@ -74,7 +74,7 @@ assert('safe-area bottom nav', /safe-area-inset-bottom/.test(css));
 assert('premium v2 is screen-scoped and print-safe', /@media screen/.test(premiumV2) && /@media print/.test(premiumV2));
 assert('premium v2 keeps official report content untouched', !/official-sheet[^\n]*display:none/.test(premiumV2));
 assert('home reference is screen-only and report-safe', /@media screen/.test(homeReference) && !/official-sheet|report-preview-stage|data-page=\"reports\"/.test(homeReference));
-assert('home reference compacts progress list', /np-home-subject-row/.test(homeReference) && /np-home-show-all/.test(homeReference));
+assert('home reference compacts progress list', /#subjectProgress>div/.test(homeReference) && /np-home-show-all/.test(homeReference));
 
 console.log('\nNataiji final release audit');
 for (const c of checks) console.log(`${c.ok?'PASS':'FAIL'}  ${c.name}${c.detail?' — '+c.detail:''}`);
