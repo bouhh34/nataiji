@@ -52,7 +52,7 @@ assert('absence button exposes explicit selected state', /aria-pressed/.test(rea
 const gradeMobileUi = read('public/grade-mobile-ui-v1.js');
 assert('grade entry renders current subject icon host', /grade-current-subject-icon/.test(gradeMobileUi));
 assert('grade entry keeps inactive absence control neutral', /border:1px solid #dbe4e5/.test(gradeMobileUi) && /background:#fff!important;color:#6f7f83/.test(gradeMobileUi));
-assert('grade entry compacts filters and rows', /padding:11px!important;border-radius:15px/.test(gradeMobileUi) && /min-height:52px!important;padding:4px 2px/.test(gradeMobileUi));
+assert('grade entry compacts filters and rows', /padding:11px!important;border-radius:15px/.test(gradeMobileUi) && /height:58px!important;min-height:58px!important;max-height:58px/.test(gradeMobileUi));
 assert('bulk grade save persists validated values', /normalizedMarks/.test(server));
 assert('secure cookie enabled', /httpOnly:true/.test(server) && /sameSite:'lax'/.test(server));
 assert('origin protection enabled', /cross_site_request_blocked/.test(server));
