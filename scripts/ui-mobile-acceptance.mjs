@@ -147,10 +147,13 @@ try{
   await page.locator('[data-page="more"]').waitFor({state:'visible',timeout:7000});
   await page.waitForTimeout(140);
   const moreTitles=await page.locator('[data-page="more"] .menu-card > b').evaluateAll(nodes=>nodes.map(n=>n.textContent?.trim()||''));
-  const legacyGlyph=/[⌂▤♙▧☷▥♧⚙↪⌁☏🌐🏫🔗⌫▦⬇]/u;
+  const legacyGlyph=/[⌂▤♙▧☷▥♧⚙↪↔⌁☏🌐🏫🔗⌫▦⬇↓]/u;
   check('More menu uses one icon system',moreTitles.every(x=>!legacyGlyph.test(x)),JSON.stringify(moreTitles));
   const subjectsIcon=await page.locator('#subjectsBtn b svg').count();
   check('Subjects menu keeps its icon after scoring refresh',subjectsIcon===1,String(subjectsIcon));
+  const sharesIcon=await page.locator('#sharesBtn b svg').count();
+  const joinIcon=await page.locator('#joinInviteBtn b svg').count();
+  check('Sharing cards keep canonical icons',sharesIcon===1&&joinIcon===1,JSON.stringify({sharesIcon,joinIcon}));
 
   await page.locator('.bottom-nav button[data-view="reports"]').click();
   await page.locator('[data-page="reports"]').waitFor({state:'visible',timeout:7000});
@@ -182,6 +185,13 @@ try{
   await ownerCard.waitFor({state:'visible',timeout:7000});
   const ownerTitleColor=await ownerCard.locator('b').evaluate(el=>getComputedStyle(el).color);
   check('Super-admin title stays readable on dark card',/rgb\(255,\s*255,\s*255\)/.test(ownerTitleColor),ownerTitleColor);
+  await page.evaluate(()=>window.dispatchEvent(new Event('beforeinstallprompt',{cancelable:true})));
+  await page.waitForTimeout(120);
+  const installCard=page.locator('#installAppBtn');
+  await installCard.waitFor({state:'visible',timeout:3000});
+  const installText=(await installCard.innerText()).trim();
+  const installIcon=await installCard.locator('b svg').count();
+  check('French install card is fully localized with canonical icon',/Installer Nataiji/.test(installText)&&!/[؀-ۿ]/.test(installText)&&installIcon===1,JSON.stringify({installText,installIcon}));
 
   console.log('\nNataiji mobile UI acceptance finished.');
   if(failures.length){
