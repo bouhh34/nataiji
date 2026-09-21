@@ -241,7 +241,7 @@ function bindOwnerDashboard(){
  if(!currentUser?.isSuperAdmin){b?.remove();document.body.classList.remove('nataiji-super-admin');return}
  document.body.classList.add('nataiji-super-admin');
  if(!b){b=document.createElement('button');b.id='ownerDashboardBtn';b.className='menu-card owner-card';grid.insertBefore(b,grid.firstChild)}
- stableMarkup(b,`<b><i>✦</i> ${tr('إدارة المنصة','Administration de la plateforme')} <small>SUPER ADMIN</small></b><span>${tr('نظرة شاملة آمنة على الحسابات والمدارس والصلاحيات','Vue d’ensemble sécurisée des comptes, écoles et autorisations')}</span>`);b.onclick=ownerOverviewModal
+ stableMarkup(b,`<b><i>✦</i> ${tr('إدارة المنصة','Administration de la plateforme')} <small>SUPER ADMIN</small></b><span>${tr('نظرة شاملة آمنة على الحسابات والمدارس والصلاحيات','Vue d’ensemble sécurisée des comptes, écoles et autorisations')}</span>`);const ownerTitle=q(':scope > b',b),ownerCopy=q(':scope > span',b);ownerTitle?.style.setProperty('color','#fff','important');ownerCopy?.style.setProperty('color','#dcecff','important');b.onclick=ownerOverviewModal
 }
 function bindSchools(){
  const grid=q('.settings-grid');if(!grid)return;let b=q('#schoolsBtn');
