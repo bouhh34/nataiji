@@ -34,17 +34,18 @@ function renderCompactMobileScores(){
  const host=q('#mobileScores'),picker=q('#subjectPicker');if(!host||!picker||typeof state==='undefined')return;
  const j=Number(picker.value)||0,sub=state.subjects?.[j],m=maxOf(sub);
  if(!sub){host.innerHTML='';return}
- const currentName=String(sub?.[0]||''),maxLabel=fr()?'Note sur':'من';
+ const currentName=String(fr()?(sub?.[2]||sub?.[0]||''):(sub?.[0]||sub?.[2]||'')),maxLabel=fr()?'Note sur':'من';
  host.innerHTML=`<div class="subject-title grade-subject-title">
    <div class="grade-subject-copy"><small>${fr()?'Matière actuelle':'المادة الحالية'}</small><b>${esc(currentName)}</b></div>
    <span class="grade-max-chip" dir="ltr">${esc(maxLabel)} ${m}</span>
   </div>`+(state.pupils||[]).map((p,i)=>{
    const value=state.marks?.[i]?.[j]??'',cls=absent(value)?' is-absent':String(value).trim()!==''?' has-mark':' is-empty',nns=String(p?.[0]||'').trim();
+   const pupilName=String(fr()?(p?.[4]||p?.[1]||''):(p?.[1]||p?.[4]||''));
    return `<div class="score-row compact-score-row${cls}" data-grade-row="${i}">
-     <span class="score-student"><b>${i+1}. ${esc(p?.[1]||'')}</b>${nns?`<small>${esc(nns)}</small>`:''}</span>
+     <span class="score-student"><b dir="${fr()?'ltr':'rtl'}">${i+1}. ${esc(pupilName)}</b>${nns?`<small>${esc(nns)}</small>`:''}</span>
      <div class="score-controls">
        <div class="score-field" dir="ltr">
-         <input class="mobile-mark" inputmode="decimal" min="0" max="${m}" step="0.1" data-i="${i}" data-j="${j}" value="${esc(value)}" placeholder="—" aria-label="${esc((p?.[1]||'')+' — '+currentName)}">
+         <input class="mobile-mark" inputmode="decimal" min="0" max="${m}" step="0.1" data-i="${i}" data-j="${j}" value="${esc(value)}" placeholder="—" aria-label="${esc(pupilName+' — '+currentName)}">
          <em dir="ltr">/${m}</em>
        </div>
        <button type="button" class="absent-btn compact-absent" data-absent-i="${i}">${esc(absentLabel(i))}</button>
