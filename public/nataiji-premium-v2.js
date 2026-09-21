@@ -82,8 +82,50 @@ function applyReports(){
   });
   qa('[data-page="reports"] .report-print').forEach(b=>icon(b,'printer','npv2-button-icon'));
 }
+function subjectIconName(value){
+  const n=String(value||'').normalize('NFD').replace(/[\\u0300-\\u036f]/g,'').toLowerCase();
+  if(/اسلام|islam/.test(n))return'book-open';
+  if(/عرب|arabe|lecture|قراءة|كتاب|كتابة|ecriture/.test(n))return'book';
+  if(/حساب|رياضيات|math|calcul/.test(n))return'hash';
+  if(/مدني|civique|citoy/.test(n))return'flag';
+  if(/فني|artist|dessin/.test(n))return'edit-3';
+  if(/فرنس|francais/.test(n))return'message-circle';
+  if(/بدني|رياضة|education physique|sport/.test(n))return'activity';
+  if(/علوم|science|طبيع/.test(n))return'feather';
+  return'bookmark';
+}
+function getSubjects(){
+  try{return (typeof state!=='undefined'&&Array.isArray(state?.subjects))?state.subjects:[]}catch{return[]}
+}
+function ensureSubjectLabel(row,i){
+  if(!row)return;
+  const subjects=getSubjects(),sub=subjects[i]||[],label=q(':scope > span',row);
+  if(!label)return;
+  const fallback=[...label.childNodes].filter(n=>n.nodeType===Node.TEXT_NODE).map(n=>n.textContent||'').join(' ').trim();
+  const name=fr()?(String(sub?.[2]||sub?.[0]||fallback).trim()):(String(sub?.[0]||sub?.[2]||fallback).trim());
+  let wrap=q(':scope > .subject-premium-icon',label);
+  if(!wrap){
+    wrap=document.createElement('span');
+    wrap.className='subject-premium-icon';
+    wrap.setAttribute('aria-hidden','true');
+    wrap.innerHTML='<i data-feather="'+subjectIconName(String(sub?.[0]||'')+' '+String(sub?.[2]||fallback))+'"></i>';
+    label.prepend(wrap);
+  }
+  let nameEl=q(':scope > .subject-progress-name',label);
+  if(!nameEl){
+    nameEl=document.createElement('b');
+    nameEl.className='subject-progress-name';
+    [...label.childNodes].filter(n=>n.nodeType===Node.TEXT_NODE).forEach(n=>n.remove());
+    wrap.after(nameEl);
+  }
+  if(name&&nameEl.textContent!==name)nameEl.textContent=name;
+  nameEl.dir=fr()?'ltr':'rtl';
+}
 function applySubjectTones(){
-  qa('#subjectProgress > div').forEach((row,i)=>row.classList.add('npv2-subject-tone-'+((i%6)+1)));
+  qa('#subjectProgress > div').forEach((row,i)=>{
+    row.classList.add('npv2-subject-tone-'+((i%6)+1));
+    ensureSubjectLabel(row,i);
+  });
 }
 function renderFeather(){
   if(window.feather&&document.querySelector('[data-feather]'))window.feather.replace({class:'lux-feather','stroke-width':1.9});
