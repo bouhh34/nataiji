@@ -16,6 +16,12 @@ const check=(name,ok,detail='')=>{console.log(`${ok?'PASS':'FAIL'}  ${name}${det
 try{
   await page.goto(base,{waitUntil:'domcontentloaded',timeout:30000});
   await page.locator('[data-auth2="register"]').waitFor({state:'visible',timeout:10000});
+  const authAbsentControls=await page.locator('.auth-box .absent-btn').count();
+  const authText=await page.locator('.auth-box').innerText();
+  check('auth screen never shows grade absence controls',authAbsentControls===0&&!/(^|\s)(غائب|غائبة|Absent|Absente)(\s|$)/u.test(authText),JSON.stringify({authAbsentControls,authText}));
+  const storageText=(await page.locator('.auth-storage').innerText()).trim();
+  check('auth explains durable storage clearly',/تخزين آمن على قاعدة البيانات|Stockage sécurisé sur base de données/u.test(storageText),storageText);
+
   await page.locator('[data-auth2="register"]').click();
   await page.locator('#auth2Form input[name="name"]').fill('Mobile QA Teacher');
   await page.locator('#auth2Form input[name="email"]').fill('mobile.owner@example.com');
@@ -54,6 +60,88 @@ try{
   const subjectStyle=await firstSubject.evaluate(el=>({wordBreak:getComputedStyle(el).wordBreak,overflowWrap:getComputedStyle(el).overflowWrap,whiteSpace:getComputedStyle(el).whiteSpace,text:el.textContent}));
   check('subject label has usable mobile width',Boolean(sb&&sb.width>=90),JSON.stringify({box:sb,style:subjectStyle}));
   check('subject label does not force letter breaking',subjectStyle.wordBreak==='normal',JSON.stringify(subjectStyle));
+
+  const pupilCountBefore=await page.locator('.student-mobile-card').count().catch(()=>0);
+  if(pupilCountBefore===0){
+    const seeded=await page.evaluate(async()=>{
+      const classId=document.querySelector('#classTop')?.value||'';
+      const res=await fetch('/api/pupils',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({classId,pupil:['','طالب الاختبار','','','','Test Student','','']})});
+      return {status:res.status,body:await res.json()};
+    });
+    check('test pupil can be created for persistence flow',[200,201].includes(seeded.status)&&seeded.body?.ok===true,JSON.stringify(seeded));
+    await page.reload({waitUntil:'domcontentloaded'});
+    await page.locator('.app-shell').waitFor({state:'visible',timeout:12000});
+  }
+
+  await page.locator('.bottom-nav button[data-view="grades"]').click();
+  await page.locator('[data-page="grades"]').waitFor({state:'visible',timeout:7000});
+  await page.waitForTimeout(350);
+  const firstMark=page.locator('.compact-score-row .mobile-mark').first();
+  await firstMark.waitFor({state:'visible',timeout:7000});
+  await firstMark.fill('0');
+  await firstMark.blur();
+  const saveResponse=page.waitForResponse(r=>r.url().includes('/api/marks')&&r.request().method()==='PUT'&&r.status()===200,{timeout:10000});
+  await page.locator('#saveGrades').click();
+  await saveResponse;
+  await page.reload({waitUntil:'domcontentloaded'});
+  await page.locator('.app-shell').waitFor({state:'visible',timeout:12000});
+  await page.locator('.bottom-nav button[data-view="grades"]').click();
+  await page.locator('[data-page="grades"]').waitFor({state:'visible',timeout:7000});
+  await page.waitForTimeout(250);
+  const persistedZero=await page.locator('.compact-score-row .mobile-mark').first().inputValue();
+  check('zero grade persists distinctly from empty',persistedZero==='0',persistedZero);
+
+  let firstRow=page.locator('.compact-score-row').first();
+  let absentButton=firstRow.locator('.absent-btn');
+  let absentInput=firstRow.locator('.mobile-mark');
+  await absentButton.click();
+  await page.waitForTimeout(80);
+  let absentValue=await absentInput.inputValue();
+  let absentPressed=await absentButton.getAttribute('aria-pressed');
+  check('absence is an explicit selected state',/^(غائب|غائبة|Absent|Absente)$/u.test(absentValue)&&absentPressed==='true',JSON.stringify({absentValue,absentPressed}));
+
+  const saveAbsentResponse=page.waitForResponse(r=>r.url().includes('/api/marks')&&r.request().method()==='PUT'&&r.status()===200,{timeout:10000});
+  await page.locator('#saveGrades').click();
+  await saveAbsentResponse;
+  await page.reload({waitUntil:'domcontentloaded'});
+  await page.locator('.app-shell').waitFor({state:'visible',timeout:12000});
+  await page.locator('.bottom-nav button[data-view="grades"]').click();
+  await page.locator('[data-page="grades"]').waitFor({state:'visible',timeout:7000});
+  await page.waitForTimeout(250);
+  firstRow=page.locator('.compact-score-row').first();
+  absentButton=firstRow.locator('.absent-btn');
+  absentInput=firstRow.locator('.mobile-mark');
+  absentValue=await absentInput.inputValue();
+  absentPressed=await absentButton.getAttribute('aria-pressed');
+  check('absence persists after reload',/^(غائب|غائبة|Absent|Absente)$/u.test(absentValue)&&absentPressed==='true',JSON.stringify({absentValue,absentPressed}));
+
+  await absentButton.click();
+  await page.waitForTimeout(80);
+  let clearedValue=await absentInput.inputValue();
+  let clearedPressed=await absentButton.getAttribute('aria-pressed');
+  check('absence can be cleared back to not-entered',clearedValue===''&&clearedPressed==='false',JSON.stringify({clearedValue,clearedPressed}));
+
+  const saveBlankResponse=page.waitForResponse(r=>r.url().includes('/api/marks')&&r.request().method()==='PUT'&&r.status()===200,{timeout:10000});
+  await page.locator('#saveGrades').click();
+  await saveBlankResponse;
+  await page.reload({waitUntil:'domcontentloaded'});
+  await page.locator('.app-shell').waitFor({state:'visible',timeout:12000});
+  await page.locator('.bottom-nav button[data-view="grades"]').click();
+  await page.locator('[data-page="grades"]').waitFor({state:'visible',timeout:7000});
+  await page.waitForTimeout(250);
+  firstRow=page.locator('.compact-score-row').first();
+  absentButton=firstRow.locator('.absent-btn');
+  absentInput=firstRow.locator('.mobile-mark');
+  clearedValue=await absentInput.inputValue();
+  clearedPressed=await absentButton.getAttribute('aria-pressed');
+  check('not-entered state persists distinctly from zero and absence',clearedValue===''&&clearedPressed==='false',JSON.stringify({clearedValue,clearedPressed}));
+
+  const max=Number(await absentInput.getAttribute('max'))||20;
+  await absentInput.fill(String(max+1));
+  await absentInput.blur();
+  check('grade above subject maximum is rejected',await absentInput.evaluate(el=>el.classList.contains('grade-invalid')),JSON.stringify({max,value:await absentInput.inputValue()}));
+  await absentInput.fill('');
+  await absentInput.blur();
 
   await page.locator('.bottom-nav button[data-view="more"]').click();
   await page.locator('[data-page="more"]').waitFor({state:'visible',timeout:7000});
