@@ -1,0 +1,48 @@
+name: Mobile UI acceptance
+
+on:
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  mobile-ui:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+      - run: npm ci --no-audit --no-fund
+      - name: Install Playwright for acceptance only
+        run: |
+          npm install --no-save --no-package-lock playwright@1.55.0
+          npx playwright install --with-deps chromium
+      - name: Start local Nataiji
+        env:
+          NODE_ENV: development
+          PORT: '3221'
+          DATABASE_URL: ''
+          REDIS_URL: ''
+          SUPER_ADMIN_EMAIL: mobile.owner@example.com
+          SUPER_ADMIN_NAME: Mobile QA Owner
+        run: |
+          npm start > /tmp/nataiji-ui.log 2>&1 &
+          echo $! > /tmp/nataiji-ui.pid
+          for i in $(seq 1 40); do
+            if curl --silent --fail http://127.0.0.1:3221/health >/dev/null; then exit 0; fi
+            sleep 1
+          done
+          cat /tmp/nataiji-ui.log
+          exit 1
+      - name: Run mobile browser acceptance
+        env:
+          NATAIJI_TEST_URL: http://127.0.0.1:3221
+        run: node scripts/ui-mobile-acceptance.mjs
+      - name: Show server log on failure
+        if: failure()
+        run: cat /tmp/nataiji-ui.log || true
