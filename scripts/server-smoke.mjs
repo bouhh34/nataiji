@@ -61,6 +61,14 @@ try{
   await member.request('/api/auth/reset-with-code',{method:'POST',body:{code:reset.code,password:'TeacherPass-2048'}});
   member.clear();await member.request('/api/auth/login',{method:'POST',body:{email:memberEmail,password:'TeacherPass-9021'},expected:401});
   await member.request('/api/auth/login',{method:'POST',body:{email:memberEmail,password:'TeacherPass-2048'}});
+  const otherSession=client();
+  await otherSession.request('/api/auth/login',{method:'POST',body:{email:memberEmail,password:'TeacherPass-2048'}});
+  await member.request('/api/owner/overview',{expected:403});
+  await member.request('/api/account/password',{method:'POST',body:{currentPassword:'incorrect',password:'TeacherPass-4096'},expected:401});
+  await member.request('/api/account/password',{method:'POST',body:{currentPassword:'TeacherPass-2048',password:'TeacherPass-4096'}});
+  await otherSession.request('/api/schools',{expected:401});
+  await member.request('/api/schools');
+  await member.request('/api/schools/switch',{method:'POST',body:{schoolId:ownerRegistration.user.schoolId},expected:403});
   await owner.request(`/api/owner/accounts/${memberRow.id}`,{method:'DELETE',body:{confirm:'DELETE'}});
   member.clear();await member.request('/api/auth/login',{method:'POST',body:{email:memberEmail,password:'TeacherPass-2048'},expected:401});
   console.log('Nataiji server smoke test passed');

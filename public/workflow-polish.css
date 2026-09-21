@@ -1,0 +1,17 @@
+@media screen{
+.workflow-tools{display:flex;flex-wrap:wrap;align-items:center;gap:8px;margin:12px 0}
+.workflow-tools input,.workflow-tools select,.workflow-tools button{font:inherit;color:#17364d;border:1px solid #d5e2e3;background:#fff;border-radius:11px;min-height:44px;padding:9px 12px;min-width:0}
+.pupil-tools input{flex:1 1 210px}.pupil-tools select{flex:0 1 180px}.pupil-tools small{flex-basis:100%;color:#627780}
+#gradeNavigation button{flex:1}#saveState{position:relative!important;margin:8px 0!important;font-size:12px!important}
+.lang-fr .student-mobile-cards{direction:ltr!important}
+.lang-fr #studentReport .report-actions{direction:ltr!important}
+.report-expanded{position:fixed;inset:0;z-index:200;background:#edf3f4;padding:16px;overflow:auto}
+.report-expanded>.preview-close{position:sticky;top:0;z-index:1;min-height:44px;padding:10px 20px;border:0;border-radius:10px;background:#082b4b;color:#fff}
+.report-expanded>.official-sheet,.report-expanded>.paper{transform:none!important;width:185mm!important;max-width:none!important;margin:15px auto!important;background:white!important;direction:rtl!important}
+.report-share-note{font-size:12px;color:#627780;line-height:1.5}
+button:focus-visible,a:focus-visible{outline:3px solid #cda849;outline-offset:3px}
+@media(min-width:761px){#gradeNavigation{display:none}.student-table tbody{display:table-row-group}}
+@media(max-width:760px){.card .section-head{gap:12px}.section-head>div{min-width:0}.section-head h2{line-height:1.4!important}.section-head>button{flex-shrink:0}.student-mobile-actions button{min-height:44px!important}.compact-score-row .mobile-mark{height:44px!important}.compact-score-row .absent-btn{min-height:44px!important}.bottom-nav{height:calc(74px + env(safe-area-inset-bottom))!important}body{padding-bottom:calc(84px + env(safe-area-inset-bottom))!important}}
+@media(prefers-reduced-motion:reduce){*,*:before,*:after{scroll-behavior:auto!important;animation-duration:.01ms!important;transition-duration:.01ms!important}}
+}
+@media print{.workflow-tools,.report-expanded,.report-share-note{display:none!important}}

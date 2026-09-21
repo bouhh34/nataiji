@@ -68,4 +68,29 @@ The implementation preserves the selected direction's midnight navy, Mauritanian
 - No application-origin JavaScript errors were detected in the production browser review.
 - Render's own black wake-up screen can still precede the application on a sleeping/free instance; eliminating it requires an always-on plan or a separately hosted static frontend.
 
-final result: passed
+Previous release result: passed
+
+## Mobile workflow revision — 2026-09-21 (pending browser acceptance)
+
+Source references: user mobile captures 01-1000608276.jpg through 06-1000608262.jpg.
+Preserve navy/emerald/gold identity and canonical bilingual documents.
+
+Implemented: two-line subject progress layout with full-width labels, compact context header,
+non-overlapping welcome action, fixed subject icons, numeric keyboard with Arabic/French
+decimal support, next/previous pupil controls, visible save state, pupil search and view-only
+sorting, localized report pupil picker, expanded report preview, sharing of a saved PDF on
+supported devices, password change with session revocation, and account policy links.
+
+Performance: prevent redundant settings/locale markup replacement and duplicate stylesheet
+loading. Refresh service-worker cache version.
+
+Validated locally: JavaScript syntax, server smoke, invalid-current-password rejection,
+session revocation after password change, owner API denial and cross-school switch denial.
+Public production browser: login and password-recovery controls load; WhatsApp/email support
+links present. No application-origin errors in observed console.
+
+Not yet validated: modified authenticated pages at phone widths, actual keyboard behavior,
+printed PDF pagination and native file-sharing sheet. Cloud browser cannot reach the local
+development server; authenticated browser acceptance is still required before release.
+
+Current revision status: pending, not a completed visual QA pass.

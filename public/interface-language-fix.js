@@ -13,7 +13,7 @@ const termFr=v=>({'الفصل الأول':'1er trimestre','الفصل الثان
 const classFr=c=>{const raw=String(c?.name||c?.code||'').trim(),code=String(c?.code||raw.match(/[1-6]AF/i)?.[0]||'').toUpperCase(),names={'1AF':'1re année fondamentale','2AF':'2e année fondamentale','3AF':'3e année fondamentale','4AF':'4e année fondamentale','5AF':'5e année fondamentale','6AF':'6e année fondamentale'},saved=String(c?.nameFr||'').trim(),validSaved=saved&&!/[\u0600-\u06ff]/.test(saved);return validSaved?saved:([code,names[code]].filter(Boolean).join(' - ')||raw)};
 function setText(el,value){const v=String(value??'');if(el&&el.textContent!==v)el.textContent=v}
 function localizeSchoolData(){let s;try{s=state}catch{return}if(!s)return;const fr=lang()==='fr';
- const classes=Array.isArray(s.classes)?s.classes:[];document.querySelectorAll('#classTop option').forEach(o=>{const c=classes.find(x=>String(x.id)===String(o.value));if(c)setText(o,fr?classFr(c):(c.name||c.code||c.nameFr))});
+ const classes=Array.isArray(s.classes)?s.classes:[];document.querySelectorAll('#classTop option').forEach(o=>{const c=classes.find(x=>String(x.id)===String(o.value).split('|').pop());if(c)setText(o,fr?classFr(c):(c.name||c.code||c.nameFr))});
  document.querySelectorAll('#term option').forEach(o=>setText(o,fr?termFr(o.value):o.value));
  document.querySelectorAll('#subjectPicker option').forEach(o=>{const x=s.subjects?.[Number(o.value)];if(x)setText(o,fr?(x[2]||x[0]):x[0])});
  const j=Number(document.querySelector('#subjectPicker')?.value)||0,sub=s.subjects?.[j];if(sub)setText(document.querySelector('#mobileScores .subject-title b'),fr?(sub[2]||sub[0]):sub[0]);
@@ -21,9 +21,9 @@ function localizeSchoolData(){let s;try{s=state}catch{return}if(!s)return;const 
 }
 function apply(){const l=lang();document.documentElement.lang=l;document.documentElement.dir=l==='fr'?'ltr':'rtl';document.body.classList.toggle('lang-fr',l==='fr');
  textNodes(document.body).forEach(n=>{const p=n.parentElement;if(!p||protectedNode(p)||p.closest('script,style,.dual,.subject-ar,.subject-fr'))return;const raw=n.nodeValue,trim=raw.trim();if(!trim)return;if(!n.__nataijiAr)n.__nataijiAr=raw;const ar=n.__nataijiAr.trim(),key=withoutGlyph(ar);if(l==='fr'&&T[key])n.nodeValue=n.__nataijiAr.replace(ar,T[key]);else if(l==='ar')n.nodeValue=n.__nataijiAr});
- document.querySelectorAll('select option').forEach(o=>{if(protectedNode(o))return;if(!o.dataset.nataijiAr)o.dataset.nataijiAr=o.textContent;const ar=o.dataset.nataijiAr.trim();o.textContent=l==='fr'?(T[ar]||o.dataset.nataijiAr):o.dataset.nataijiAr});
+ document.querySelectorAll('select option').forEach(o=>{if(protectedNode(o)||o.closest('#classTop,#term,#subjectPicker,#student'))return;if(!o.dataset.nataijiAr)o.dataset.nataijiAr=o.textContent;const ar=o.dataset.nataijiAr.trim();setText(o,l==='fr'?(T[ar]||o.dataset.nataijiAr):o.dataset.nataijiAr)});
  localizeSchoolData();
- const b=document.querySelector('#langSwitch');if(b)b.innerHTML=l==='fr'?'<b>العربية</b><span>التحويل إلى واجهة عربية كاملة</span>':'<b>Français</b><span>Passer à l’interface française complète</span>';
+ const b=document.querySelector('#langSwitch');if(b&&b.dataset.locale!==l){b.dataset.locale=l;b.innerHTML=l==='fr'?'<b>العربية</b><span>التحويل إلى واجهة عربية كاملة</span>':'<b>Français</b><span>Passer à l’interface française complète</span>'}
 }
 function ensureSwitch(){if(document.querySelector('#langSwitch'))return;const grid=document.querySelector('.settings-grid');if(!grid)return;const b=document.createElement('button');b.id='langSwitch';b.className='menu-card language-card';b.innerHTML='<b>اللغة / Langue</b><span>العربية / Français</span>';grid.insertBefore(b,grid.firstChild);b.addEventListener('click',()=>{localStorage.setItem('nataiji-lang',lang()==='fr'?'ar':'fr');location.reload()})}
 let timer;new MutationObserver(()=>{clearTimeout(timer);timer=setTimeout(()=>{ensureSwitch();apply()},80)}).observe(document.documentElement,{childList:true,subtree:true});
