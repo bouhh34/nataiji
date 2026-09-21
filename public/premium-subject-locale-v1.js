@@ -9,6 +9,34 @@ const setText=(el,value)=>{if(el&&el.textContent!==String(value??''))el.textCont
 const isFr=()=>localStorage.getItem('nataiji-lang')==='fr';
 const stateValue=()=>{try{return state}catch{return null}};
 const normalize=v=>String(v||'').normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase();
+const SUBJECT_FR={
+ 'التربية الإسلامية':'Éducation islamique','التربيه الاسلاميه':'Éducation islamique',
+ 'اللغة العربية':'Langue arabe','اللغه العربيه':'Langue arabe',
+ 'الحساب':'Calcul','الرياضيات':'Mathématiques',
+ 'التربية المدنية':'Éducation civique','التربيه المدنيه':'Éducation civique',
+ 'التربية الفنية':'Éducation artistique','التربيه الفنيه':'Éducation artistique',
+ 'الفرنسية':'Français','اللغة الفرنسية':'Français','Français':'Français',
+ 'الرياضة':'Éducation physique','التربية البدنية':'Éducation physique','التربيه البدنيه':'Éducation physique',
+ 'العلوم':'Sciences','العلوم الطبيعية':'Sciences naturelles'
+};
+function subjectFr(sub,fallback=''){
+ const candidates=[sub?.[2],sub?.[1]].map(v=>String(v??'').trim()).filter(v=>v&&/[A-Za-zÀ-ÿ]/.test(v));
+ if(candidates.length)return candidates[0];
+ const ar=String(sub?.[0]||fallback||'').trim();
+ if(SUBJECT_FR[ar])return SUBJECT_FR[ar];
+ const n=normalize(ar);
+ if(/اسلام/.test(n))return'Éducation islamique';
+ if(/عرب/.test(n))return'Langue arabe';
+ if(/حساب/.test(n))return'Calcul';
+ if(/رياضيات/.test(n))return'Mathématiques';
+ if(/مدني/.test(n))return'Éducation civique';
+ if(/فني/.test(n))return'Éducation artistique';
+ if(/فرنس/.test(n))return'Français';
+ if(/رياض|بدني/.test(n))return'Éducation physique';
+ if(/علوم/.test(n))return'Sciences';
+ return /[\u0600-\u06ff]/.test(ar)?'Matière':ar;
+}
+window.nataijiSubjectFrLabel=subjectFr;
 const subjectIcon=v=>{
  const n=normalize(v);
  if(/اسلام|islam/.test(n))return'book-open';
@@ -34,10 +62,10 @@ function localizeGradeRows(s){
 }
 function localizeSubjects(s){
  const picker=q('#subjectPicker'),fr=isFr();
- if(picker)qa('option',picker).forEach(o=>{const x=s.subjects?.[Number(o.value)];if(!x)return;setText(o,fr?(x?.[2]||x?.[0]):x?.[0]);o.dir=fr?'ltr':'rtl'});
+ if(picker)qa('option',picker).forEach(o=>{const x=s.subjects?.[Number(o.value)];if(!x)return;setText(o,fr?subjectFr(x,o.textContent):x?.[0]);o.dir=fr?'ltr':'rtl'});
  const j=Number(picker?.value)||0,sub=s.subjects?.[j];
- if(sub){const title=q('#mobileScores .grade-subject-copy b')||q('#mobileScores .subject-title b');if(title){setText(title,fr?(sub?.[2]||sub?.[0]):sub?.[0]);const host=title.closest('.grade-subject-copy')||title.parentElement;addIcon(host,subjectIcon(`${sub?.[0]} ${sub?.[2]}`))}}
- qa('#subjectProgress>div').forEach((row,i)=>{const x=s.subjects?.[i];if(!x)return;const label=q(':scope > span',row)||row;addIcon(label,subjectIcon(`${x?.[0]} ${x?.[2]}`));let name=q(':scope > .subject-progress-name',label);if(!name){name=document.createElement('b');name.className='subject-progress-name';[...label.childNodes].filter(n=>n.nodeType===Node.TEXT_NODE).forEach(n=>n.remove());const icon=q(':scope > .subject-premium-icon',label);icon?.after(name)}setText(name,isFr()?(x?.[2]||x?.[0]):x?.[0]);name.dir=isFr()?'ltr':'rtl'});
+ if(sub){const title=q('#mobileScores .grade-subject-copy b')||q('#mobileScores .subject-title b');if(title){setText(title,fr?subjectFr(sub,title.textContent):sub?.[0]);const host=title.closest('.grade-subject-copy')||title.parentElement;addIcon(host,subjectIcon(`${sub?.[0]} ${sub?.[2]}`))}}
+ qa('#subjectProgress>div').forEach((row,i)=>{const x=s.subjects?.[i];if(!x)return;const label=q(':scope > span',row)||row;addIcon(label,subjectIcon(`${x?.[0]} ${x?.[2]}`));let name=q(':scope > .subject-progress-name',label);if(!name){name=document.createElement('b');name.className='subject-progress-name';[...label.childNodes].filter(n=>n.nodeType===Node.TEXT_NODE).forEach(n=>n.remove());const icon=q(':scope > .subject-premium-icon',label);icon?.after(name)}setText(name,isFr()?subjectFr(x,name.textContent):x?.[0]);name.dir=isFr()?'ltr':'rtl'});
 }
 function localizePrintControls(){
  const fr=isFr(),all=q('#printAllStudents');setText(all,fr?'Imprimer tous les bulletins (2 élèves / A4)':'طباعة جميع الكشوف (تلميذان / A4)');
