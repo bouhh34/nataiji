@@ -68,10 +68,10 @@ try{
     return {statDuplicates,ctaIcons};
   });
   check('home has exactly one icon per KPI and CTA',duplicateHomeIcons.statDuplicates===0&&duplicateHomeIcons.ctaIcons===1,JSON.stringify(duplicateHomeIcons));
-  const compactHeroHeight=await homeHero.evaluate(el=>Math.round(el.getBoundingClientRect().height));
-  check('home hero is compact on mobile',compactHeroHeight<=175,String(compactHeroHeight));
   const homeHeader=page.locator('main > header.np-home-header');
   const homeHero=page.locator('[data-page="home"] .np-home-hero');
+  const compactHeroHeight=await homeHero.evaluate(el=>Math.round(el.getBoundingClientRect().height));
+  check('home hero is compact on mobile',compactHeroHeight<=175,String(compactHeroHeight));
   const homeProgress=page.locator('[data-page="home"] .np-home-progress-card');
   const homeShowAll=page.locator('[data-page="home"] .np-home-show-all');
   check('approved home header layout is active',await homeHeader.count()===1,String(await homeHeader.count()));
