@@ -435,7 +435,8 @@ app.put('/api/marks',auth,async(req,res)=>{
   const editableIds=scope.fullClass||scope.allSubjects===true?null:new Set((scope.subjectIds||[]).map(String));
   editableIndexes=visibleSubjects.map((x,i)=>editableIds===null||editableIds.has(String(x.subject_id))?i:-1).filter(i=>i>=0);
  }
- for(let i=0;i<pupils.length;i++)for(const j of editableIndexes){const checked=validateStoredMark(marks?.[i]?.[j],visibleSubjects[j]?.data);if(!checked.ok)return res.status(422).json({error:checked.error,max:checked.max,value:checked.value,pupilIndex:i,subjectIndex:j,subjectId:String(visibleSubjects[j]?.subject_id||'')})}
+ const normalizedMarks=marks.map(row=>Array.isArray(row)?row.slice():[]);
+ for(let i=0;i<pupils.length;i++)for(const j of editableIndexes){const checked=validateStoredMark(marks?.[i]?.[j],visibleSubjects[j]?.data);if(!checked.ok)return res.status(422).json({error:checked.error,max:checked.max,value:checked.value,pupilIndex:i,subjectIndex:j,subjectId:String(visibleSubjects[j]?.subject_id||'')});normalizedMarks[i]=normalizedMarks[i]||[];normalizedMarks[i][j]=checked.value}
  const editableSubjects=editableIndexes.map(j=>visibleSubjects[j]);
  const client=await pool.connect();
  try{
@@ -444,7 +445,7 @@ app.put('/api/marks',auth,async(req,res)=>{
    const allowedIds=editableSubjects.map(x=>String(x.subject_id));
    if(allowedIds.length)await client.query('DELETE FROM nataiji_marks WHERE school_id=$1 AND class_id=$2 AND term=$3 AND subject_id=ANY($4::text[])',[req.user.schoolId,classId,term,allowedIds]);
   }else await client.query('DELETE FROM nataiji_marks WHERE school_id=$1 AND class_id=$2 AND term=$3',[req.user.schoolId,classId,term]);
-  for(let i=0;i<pupils.length;i++)for(const j of editableIndexes){const v=marks?.[i]?.[j],sub=visibleSubjects[j];if(v===''||v==null||!sub)continue;await client.query(`INSERT INTO nataiji_marks(school_id,class_id,term,pupil_key,subject_id,value,updated_at)
+  for(let i=0;i<pupils.length;i++)for(const j of editableIndexes){const v=normalizedMarks?.[i]?.[j],sub=visibleSubjects[j];if(v===''||v==null||!sub)continue;await client.query(`INSERT INTO nataiji_marks(school_id,class_id,term,pupil_key,subject_id,value,updated_at)
    VALUES($1,$2,$3,$4,$5,$6,now())
    ON CONFLICT(school_id,class_id,term,pupil_key,subject_id)
    DO UPDATE SET value=EXCLUDED.value,updated_at=now()`,[req.user.schoolId,classId,term,pupils[i].nns,sub.subject_id,String(v)])}
