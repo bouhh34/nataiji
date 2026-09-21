@@ -80,7 +80,7 @@ window.nataijiFindInvalidMark=function(){
  return null
 };
 function enhanceInputs(){
- qa('.mark,.mobile-mark').forEach(input=>{
+ qa('input.mark[data-i][data-j],input.mobile-mark[data-i][data-j]').forEach(input=>{
   const i=Number(input.dataset.i),j=Number(input.dataset.j);
   input.inputMode='decimal';input.enterKeyHint='next';if(input.dataset.lastValid===undefined)input.dataset.lastValid=String(state?.marks?.[i]?.[j]??'');
   input.placeholder=isFr()?'Note ou Absent':'درجة أو غائب';
@@ -95,7 +95,7 @@ function enhanceInputs(){
   const buttonHost=compactRow?.querySelector?.('.score-controls')||input.parentElement;
   let b=buttonHost?.querySelector?.('.absent-btn')||compactRow?.querySelector?.('.absent-btn');
   if(!b&&buttonHost){b=document.createElement('button');b.type='button';b.className='absent-btn';buttonHost.appendChild(b)}
-  if(b){b.textContent=absenceLabel(i);b.onclick=e=>{e.preventDefault();e.stopPropagation();input.value=absenceLabel(i);commitEntry(input,true);input.dispatchEvent(new Event('change',{bubbles:true}))}}
+  if(b){const syncPressed=()=>b.setAttribute('aria-pressed',isAbsent(input.value)?'true':'false');b.textContent=absenceLabel(i);syncPressed();b.onclick=e=>{e.preventDefault();e.stopPropagation();if(isAbsent(input.value)){input.value='';commitEntry(input,true);syncPressed();input.focus()}else{input.value=absenceLabel(i);commitEntry(input,true);syncPressed();input.dispatchEvent(new Event('change',{bubbles:true}))}}
  })
 }
 try{
