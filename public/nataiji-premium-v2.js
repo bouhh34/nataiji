@@ -132,7 +132,7 @@ function ensureSubjectLabel(row,i){
   const subjects=getSubjects(),sub=subjects[i]||[],label=q(':scope > span',row);
   if(!label)return;
   const fallback=[...label.childNodes].filter(n=>n.nodeType===Node.TEXT_NODE).map(n=>n.textContent||'').join(' ').trim();
-  const name=fr()?(String(sub?.[2]||sub?.[0]||fallback).trim()):(String(sub?.[0]||sub?.[2]||fallback).trim());
+  const name=fr()?(String(window.nataijiSubjectFrLabel?.(sub,fallback)||sub?.[2]||sub?.[0]||fallback).trim()):(String(sub?.[0]||sub?.[2]||fallback).trim());
   let wrap=q(':scope > .subject-premium-icon',label);
   if(!wrap){
     wrap=document.createElement('span');
