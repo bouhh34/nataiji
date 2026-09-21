@@ -18,7 +18,7 @@ try{
   await page.locator('[data-auth2="register"]').waitFor({state:'visible',timeout:10000});
   await page.locator('[data-auth2="register"]').click();
   await page.locator('#auth2Form input[name="name"]').fill('Mobile QA Teacher');
-  await page.locator('#auth2Form input[name="email"]').fill('mobile.qa@example.com');
+  await page.locator('#auth2Form input[name="email"]').fill('mobile.owner@example.com');
   await page.locator('#auth2Form input[name="password"]').fill('MobileQA-9021');
   await page.locator('#auth2Form .auth-submit').click();
 
@@ -70,6 +70,21 @@ try{
 
   const frenchOverflow=await page.evaluate(()=>({scroll:document.documentElement.scrollWidth,width:window.innerWidth}));
   check('French shell has no horizontal overflow',frenchOverflow.scroll<=frenchOverflow.width+2,JSON.stringify(frenchOverflow));
+
+  await page.locator('.bottom-nav button[data-view="grades"]').click();
+  await page.locator('[data-page="grades"]').waitFor({state:'visible',timeout:7000});
+  await page.waitForTimeout(250);
+  const frenchSubjects=await page.locator('#subjectPicker option').evaluateAll(opts=>opts.map(o=>o.textContent?.trim()||''));
+  check('French subject picker contains no Arabic labels',frenchSubjects.length>0&&frenchSubjects.every(x=>!/[\u0600-\u06ff]/.test(x)),JSON.stringify(frenchSubjects));
+  const selectedClass=await page.locator('#classTop option:checked').textContent();
+  check('French class selector contains no Arabic label',Boolean(selectedClass)&&!/[\u0600-\u06ff]/.test(selectedClass),String(selectedClass));
+
+  await page.locator('.bottom-nav button[data-view="more"]').click();
+  await page.locator('[data-page="more"]').waitFor({state:'visible',timeout:7000});
+  const ownerCard=page.locator('#ownerDashboardBtn');
+  await ownerCard.waitFor({state:'visible',timeout:7000});
+  const ownerTitleColor=await ownerCard.locator('b').evaluate(el=>getComputedStyle(el).color);
+  check('Super-admin title stays readable on dark card',/rgb\(255,\s*255,\s*255\)/.test(ownerTitleColor),ownerTitleColor);
 
   console.log('\nNataiji mobile UI acceptance finished.');
   if(failures.length){

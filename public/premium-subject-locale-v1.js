@@ -33,8 +33,10 @@ function localizeGradeRows(s){
  rows.forEach((row,i)=>{const p=s.pupils?.[i],b=q('.score-student b',row);if(!p||!b)return;const name=localizedPupil(p),next=`${i+1}. ${name}`;if(b.textContent!==next)b.textContent=next;b.dir=isFr()?'ltr':'rtl';const input=q('.mobile-mark',row);if(input)input.setAttribute('aria-label',`${name} — ${isFr()?'note':'النتيجة'}`)});
 }
 function localizeSubjects(s){
- const picker=q('#subjectPicker'),j=Number(picker?.value)||0,sub=s.subjects?.[j];
- if(sub){const title=q('#mobileScores .grade-subject-copy b')||q('#mobileScores .subject-title b');if(title){setText(title,isFr()?(sub?.[2]||sub?.[0]):sub?.[0]);const host=title.closest('.grade-subject-copy')||title.parentElement;addIcon(host,subjectIcon(`${sub?.[0]} ${sub?.[2]}`))}}
+ const picker=q('#subjectPicker'),fr=isFr();
+ if(picker)qa('option',picker).forEach(o=>{const x=s.subjects?.[Number(o.value)];if(!x)return;setText(o,fr?(x?.[2]||x?.[0]):x?.[0]);o.dir=fr?'ltr':'rtl'});
+ const j=Number(picker?.value)||0,sub=s.subjects?.[j];
+ if(sub){const title=q('#mobileScores .grade-subject-copy b')||q('#mobileScores .subject-title b');if(title){setText(title,fr?(sub?.[2]||sub?.[0]):sub?.[0]);const host=title.closest('.grade-subject-copy')||title.parentElement;addIcon(host,subjectIcon(`${sub?.[0]} ${sub?.[2]}`))}}
  qa('#subjectProgress>div').forEach((row,i)=>{const x=s.subjects?.[i];if(!x)return;const label=q(':scope > span',row)||row;addIcon(label,subjectIcon(`${x?.[0]} ${x?.[2]}`));let name=q(':scope > .subject-progress-name',label);if(!name){name=document.createElement('b');name.className='subject-progress-name';[...label.childNodes].filter(n=>n.nodeType===Node.TEXT_NODE).forEach(n=>n.remove());const icon=q(':scope > .subject-premium-icon',label);icon?.after(name)}setText(name,isFr()?(x?.[2]||x?.[0]):x?.[0]);name.dir=isFr()?'ltr':'rtl'});
 }
 function localizePrintControls(){
