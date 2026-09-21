@@ -13,7 +13,7 @@ function assert(name, ok, detail=''){
 
 const required = [
   'public/index.html','public/manifest.webmanifest','public/sw.js',
-  'public/privacy.html','public/terms.html','public/release-100-v1.css',
+  'public/privacy.html','public/terms.html','public/release-100-v1.css','public/nataiji-final-visual-v1.css',
   'public/nataiji-brand-mark.png','capacitor.config.ts',
   '.github/workflows/mobile-android-release.yml',
   '.github/workflows/mobile-ios-appstore.yml',
@@ -32,10 +32,12 @@ assert('brand title', /نتائجي\s*\|\s*Nataiji/.test(index));
 assert('viewport safe area', /viewport-fit=cover/.test(index));
 assert('rtl-ltr boot direction', /document\.documentElement\.dir/.test(index));
 assert('final mobile css loaded', /release-100-v1\.css/.test(index));
+assert('final visual polish loaded', /nataiji-final-visual-v1\.css/.test(index));
 assert('privacy page exists', exists('public/privacy.html'));
 assert('terms page exists', exists('public/terms.html'));
 assert('PWA cache version current', /nataiji-shell-v13/.test(sw));
 assert('PWA caches final mobile css', /release-100-v1\.css/.test(sw));
+assert('PWA caches final visual polish', /nataiji-final-visual-v1\.css/.test(sw));
 assert('PWA excludes API cache', /pathname\.startsWith\("\/api\/"\)/.test(sw));
 assert('secure cookie enabled', /httpOnly:true/.test(server) && /sameSite:'lax'/.test(server));
 assert('origin protection enabled', /cross_site_request_blocked/.test(server));
