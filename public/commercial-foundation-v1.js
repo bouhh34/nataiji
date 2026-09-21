@@ -14,6 +14,8 @@ function closeableModal(){
 function bind(){
  const grid=q('.settings-grid');if(!grid||!user())return;let btn=q('#subscriptionBtn');
  if(!btn){btn=document.createElement('button');btn.type='button';btn.id='subscriptionBtn';btn.className='menu-card subscription-card';grid.insertBefore(btn,q('#supportBtn')||q('#logoutBtn')||null)}
+ if(btn.dataset.locale===lang())return;
+ btn.dataset.locale=lang();
  btn.innerHTML=`<b>${tr('الخطة والاشتراك','Offre et abonnement')} <small>${tr('مجاني','GRATUIT')}</small></b><span>${tr('جميع المزايا مفتوحة مجانًا خلال الإطلاق','Toutes les fonctionnalités sont offertes pendant le lancement')}</span>`;btn.onclick=e=>{e.preventDefault();closeableModal()};
 }
 const css=document.createElement('style');css.id='nataiji-commercial-style';css.textContent=`

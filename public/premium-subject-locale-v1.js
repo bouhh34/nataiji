@@ -5,13 +5,15 @@ window.__nataijiPremiumSubjectLocaleV1=true;
 
 const q=(s,r=document)=>r.querySelector(s);
 const qa=(s,r=document)=>[...r.querySelectorAll(s)];
+const setText=(el,value)=>{if(el&&el.textContent!==String(value??''))el.textContent=String(value??'')};
 const isFr=()=>localStorage.getItem('nataiji-lang')==='fr';
 const stateValue=()=>{try{return state}catch{return null}};
 const normalize=v=>String(v||'').normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase();
 const subjectIcon=v=>{
  const n=normalize(v);
  if(/اسلام|islam/.test(n))return'book-open';
- if(/فيزياء|physique|physics/.test(n))return'flask';
+ if(/بدني|رياضة|education physique|sport/.test(n))return'activity';
+ if(/فيزياء|physique|physics/.test(n))return'zap';
  if(/عرب|arabe|lecture|قراءة|كتاب|ecriture|كتابة|expression|تعبير/.test(n))return'book';
  if(/حساب|رياضيات|math|calcul/.test(n))return'hash';
  if(/مدني|civique|citoy/.test(n))return'flag';
@@ -32,17 +34,17 @@ function localizeGradeRows(s){
 }
 function localizeSubjects(s){
  const picker=q('#subjectPicker'),j=Number(picker?.value)||0,sub=s.subjects?.[j];
- if(sub){const title=q('#mobileScores .grade-subject-copy b')||q('#mobileScores .subject-title b');if(title){title.textContent=isFr()?(sub?.[2]||sub?.[0]):sub?.[0];const host=title.closest('.grade-subject-copy')||title.parentElement;addIcon(host,subjectIcon(`${sub?.[0]} ${sub?.[2]}`))}}
- qa('#subjectProgress>div').forEach((row,i)=>{const x=s.subjects?.[i];if(!x)return;const label=q(':scope > span',row)||row;addIcon(label,subjectIcon(`${x?.[0]} ${x?.[2]}`));let name=q(':scope > .subject-progress-name',label);if(!name){name=document.createElement('b');name.className='subject-progress-name';[...label.childNodes].filter(n=>n.nodeType===Node.TEXT_NODE).forEach(n=>n.remove());const icon=q(':scope > .subject-premium-icon',label);icon?.after(name)}name.textContent=isFr()?(x?.[2]||x?.[0]):x?.[0];name.dir=isFr()?'ltr':'rtl'});
+ if(sub){const title=q('#mobileScores .grade-subject-copy b')||q('#mobileScores .subject-title b');if(title){setText(title,isFr()?(sub?.[2]||sub?.[0]):sub?.[0]);const host=title.closest('.grade-subject-copy')||title.parentElement;addIcon(host,subjectIcon(`${sub?.[0]} ${sub?.[2]}`))}}
+ qa('#subjectProgress>div').forEach((row,i)=>{const x=s.subjects?.[i];if(!x)return;const label=q(':scope > span',row)||row;addIcon(label,subjectIcon(`${x?.[0]} ${x?.[2]}`));let name=q(':scope > .subject-progress-name',label);if(!name){name=document.createElement('b');name.className='subject-progress-name';[...label.childNodes].filter(n=>n.nodeType===Node.TEXT_NODE).forEach(n=>n.remove());const icon=q(':scope > .subject-premium-icon',label);icon?.after(name)}setText(name,isFr()?(x?.[2]||x?.[0]):x?.[0]);name.dir=isFr()?'ltr':'rtl'});
 }
 function localizePrintControls(){
- const fr=isFr(),all=q('#printAllStudents');if(all)all.textContent=fr?'Imprimer tous les bulletins (2 élèves / A4)':'طباعة جميع الكشوف (تلميذان / A4)';
+ const fr=isFr(),all=q('#printAllStudents');setText(all,fr?'Imprimer tous les bulletins (2 élèves / A4)':'طباعة جميع الكشوف (تلميذان / A4)');
  const choice=q('.print-choice');if(choice){const h=q('h2',choice),one=q('[data-x="one"]',choice),all2=q('[data-x="all2"]',choice),all1=q('[data-x="all1"]',choice);if(h)h.textContent=fr?'Impression des bulletins':'طباعة كشوف الدرجات';if(one)one.textContent=fr?'Élève sélectionné — 1 bulletin par A4':'التلميذ المحدد — كشف واحد في A4';if(all2)all2.textContent=fr?'Tous les élèves — 2 bulletins par A4':'جميع التلاميذ — كشفان في كل A4';if(all1)all1.textContent=fr?'Tous les élèves — 1 bulletin par A4':'جميع التلاميذ — كشف واحد في كل A4'}
  const labels={'student':fr?'Imprimer / PDF':'طباعة / PDF','class':fr?'Imprimer le relevé / PDF':'طباعة كشف القسم / PDF','list':fr?'Imprimer la liste / PDF':'طباعة اللائحة / PDF'};
- qa('.report-print[data-print]').forEach(b=>{const key=b.dataset.print;if(labels[key])b.textContent=labels[key]});
+ qa('.report-print[data-print]').forEach(b=>{const key=b.dataset.print;if(labels[key])setText(b,labels[key])});
 }
-function apply(){const s=stateValue();if(!s)return;localizeGradeRows(s);localizeSubjects(s);localizePrintControls();if(window.feather)window.feather.replace({class:'lux-feather','stroke-width':1.8})}
-let timer;new MutationObserver(()=>{clearTimeout(timer);timer=setTimeout(apply,50)}).observe(document.documentElement,{childList:true,subtree:true});
+function apply(){const s=stateValue();if(!s)return;observer.disconnect();try{localizeGradeRows(s);localizeSubjects(s);localizePrintControls();if(window.feather&&document.querySelector('i[data-feather]'))window.feather.replace({class:'lux-feather','stroke-width':1.8})}finally{observer.observe(document.documentElement,{childList:true,subtree:true})}}
+let timer;const observer=new MutationObserver(()=>{clearTimeout(timer);timer=setTimeout(apply,50)});observer.observe(document.documentElement,{childList:true,subtree:true});
 document.addEventListener('change',e=>{if(e.target?.matches('#subjectPicker,#term,#classTop'))setTimeout(apply,20)},true);
 document.addEventListener('click',e=>{if(e.target?.closest?.('[data-report],#printResult,#printAllStudents,.report-print'))setTimeout(apply,20)},true);
 window.addEventListener('DOMContentLoaded',()=>setTimeout(apply,250));setTimeout(apply,600);

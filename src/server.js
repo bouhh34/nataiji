@@ -175,6 +175,16 @@ app.get('/api/owner/overview',auth,ownerOnly,async(_req,res)=>{
  for(const [email,id] of Object.entries(idx)){const raw=await storeGet(userKey(id));if(!raw)continue;try{const u=JSON.parse(raw),baseRole=u.baseRole||u.role,owned=[...new Set(Array.isArray(u.ownedSchoolIds)?u.ownedSchoolIds:(u.schoolId?[u.schoolId]:[]))];schools+=owned.length;accounts.push({id:u.id,name:u.name||'',email,role:baseRole==='owner'?'owner':baseRole==='teacher'?'teacher':'admin',schools:owned.length,suspended:!!u.suspended,plan:u.plan||'free'})}catch{}}
  res.json({ok:true,stats:{users:accounts.length,schools,superAdmins:accounts.filter(x=>x.role==='owner').length,schoolAdmins:accounts.filter(x=>x.role==='admin').length,teachers:accounts.filter(x=>x.role==='teacher').length},accounts:accounts.sort((a,b)=>String(a.name).localeCompare(String(b.name),'fr'))})
 });
+app.post('/api/account/password',auth,resetPasswordRate,async(req,res)=>{
+ const current=String(req.body?.currentPassword||''),password=String(req.body?.password||'');
+ if(password.length<8||password.length>256)return res.status(400).json({error:'invalid_input'});
+ const raw=await storeGet(userKey(req.user.id));if(!raw)return res.status(401).json({error:'session_expired'});
+ const user=JSON.parse(raw);if(!verifyPassword(current,user))return res.status(401).json({error:'bad_password'});
+ const hp=hashPassword(password);user.salt=hp.salt;user.passwordHash=hp.hash;user.sessionVersion=(Number(user.sessionVersion)||0)+1;
+ await storeSet(userKey(user.id),JSON.stringify(user));
+ const oldToken=parseCookies(req).nataiji_session;if(oldToken)await storeDel(sessionKey(oldToken));
+ res.json({ok:true,user:await createSession(res,user)});
+});
 app.delete('/api/account',auth,async(req,res)=>{
  const password=String(req.body?.password||''),confirm=String(req.body?.confirm||'').trim();
  if(!password)return res.status(400).json({error:'delete_confirmation_required'});

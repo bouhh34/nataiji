@@ -3,6 +3,8 @@
 const q=(s,r=document)=>r.querySelector(s),qa=(s,r=document)=>[...r.querySelectorAll(s)];
 const lang=()=>localStorage.getItem('nataiji-lang')||'ar',fr=()=>lang()==='fr';
 const tr=(ar,ff)=>fr()?ff:ar;
+const stableText=(el,value)=>{if(el&&el.textContent!==String(value??''))el.textContent=String(value??'')};
+const stableMarkup=(el,value)=>{if(el&&el.__authMarkup!==value){el.__authMarkup=value;el.innerHTML=value}};
 const wait=ms=>new Promise(resolve=>setTimeout(resolve,ms));
 const within=(promise,ms)=>Promise.race([Promise.resolve(promise),wait(ms).then(()=>{throw new Error('request_timeout')})]);
 const esc3=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
@@ -138,7 +140,7 @@ async function sharesModal(){
 function bindShares(){
  const grid=q('.settings-grid');if(!grid)return;let b=q('#sharesBtn');if(currentUser?.baseRole!=='admin'||currentUser?.activeSharedGrant){b?.remove();return}
  if(!b){b=document.createElement('button');b.id='sharesBtn';b.className='menu-card';grid.insertBefore(b,q('#inviteBtn')?.nextSibling||q('#settingsBtn')||null)}
- b.innerHTML=`<b>🔗 ${tr('المشاركات','Partages')}</b><span>${tr('عرض من لديه وصول وإلغاء الصلاحية عند الحاجة','Voir les accès accordés et les retirer si nécessaire')}</span>`;b.onclick=sharesModal
+ stableMarkup(b,`<b>🔗 ${tr('المشاركات','Partages')}</b><span>${tr('عرض من لديه وصول وإلغاء الصلاحية عند الحاجة','Voir les accès accordés et les retirer si nécessaire')}</span>`);b.onclick=sharesModal
 }
 let workspaceSelectorRun=0,workspaceSelectorTimer=null;
 function workspaceStamp(){const cls=(state?.classes||[]).map(x=>String(x?.id||'')+':'+String(x?.name||'')).join(',');return [currentUser?.id||'',currentUser?.schoolId||'',currentUser?.activeSharedGrant||'',state?.activeClassId||'',lang(),cls].join('|')}
@@ -150,8 +152,8 @@ async function bindUnifiedClassSelector(){
   const r=await api('/api/workspaces');if(!r||run!==workspaceSelectorRun)return;
   const options=[],owned=r.owned||[],shared=r.shared||[],seen=new Set();
   const add=x=>{const k=x.kind+'|'+x.id+'|'+x.classId;if(!x.classId||seen.has(k))return;seen.add(k);options.push(x)};
-  for(const school of owned)for(const cls of school.classes||[])add({kind:'own',id:school.schoolId,classId:cls.id,label:(owned.length>1?school.schoolName+' — ':'')+cls.name,selected:!currentUser.activeSharedGrant&&school.active&&state?.activeClassId===cls.id});
-  for(const grant of shared)for(const cls of grant.classes||[])add({kind:'shared',id:grant.grantId,classId:cls.id,label:(grant.schoolName||tr('مدرسة','École'))+' — '+cls.name+' — '+(grant.ownerName||tr('المعلم المالك','Enseignant propriétaire')),selected:currentUser.activeSharedGrant===grant.grantId&&state?.activeClassId===cls.id});
+  for(const school of owned)for(const cls of school.classes||[])add({kind:'own',id:school.schoolId,classId:cls.id,label:(owned.length>1?school.schoolName+' — ':'')+(fr()?(cls.nameFr||cls.code||cls.name):cls.name),selected:!currentUser.activeSharedGrant&&school.active&&state?.activeClassId===cls.id});
+  for(const grant of shared)for(const cls of grant.classes||[])add({kind:'shared',id:grant.grantId,classId:cls.id,label:(grant.schoolName||tr('مدرسة','École'))+' — '+(fr()?(cls.nameFr||cls.code||cls.name):cls.name)+' — '+(grant.ownerName||tr('المعلم المالك','Enseignant propriétaire')),selected:currentUser.activeSharedGrant===grant.grantId&&state?.activeClassId===cls.id});
   // State is the fallback truth for the current workspace. This prevents an empty
   // workspace response or a repair race from erasing a class that is already loaded.
   const localClasses=(state?.classes||[]).filter(x=>x?.id);
@@ -239,19 +241,19 @@ function bindOwnerDashboard(){
  if(!currentUser?.isSuperAdmin){b?.remove();document.body.classList.remove('nataiji-super-admin');return}
  document.body.classList.add('nataiji-super-admin');
  if(!b){b=document.createElement('button');b.id='ownerDashboardBtn';b.className='menu-card owner-card';grid.insertBefore(b,grid.firstChild)}
- b.innerHTML=`<b><i>✦</i> ${tr('إدارة المنصة','Administration de la plateforme')} <small>SUPER ADMIN</small></b><span>${tr('نظرة شاملة آمنة على الحسابات والمدارس والصلاحيات','Vue d’ensemble sécurisée des comptes, écoles et autorisations')}</span>`;b.onclick=ownerOverviewModal
+ stableMarkup(b,`<b><i>✦</i> ${tr('إدارة المنصة','Administration de la plateforme')} <small>SUPER ADMIN</small></b><span>${tr('نظرة شاملة آمنة على الحسابات والمدارس والصلاحيات','Vue d’ensemble sécurisée des comptes, écoles et autorisations')}</span>`);b.onclick=ownerOverviewModal
 }
 function bindSchools(){
  const grid=q('.settings-grid');if(!grid)return;let b=q('#schoolsBtn');
  if(currentUser?.baseRole!=='admin'||currentUser?.activeSharedGrant){b?.remove();return}
  if(!b){b=document.createElement('button');b.id='schoolsBtn';b.className='menu-card';grid.insertBefore(b,q('#structureBtn')||grid.firstChild)}
- b.innerHTML=`<b>🏫 ${tr('مدارسي','Mes écoles')}</b><span>${tr('إضافة مدرسة أو الانتقال بين مدارس حسابك المستقلة','Ajouter une école ou changer d’espace scolaire indépendant')}</span>`;b.onclick=schoolsModal
+ stableMarkup(b,`<b>🏫 ${tr('مدارسي','Mes écoles')}</b><span>${tr('إضافة مدرسة أو الانتقال بين مدارس حسابك المستقلة','Ajouter une école ou changer d’espace scolaire indépendant')}</span>`);b.onclick=schoolsModal
 }
 function bindJoinCard(){
  const grid=q('.settings-grid');if(!grid)return;let btn=q('#joinInviteBtn');
  if(!currentUser){btn?.remove();return}
  if(!btn){btn=document.createElement('button');btn.id='joinInviteBtn';btn.className='menu-card';grid.insertBefore(btn,q('#settingsBtn')||q('#logoutBtn')||null)}
- btn.innerHTML=`<b>⌁ ${tr('إضافة قسم مشترك برمز','Ajouter une classe partagée par code')}</b><span>${tr('أضف قسمًا أو مواد جديدة إلى حسابك الحالي دون تسجيل الخروج','Ajoutez une classe ou de nouvelles matières à votre compte sans vous déconnecter')}</span>`;
+ stableMarkup(btn,`<b>⌁ ${tr('إضافة قسم مشترك برمز','Ajouter une classe partagée par code')}</b><span>${tr('أضف قسمًا أو مواد جديدة إلى حسابك الحالي دون تسجيل الخروج','Ajoutez une classe ou de nouvelles matières à votre compte sans vous déconnecter')}</span>`);
  btn.onclick=e=>{e.preventDefault();attachInviteModal()}
 }
 function bindInvite(){const b=q('#inviteBtn');if(!b)return;b.dataset.auth2Invite='1';b.onclick=e=>{e?.preventDefault?.();inviteModal2()}}
@@ -268,16 +270,16 @@ try{const old=applyPermissions;applyPermissions=function(){try{old()}catch{}enfo
 try{const oldSave=save;save=async function(silent=false){const p=new Set(currentUser?.permissions||[]),readOnly=currentUser?.role==='teacher'&&!p.has('grades')&&!p.has('pupils');if(readOnly){localStorage.setItem('nataiji-data',JSON.stringify(state));const s=q('#saveState');if(s){s.textContent=tr('حساب للعرض فقط','Compte en lecture seule');s.classList.remove('dirty')}return}return oldSave(silent)}}catch{}
 function patchProfileRole(){
  const small=q('#teacherName small');if(!small||!currentUser)return;
- if(currentUser.isSuperAdmin&&!currentUser.activeSharedGrant){small.textContent=tr('المدير العام للمنصة','Super administrateur');return}
- if(currentUser.role==='admin'&&!currentUser.activeSharedGrant){small.textContent=tr('معلم / أقسامي','Enseignant / Mes classes');return}
+ if(currentUser.isSuperAdmin&&!currentUser.activeSharedGrant){stableText(small,tr('المدير العام للمنصة','Super administrateur'));return}
+ if(currentUser.role==='admin'&&!currentUser.activeSharedGrant){stableText(small,tr('معلم / أقسامي','Enseignant / Mes classes'));return}
  const p=new Set(currentUser.permissions||[]),parts=[];
  if(p.has('grades'))parts.push(tr('إدخال النتائج','Saisie des notes'));
  if(p.has('pupils'))parts.push(tr('إدارة التلاميذ','Gestion des élèves'));
  if(p.has('reports'))parts.push(tr('التقارير','Rapports'));
- small.textContent=tr('معلم','Enseignant')+(parts.length?' / '+parts.join(' + '):'');
+ stableText(small,tr('معلم','Enseignant')+(parts.length?' / '+parts.join(' + '):''));
 }
 function bindLogout(){const b=q('#logoutBtn');if(!b||b.dataset.auth2Logout)return;b.dataset.auth2Logout='1';b.onclick=async()=>{try{await api('/api/auth/logout',{method:'POST',body:'{}'})}catch{}localStorage.removeItem('nataiji-data');localStorage.removeItem('nataiji-active-user');currentUser=null;lastStatus=null;await renderAuth('login')}}
-function patchOfficialWording(root=document){qa('.doc-republic .doc-line',root).forEach(line=>{const sp=q('span',line),b=q('b',line);if(!sp||!b)return;const t=sp.textContent;if(/الإدارة الجهوية|Direction régionale/i.test(t)){sp.textContent=fr()?'Direction régionale de l’Éducation – Wilaya de':'الإدارة الجهوية بولاية';b.textContent=b.textContent.replace(/^\s*(ولاية|Wilaya(?:\s+de)?)\s*/i,'')}else if(/المفتشية|Inspection/i.test(t)){sp.textContent=fr()?'Inspection – Moughataa de':'المفتشية بمقاطعة';b.textContent=b.textContent.replace(/^\s*(مقاطعة|Moughataa(?:\s+de)?)\s*/i,'')}})}
+function patchOfficialWording(root=document){qa('.doc-republic .doc-line',root).forEach(line=>{const sp=q('span',line),b=q('b',line);if(!sp||!b)return;const t=sp.textContent;if(/الإدارة الجهوية|Direction régionale/i.test(t)){stableText(sp,fr()?'Direction régionale de l’Éducation – Wilaya de':'الإدارة الجهوية بولاية');stableText(b,b.textContent.replace(/^\s*(ولاية|Wilaya(?:\s+de)?)\s*/i,''))}else if(/المفتشية|Inspection/i.test(t)){stableText(sp,fr()?'Inspection – Moughataa de':'المفتشية بمقاطعة');stableText(b,b.textContent.replace(/^\s*(مقاطعة|Moughataa(?:\s+de)?)\s*/i,''))}})}
 function patchSettingsModal(){const r=q('#wf-sr'),i=q('#wf-si');if(r){const l=r.closest('label'),p=l?.querySelector('.workflow-prefix span');if(l?.firstChild)l.firstChild.nodeValue=tr('الإدارة الجهوية بولاية','Direction régionale de l’Éducation – Wilaya de');if(p)p.style.display='none'}if(i){const l=i.closest('label'),p=l?.querySelector('.workflow-prefix span');if(l?.firstChild)l.firstChild.nodeValue=tr('المفتشية بمقاطعة','Inspection – Moughataa de');if(p)p.style.display='none'}}
 const css=document.createElement('style');css.id='auth-access-v2-style';css.textContent=`.auth2-app-logo{width:82px!important;height:82px!important;margin:0 auto 14px!important;border:0!important;border-radius:20px!important;background:transparent!important;overflow:hidden!important;display:grid!important;place-items:center!important}
 .auth2-app-logo img{display:block!important;width:82px!important;height:82px!important;object-fit:contain!important;border-radius:20px!important}

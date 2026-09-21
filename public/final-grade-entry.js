@@ -23,7 +23,7 @@ ranks=function(){
  return vals.map(v=>v.absentAll?null:1+vals.filter(x=>!x.absentAll&&x.avg>v.avg).length)
 };
 function validateGradeValue(raw,max=20){
- const s=String(raw??'').trim(),m=Number(max),limit=Number.isFinite(m)&&m>0?m:20;
+ const s=String(raw??'').trim().replace(/[٠-٩]/g,c=>String(c.charCodeAt(0)-1632)).replace(/[۰-۹]/g,c=>String(c.charCodeAt(0)-1776)).replace(/[,٫]/g,'.'),m=Number(max),limit=Number.isFinite(m)&&m>0?m:20;
  if(s==='')return{ok:true,value:'',max:limit};
  if(isAbsent(s))return{ok:true,value:s,max:limit,absent:true};
  const n=Number(s);
@@ -82,7 +82,7 @@ window.nataijiFindInvalidMark=function(){
 function enhanceInputs(){
  qa('.mark,.mobile-mark').forEach(input=>{
   const i=Number(input.dataset.i),j=Number(input.dataset.j);
-  input.inputMode='text';if(input.dataset.lastValid===undefined)input.dataset.lastValid=String(state?.marks?.[i]?.[j]??'');
+  input.inputMode='decimal';input.enterKeyHint='next';if(input.dataset.lastValid===undefined)input.dataset.lastValid=String(state?.marks?.[i]?.[j]??'');
   input.placeholder=isFr()?'Note ou Absent':'درجة أو غائب';
   input.oninput=()=>commitEntry(input,false);
   input.onchange=()=>commitEntry(input,true);
