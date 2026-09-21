@@ -19,6 +19,8 @@ try{
   const authAbsentControls=await page.locator('.auth-box .absent-btn').count();
   const authText=await page.locator('.auth-box').innerText();
   check('auth screen never shows grade absence controls',authAbsentControls===0&&!/(^|\s)(غائب|غائبة|Absent|Absente)(\s|$)/u.test(authText),JSON.stringify({authAbsentControls,authText}));
+  const storageText=(await page.locator('.auth-storage').innerText()).trim();
+  check('auth explains durable storage clearly',/تخزين آمن على قاعدة البيانات|Stockage sécurisé sur base de données/u.test(storageText),storageText);
 
   await page.locator('[data-auth2="register"]').click();
   await page.locator('#auth2Form input[name="name"]').fill('Mobile QA Teacher');
