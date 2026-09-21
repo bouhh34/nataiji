@@ -192,14 +192,14 @@
     color:#087965!important;font-size:10px!important;font-weight:800!important;
   }
   #subjectProgress{margin-top:2px!important}
-  #subjectProgress>.np-home-subject-row{
+  #subjectProgress>div{
     display:grid!important;
     grid-template-columns:minmax(118px,.95fr) minmax(70px,1.55fr) 44px!important;
     align-items:center!important;gap:7px!important;
     min-height:49px!important;padding:6px 0!important;
     border-bottom:1px solid #edf2f3!important;position:relative!important;
   }
-  #subjectProgress>.np-home-subject-row>span{
+  #subjectProgress>div>span{
     display:grid!important;grid-template-columns:32px minmax(0,1fr)!important;
     align-items:center!important;gap:7px!important;min-width:0!important;
   }
@@ -211,23 +211,23 @@
     font-size:11.5px!important;line-height:1.2!important;font-weight:750!important;
     color:#17384f!important;white-space:normal!important;word-break:normal!important;
   }
-  #subjectProgress>.np-home-subject-row>span>small{
+  #subjectProgress>div>span>small{
     position:absolute!important;left:0!important;top:7px!important;
     font-size:9px!important;color:#8a99a1!important;font-weight:600!important;
   }
-  #subjectProgress>.np-home-subject-row>i{
+  #subjectProgress>div>i{
     height:7px!important;border-radius:999px!important;
     background:#edf3f2!important;overflow:hidden!important;
   }
-  #subjectProgress>.np-home-subject-row>i>b{
+  #subjectProgress>div>i>b{
     height:100%!important;border-radius:999px!important;
     background:linear-gradient(90deg,#07866b,#12a27e)!important;
   }
-  #subjectProgress>.np-home-subject-row>strong{
+  #subjectProgress>div>strong{
     align-self:end!important;padding-bottom:3px!important;
     font-size:9.5px!important;color:#17384f!important;font-weight:800!important;
   }
-  .np-home-progress-card:not(.np-home-expanded) #subjectProgress>.np-home-subject-row:nth-child(n+5){
+  .np-home-progress-card:not(.np-home-expanded) #subjectProgress>div:nth-child(n+5){
     display:none!important;
   }
   #subjectProgress>.np-home-subject-1 .np-home-subject-icon{background:#eaf7f3!important;color:#07866b!important}
@@ -303,19 +303,19 @@
     .np-home-progress-head p{font-size:8.8px!important}
     .np-home-progress-heading-icon{width:29px!important;height:29px!important}
     .np-home-show-all{font-size:9.5px!important;padding:5px 9px!important}
-    #subjectProgress>.np-home-subject-row{
+    #subjectProgress>div{
       grid-template-columns:minmax(108px,.95fr) minmax(66px,1.55fr) 40px!important;
       min-height:47px!important;gap:6px!important;padding:5px 0!important;
     }
-    #subjectProgress>.np-home-subject-row>span{
+    #subjectProgress>div>span{
       grid-template-columns:30px minmax(0,1fr)!important;gap:6px!important;
     }
     #subjectProgress .np-home-subject-icon{
       width:30px!important;height:30px!important;flex-basis:30px!important;
     }
     #subjectProgress .subject-progress-name{font-size:10.8px!important}
-    #subjectProgress>.np-home-subject-row>span>small{font-size:8.5px!important;top:6px!important}
-    #subjectProgress>.np-home-subject-row>strong{font-size:9px!important}
+    #subjectProgress>div>span>small{font-size:8.5px!important;top:6px!important}
+    #subjectProgress>div>strong{font-size:9px!important}
   }
 
   @media(max-width:380px){
@@ -328,7 +328,7 @@
       padding:15px!important;
     }
     [data-page="home"] .np-home-hero h1{font-size:23px!important}
-    #subjectProgress>.np-home-subject-row{
+    #subjectProgress>div{
       grid-template-columns:minmax(100px,.95fr) minmax(58px,1.45fr) 38px!important;
     }
   }
