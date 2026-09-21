@@ -49,7 +49,7 @@ function renderCompactMobileScores(){
          <input class="mobile-mark" inputmode="decimal" min="0" max="${m}" step="0.1" data-i="${i}" data-j="${j}" value="${esc(value)}" placeholder="—" aria-label="${esc(pupilName+' — '+currentName)}">
          <em dir="ltr">/${m}</em>
        </div>
-       <button type="button" class="absent-btn compact-absent" data-absent-i="${i}">${esc(absentLabel(i))}</button>
+       <button type="button" class="absent-btn compact-absent" data-absent-i="${i}" aria-pressed="${absent(value)?'true':'false'}">${esc(absentLabel(i))}</button>
      </div>
    </div>`
   }).join('');
