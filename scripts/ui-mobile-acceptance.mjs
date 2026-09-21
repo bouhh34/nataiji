@@ -89,19 +89,57 @@ try{
   const persistedZero=await page.locator('.compact-score-row .mobile-mark').first().inputValue();
   check('zero grade persists distinctly from empty',persistedZero==='0',persistedZero);
 
-  const firstRow=page.locator('.compact-score-row').first();
-  const absentButton=firstRow.locator('.absent-btn');
-  const absentInput=firstRow.locator('.mobile-mark');
+  let firstRow=page.locator('.compact-score-row').first();
+  let absentButton=firstRow.locator('.absent-btn');
+  let absentInput=firstRow.locator('.mobile-mark');
   await absentButton.click();
   await page.waitForTimeout(80);
-  const absentValue=await absentInput.inputValue();
-  const absentPressed=await absentButton.getAttribute('aria-pressed');
+  let absentValue=await absentInput.inputValue();
+  let absentPressed=await absentButton.getAttribute('aria-pressed');
   check('absence is an explicit selected state',/^(غائب|غائبة|Absent|Absente)$/u.test(absentValue)&&absentPressed==='true',JSON.stringify({absentValue,absentPressed}));
+
+  const saveAbsentResponse=page.waitForResponse(r=>r.url().includes('/api/marks')&&r.request().method()==='PUT'&&r.status()===200,{timeout:10000});
+  await page.locator('#saveGrades').click();
+  await saveAbsentResponse;
+  await page.reload({waitUntil:'domcontentloaded'});
+  await page.locator('.app-shell').waitFor({state:'visible',timeout:12000});
+  await page.locator('.bottom-nav button[data-view="grades"]').click();
+  await page.locator('[data-page="grades"]').waitFor({state:'visible',timeout:7000});
+  await page.waitForTimeout(250);
+  firstRow=page.locator('.compact-score-row').first();
+  absentButton=firstRow.locator('.absent-btn');
+  absentInput=firstRow.locator('.mobile-mark');
+  absentValue=await absentInput.inputValue();
+  absentPressed=await absentButton.getAttribute('aria-pressed');
+  check('absence persists after reload',/^(غائب|غائبة|Absent|Absente)$/u.test(absentValue)&&absentPressed==='true',JSON.stringify({absentValue,absentPressed}));
+
   await absentButton.click();
   await page.waitForTimeout(80);
-  const clearedValue=await absentInput.inputValue();
-  const clearedPressed=await absentButton.getAttribute('aria-pressed');
+  let clearedValue=await absentInput.inputValue();
+  let clearedPressed=await absentButton.getAttribute('aria-pressed');
   check('absence can be cleared back to not-entered',clearedValue===''&&clearedPressed==='false',JSON.stringify({clearedValue,clearedPressed}));
+
+  const saveBlankResponse=page.waitForResponse(r=>r.url().includes('/api/marks')&&r.request().method()==='PUT'&&r.status()===200,{timeout:10000});
+  await page.locator('#saveGrades').click();
+  await saveBlankResponse;
+  await page.reload({waitUntil:'domcontentloaded'});
+  await page.locator('.app-shell').waitFor({state:'visible',timeout:12000});
+  await page.locator('.bottom-nav button[data-view="grades"]').click();
+  await page.locator('[data-page="grades"]').waitFor({state:'visible',timeout:7000});
+  await page.waitForTimeout(250);
+  firstRow=page.locator('.compact-score-row').first();
+  absentButton=firstRow.locator('.absent-btn');
+  absentInput=firstRow.locator('.mobile-mark');
+  clearedValue=await absentInput.inputValue();
+  clearedPressed=await absentButton.getAttribute('aria-pressed');
+  check('not-entered state persists distinctly from zero and absence',clearedValue===''&&clearedPressed==='false',JSON.stringify({clearedValue,clearedPressed}));
+
+  const max=Number(await absentInput.getAttribute('max'))||20;
+  await absentInput.fill(String(max+1));
+  await absentInput.blur();
+  check('grade above subject maximum is rejected',await absentInput.evaluate(el=>el.classList.contains('grade-invalid')),JSON.stringify({max,value:await absentInput.inputValue()}));
+  await absentInput.fill('');
+  await absentInput.blur();
 
   await page.locator('.bottom-nav button[data-view="more"]').click();
   await page.locator('[data-page="more"]').waitFor({state:'visible',timeout:7000});
