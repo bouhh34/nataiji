@@ -97,6 +97,36 @@ function subjectIconName(value){
 function getSubjects(){
   try{return (typeof state!=='undefined'&&Array.isArray(state?.subjects))?state.subjects:[]}catch{return[]}
 }
+const fallbackFrSubjects={
+  'التربية الإسلامية':'Éducation islamique',
+  'اللغة العربية':'Langue arabe',
+  'الحساب':'Calcul',
+  'الرياضيات':'Mathématiques',
+  'التربية المدنية':'Éducation civique',
+  'التربية الفنية':'Éducation artistique',
+  'اللغة الفرنسية':'Français',
+  'Français':'Français',
+  'الرياضة':'Éducation physique',
+  'التربية البدنية':'Éducation physique',
+  'التربية المدنية والفنية':'Éducation civique et artistique',
+  'العلوم الطبيعية':'Sciences naturelles'
+};
+function frenchSubjectName(sub){
+  const ar=String(sub?.[0]||'').trim(),saved=String(sub?.[2]||'').trim();
+  if(saved&&!/[\u0600-\u06ff]/.test(saved))return saved;
+  return fallbackFrSubjects[ar]||saved||ar;
+}
+function localizeSubjectPicker(){
+  const picker=q('#subjectPicker'),subjects=getSubjects();
+  if(!picker||!subjects.length)return;
+  qa('option',picker).forEach((o,i)=>{
+    const idx=Number.isFinite(Number(o.value))?Number(o.value):i,sub=subjects[idx]||subjects[i];
+    if(!sub)return;
+    const label=fr()?frenchSubjectName(sub):String(sub?.[0]||'').trim();
+    if(label&&o.textContent!==label)o.textContent=label;
+    o.dir=fr()?'ltr':'rtl';
+  });
+}
 function ensureSubjectLabel(row,i){
   if(!row)return;
   const subjects=getSubjects(),sub=subjects[i]||[],label=q(':scope > span',row);
@@ -132,7 +162,7 @@ function renderFeather(){
 }
 function apply(){
   try{
-    applyBrand();applyHero();applyStats();applySections();applyStudents();applyReports();applySubjectTones();
+    applyBrand();applyHero();applyStats();applySections();applyStudents();applyReports();localizeSubjectPicker();applySubjectTones();
     renderFeather();
   }catch(e){console.warn('Premium v2 decoration skipped',e)}
 }
