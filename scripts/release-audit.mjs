@@ -41,6 +41,8 @@ assert('PWA caches final visual polish', /nataiji-final-visual-v1\.css/.test(sw)
 assert('PWA excludes API cache', /pathname\.startsWith\("\/api\/"\)/.test(sw));
 assert('auth copy avoids ambiguous temporary storage', !/وضع تخزين مؤقت|Mode de stockage temporaire/.test(read('public/auth-access-v2.js')));
 assert('grade enhancer scoped to real grade inputs', /input\.mark\[data-i\]\[data-j\],input\.mobile-mark\[data-i\]\[data-j\]/.test(read('public/final-grade-entry.js')));
+assert('absence button exposes explicit selected state', /aria-pressed/.test(read('public/final-grade-entry.js')) && /aria-pressed/.test(read('public/grade-mobile-ui-v1.js')));
+assert('bulk grade save persists validated values', /normalizedMarks/.test(server));
 assert('secure cookie enabled', /httpOnly:true/.test(server) && /sameSite:'lax'/.test(server));
 assert('origin protection enabled', /cross_site_request_blocked/.test(server));
 assert('CSP enabled', /Content-Security-Policy/.test(server));
