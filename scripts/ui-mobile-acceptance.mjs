@@ -68,7 +68,7 @@ try{
       const res=await fetch('/api/pupils',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({classId,pupil:['','طالب الاختبار','','','','Test Student','','']})});
       return {status:res.status,body:await res.json()};
     });
-    check('test pupil can be created for persistence flow',seeded.status===200&&seeded.body?.ok===true,JSON.stringify(seeded));
+    check('test pupil can be created for persistence flow',[200,201].includes(seeded.status)&&seeded.body?.ok===true,JSON.stringify(seeded));
     await page.reload({waitUntil:'domcontentloaded'});
     await page.locator('.app-shell').waitFor({state:'visible',timeout:12000});
   }
