@@ -1,4 +1,4 @@
-const CACHE = "nataiji-shell-v9";
+const CACHE = "nataiji-shell-v10";
 const ASSETS = [
   "/",
   "/download.html",
