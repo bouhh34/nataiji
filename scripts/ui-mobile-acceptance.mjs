@@ -53,6 +53,13 @@ try{
 
   const horizontal=await page.evaluate(()=>({scroll:document.documentElement.scrollWidth,width:window.innerWidth}));
   check('home has no horizontal overflow',horizontal.scroll<=horizontal.width+2,JSON.stringify(horizontal));
+  const premiumBrand=page.locator('main > header .npv2-brand');
+  await premiumBrand.waitFor({state:'visible',timeout:5000});
+  const premiumHeader=await page.locator('main > header').evaluate(el=>({scroll:el.scrollWidth,width:el.clientWidth}));
+  const premiumStats=await page.locator('[data-page="home"] .npv2-stat-icon').count();
+  check('premium v2 header brand is visible',await premiumBrand.count()===1,String(await premiumBrand.count()));
+  check('premium v2 header has no internal overflow',premiumHeader.scroll<=premiumHeader.width+2,JSON.stringify(premiumHeader));
+  check('premium v2 dashboard has four stat icons',premiumStats===4,String(premiumStats));
 
   const firstSubject=page.locator('#subjectProgress .subject-progress-name').first();
   await firstSubject.waitFor({state:'visible',timeout:10000});
@@ -161,6 +168,9 @@ try{
   const rb=await reportTabs.boundingBox();
   const tabBoxes=await reportTabs.locator('button').evaluateAll(btns=>btns.map(b=>{const r=b.getBoundingClientRect();return{x:r.x,y:r.y,width:r.width,height:r.height,right:r.right}}));
   check('three report tabs stay inside mobile card',Boolean(rb)&&tabBoxes.every(x=>x.x>=rb.x-1&&x.right<=rb.x+rb.width+1),JSON.stringify({container:rb,tabs:tabBoxes}));
+  const reportTabIcons=await reportTabs.locator('.npv2-tab-icon').count();
+  const reportPrintIcon=await page.locator('#printResult .npv2-button-icon').count();
+  check('premium v2 report controls keep canonical icons',reportTabIcons===3&&reportPrintIcon===1,JSON.stringify({reportTabIcons,reportPrintIcon}));
 
   await page.evaluate(()=>localStorage.setItem('nataiji-lang','fr'));
   await page.reload({waitUntil:'domcontentloaded'});
