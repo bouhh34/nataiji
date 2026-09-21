@@ -417,3 +417,78 @@
     }
   }
 }
+
+
+/* Real-device refinement v2: resolve higher-specificity legacy mobile rules. */
+@media screen and (max-width:760px){
+  main>.np-home-header .np-home-year #yearTop,
+  main>.np-home-header .np-home-class #classTop{
+    -webkit-appearance:none!important;
+    appearance:none!important;
+    background-image:none!important;
+    padding-left:50px!important;
+    padding-right:30px!important;
+  }
+  main>.np-home-header .np-home-class #classTop{
+    padding-left:54px!important;
+  }
+  main>.np-home-header .np-home-select-icon{
+    left:13px!important;
+    width:15px!important;
+    height:15px!important;
+  }
+  main>.np-home-header .np-home-class .np-home-select-icon{
+    left:14px!important;
+  }
+
+  html body [data-page="home"] .np-home-hero>img.npv2-hero-art{
+    display:none!important;
+    visibility:hidden!important;
+    opacity:0!important;
+    width:0!important;
+    height:0!important;
+  }
+
+  #subjectProgress.progress-list{
+    gap:0!important;
+    margin-top:2px!important;
+  }
+  #subjectProgress.progress-list>div{
+    min-height:58px!important;
+    height:58px!important;
+    max-height:58px!important;
+    padding:4px 0!important;
+    gap:4px 8px!important;
+    grid-template-columns:minmax(0,1fr) 44px!important;
+    grid-template-rows:32px 8px!important;
+  }
+  #subjectProgress.progress-list>div>span{
+    grid-template-columns:28px minmax(0,1fr) auto!important;
+    column-gap:7px!important;
+  }
+  #subjectProgress.progress-list>div>span>.subject-premium-icon,
+  #subjectProgress.progress-list .np-home-subject-icon{
+    width:28px!important;
+    height:28px!important;
+    min-width:28px!important;
+    flex-basis:28px!important;
+    border-radius:9px!important;
+  }
+  #subjectProgress.progress-list .subject-progress-name{
+    font-size:11.5px!important;
+    line-height:1.2!important;
+  }
+  #subjectProgress.progress-list>div>span>small{
+    font-size:9px!important;
+    position:static!important;
+    align-self:center!important;
+  }
+  #subjectProgress.progress-list>div>i{
+    height:6px!important;
+  }
+  #subjectProgress.progress-list>div>strong{
+    font-size:9px!important;
+    align-self:center!important;
+    padding:0!important;
+  }
+}
