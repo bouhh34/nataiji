@@ -60,8 +60,18 @@ try{
   check('premium v2 header brand is visible',await premiumBrand.count()===1,String(await premiumBrand.count()));
   check('premium v2 header has no internal overflow',premiumHeader.scroll<=premiumHeader.width+2,JSON.stringify(premiumHeader));
   check('premium v2 dashboard has four stat icons',premiumStats===4,String(premiumStats));
+  const duplicateHomeIcons=await page.evaluate(()=>{
+    const cards=[...document.querySelectorAll('[data-page="home"] .stats article')];
+    const statDuplicates=cards.filter(card=>card.querySelectorAll(':scope > svg.lux-feather,:scope > i[data-feather],:scope > .npv2-stat-icon').length!==1).length;
+    const cta=document.querySelector('[data-page="home"] .welcome button');
+    const ctaIcons=cta?cta.querySelectorAll(':scope > svg.lux-feather,:scope > i[data-feather],:scope > .npv2-button-icon').length:0;
+    return {statDuplicates,ctaIcons};
+  });
+  check('home has exactly one icon per KPI and CTA',duplicateHomeIcons.statDuplicates===0&&duplicateHomeIcons.ctaIcons===1,JSON.stringify(duplicateHomeIcons));
   const homeHeader=page.locator('main > header.np-home-header');
   const homeHero=page.locator('[data-page="home"] .np-home-hero');
+  const compactHeroHeight=await homeHero.evaluate(el=>Math.round(el.getBoundingClientRect().height));
+  check('home hero is compact on mobile',compactHeroHeight<=175,String(compactHeroHeight));
   const homeProgress=page.locator('[data-page="home"] .np-home-progress-card');
   const homeShowAll=page.locator('[data-page="home"] .np-home-show-all');
   check('approved home header layout is active',await homeHeader.count()===1,String(await homeHeader.count()));

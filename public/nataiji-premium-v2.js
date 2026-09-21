@@ -8,7 +8,19 @@ const qa=(s,r=document)=>[...r.querySelectorAll(s)];
 const fr=()=>localStorage.getItem('nataiji-lang')==='fr';
 
 function icon(host,name,cls='npv2-icon'){
-  if(!host||host.querySelector(':scope > .'+cls))return;
+  if(!host)return;
+  const direct=[...host.children].filter(el=>el.matches?.('svg.lux-feather,i[data-feather],.'+cls));
+  const existing=host.querySelector(':scope > .'+cls);
+  if(existing){
+    direct.filter(el=>el!==existing).forEach(el=>el.remove());
+    return;
+  }
+  if(direct.length){
+    const keep=direct[0];
+    direct.slice(1).forEach(el=>el.remove());
+    keep.classList.add(cls);
+    return;
+  }
   const i=document.createElement('i');
   i.className=cls;
   i.setAttribute('data-feather',name);
