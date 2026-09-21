@@ -1,4 +1,4 @@
-const CACHE = "nataiji-shell-v17";
+const CACHE = "nataiji-shell-v18";
 const ASSETS = [
   "/workflow-polish.css",
   "/release-100-v1.css",
@@ -46,13 +46,24 @@ self.addEventListener("fetch", (e) => {
     u = new URL(r.url);
   if (r.method !== "GET" || u.origin !== location.origin) return;
   if (u.pathname.startsWith("/api/")) return;
+  // Never cache health checks, downloads or arbitrary authenticated routes.
+  const navigation = r.mode === "navigate";
+  const asset = /\.(?:js|css|png|svg|jpg|jpeg|webp|ico|woff2?|webmanifest)$/i.test(u.pathname);
+  if (!navigation && !asset) return;
   e.respondWith(
     fetch(r, { cache: "no-store" })
       .then((res) => {
-        const copy = res.clone();
-        caches.open(CACHE).then((c) => c.put(r, copy));
+        if (res.ok && res.type !== "opaque") {
+          e.waitUntil(caches.open(CACHE).then((c) => c.put(r, res.clone())).catch(() => {}));
+        }
         return res;
       })
-      .catch(() => caches.match(r).then((x) => x || caches.match("/"))),
+      .catch(async () => {
+        const cached = await caches.match(r) || await caches.match(r, { ignoreSearch: true });
+        if (cached) return cached;
+        // A script must never receive HTML as its offline fallback.
+        if (navigation) return await caches.match("/") || Response.error();
+        return Response.error();
+      }),
   );
 });

@@ -41,7 +41,7 @@
     box-shadow:0 8px 18px rgba(8,112,98,.17)!important;
   }
   .profile b{color:var(--ink)!important;font-weight:850!important}
-  .profile small{color:#8797a2!important;font-weight:500!important}
+  .profile small{color:#526875!important;font-weight:500!important}
 
   header select,
   .filters select,
@@ -186,7 +186,7 @@
     background:transparent!important;
   }
   [data-page="students"] .pupil-tools input{
-    min-height:50px!important;
+    min-height:44px!important;
     border-radius:14px!important;
   }
   [data-page="students"] .pupil-tools select{
@@ -269,7 +269,7 @@
   [data-page="reports"] .report-actions select,
   [data-page="reports"] .report-actions button,
   [data-page="reports"] .report-print{
-    min-height:50px!important;
+    min-height:44px!important;
     border-radius:14px!important;
   }
   [data-page="reports"] .report-actions button,
@@ -316,7 +316,7 @@
     border:1px solid #d8ebe6!important;
   }
   [data-page="more"] .menu-card>span{
-    color:#748691!important;
+    color:#526875!important;
     line-height:1.6!important;
   }
   [data-page="more"] .owner-card{
@@ -383,24 +383,24 @@
       margin-bottom:14px!important;
       border-radius:20px!important;
     }
-    .profile>i{width:52px!important;height:52px!important;border-radius:15px!important}
+    .profile>i{width:44px!important;height:44px!important;border-radius:15px!important}
     .profile b{font-size:15px!important}
     .profile small{font-size:11px!important;margin-top:2px!important}
 
     header #classTop,
     header #yearTop{
-      height:50px!important;
+      height:44px!important;
       border-radius:14px!important;
       font-weight:650!important;
     }
 
     [data-page="home"] .welcome{
       border-radius:25px!important;
-      padding:26px 24px!important;
+      padding:18px 20px!important;
       gap:16px!important;
     }
     [data-page="home"] .welcome h1{
-      font-size:clamp(27px,7.6vw,33px)!important;
+      font-size:clamp(23px,6.5vw,29px)!important;
       margin:8px 0 10px!important;
     }
     [data-page="home"] .welcome p{
@@ -496,9 +496,9 @@
       gap:12px!important;
     }
     [data-page="more"] .menu-card{
-      min-height:105px!important;
-      padding:18px!important;
-      border-radius:18px!important;
+      min-height:80px!important;
+      padding:13px 16px!important;
+      border-radius:16px!important;
     }
     [data-page="more"] .menu-card>b{
       font-size:16px!important;
@@ -530,7 +530,7 @@
   @media (max-width:380px){
     main{padding-inline:10px!important}
     .card{padding:15px!important}
-    [data-page="home"] .welcome{padding:23px 19px!important}
+    [data-page="home"] .welcome{padding:18px!important}
     [data-page="home"] .welcome h1{font-size:26px!important}
     [data-page="home"] .stats article{min-height:108px!important;padding:15px!important}
     [data-page="home"] .stats b{font-size:28px!important}

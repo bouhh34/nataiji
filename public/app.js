@@ -81,26 +81,87 @@ async function startApp(){let remote=null;try{const r=await api('/api/state');cu
 $$('[data-view]').forEach(b=>b.onclick=()=>setView(b.dataset.view));
 $$('[data-go]').forEach(b=>b.onclick=()=>setView(b.dataset.go));
 $('#subjectPicker').onchange=renderMobileScores;
+// Capture save targets before queueing: navigation must never redirect a grade.
 let markCellSaveTail=Promise.resolve();
+const pendingGradeSaves=new Map(),failedGradeSaves=new Map();
+const gradeText=(ar,fr)=>document.documentElement.lang==='fr'?fr:ar;
+const gradeAccount=()=>JSON.stringify([currentUser?.id,currentUser?.schoolId,currentUser?.activeSharedGrant]);
+const gradeContext=()=>({account:gradeAccount(),classId:state.activeClassId,term:state.term});
+const gradeKey=c=>JSON.stringify([c.account,c.classId,c.term]);
+const sameGradeContext=c=>gradeKey(c)===gradeKey(gradeContext());
 function markSaveStatus(text,dirty=false){const el=$('#saveState');if(!el)return;el.textContent=text;el.classList.toggle('dirty',dirty)}
+function queueGradeSave(context,operation,onSaved){
+ const key=gradeKey(context);
+ pendingGradeSaves.set(key,(pendingGradeSaves.get(key)||0)+1);
+ if(sameGradeContext(context))markSaveStatus(gradeText('جارٍ حفظ النتائج…','Enregistrement des notes…'),true);
+ const run=async()=>{
+  try{
+   if(context.account!==gradeAccount())throw new Error('save_account_changed');
+   const result=await operation();
+   if(!result?.ok)throw new Error('marks_save_failed');
+   onSaved?.(result);
+   return true;
+  }catch(error){failedGradeSaves.set(key,true);return false}
+  finally{
+   const remaining=(pendingGradeSaves.get(key)||1)-1;
+   if(remaining)pendingGradeSaves.set(key,remaining);else pendingGradeSaves.delete(key);
+   if(sameGradeContext(context)){
+    if(failedGradeSaves.has(key))markSaveStatus(gradeText('تعذر حفظ بعض النتائج — أعد المحاولة بزر حفظ النتائج','Certaines notes ne sont pas enregistrées. Réessayez avec Enregistrer.'),true);
+    else if(remaining)markSaveStatus(gradeText('جارٍ حفظ النتائج…','Enregistrement des notes…'),true);
+    else markSaveStatus(gradeText('تم حفظ النتائج على الخادم','Notes enregistrées sur le serveur'),false);
+   }
+  }
+ };
+ const job=markCellSaveTail.then(run,run);markCellSaveTail=job.catch(()=>{});return job;
+}
 function persistMarkCell(input){
  const i=Number(input?.dataset?.i),j=Number(input?.dataset?.j);
- if(!Number.isInteger(i)||!Number.isInteger(j))return;
+ if(!Number.isInteger(i)||!Number.isInteger(j)||input.disabled)return;
  const pupil=state.pupils?.[i],subject=state.subjects?.[j],pupilKey=String(pupil?.[7]||pupil?.[0]||''),subjectId=String(subject?.[4]||'');
  if(!pupilKey||!subjectId)return;
- const max=Number(subject?.[3])>0?Number(subject[3]):20,raw=String(input?.value??'').trim(),check=typeof window.nataijiValidateGradeValue==='function'?window.nataijiValidateGradeValue(raw,max):{ok:true};
- if(input?.classList?.contains('grade-invalid')||check?.ok===false){if(typeof window.nataijiShowGradeValidationError==='function')window.nataijiShowGradeValidationError(input,check);markSaveStatus('صحح الدرجة غير الصالحة قبل الحفظ',true);return}
- const value=state.marks?.[i]?.[j]??input.value??'';
- state.marksByTerm=state.marksByTerm&&typeof state.marksByTerm==='object'?state.marksByTerm:{};
- state.marksByTerm[state.term]=structuredClone(state.marks);
- if(state.classData?.[state.activeClassId]){state.classData[state.activeClassId].marksByTerm=state.classData[state.activeClassId].marksByTerm||{};state.classData[state.activeClassId].marksByTerm[state.term]=structuredClone(state.marks)}
- markSaveStatus('جارٍ تثبيت الدرجة...',true);
- const run=async()=>{try{const r=await api('/api/mark',{method:'PUT',body:JSON.stringify({classId:state.activeClassId,term:state.term,pupilKey,subjectId,value})});if(!r?.ok)throw new Error('mark_save_failed');localStorage.setItem('nataiji-data',JSON.stringify(state));markSaveStatus('✓ محفوظ تلقائيًا',false)}catch(e){markSaveStatus('فشل حفظ الدرجة — استخدم حفظ النتائج',true)}};
- const job=markCellSaveTail.then(run,run);markCellSaveTail=job.catch(()=>{});
+ const max=Number(subject?.[3])>0?Number(subject[3]):20,raw=String(input.value??'').trim(),check=typeof window.nataijiValidateGradeValue==='function'?window.nataijiValidateGradeValue(raw,max):{ok:true,value:raw};
+ if(check.ok===false){window.nataijiShowGradeValidationError?.(input,check);markSaveStatus(gradeText('صحح الدرجة غير الصالحة قبل الحفظ','Corrigez la note avant d’enregistrer'),true);return}
+ // This listener runs in capture phase, before the input's change handler.
+ const value=check.value,context=gradeContext(),payload={classId:context.classId,term:context.term,pupilKey,subjectId,value};
+ if(!state.marks[i])state.marks[i]=[];
+ state.marks[i][j]=value;
+ state.marksByTerm=state.marksByTerm||{};
+ state.marksByTerm[context.term]=structuredClone(state.marks);
+ const data=state.classData?.[context.classId];
+ if(data){data.marksByTerm=data.marksByTerm||{};data.marksByTerm[context.term]=structuredClone(state.marks)}
+ return queueGradeSave(context,()=>api('/api/mark',{method:'PUT',body:JSON.stringify(payload)}),()=>{
+  if(sameGradeContext(context))localStorage.setItem('nataiji-data',JSON.stringify(state));
+ });
 }
-document.addEventListener('change',e=>{const t=e.target;if(t?.matches?.('.mark,.mobile-mark'))persistMarkCell(t)},true);
+document.addEventListener('change',e=>{if(e.target?.matches?.('.mark,.mobile-mark'))persistMarkCell(e.target)},true);
+window.addEventListener('beforeunload',e=>{
+ if(pendingGradeSaves.size||failedGradeSaves.size){e.preventDefault();e.returnValue=''}
+});
 
-$('#saveGrades').onclick=async()=>{if(syncBusy)return;const invalidInput=document.querySelector('.grade-invalid');if(invalidInput){const j=Number(invalidInput.dataset?.j),max=Number(state.subjects?.[j]?.[3])||20,check=typeof window.nataijiValidateGradeValue==='function'?window.nataijiValidateGradeValue(invalidInput.value,max):{ok:false,reason:'above_max',max};if(typeof window.nataijiShowGradeValidationError==='function')window.nataijiShowGradeValidationError(invalidInput,check);invalidInput.focus();return}const badState=typeof window.nataijiFindInvalidMark==='function'?window.nataijiFindInvalidMark():null;if(badState){markSaveStatus('توجد درجة غير صالحة — صححها قبل الحفظ',true);return}const b=$('#saveGrades'),old=b.textContent;b.disabled=true;b.textContent='جارٍ حفظ الدرجات...';try{const r=await api('/api/marks',{method:'PUT',body:JSON.stringify({classId:state.activeClassId,term:state.term,marks:state.marks})});if(!r?.ok)throw new Error('marks_save_failed');state.marks=structuredClone(r.marks||state.marks);state.marksByTerm=state.marksByTerm&&typeof state.marksByTerm==='object'?state.marksByTerm:{};state.marksByTerm[state.term]=structuredClone(state.marks);if(state.classData?.[state.activeClassId]){state.classData[state.activeClassId].marksByTerm=state.classData[state.activeClassId].marksByTerm||{};state.classData[state.activeClassId].marksByTerm[state.term]=structuredClone(state.marks)}localStorage.setItem('nataiji-data',JSON.stringify(state));b.textContent='✓ تم تثبيت الدرجات على الخادم';renderReports()}catch(e){b.textContent='فشل حفظ الدرجات';throw e}finally{setTimeout(()=>{b.textContent=old;b.disabled=false},1200)}};
+$('#saveGrades').onclick=async()=>{
+ if(syncBusy)return;
+ const focused=document.activeElement;
+ if(focused?.matches?.('.mark,.mobile-mark'))focused.dispatchEvent(new Event('change',{bubbles:true}));
+ const invalid=document.querySelector('.grade-invalid');
+ if(invalid){invalid.focus();return}
+ if(window.nataijiFindInvalidMark?.()){markSaveStatus(gradeText('صحح الدرجة غير الصالحة قبل الحفظ','Corrigez la note avant d’enregistrer'),true);return}
+ const button=$('#saveGrades'),old=button.textContent,context=gradeContext(),marks=structuredClone(state.marks),key=gradeKey(context);
+ button.disabled=true;button.textContent=gradeText('جارٍ الحفظ…','Enregistrement…');
+ try{
+  await queueGradeSave(context,()=>api('/api/marks',{method:'PUT',body:JSON.stringify({classId:context.classId,term:context.term,marks})}),result=>{
+   failedGradeSaves.delete(key);
+   // Do not replace a different class or edits made while this request was in flight.
+   if(sameGradeContext(context)&&JSON.stringify(state.marks)!==JSON.stringify(marks)&&(pendingGradeSaves.get(key)||0)===1)failedGradeSaves.set(key,true);
+   if(sameGradeContext(context)&&JSON.stringify(state.marks)===JSON.stringify(marks)){
+    state.marks=structuredClone(result.marks||marks);
+    state.marksByTerm=state.marksByTerm||{};state.marksByTerm[context.term]=structuredClone(state.marks);
+    const data=state.classData?.[context.classId];
+    if(data){data.marksByTerm=data.marksByTerm||{};data.marksByTerm[context.term]=structuredClone(state.marks)}
+    localStorage.setItem('nataiji-data',JSON.stringify(state));renderReports();
+   }
+  });
+ }finally{button.textContent=old;button.disabled=false}
+};
 $('#student').onchange=renderReports;const showResultBtn=$('#showResult');if(showResultBtn)showResultBtn.onclick=renderReports;$('#addStudent').onclick=addStudent;$('#settingsBtn').onclick=openSettings;$('#subjectsBtn').onclick=openSubjects;
 $('#logoutBtn').onclick=async()=>{try{await api('/api/auth/logout',{method:'POST',body:'{}'})}catch{}currentUser=null;await showAuth('login')};
 $('#printResult').onclick=()=>printOnly('student');$('#printList').onclick=()=>{setView('reports');showReport('list');setTimeout(()=>printOnly('list'),50)};
