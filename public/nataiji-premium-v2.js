@@ -83,16 +83,17 @@ function applyReports(){
   qa('[data-page="reports"] .report-print').forEach(b=>icon(b,'printer','npv2-button-icon'));
 }
 function subjectIconName(value){
+  if(window.nataijiSubjectIconKey)return window.nataijiSubjectIconKey(value);
   const n=String(value||'').normalize('NFD').replace(/[\\u0300-\\u036f]/g,'').toLowerCase();
-  if(/اسلام|islam/.test(n))return'book-open';
-  if(/عرب|arabe|lecture|قراءة|كتاب|كتابة|ecriture/.test(n))return'book';
-  if(/حساب|رياضيات|math|calcul/.test(n))return'hash';
-  if(/مدني|civique|citoy/.test(n))return'flag';
-  if(/فني|artist|dessin/.test(n))return'edit-3';
-  if(/فرنس|francais/.test(n))return'message-circle';
-  if(/بدني|رياضة|education physique|sport/.test(n))return'activity';
-  if(/علوم|science|طبيع/.test(n))return'feather';
-  return'bookmark';
+  if(/اسلام|islam/.test(n))return'islamic';
+  if(/عرب|arabe/.test(n))return'arabic';
+  if(/حساب|رياضيات|math|calcul/.test(n))return'math';
+  if(/مدني|civique/.test(n))return'civic';
+  if(/فني|artist/.test(n))return'art';
+  if(/فرنس|francais/.test(n))return'french';
+  if(/بدني|رياضة|sport/.test(n))return'sport';
+  if(/علوم|science|طبيع/.test(n))return'science';
+  return'generic';
 }
 function getSubjects(){
   try{return (typeof state!=='undefined'&&Array.isArray(state?.subjects))?state.subjects:[]}catch{return[]}
@@ -134,12 +135,18 @@ function ensureSubjectLabel(row,i){
   const fallback=[...label.childNodes].filter(n=>n.nodeType===Node.TEXT_NODE).map(n=>n.textContent||'').join(' ').trim();
   const name=fr()?(String(window.nataijiSubjectFrLabel?.(sub,fallback)||sub?.[2]||sub?.[0]||fallback).trim()):(String(sub?.[0]||sub?.[2]||fallback).trim());
   let wrap=q(':scope > .subject-premium-icon',label);
+  const iconKey=subjectIconName(String(sub?.[0]||'')+' '+String(sub?.[2]||fallback));
   if(!wrap){
     wrap=document.createElement('span');
     wrap.className='subject-premium-icon';
     wrap.setAttribute('aria-hidden','true');
-    wrap.innerHTML='<i data-feather="'+subjectIconName(String(sub?.[0]||'')+' '+String(sub?.[2]||fallback))+'"></i>';
     label.prepend(wrap);
+  }
+  if(wrap.dataset.icon!==iconKey||!wrap.querySelector('svg')){
+    wrap.dataset.icon=iconKey;
+    wrap.innerHTML=window.nataijiSubjectIconMarkup
+      ?window.nataijiSubjectIconMarkup(iconKey)
+      :'<i data-feather="bookmark"></i>';
   }
   let nameEl=q(':scope > .subject-progress-name',label);
   if(!nameEl){

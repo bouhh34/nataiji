@@ -73,6 +73,11 @@ try{
   await page.waitForTimeout(80);
   const visibleRowsAfter=await countVisibleSubjectRows();
   check('show-all expands subject rows without data loss',visibleRowsAfter>=visibleRowsBefore&&visibleRowsAfter>0,JSON.stringify({visibleRowsBefore,visibleRowsAfter}));
+  const subjectIconKeys=await page.locator('#subjectProgress .subject-premium-icon').evaluateAll(nodes=>nodes.slice(0,7).map(n=>n.dataset.icon||''));
+  const expectedSubjectIconKeys=['islamic','arabic','math','civic','art','french','sport'];
+  check('final semantic subject icons are mapped in order',JSON.stringify(subjectIconKeys)===JSON.stringify(expectedSubjectIconKeys),JSON.stringify({subjectIconKeys,expectedSubjectIconKeys}));
+  const customSvgCount=await page.locator('#subjectProgress .subject-premium-icon > svg').count();
+  check('subject icons render as custom vectors',customSvgCount>=7,String(customSvgCount));
 
   const firstSubject=page.locator('#subjectProgress .subject-progress-name').first();
   await firstSubject.waitFor({state:'visible',timeout:10000});

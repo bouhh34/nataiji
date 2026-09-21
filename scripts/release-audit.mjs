@@ -37,7 +37,7 @@ assert('premium v2 visual layer loaded', /nataiji-premium-v2\.css/.test(index) &
 assert('approved home reference layer loaded last', /nataiji-home-reference-v1\.css/.test(index) && /nataiji-home-reference-v1\.js/.test(index));
 assert('privacy page exists', exists('public/privacy.html'));
 assert('terms page exists', exists('public/terms.html'));
-assert('PWA cache version current', /nataiji-shell-v23/.test(sw));
+assert('PWA cache version current', /nataiji-shell-v24/.test(sw));
 assert('PWA caches final mobile css', /release-100-v1\.css/.test(sw));
 assert('PWA caches final visual polish', /nataiji-final-visual-v1\.css/.test(sw));
 assert('PWA caches premium v2 layer', /nataiji-premium-v2\.css/.test(sw) && /nataiji-premium-v2\.js/.test(sw));
@@ -66,6 +66,7 @@ assert('iOS dependency present', Boolean(pkg.dependencies?.['@capacitor/ios']));
 
 const css = read('public/release-100-v1.css');
 const premiumV2 = read('public/nataiji-premium-v2.css');
+const subjectLocale = read('public/premium-subject-locale-v1.js');
 const homeReference = read('public/nataiji-home-reference-v1.css');
 assert('home CTA normal-flow guard', /welcome button[\s\S]*position:static!important/.test(css));
 assert('subject wrapping guard', /subject-progress-name[\s\S]*word-break:normal!important/.test(css));
@@ -73,6 +74,7 @@ assert('mobile report controls guard', /report-tabs[\s\S]*grid-template-columns:
 assert('safe-area bottom nav', /safe-area-inset-bottom/.test(css));
 assert('premium v2 is screen-scoped and print-safe', /@media screen/.test(premiumV2) && /@media print/.test(premiumV2));
 assert('premium v2 keeps official report content untouched', !/official-sheet[^\n]*display:none/.test(premiumV2));
+assert('semantic subject icon set present', /islamic:/.test(subjectLocale) && /arabic:/.test(subjectLocale) && /math:/.test(subjectLocale) && /civic:/.test(subjectLocale) && /art:/.test(subjectLocale) && /french:/.test(subjectLocale) && /sport:/.test(subjectLocale));
 assert('home reference is screen-only and report-safe', /@media screen/.test(homeReference) && !/official-sheet|report-preview-stage|data-page=\"reports\"/.test(homeReference));
 assert('home reference compacts progress list', /#subjectProgress>div/.test(homeReference) && /np-home-show-all/.test(homeReference));
 
