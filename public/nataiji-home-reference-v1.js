@@ -115,7 +115,7 @@ function decorateProgress(){
     };
   }
 
-  qa(':scope > div',list).forEach((row,i)=>{
+  Array.from(list.children).filter(row=>row.tagName==='DIV').forEach((row,i)=>{
     row.classList.add('np-home-subject-row','np-home-subject-'+((i%7)+1));
     const label=q(':scope > span',row);
     if(!label)return;
