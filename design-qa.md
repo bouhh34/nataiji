@@ -58,4 +58,14 @@ The implementation preserves the selected direction's midnight navy, Mauritanian
 - Class, trimester, and subject selectors now read their saved French fields (with official primary-grade fallbacks) in French and their Arabic fields in Arabic. Printed lists and official sheets remain outside this localization pass.
 - Premium CSS, the local icon library, the luxury runtime, locale direction, favicon, and logo are loaded from the initial HTML head to eliminate the legacy-theme flash on refresh.
 
+## Production release verification — 2026-09-21
+
+- Runtime commit: `e560d0300c720201604d72dd3086fc79afd08da8`.
+- Password recovery keeps the brand mark visible and scrolls through the final support and return actions on short viewports.
+- Arabic/RTL and French/LTR interface labels were checked while the protected bilingual report output remained unchanged.
+- Login, logout, suspension, activation, owner reset code, password replacement, and account deletion passed the server smoke suite.
+- Production health confirmed PostgreSQL, email delivery, and super-admin configuration.
+- No application-origin JavaScript errors were detected in the production browser review.
+- Render's own black wake-up screen can still precede the application on a sleeping/free instance; eliminating it requires an always-on plan or a separately hosted static frontend.
+
 final result: passed
