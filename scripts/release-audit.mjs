@@ -37,7 +37,7 @@ assert('premium v2 visual layer loaded', /nataiji-premium-v2\.css/.test(index) &
 assert('approved home reference layer loaded last', /nataiji-home-reference-v1\.css/.test(index) && /nataiji-home-reference-v1\.js/.test(index));
 assert('privacy page exists', exists('public/privacy.html'));
 assert('terms page exists', exists('public/terms.html'));
-assert('PWA cache version current', /nataiji-shell-v25/.test(sw));
+assert('PWA cache version current', /nataiji-shell-v26/.test(sw));
 assert('PWA caches final mobile css', /release-100-v1\.css/.test(sw));
 assert('PWA caches final visual polish', /nataiji-final-visual-v1\.css/.test(sw));
 assert('PWA caches premium v2 layer', /nataiji-premium-v2\.css/.test(sw) && /nataiji-premium-v2\.js/.test(sw));
@@ -49,6 +49,10 @@ assert('install card has no legacy text glyph', !/[⬇↓↔]/u.test(read('publi
 assert('dynamic sharing cards use canonical icons', /data-feather=\"share-2\"/.test(read('public/auth-access-v2.js')) && /data-feather=\"link\"/.test(read('public/auth-access-v2.js')));
 assert('grade enhancer scoped to real grade inputs', /input\.mark\[data-i\]\[data-j\],input\.mobile-mark\[data-i\]\[data-j\]/.test(read('public/final-grade-entry.js')));
 assert('absence button exposes explicit selected state', /aria-pressed/.test(read('public/final-grade-entry.js')) && /aria-pressed/.test(read('public/grade-mobile-ui-v1.js')));
+const gradeMobileUi = read('public/grade-mobile-ui-v1.js');
+assert('grade entry renders current subject icon host', /grade-current-subject-icon/.test(gradeMobileUi));
+assert('grade entry keeps inactive absence control neutral', /border:1px solid #dbe4e5/.test(gradeMobileUi) && /background:#fff!important;color:#6f7f83/.test(gradeMobileUi));
+assert('grade entry compacts filters and rows', /padding:11px!important;border-radius:15px/.test(gradeMobileUi) && /height:58px!important;min-height:58px!important;max-height:58px/.test(gradeMobileUi));
 assert('bulk grade save persists validated values', /normalizedMarks/.test(server));
 assert('secure cookie enabled', /httpOnly:true/.test(server) && /sameSite:'lax'/.test(server));
 assert('origin protection enabled', /cross_site_request_blocked/.test(server));

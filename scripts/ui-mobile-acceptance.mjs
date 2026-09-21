@@ -113,6 +113,14 @@ try{
   await page.waitForTimeout(350);
   const firstMark=page.locator('.compact-score-row .mobile-mark').first();
   await firstMark.waitFor({state:'visible',timeout:7000});
+  const gradeSubjectIcon=await page.locator('#mobileScores .grade-current-subject-icon svg').count();
+  check('current grade subject shows its semantic icon',gradeSubjectIcon===1,String(gradeSubjectIcon));
+  const gradeFilterBox=await page.locator('[data-page="grades"] .filters').boundingBox();
+  check('grade filters are compact on mobile',Boolean(gradeFilterBox&&gradeFilterBox.height<=165),JSON.stringify(gradeFilterBox));
+  const firstRowBox=await page.locator('.compact-score-row').first().boundingBox();
+  check('grade rows are compact without crowding',Boolean(firstRowBox&&firstRowBox.height<=64),JSON.stringify(firstRowBox));
+  const controlLefts=await page.locator('.compact-score-row .score-controls').evaluateAll(nodes=>nodes.slice(0,4).map(n=>Math.round(n.getBoundingClientRect().left)));
+  check('grade controls stay vertically aligned',controlLefts.length>0&&Math.max(...controlLefts)-Math.min(...controlLefts)<=2,JSON.stringify(controlLefts));
   await firstMark.fill('0');
   await firstMark.blur();
   const saveResponse=page.waitForResponse(r=>r.url().includes('/api/marks')&&r.request().method()==='PUT'&&r.status()===200,{timeout:10000});
@@ -129,6 +137,8 @@ try{
   let firstRow=page.locator('.compact-score-row').first();
   let absentButton=firstRow.locator('.absent-btn');
   let absentInput=firstRow.locator('.mobile-mark');
+  const inactiveAbsentStyle=await absentButton.evaluate(el=>({pressed:el.getAttribute('aria-pressed'),background:getComputedStyle(el).backgroundColor,border:getComputedStyle(el).borderTopColor,color:getComputedStyle(el).color}));
+  check('inactive absence control is visually neutral',inactiveAbsentStyle.pressed==='false'&&inactiveAbsentStyle.background==='rgb(255, 255, 255)',JSON.stringify(inactiveAbsentStyle));
   await absentButton.click();
   await page.waitForTimeout(80);
   let absentValue=await absentInput.inputValue();
