@@ -39,23 +39,40 @@ function subjectFr(sub,fallback=''){
 window.nataijiSubjectFrLabel=subjectFr;
 const subjectIcon=v=>{
  const n=normalize(v);
- if(/اسلام|islam/.test(n))return'book-open';
- if(/بدني|رياضة|education physique|sport/.test(n))return'activity';
- if(/فيزياء|physique|physics/.test(n))return'zap';
- if(/عرب|arabe|lecture|قراءة|كتاب|ecriture|كتابة|expression|تعبير/.test(n))return'book';
- if(/حساب|رياضيات|math|calcul/.test(n))return'hash';
- if(/مدني|civique|citoy/.test(n))return'flag';
- if(/فني|artist|dessin/.test(n))return'edit-3';
- if(/فرنس|francais/.test(n))return'message-circle';
- if(/بدني|رياضة|physique|sport/.test(n))return'activity';
- if(/علوم|science|طبيع/.test(n))return'feather';
- return'bookmark';
+ if(/اسلام|islam/.test(n))return'islamic';
+ if(/عرب|arabe|lecture|قراءة|كتاب|ecriture|كتابة|expression|تعبير/.test(n))return'arabic';
+ if(/حساب|رياضيات|math|calcul/.test(n))return'math';
+ if(/مدني|civique|citoy/.test(n))return'civic';
+ if(/فني|artist|dessin/.test(n))return'art';
+ if(/فرنس|francais/.test(n))return'french';
+ if(/بدني|رياضة|education physique|sport/.test(n))return'sport';
+ if(/فيزياء|physique|physics/.test(n))return'physics';
+ if(/علوم|science|طبيع/.test(n))return'science';
+ return'generic';
 };
+const subjectIconMarkup=key=>{
+ const common='viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"';
+ const icons={
+  islamic:`<svg ${common}><path d="M5 20h14"/><path d="M7 20v-7.2c0-2.2 1.5-4.2 3.7-4.8"/><path d="M17 20v-7.2c0-2.2-1.5-4.2-3.7-4.8"/><path d="M12 3.2c1.2 1.1 1.8 2.2 1.8 3.3 0 1-.8 1.9-1.8 1.9s-1.8-.9-1.8-1.9c0-1.1.6-2.2 1.8-3.3Z"/><path d="M9.2 20v-4.4a2.8 2.8 0 0 1 5.6 0V20"/></svg>`,
+  arabic:`<svg ${common}><path d="M4 5.5c2.8-.8 5.1-.2 8 1.6v12.2c-2.9-1.8-5.2-2.3-8-1.5V5.5Z"/><path d="M20 5.5c-2.8-.8-5.1-.2-8 1.6v12.2c2.9-1.8 5.2-2.3 8-1.5V5.5Z"/></svg>`,
+  math:`<svg ${common}><rect x="5" y="3.5" width="14" height="17" rx="2.2"/><path d="M8 7.5h8"/><path d="M8.2 12h1.6M14.2 12h1.6M8.2 15.5h1.6M14.2 15.5h1.6M8.2 18.5h1.6M14.2 18.5h1.6"/></svg>`,
+  civic:`<svg ${common}><path d="M6 21V4"/><path d="M6 5c4-2.2 7 2 12 0v9c-5 2-8-2.2-12 0"/></svg>`,
+  art:`<svg ${common}><path d="M12 3.2c-5.2 0-9 3.5-9 8.1 0 4.7 4.1 8.5 9.1 8.5h1.1c1.4 0 2.1-.9 2.1-1.9 0-.8-.5-1.3-.5-2 0-.9.8-1.5 1.8-1.5H18c2 0 3-1.4 3-3.3 0-4.5-3.7-7.9-9-7.9Z"/><circle cx="7.7" cy="9.2" r=".8" fill="currentColor" stroke="none"/><circle cx="10.5" cy="6.8" r=".8" fill="currentColor" stroke="none"/><circle cx="14.2" cy="7.3" r=".8" fill="currentColor" stroke="none"/><circle cx="16.5" cy="10.1" r=".8" fill="currentColor" stroke="none"/></svg>`,
+  french:`<svg ${common}><path d="M4.2 5.5h15.6v10.2a3 3 0 0 1-3 3H10l-4.4 2v-2.8a3 3 0 0 1-1.4-2.5V5.5Z"/><path d="M8 9.3h8M8 12.7h5.5"/></svg>`,
+  sport:`<svg ${common}><circle cx="14.7" cy="4.8" r="1.8"/><path d="m12.5 9.2 2.4 2.2 2.7.7"/><path d="m12.7 8.4-2.2 3.4-3.1 1.4"/><path d="m12 12.5-1.1 4.1-3.2 3"/><path d="m13.2 12.4 3 3.2 3.1 1.1"/></svg>`,
+  physics:`<svg ${common}><path d="m13 2-7 12h6l-1 8 7-12h-6l1-8Z"/></svg>`,
+  science:`<svg ${common}><path d="M9 3h6M10 3v5.2l-4.6 8A2.5 2.5 0 0 0 7.6 20h8.8a2.5 2.5 0 0 0 2.2-3.8l-4.6-8V3"/><path d="M8.2 14h7.6"/></svg>`,
+  generic:`<svg ${common}><path d="M6 4.5h9a3 3 0 0 1 3 3v12H9a3 3 0 0 1-3-3v-12Z"/><path d="M9 8h6M9 11h6"/></svg>`
+ };
+ return icons[key]||icons.generic;
+};
+window.nataijiSubjectIconKey=subjectIcon;
+window.nataijiSubjectIconMarkup=subjectIconMarkup;
 const fallbackNames={'محمد':'Mohamed','محمود':'Mahmoud','أحمد':'Ahmed','احمد':'Ahmed','عمر':'Oumar','علي':'Ali','إبراهيم':'Ibrahim','ابراهيم':'Ibrahim','مريم':'Mariem','سيدي':'Sidi','سالم':'Salem','منى':'Mouna','فاطمة':'Fatimetou','أمين':'Amine','امين':'Amine','فاضل':'Fadel','الشيخ':'Cheikh','المختار':'Moctar'};
 const letters={'ا':'a','أ':'a','إ':'i','آ':'a','ب':'b','ت':'t','ث':'th','ج':'j','ح':'h','خ':'kh','د':'d','ذ':'dh','ر':'r','ز':'z','س':'s','ش':'ch','ص':'s','ض':'d','ط':'t','ظ':'z','ع':'a','غ':'gh','ف':'f','ق':'q','ك':'k','ل':'l','م':'m','ن':'n','ه':'h','ة':'a','و':'ou','ؤ':'ou','ي':'i','ى':'a','ئ':'i','ء':''};
 function latinName(v){return String(v||'').trim().split(/\s+/).map(w=>fallbackNames[w]||([...w].map(c=>letters[c]??c).join('').replace(/^./,c=>c.toUpperCase()))).join(' ')}
 function localizedPupil(p){if(!p)return'';return isFr()?(String(p?.[4]||'').trim()||latinName(p?.[1])):String(p?.[1]||p?.[4]||'').trim()}
-function addIcon(host,name){if(!host)return;let wrap=host.querySelector(':scope > .subject-premium-icon');if(!wrap){wrap=document.createElement('span');wrap.className='subject-premium-icon';wrap.setAttribute('aria-hidden','true');host.prepend(wrap)}if(wrap.dataset.icon===name)return;wrap.dataset.icon=name;wrap.innerHTML=`<i data-feather="${name}"></i>`}
+function addIcon(host,key){if(!host)return;let wrap=host.querySelector(':scope > .subject-premium-icon');if(!wrap){wrap=document.createElement('span');wrap.className='subject-premium-icon';wrap.setAttribute('aria-hidden','true');host.prepend(wrap)}if(wrap.dataset.icon===key&&wrap.querySelector('svg'))return;wrap.dataset.icon=key;wrap.innerHTML=subjectIconMarkup(key)}
 function localizeGradeRows(s){
  const rows=qa('#mobileScores .compact-score-row');
  rows.forEach((row,i)=>{const p=s.pupils?.[i],b=q('.score-student b',row);if(!p||!b)return;const name=localizedPupil(p),next=`${i+1}. ${name}`;if(b.textContent!==next)b.textContent=next;b.dir=isFr()?'ltr':'rtl';const input=q('.mobile-mark',row);if(input)input.setAttribute('aria-label',`${name} — ${isFr()?'note':'النتيجة'}`)});
