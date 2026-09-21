@@ -59,9 +59,21 @@ try{
   check('subject label has usable mobile width',Boolean(sb&&sb.width>=90),JSON.stringify({box:sb,style:subjectStyle}));
   check('subject label does not force letter breaking',subjectStyle.wordBreak==='normal',JSON.stringify(subjectStyle));
 
+  const pupilCountBefore=await page.locator('.student-mobile-card').count().catch(()=>0);
+  if(pupilCountBefore===0){
+    const seeded=await page.evaluate(async()=>{
+      const classId=document.querySelector('#classTop')?.value||'';
+      const res=await fetch('/api/pupils',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({classId,pupil:['','طالب الاختبار','','','','Test Student','','']})});
+      return {status:res.status,body:await res.json()};
+    });
+    check('test pupil can be created for persistence flow',seeded.status===200&&seeded.body?.ok===true,JSON.stringify(seeded));
+    await page.reload({waitUntil:'domcontentloaded'});
+    await page.locator('.app-shell').waitFor({state:'visible',timeout:12000});
+  }
+
   await page.locator('.bottom-nav button[data-view="grades"]').click();
   await page.locator('[data-page="grades"]').waitFor({state:'visible',timeout:7000});
-  await page.waitForTimeout(250);
+  await page.waitForTimeout(350);
   const firstMark=page.locator('.compact-score-row .mobile-mark').first();
   await firstMark.waitFor({state:'visible',timeout:7000});
   await firstMark.fill('0');
