@@ -35,7 +35,7 @@ assert('final mobile css loaded', /release-100-v1\.css/.test(index));
 assert('final visual polish loaded', /nataiji-final-visual-v1\.css/.test(index));
 assert('privacy page exists', exists('public/privacy.html'));
 assert('terms page exists', exists('public/terms.html'));
-assert('PWA cache version current', /nataiji-shell-v13/.test(sw));
+assert('PWA cache version current', /nataiji-shell-v14/.test(sw));
 assert('PWA caches final mobile css', /release-100-v1\.css/.test(sw));
 assert('PWA caches final visual polish', /nataiji-final-visual-v1\.css/.test(sw));
 assert('PWA excludes API cache', /pathname\.startsWith\("\/api\/"\)/.test(sw));
