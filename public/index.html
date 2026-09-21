@@ -26,11 +26,29 @@
     <link rel="stylesheet" href="/auth.css" />
     <link rel="stylesheet" href="/print-fixes.css?v=9" />
     <link rel="stylesheet" href="/luxury-ui-v1.css?v=3" />
-    <link rel="stylesheet" href="/nataiji-design-system-v2.css?v=1" />\n    <link rel="stylesheet" href="/nataiji-visual-lab-v1.css?v=1" />
+    <link rel="stylesheet" href="/nataiji-design-system-v2.css?v=1" />
+    <link rel="stylesheet" href="/nataiji-visual-lab-v1.css?v=1" />
+    <link rel="stylesheet" href="/nataiji-refinement-v4.css?v=1" />
     <script id="nataiji-feather" src="/vendor/feather.min.js" defer></script>
-    <script id="nataiji-luxury-script" src="/luxury-ui-v1.js?v=3" defer></script>
+    <script id="nataiji-luxury-script" src="/luxury-ui-v1.js?v=4" defer></script>
+    <style id="nataiji-boot-guard">
+      html:not(.nataiji-auth-ready) body > .app-shell,
+      html:not(.nataiji-auth-ready) body > .bottom-nav { visibility: hidden }
+      #nataijiBootSplash { position: fixed; inset: 0; z-index: 9999; display: grid; place-items: center; background: radial-gradient(circle at 50% 38%, #fff 0, #f8faf7 44%, #eef5f3 100%); color: #082b4b }
+      #nataijiBootSplash > div { display: grid; justify-items: center; gap: 12px }
+      #nataijiBootSplash img { width: 112px; height: 112px; object-fit: contain; border-radius: 27px; box-shadow: 0 18px 50px rgba(8,43,75,.13) }
+      #nataijiBootSplash b { font-size: 24px; letter-spacing: .02em }
+      #nataijiBootSplash span { width: 48px; height: 3px; overflow: hidden; border-radius: 99px; background: #dbe9e5 }
+      #nataijiBootSplash span:after { content: ""; display: block; width: 55%; height: 100%; border-radius: inherit; background: linear-gradient(90deg,#0a7b68,#10a47f); animation: nataijiBoot 1s ease-in-out infinite alternate }
+      html.nataiji-auth-ready #nataijiBootSplash { display: none }
+      @keyframes nataijiBoot { to { transform: translateX(82%) } }
+      @media (prefers-reduced-motion: reduce) { #nataijiBootSplash span:after { animation: none; width: 100% } }
+    </style>
   </head>
   <body>
+    <div id="nataijiBootSplash" role="status" aria-label="Nataiji loading">
+      <div><img src="/nataiji-brand-mark.png" alt="" width="112" height="112" /><b>Nataiji</b><span aria-hidden="true"></span></div>
+    </div>
     <div class="app-shell">
       <aside class="sidebar">
         <div class="logo">
@@ -233,7 +251,7 @@
     <script src="/app-stability-v1.js?v=5"></script>
     <script src="/structure-manager.js?v=21"></script>
     <script src="/onboarding-v1.js?v=6"></script>
-    <script src="/auth-access-v2.js?v=30"></script>
+    <script src="/auth-access-v2.js?v=31"></script>
     <script src="/account-isolation.js?v=4"></script>
     <script src="/scoring-model-v2.js?v=6"></script>
     <script src="/annual-results-v1.js?v=22"></script>
@@ -244,12 +262,13 @@
     <script src="/two-students-a4-v1.js?v=12"></script>
     <script src="/app-power-v1.js?v=7"></script>
     <script src="/student-mobile-cards-v1.js?v=2"></script>
-    <script src="/grade-mobile-ui-v1.js?v=5"></script>
+    <script src="/grade-mobile-ui-v1.js?v=6"></script>
     <script src="/report-mobile-preview-v1.js?v=3"></script>
     <script src="/report-final-polish-v1.js?v=11"></script>
     <script src="/student-pdf-number-direction-v1.js?v=1"></script>
     <script src="/admin-ux-polish-v1.js?v=4"></script>
     <script src="/interface-language-fix.js?v=4"></script>
-    <script src="/premium-subject-locale-v1.js?v=1"></script>
+    <script src="/premium-subject-locale-v1.js?v=2"></script>
+    <script src="/commercial-foundation-v1.js?v=1"></script>
   </body>
 </html>

@@ -33,7 +33,7 @@ function localizeGradeRows(s){
 function localizeSubjects(s){
  const picker=q('#subjectPicker'),j=Number(picker?.value)||0,sub=s.subjects?.[j];
  if(sub){const title=q('#mobileScores .grade-subject-copy b')||q('#mobileScores .subject-title b');if(title){title.textContent=isFr()?(sub?.[2]||sub?.[0]):sub?.[0];const host=title.closest('.grade-subject-copy')||title.parentElement;addIcon(host,subjectIcon(`${sub?.[0]} ${sub?.[2]}`))}}
- qa('#subjectProgress>div').forEach((row,i)=>{const x=s.subjects?.[i];if(!x)return;const label=q('span',row)||row;addIcon(label,subjectIcon(`${x?.[0]} ${x?.[2]}`))});
+ qa('#subjectProgress>div').forEach((row,i)=>{const x=s.subjects?.[i];if(!x)return;const label=q(':scope > span',row)||row;addIcon(label,subjectIcon(`${x?.[0]} ${x?.[2]}`));let name=q(':scope > .subject-progress-name',label);if(!name){name=document.createElement('b');name.className='subject-progress-name';[...label.childNodes].filter(n=>n.nodeType===Node.TEXT_NODE).forEach(n=>n.remove());const icon=q(':scope > .subject-premium-icon',label);icon?.after(name)}name.textContent=isFr()?(x?.[2]||x?.[0]):x?.[0];name.dir=isFr()?'ltr':'rtl'});
 }
 function localizePrintControls(){
  const fr=isFr(),all=q('#printAllStudents');if(all)all.textContent=fr?'Imprimer tous les bulletins (2 élèves / A4)':'طباعة جميع الكشوف (تلميذان / A4)';
@@ -51,10 +51,15 @@ const css=document.createElement('style');css.id='premium-subject-locale-style';
 .grade-subject-copy{position:relative;padding-inline-start:39px!important}.grade-subject-copy>.subject-premium-icon{position:absolute;inset-inline-start:0;top:50%;transform:translateY(-50%)}
 .subject-premium-icon{display:inline-flex!important;align-items:center!important;justify-content:center!important;width:30px!important;height:30px!important;flex:0 0 30px!important;border-radius:9px!important;background:linear-gradient(145deg,#fff,#eaf7f3)!important;border:1px solid rgba(12,136,108,.18)!important;color:#087d67!important;box-shadow:0 4px 10px rgba(8,43,75,.07)!important;vertical-align:middle!important;margin-inline-end:8px!important}
 .subject-premium-icon svg{width:16px!important;height:16px!important;stroke-width:1.9!important}
-#subjectProgress>div>span{display:flex!important;align-items:center!important;min-width:0!important}
+#subjectProgress>div{display:grid!important;grid-template-columns:minmax(145px,1fr) minmax(120px,2.4fr) 48px!important;align-items:center!important;gap:12px!important}
+#subjectProgress>div>span{display:grid!important;grid-template-columns:30px minmax(0,1fr)!important;grid-template-rows:auto auto!important;align-items:center!important;column-gap:8px!important;row-gap:2px!important;min-width:0!important;line-height:1.22!important}
+#subjectProgress>div>span>.subject-premium-icon{grid-column:1!important;grid-row:1/3!important;margin:0!important}
+#subjectProgress .subject-progress-name{grid-column:2!important;grid-row:1!important;min-width:0!important;font:inherit!important;font-weight:800!important;overflow-wrap:anywhere!important}
+#subjectProgress>div>span{overflow-wrap:anywhere!important}
+#subjectProgress>div>span>small{grid-column:2!important;grid-row:2!important;display:block!important;white-space:nowrap!important;color:#8797a2!important;margin:0!important}
 .lang-fr #mobileScores .score-student b{direction:ltr!important;text-align:left!important}.lang-fr #mobileScores .score-student small{text-align:left!important}
 html[dir="rtl"] #mobileScores .score-student b{direction:rtl!important;text-align:right!important}
-@media(max-width:520px){.subject-premium-icon{width:28px!important;height:28px!important;flex-basis:28px!important}.grade-subject-copy{padding-inline-start:36px!important}}
+@media(max-width:520px){.subject-premium-icon{width:28px!important;height:28px!important;flex-basis:28px!important}.grade-subject-copy{padding-inline-start:36px!important}#subjectProgress>div{grid-template-columns:minmax(132px,1fr) minmax(90px,2fr) 42px!important;gap:8px!important}#subjectProgress>div>span{grid-template-columns:28px minmax(0,1fr)!important;column-gap:6px!important;font-size:12px!important}#subjectProgress>div>span>small{font-size:10px!important}}
 `;
 document.head.appendChild(css);
 })();

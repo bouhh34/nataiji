@@ -1,4 +1,4 @@
-const CACHE = "nataiji-shell-v8";
+const CACHE = "nataiji-shell-v9";
 const ASSETS = [
   "/",
   "/download.html",
@@ -8,6 +8,10 @@ const ASSETS = [
   "/luxury-ui-v1.js",
   "/interface-language-fix.js",
   "/premium-subject-locale-v1.js",
+  "/commercial-foundation-v1.js",
+  "/nataiji-design-system-v2.css",
+  "/nataiji-visual-lab-v1.css",
+  "/nataiji-refinement-v4.css",
   "/vendor/feather.min.js",
   "/nataiji-brand-mark.png",
   "/manifest.webmanifest",
