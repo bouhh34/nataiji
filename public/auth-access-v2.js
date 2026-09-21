@@ -160,10 +160,10 @@ async function bindUnifiedClassSelector(){
   if(localClasses.length){
    if(currentUser.activeSharedGrant){
     const g=shared.find(x=>x.grantId===currentUser.activeSharedGrant)||currentUser.sharedGrants?.[currentUser.activeSharedGrant]||{};
-    for(const cls of localClasses)add({kind:'shared',id:currentUser.activeSharedGrant,classId:cls.id,label:(g.schoolName||tr('مدرسة','École'))+' — '+(cls.name||state.className||tr('القسم الحالي','Classe actuelle'))+' — '+(g.ownerName||tr('المعلم المالك','Enseignant propriétaire')),selected:state?.activeClassId===cls.id})
+    for(const cls of localClasses)add({kind:'shared',id:currentUser.activeSharedGrant,classId:cls.id,label:(g.schoolName||tr('مدرسة','École'))+' — '+(fr()?(cls.nameFr||cls.code||cls.name||state.classNameFr||state.className):(cls.name||state.className||tr('القسم الحالي','Classe actuelle')))+' — '+(g.ownerName||tr('المعلم المالك','Enseignant propriétaire')),selected:state?.activeClassId===cls.id})
    }else{
     const school=owned.find(x=>x.active)||owned.find(x=>x.schoolId===currentUser.schoolId);
-    if(school)for(const cls of localClasses)add({kind:'own',id:school.schoolId,classId:cls.id,label:(owned.length>1?school.schoolName+' — ':'')+(cls.name||state.className||tr('القسم الحالي','Classe actuelle')),selected:state?.activeClassId===cls.id})
+    if(school)for(const cls of localClasses)add({kind:'own',id:school.schoolId,classId:cls.id,label:(owned.length>1?school.schoolName+' — ':'')+(fr()?(cls.nameFr||cls.code||cls.name||state.classNameFr||state.className):(cls.name||state.className||tr('القسم الحالي','Classe actuelle'))),selected:state?.activeClassId===cls.id})
    }
   }
   if(run!==workspaceSelectorRun)return;
