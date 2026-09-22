@@ -9,10 +9,11 @@ function fixture(){
  const requests=[],deferred=[];
  const status={textContent:'',classList:{toggle(_,value){this.dirty=value}}};
  const button={textContent:'Save',disabled:false};
+ const student={value:'0'};
  const state={activeClassId:'class-a',term:'term-1',pupils:[['1','Pupil','','','','','','pupil-1']],subjects:[['Subject',1,'Subject',30,'subject-1']],marks:[[5]],marksByTerm:{},classData:{'class-a':{}}};
  const document={documentElement:{lang:'ar'},activeElement:null,querySelector:()=>null,addEventListener(){}};
  const window={addEventListener(){},nataijiValidateGradeValue(raw,max){const n=Number(raw);return raw===''?{ok:true,value:''}:raw==='غائب'?{ok:true,value:raw,absent:true}:{ok:Number.isFinite(n)&&n>=0&&n<=max,value:n}}};
- const ctx=vm.createContext({state,currentUser:{id:'owner',schoolId:'school'},document,window,structuredClone,console,Event,syncBusy:false,setTimeout,localStorage:{setItem(){}},renderReports(){},$:s=>s==='#saveState'?status:button,api:async(url,options)=>{requests.push({url,...JSON.parse(options.body)});return await new Promise((resolve,reject)=>deferred.push({resolve,reject}))}});
+ const ctx=vm.createContext({state,currentUser:{id:'owner',schoolId:'school'},document,window,structuredClone,console,Event,syncBusy:false,setTimeout,localStorage:{setItem(){}},renderReports(){},$:s=>s==='#saveState'?status:s==='#student'?student:button,api:async(url,options)=>{requests.push({url,...JSON.parse(options.body)});return await new Promise((resolve,reject)=>deferred.push({resolve,reject}))}});
  vm.runInContext(code,ctx);
  return {ctx,state,status,button,requests,deferred,edit(value){ctx.input={value,dataset:{i:'0',j:'0'},classList:{contains:()=>false}};return vm.runInContext('persistMarkCell(input)',ctx)}};
 }
