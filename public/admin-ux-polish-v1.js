@@ -29,7 +29,7 @@ function enhanceSubjects(modal){
      toggle=document.createElement('button');
      toggle.type='button';toggle.className='bi-subject-toggle';
      const del=q('.bi-subject-delete',head);head.insertBefore(toggle,del||null);
-     const isNew=/مادة جديدة|nouvelle matière/i.test(String(ar?.value||''));
+     const isNew=!String(ar?.value||'').trim()||/مادة جديدة|nouvelle matière/i.test(String(ar?.value||''));
      row.classList.toggle('collapsed',!isNew);
      toggle.addEventListener('click',e=>{
        e.preventDefault();e.stopPropagation();
