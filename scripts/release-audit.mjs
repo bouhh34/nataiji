@@ -51,7 +51,7 @@ assert('auth language switch updates direction immediately', /document\.document
 const bilingualEditor = read('public/bilingual-data-editor-v1.js');
 assert('paired Arabic French fields sync live both ways', /a\.addEventListener\('input',\(\)=>\{f\.value=arToFr\(a\.value\)\}\)/.test(bilingualEditor) && /f\.addEventListener\('input',\(\)=>\{a\.value=frToAr\(f\.value\)\}\)/.test(bilingualEditor));
 assert('new subject starts with blank bilingual names and max score', /draft\.push\(\['',1,'','',''\]\)/.test(bilingualEditor));
-assert('subject save requires explicit maximum score', /حدد الدرجة القصوى للمادة/.test(bilingualEditor) && /bi-field-invalid/.test(bilingualEditor));
+assert('subject save requires explicit maximum score', /الدرجة القصوى/.test(bilingualEditor) && /bi-field-invalid/.test(bilingualEditor) && /data-sm/.test(bilingualEditor));
 assert('focused invalid subject fields remain red', /input\.bi-field-invalid:focus/.test(bilingualEditor));
 assert('subject validation summarizes all missing fields', /أكمل الحقول المطلوبة/.test(bilingualEditor) && /الاسم بالعربية/.test(bilingualEditor) && /الاسم بالفرنسية/.test(bilingualEditor) && /الدرجة القصوى/.test(bilingualEditor));
 assert('all report print actions are primary green', /#printResult,[\s\S]*\.report-print\{[\s\S]*color:#fff!important[\s\S]*background:linear-gradient\(135deg,#078b70,#086f61\)!important/.test(read('public/nataiji-premium-v2.css')));
