@@ -137,6 +137,7 @@ const css=document.createElement('style');css.id='nataiji-admin-ux-polish-v1-sty
 }
 .ux-primary-action{min-height:46px!important;border-radius:11px!important;font-weight:800!important}
 .auth2-school-create,#auth2AddSchool{width:100%!important;display:block!important;min-height:50px!important;margin-top:12px!important;border-radius:12px!important;font-weight:800!important}
+.auth2-join-modal .action{width:100%!important;display:block!important;min-height:50px!important;margin-top:14px!important;border-radius:12px!important;font-weight:800!important}
 .nataiji-structure-polish .ux-primary-action{
  width:100%!important;display:block!important;margin:18px 0 0!important;min-height:52px!important;
  border-radius:12px!important;font-size:15px!important;text-align:center!important
