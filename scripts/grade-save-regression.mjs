@@ -29,11 +29,11 @@ test('success is not displayed while another save is pending',async()=>{
 test('later success does not hide an earlier failed save',async()=>{
  const f=fixture(),first=f.edit('10');await tick();const second=f.edit('11');f.deferred[0].reject(new Error('offline'));await first;await tick();f.deferred[1].resolve({ok:true});await second;assert.equal(f.status.classList.dirty,true);
 });
-test('bulk response does not replace newer edits',async()=>{
- const f=fixture();const job=f.button.onclick();await tick();f.state.marks=[[19]];f.deferred[0].resolve({ok:true,marks:[[5]]});await job;assert.equal(f.state.marks[0][0],19);assert.equal(f.button.disabled,false);assert.equal(f.status.classList.dirty,true);
+test('manual save confirmation does not issue a bulk overwrite',async()=>{
+ const f=fixture();await f.button.onclick();assert.equal(f.requests.length,0);assert.equal(f.button.disabled,false);assert.equal(f.status.classList.dirty,false);
 });
-test('bulk response does not overwrite another class',async()=>{
- const f=fixture();const job=f.button.onclick();await tick();f.state.activeClassId='class-b';f.state.marks=[[24]];f.deferred[0].resolve({ok:true,marks:[[5]]});await job;assert.equal(f.state.marks[0][0],24);
+test('manual save confirmation does not overwrite another class',async()=>{
+ const f=fixture();f.state.activeClassId='class-b';f.state.marks=[[24]];await f.button.onclick();assert.equal(f.requests.length,0);assert.equal(f.state.marks[0][0],24);
 });
 test('zero, absence and blank stay distinct; invalid values are not sent',async()=>{
  const f=fixture();for(const [raw,expected] of [['0',0],['غائب','غائب'],['','']]){const job=f.edit(raw);await tick();assert.equal(f.requests.at(-1).value,expected);f.deferred.at(-1).resolve({ok:true});await job}await f.edit('31');assert.equal(f.requests.length,3);
@@ -41,6 +41,6 @@ test('zero, absence and blank stay distinct; invalid values are not sent',async(
 test('queued saves are not sent under a different account',async()=>{
  const f=fixture(),first=f.edit('10');await tick();const second=f.edit('11');vm.runInContext("currentUser={id:'other',schoolId:'other-school'}",f.ctx);f.deferred[0].resolve({ok:true});await first;await second;assert.equal(f.requests.length,1);
 });
-test('bulk retry clears failure and follows queued single-cell writes',async()=>{
- const f=fixture();const cell=f.edit('10');await tick();const bulk=f.button.onclick();assert.equal(f.requests.length,1);f.deferred[0].reject(new Error('offline'));await cell;await tick();assert.equal(f.requests[1].url,'/api/marks');f.deferred[1].resolve({ok:true,marks:[[10]]});await bulk;assert.equal(f.status.classList.dirty,false);
+test('manual save waits for queued single-cell writes and preserves failure',async()=>{
+ const f=fixture();const cell=f.edit('10');await tick();const confirm=f.button.onclick();assert.equal(f.requests.length,1);f.deferred[0].reject(new Error('offline'));await cell;await confirm;assert.equal(f.requests.length,1);assert.equal(f.status.classList.dirty,true);
 });
