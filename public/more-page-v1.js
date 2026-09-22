@@ -7,15 +7,6 @@ const q=(s,r=document)=>r.querySelector(s);
 const fr=()=>localStorage.getItem('nataiji-lang')==='fr';
 const GROUPS=[
   {
-    key:'account',
-    icon:'briefcase',
-    ar:'إدارة الحساب والمدرسة',
-    fr:'Compte et école',
-    subAr:'معلوماتك وإعدادات مدرستك',
-    subFr:'Vos informations et réglages',
-    ids:['ownerDashboardBtn','langSwitch','schoolsBtn','settingsBtn','subscriptionBtn','installAppBtn','supportBtn','changePasswordBtn','privacyPolicyBtn','termsPolicyBtn','logoutBtn','deleteAccountBtn']
-  },
-  {
     key:'academic',
     icon:'book-open',
     ar:'الإعدادات الأكاديمية',
@@ -32,6 +23,15 @@ const GROUPS=[
     subAr:'تواصل مع فريقك وشارك الموارد',
     subFr:'Travaillez avec votre équipe et partagez les accès',
     ids:['inviteBtn','sharesBtn','joinInviteBtn']
+  },
+  {
+    key:'account',
+    icon:'briefcase',
+    ar:'إدارة الحساب والمدرسة',
+    fr:'Compte et école',
+    subAr:'معلوماتك وإعدادات مدرستك',
+    subFr:'Vos informations et réglages',
+    ids:['ownerDashboardBtn','langSwitch','schoolsBtn','settingsBtn','subscriptionBtn','installAppBtn','supportBtn','changePasswordBtn','privacyPolicyBtn','termsPolicyBtn','logoutBtn','deleteAccountBtn']
   }
 ];
 
