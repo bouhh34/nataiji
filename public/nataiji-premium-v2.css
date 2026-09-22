@@ -141,10 +141,15 @@
   [data-page="reports"] .workflow-tools button{
     background:#fbfdfc!important
   }
-  [data-page="reports"] #printResult{
+  [data-page="reports"] #printResult,
+  [data-page="reports"] .report-print{
     color:#fff!important;border-color:transparent!important;
     background:linear-gradient(135deg,#078b70,#086f61)!important;
     box-shadow:0 8px 18px rgba(7,134,107,.14)!important
+  }
+  [data-page="reports"] #printResult svg,
+  [data-page="reports"] .report-print svg{
+    color:#fff!important;stroke:#fff!important
   }
   [data-page="reports"] .report-preview-stage-v2{
     border-color:#d9e5e8!important;background:linear-gradient(180deg,#f2f6f7,#eaf0f2)!important
