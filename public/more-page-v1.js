@@ -13,7 +13,7 @@ const GROUPS=[
     fr:'Compte et école',
     subAr:'معلوماتك وإعدادات مدرستك',
     subFr:'Vos informations et réglages',
-    ids:['ownerDashboardBtn','langSwitch','schoolsBtn','settingsBtn','subscriptionBtn','installAppBtn','supportBtn','changePasswordBtn','privacyPolicyBtn','termsPolicyBtn','deleteAccountBtn','logoutBtn']
+    ids:['ownerDashboardBtn','langSwitch','schoolsBtn','settingsBtn','subscriptionBtn','installAppBtn','supportBtn','changePasswordBtn','privacyPolicyBtn','termsPolicyBtn','logoutBtn','deleteAccountBtn']
   },
   {
     key:'academic',
