@@ -15,7 +15,6 @@ function fixture(){
  const window={addEventListener(){},nataijiFindInvalidMark(){return false},nataijiValidateGradeValue(raw,max){const n=Number(raw);return raw===''?{ok:true,value:''}:raw==='غائب'?{ok:true,value:raw,absent:true}:{ok:Number.isFinite(n)&&n>=0&&n<=max,value:n}}};
  const ctx=vm.createContext({state,currentUser:{id:'owner',schoolId:'school'},document,window,structuredClone,console,Event,syncBusy:false,setTimeout,localStorage:{setItem(){}},renderReports(){},$:s=>s==='#saveState'?status:s==='#student'?student:button,api:async(url,options)=>{requests.push({url,...JSON.parse(options.body)});return await new Promise((resolve,reject)=>deferred.push({resolve,reject}))}});
  vm.runInContext(code,ctx);
- button.onclick=vm.runInContext("$('#saveGrades').onclick",ctx);
  return {ctx,state,status,button,requests,deferred,edit(value){ctx.input={value,dataset:{i:'0',j:'0'},classList:{contains:()=>false}};return vm.runInContext('persistMarkCell(input)',ctx)}};
 }
 const tick=()=>new Promise(resolve=>setImmediate(resolve));
