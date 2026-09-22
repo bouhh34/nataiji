@@ -37,7 +37,7 @@ assert('premium v2 visual layer loaded', /nataiji-premium-v2\.css/.test(index) &
 assert('approved home reference layer loaded last', /nataiji-home-reference-v1\.css/.test(index) && /nataiji-home-reference-v1\.js/.test(index));
 assert('privacy page exists', exists('public/privacy.html'));
 assert('terms page exists', exists('public/terms.html'));
-assert('PWA cache version current', /nataiji-shell-v34/.test(sw));
+assert('PWA cache version current', /nataiji-shell-v35/.test(sw));
 assert('PWA caches final mobile css', /release-100-v1\.css/.test(sw));
 assert('PWA caches final visual polish', /nataiji-final-visual-v1\.css/.test(sw));
 assert('PWA caches premium v2 layer', /nataiji-premium-v2\.css/.test(sw) && /nataiji-premium-v2\.js/.test(sw));
@@ -53,6 +53,7 @@ assert('paired Arabic French fields sync live both ways', /a\.addEventListener\(
 assert('new subject starts with blank bilingual names and max score', /draft\.push\(\['',1,'','',''\]\)/.test(bilingualEditor));
 const adminUxPolish = read('public/admin-ux-polish-v1.js');
 assert('new blank subject opens immediately', /const isNew=!String\(ar\?\.value\|\|''\)\.trim\(\)/.test(adminUxPolish));
+assert('subject header uses compact edit delete guide', /السهم لفتح المادة وتعديلها/.test(bilingualEditor) && /لحذف المادة/.test(bilingualEditor) && !/المعامل ثابت/.test(bilingualEditor));
 assert('subject save requires explicit maximum score', /الدرجة القصوى/.test(bilingualEditor) && /bi-field-invalid/.test(bilingualEditor) && /data-sm/.test(bilingualEditor));
 assert('focused invalid subject fields remain red', /input\.bi-field-invalid:focus/.test(bilingualEditor));
 assert('subject validation summarizes all missing fields', /أكمل الحقول المطلوبة/.test(bilingualEditor) && /الاسم بالعربية/.test(bilingualEditor) && /الاسم بالفرنسية/.test(bilingualEditor) && /الدرجة القصوى/.test(bilingualEditor));
