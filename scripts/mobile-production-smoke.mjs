@@ -32,6 +32,16 @@ function sessionClient(){
   return {request,clearCookie(){cookie='';},hasCookie(){return Boolean(cookie)}};
 }
 
+async function expectStatus(client,path,options,status){
+  try{
+    await client.request(path,options);
+  }catch(e){
+    assert.equal(e.status,status,`expected HTTP ${status} for ${options?.method||'GET'} ${path}, got ${e.status}: ${e.message}`);
+    return e.data;
+  }
+  assert.fail(`expected HTTP ${status} for ${options?.method||'GET'} ${path}`);
+}
+
 async function createAccount(label){
   const id=crypto.randomUUID().replaceAll('-','').slice(0,16);
   const email=`mobile-ci-${label.toLowerCase()}-${id}@example.com`;
@@ -95,6 +105,9 @@ async function setupSchool(account){
   account.pupilName=pupilName;
   account.nns=nns;
   account.subjectCount=subjectsRes.subjects.length;
+  account.subjects=subjectsRes.subjects;
+  account.subjectIds=subjectsRes.subjects.map(x=>String(x?.[4]||''));
+  account.row=row;
   return {state,persistence};
 }
 
@@ -146,10 +159,83 @@ try{
   assert.ok(bText.includes(B.pupilName));
   assert.ok(!bText.includes(A.pupilName),'school B leaked school A pupil data');
 
+  // Sharing/teacher permission isolation:
+  // B keeps its own school account, then temporarily enters A's shared classroom.
+  const editableSubjectId=A.subjectIds[0];
+  const hiddenSubjectId=A.subjectIds[1];
+  const forbiddenSubjectId=A.subjectIds[2];
+  assert.ok(editableSubjectId&&hiddenSubjectId&&forbiddenSubjectId,'not enough subjects to test sharing permissions');
+
+  const invite=await A.client.request('/api/invites',{method:'POST',body:{
+    teacherName:'Mobile CI Teacher',
+    permissions:['grades','reports'],
+    classAccess:{
+      [A.classId]:{
+        fullClass:false,
+        allSubjects:false,
+        subjectIds:[editableSubjectId],
+        hiddenSubjectIds:[hiddenSubjectId]
+      }
+    }
+  }});
+  assert.ok(/^NT-[A-F0-9]{8,16}$/.test(invite.code||''),'invite code was not created');
+
+  const attached=await B.client.request('/api/access/attach',{method:'POST',body:{code:invite.code}});
+  assert.equal(attached.user?.role,'teacher','shared workspace did not enter teacher role');
+  assert.equal(attached.user?.schoolId,A.user.schoolId,'shared workspace did not switch to owner school');
+  const grantId=attached.grant?.grantId;
+  assert.ok(grantId,'shared grant id missing');
+
+  const sharedState=await B.client.request('/api/state?classId='+encodeURIComponent(A.classId)+'&term='+encodeURIComponent(TERM1));
+  const sharedText=JSON.stringify(sharedState.state||{});
+  assert.ok(sharedText.includes(A.pupilName),'shared teacher cannot see assigned class pupil');
+  assert.ok(!sharedText.includes(B.pupilName),'shared teacher leaked own-school pupil into shared school');
+  const visibleIds=(sharedState.state?.subjects||[]).map(x=>String(x?.[4]||''));
+  assert.ok(visibleIds.includes(editableSubjectId),'editable shared subject is not visible');
+  assert.ok(!visibleIds.includes(hiddenSubjectId),'hidden shared subject is visible');
+
+  const editableMax=Math.max(1,Number(A.subjects?.[0]?.[3])||20);
+  const teacherValue=String(Math.min(1,editableMax));
+  await B.client.request('/api/mark',{method:'PUT',body:{
+    classId:A.classId,term:TERM1,pupilKey:A.nns,subjectId:editableSubjectId,value:teacherValue
+  }});
+
+  await expectStatus(B.client,'/api/mark',{method:'PUT',body:{
+    classId:A.classId,term:TERM1,pupilKey:A.nns,subjectId:forbiddenSubjectId,value:'1'
+  }},403);
+
+  await expectStatus(B.client,'/api/pupils',{method:'POST',body:{
+    classId:A.classId,
+    pupil:['CI-NO-PUPIL-'+B.id.slice(0,5),'غير مسموح','','2018-01-01','M','','','']
+  }},403);
+
+  await expectStatus(B.client,'/api/structure',{method:'PUT',body:{structure:{
+    classes:[{id:A.classId,name:'محاولة غير مسموحة',nameFr:'Interdit',code:'2AF'}],
+    terms:TERMS,activeClassId:A.classId,term:TERM1
+  }}},403);
+
+  const ownerAfterTeacherEdit=await A.client.request('/api/state?classId='+encodeURIComponent(A.classId)+'&term='+encodeURIComponent(TERM1));
+  const editRow=ownerAfterTeacherEdit.state?.marks||[];
+  const ownerSubjectIndex=(ownerAfterTeacherEdit.state?.subjects||[]).findIndex(x=>String(x?.[4]||'')===editableSubjectId);
+  assert.ok(ownerSubjectIndex>=0,'owner cannot resolve teacher-edited subject');
+  assert.equal(String(editRow?.[0]?.[ownerSubjectIndex]??''),teacherValue,'allowed teacher grade did not persist to owner school');
+
+  await A.client.request('/api/shares/'+encodeURIComponent(grantId),{method:'DELETE',body:{}});
+  const sharedAfterRevoke=await B.client.request('/api/shared');
+  assert.equal(sharedAfterRevoke.activeSharedGrant,'','revoked grant remained active');
+  assert.equal((sharedAfterRevoke.grants||[]).length,0,'revoked grant remained in recipient account');
+
+  const bOwnAgain=await B.client.request('/api/state?classId='+encodeURIComponent(B.classId)+'&term='+encodeURIComponent(TERM3));
+  const bOwnAgainText=JSON.stringify(bOwnAgain.state||{});
+  assert.ok(bOwnAgainText.includes(B.pupilName),'recipient did not return to its own school after revocation');
+  assert.ok(!bOwnAgainText.includes(A.pupilName),'revoked shared-school data remained visible');
+
   console.log(JSON.stringify({
     ok:true,
     storage:health.storage,
     schoolsIsolated:true,
+    sharingPermissions:true,
+    sharingRevocation:true,
     termsTested:TERMS.length,
     subjectsIn2AF:A.subjectCount,
     loginPersistence:true,
