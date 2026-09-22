@@ -119,7 +119,7 @@ function apply(){
     if(window.feather)window.feather.replace({class:'lux-feather','stroke-width':1.9});
   }finally{applying=false}
 }
-function schedule(){clearTimeout(timer);timer=setTimeout(apply,90)}
+function schedule(){clearTimeout(timer);timer=setTimeout(apply,32)}
 const observer=new MutationObserver(schedule);
 
 function start(){
@@ -131,6 +131,6 @@ function start(){
 }
 if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',()=>setTimeout(start,180));
 else setTimeout(start,180);
-document.addEventListener('click',e=>{if(e.target.closest?.('[data-view="more"]'))setTimeout(apply,120)},true);
+document.addEventListener('click',e=>{if(e.target.closest?.('[data-view="more"]'))requestAnimationFrame(apply)},true);
 window.addEventListener('storage',e=>{if(e.key==='nataiji-lang')setTimeout(apply,80)});
 })();
