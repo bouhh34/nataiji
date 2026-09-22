@@ -48,7 +48,7 @@ assert('French auth direction is explicit', /lang-fr \.auth-gate/.test(read('pub
 const authAccess = read('public/auth-access-v2.js');
 assert('auth exposes Arabic French language switch', /data-auth-lang="ar"/.test(authAccess) && /data-auth-lang="fr"/.test(authAccess));
 assert('auth language switch updates direction immediately', /document\.documentElement\.dir=next==='fr'\?'ltr':'rtl'/.test(authAccess));
-assert('all report print actions are primary green', /#printResult,[\s\S]*\.report-print\{[\s\S]*color:#fff!important[\s\S]*background:linear-gradient\(135deg,#078b70,#086f61\)!important/.test(premiumV2));
+assert('all report print actions are primary green', /#printResult,[\s\S]*\.report-print\{[\s\S]*color:#fff!important[\s\S]*background:linear-gradient\(135deg,#078b70,#086f61\)!important/.test(read('public/nataiji-premium-v2.css')));
 assert('install card has no legacy text glyph', !/[⬇↓↔]/u.test(read('public/app-power-v1.js')));
 const appPower = read('public/app-power-v1.js');
 assert('More menu ordering avoids mutation loop', /del&&del!==grid\.lastElementChild/.test(appPower) && /logout&&logout\.nextElementSibling!==del/.test(appPower));
