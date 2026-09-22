@@ -133,8 +133,11 @@ function queueGradeSave(context,operation,onSaved){
    const remaining=(pendingGradeSaves.get(key)||1)-1;
    if(remaining)pendingGradeSaves.set(key,remaining);else pendingGradeSaves.delete(key);
    if(sameGradeContext(context)){
-    if(failedGradeSaves.has(key))markSaveStatus(gradeText('تعذر حفظ بعض النتائج — أعد المحاولة بزر حفظ النتائج','Certaines notes ne sont pas enregistrées. Réessayez avec Enregistrer.'),true);
-    else if(remaining)markSaveStatus(gradeText('جارٍ حفظ النتائج…','Enregistrement des notes…'),true);
+    // A later successful full save clears stale per-cell failures. While a
+    // full retry is still queued, do not flash the old failure banner.
+    const hasFailure=failedGradeSaves.has(key);
+    if(remaining)markSaveStatus(gradeText('جارٍ حفظ النتائج…','Enregistrement des notes…'),true);
+    else if(hasFailure)markSaveStatus(gradeText('تعذر حفظ بعض النتائج — أعد المحاولة بزر حفظ النتائج','Certaines notes ne sont pas enregistrées. Réessayez avec Enregistrer.'),true);
     else markSaveStatus(gradeText('تم حفظ النتائج على الخادم','Notes enregistrées sur le serveur'),false);
    }
   }
@@ -174,6 +177,10 @@ $('#saveGrades').onclick=async()=>{
  if(window.nataijiFindInvalidMark?.()){markSaveStatus(gradeText('صحح الدرجة غير الصالحة قبل الحفظ','Corrigez la note avant d’enregistrer'),true);return}
  const button=$('#saveGrades'),old=button.textContent,context=gradeContext(),marks=structuredClone(state.marks),key=gradeKey(context);
  button.disabled=true;button.textContent=gradeText('جارٍ الحفظ…','Enregistrement…');
+ // The manual button is the authoritative retry for this class/term. Wait for
+ // automatic cell saves already queued, then retry the complete matrix.
+ await markCellSaveTail.catch(()=>{});
+ failedGradeSaves.delete(key);
  try{
   await queueGradeSave(context,()=>api('/api/marks',{method:'PUT',body:JSON.stringify({classId:context.classId,term:context.term,marks})}),result=>{
    failedGradeSaves.delete(key);
