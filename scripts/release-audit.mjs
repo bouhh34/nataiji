@@ -37,7 +37,7 @@ assert('premium v2 visual layer loaded', /nataiji-premium-v2\.css/.test(index) &
 assert('approved home reference layer loaded last', /nataiji-home-reference-v1\.css/.test(index) && /nataiji-home-reference-v1\.js/.test(index));
 assert('privacy page exists', exists('public/privacy.html'));
 assert('terms page exists', exists('public/terms.html'));
-assert('PWA cache version current', /nataiji-shell-v30/.test(sw));
+assert('PWA cache version current', /nataiji-shell-v31/.test(sw));
 assert('PWA caches final mobile css', /release-100-v1\.css/.test(sw));
 assert('PWA caches final visual polish', /nataiji-final-visual-v1\.css/.test(sw));
 assert('PWA caches premium v2 layer', /nataiji-premium-v2\.css/.test(sw) && /nataiji-premium-v2\.js/.test(sw));
@@ -48,6 +48,8 @@ assert('French auth direction is explicit', /lang-fr \.auth-gate/.test(read('pub
 const authAccess = read('public/auth-access-v2.js');
 assert('auth exposes Arabic French language switch', /data-auth-lang="ar"/.test(authAccess) && /data-auth-lang="fr"/.test(authAccess));
 assert('auth language switch updates direction immediately', /document\.documentElement\.dir=next==='fr'\?'ltr':'rtl'/.test(authAccess));
+const bilingualEditor = read('public/bilingual-data-editor-v1.js');
+assert('paired Arabic French fields sync live both ways', /a\.addEventListener\('input',\(\)=>\{f\.value=arToFr\(a\.value\)\}\)/.test(bilingualEditor) && /f\.addEventListener\('input',\(\)=>\{a\.value=frToAr\(f\.value\)\}\)/.test(bilingualEditor));
 assert('all report print actions are primary green', /#printResult,[\s\S]*\.report-print\{[\s\S]*color:#fff!important[\s\S]*background:linear-gradient\(135deg,#078b70,#086f61\)!important/.test(read('public/nataiji-premium-v2.css')));
 assert('install card has no legacy text glyph', !/[⬇↓↔]/u.test(read('public/app-power-v1.js')));
 const appPower = read('public/app-power-v1.js');
