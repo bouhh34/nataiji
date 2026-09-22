@@ -97,7 +97,7 @@ async function setupSchool(account){
   const invalid=await expectStatus(account.client,'/api/mark',{method:'PUT',body:{
     classId,term:TERM1,pupilKey:nns,subjectId:firstSubjectId,value:String(firstMax+1)
   }},422);
-  assert.equal(invalid?.error,'mark_above_max','server accepted a grade above subject maximum');
+  assert.equal(invalid?.error,'mark_out_of_range','server accepted a grade above subject maximum');
 
   const persistence=await account.client.request('/api/persistence-check');
   assert.equal(persistence.ok,true,'durable persistence check failed');
