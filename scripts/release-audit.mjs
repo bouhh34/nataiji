@@ -35,6 +35,12 @@ assert('PWA stable app identity', manifest.id === '/' && manifest.name === 'نت
 assert('release freeze document exists', exists('RELEASE.md') && /Nataiji v1\.0\.0 RC1/.test(read('RELEASE.md')));
 assert('Android RC version is wired from package.json', /Apply RC version metadata/.test(read('.github/workflows/mobile-android-release.yml')) && /versionCode 1/.test(read('.github/workflows/mobile-android-release.yml')));
 assert('iOS RC version metadata is explicit', /Apply RC version metadata/.test(read('.github/workflows/mobile-ios-appstore.yml')) && /CURRENT_PROJECT_VERSION = 1/.test(read('.github/workflows/mobile-ios-appstore.yml')));
+const directDownload = read('.github/workflows/mobile-download.yml');
+const downloadPage = read('public/download.html');
+assert('direct Android download uses RC version metadata', /Apply RC version metadata/.test(directDownload) && /versionCode 1/.test(directDownload));
+assert('direct Android package remains installable APK', /assembleDebug/.test(directDownload) && /app-debug\.apk/.test(directDownload));
+assert('official download page identifies RC1 and Android sideloading', /Nataiji v1\.0\.0 RC1/.test(downloadPage) && /خارج Google Play/.test(downloadPage));
+assert('download page links privacy and terms', /\/privacy\.html/.test(downloadPage) && /\/terms\.html/.test(downloadPage));
 
 assert('brand title', /نتائجي\s*\|\s*Nataiji/.test(index));
 assert('viewport safe area', /viewport-fit=cover/.test(index));
