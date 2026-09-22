@@ -91,6 +91,14 @@ async function setupSchool(account){
     assert.equal(saved.marks?.[0]?.length,subjectsRes.subjects.length);
   }
 
+  const firstSubject=subjectsRes.subjects[0];
+  const firstSubjectId=String(firstSubject?.[4]||'');
+  const firstMax=Math.max(1,Number(firstSubject?.[3])||20);
+  const invalid=await expectStatus(account.client,'/api/mark',{method:'PUT',body:{
+    classId,term:TERM1,pupilKey:nns,subjectId:firstSubjectId,value:String(firstMax+1)
+  }},422);
+  assert.equal(invalid?.error,'mark_above_max','server accepted a grade above subject maximum');
+
   const persistence=await account.client.request('/api/persistence-check');
   assert.equal(persistence.ok,true,'durable persistence check failed');
   assert.ok(['postgres','redis'].includes(persistence.storage),'production storage is not durable');
@@ -120,6 +128,31 @@ async function verifyLoginPersistence(account){
   assert.ok(JSON.stringify(state.state||{}).includes(account.pupilName),'data did not persist across logout/login');
 }
 
+async function verifyPasswordRotation(account){
+  const parallel=sessionClient();
+  const first=await parallel.request('/api/auth/login',{method:'POST',body:{email:account.email,password:account.password}});
+  assert.equal(first.user?.email,account.email);
+
+  const oldPassword=account.password;
+  const newPassword=oldPassword+'R9!';
+  const changed=await account.client.request('/api/account/password',{method:'POST',body:{
+    currentPassword:oldPassword,password:newPassword
+  }});
+  assert.equal(changed.ok,true);
+  account.password=newPassword;
+
+  await expectStatus(parallel,'/api/state',{},401);
+
+  const oldLogin=sessionClient();
+  await expectStatus(oldLogin,'/api/auth/login',{method:'POST',body:{email:account.email,password:oldPassword}},401);
+
+  const fresh=sessionClient();
+  const login=await fresh.request('/api/auth/login',{method:'POST',body:{email:account.email,password:newPassword}});
+  assert.equal(login.user?.email,account.email);
+  await fresh.request('/api/auth/logout',{method:'POST',body:{}});
+  return true;
+}
+
 async function deleteAccount(account){
   if(!account)return;
   try{
@@ -147,6 +180,7 @@ try{
 
   B=await createAccount('B');
   await setupSchool(B);
+  await verifyPasswordRotation(B);
 
   assert.notEqual(A.user.schoolId,B.user.schoolId,'two independent schools share an id');
 
@@ -239,6 +273,8 @@ try{
     termsTested:TERMS.length,
     subjectsIn2AF:A.subjectCount,
     loginPersistence:true,
+    passwordRotation:true,
+    serverGradeMaximum:true,
     accountDeletionWillRun:true
   }));
 }catch(e){
