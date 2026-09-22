@@ -37,7 +37,7 @@ assert('premium v2 visual layer loaded', /nataiji-premium-v2\.css/.test(index) &
 assert('approved home reference layer loaded last', /nataiji-home-reference-v1\.css/.test(index) && /nataiji-home-reference-v1\.js/.test(index));
 assert('privacy page exists', exists('public/privacy.html'));
 assert('terms page exists', exists('public/terms.html'));
-assert('PWA cache version current', /nataiji-shell-v44/.test(sw));
+assert('PWA cache version current', /nataiji-shell-v45/.test(sw));
 assert('PWA caches final mobile css', /release-100-v1\.css/.test(sw));
 assert('PWA caches final visual polish', /nataiji-final-visual-v1\.css/.test(sw));
 assert('PWA caches premium v2 layer', /nataiji-premium-v2\.css/.test(sw) && /nataiji-premium-v2\.js/.test(sw));
@@ -74,7 +74,7 @@ const morePageCss = read('public/more-page-v1.css');
 assert('More page is grouped without moving cards out of settings grid', /GROUPS=\[/.test(morePageJs) && /Compte et école/.test(morePageJs) && /Paramètres académiques/.test(morePageJs) && /Collaboration et partage/.test(morePageJs));
 assert('More page keeps cards compact for mobile', /\.nataiji-more-grid>\.menu-card\.more-row-card/.test(morePageCss) && /@media\(max-width:390px\)/.test(morePageCss));
 assert('More page preserves RTL LTR chevron direction', /inset-inline-end:17px/.test(morePageCss) && /\.lang-fr \.nataiji-more-grid>\.menu-card\.more-row-card:after\{content:"›"\}/.test(morePageCss));
-assert('More page assets are loaded last', /more-page-v1\.css\?v=3/.test(index) && /more-page-v1\.js\?v=4/.test(index));
+assert('More page assets are loaded last', /more-page-v1\.css\?v=3/.test(index) && /more-page-v1\.js\?v=5/.test(index));
 assert('legacy danger reorder yields to grouped More page', /grid\.classList\.contains\('nataiji-more-grid'\)/.test(read('public/app-power-v1.js')));
 assert('account danger actions stay in account group', /termsPolicyBtn','logoutBtn','deleteAccountBtn'/.test(morePageJs));
 assert('account management is the last More page section', /key:'academic'[\s\S]*key:'collaboration'[\s\S]*key:'account'/.test(morePageJs));
@@ -83,6 +83,10 @@ assert('More page leaves room above bottom navigation', /padding-bottom:84px/.te
 const appJs = read('public/app.js');
 assert('dashboard shows provisional average before completion', /partialAvgs=state\.pupils\.map/.test(appJs) && /مؤقت حسب الدرجات المدخلة/.test(appJs));
 assert('dashboard below-ten count uses entered marks provisionally', /needsEl\.textContent=finalAvgs\.length\?finalAvgs\.filter\(x=>x<10\)\.length:'—'/.test(appJs));
+const appPowerJs = read('public/app-power-v1.js');
+assert('More page exposes app share action', /id='shareAppBtn'/.test(appPowerJs) && /navigator\.share/.test(appPowerJs));
+assert('install action hides after app installation', /isAppInstalled/.test(appPowerJs) && /appinstalled/.test(appPowerJs));
+assert('install and share precede support', /installAppBtn','shareAppBtn','supportBtn'/.test(morePageJs));
 assert('Super Admin card overrides generic More row styling', /menu-card\.owner-card\.more-row-card/.test(morePageCss) && /background:linear-gradient\(120deg,#071f38/.test(morePageCss));
 assert('subject save requires explicit maximum score', /الدرجة القصوى/.test(bilingualEditor) && /bi-field-invalid/.test(bilingualEditor) && /data-sm/.test(bilingualEditor));
 assert('focused invalid subject fields remain red', /input\.bi-field-invalid:focus/.test(bilingualEditor));
