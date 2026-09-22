@@ -27,6 +27,14 @@ const sw = read('public/sw.js');
 const server = read('src/server.js');
 const capacitor = read('capacitor.config.ts');
 const pkg = JSON.parse(read('package.json'));
+const lockPkg = JSON.parse(read('package-lock.json'));
+const manifest = JSON.parse(read('public/manifest.webmanifest'));
+assert('RC package version', pkg.version === '1.0.0-rc.1');
+assert('lockfile matches RC package version', lockPkg.version === pkg.version && lockPkg.packages?.['']?.version === pkg.version);
+assert('PWA stable app identity', manifest.id === '/' && manifest.name === 'نتائجي | Nataiji' && manifest.display === 'standalone');
+assert('release freeze document exists', exists('RELEASE.md') && /Nataiji v1\.0\.0 RC1/.test(read('RELEASE.md')));
+assert('Android RC version is wired from package.json', /Apply RC version metadata/.test(read('.github/workflows/mobile-android-release.yml')) && /versionCode 1/.test(read('.github/workflows/mobile-android-release.yml')));
+assert('iOS RC version metadata is explicit', /Apply RC version metadata/.test(read('.github/workflows/mobile-ios-appstore.yml')) && /CURRENT_PROJECT_VERSION = 1/.test(read('.github/workflows/mobile-ios-appstore.yml')));
 
 assert('brand title', /نتائجي\s*\|\s*Nataiji/.test(index));
 assert('viewport safe area', /viewport-fit=cover/.test(index));
