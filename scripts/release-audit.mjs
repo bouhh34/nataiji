@@ -37,7 +37,7 @@ assert('premium v2 visual layer loaded', /nataiji-premium-v2\.css/.test(index) &
 assert('approved home reference layer loaded last', /nataiji-home-reference-v1\.css/.test(index) && /nataiji-home-reference-v1\.js/.test(index));
 assert('privacy page exists', exists('public/privacy.html'));
 assert('terms page exists', exists('public/terms.html'));
-assert('PWA cache version current', /nataiji-shell-v32/.test(sw));
+assert('PWA cache version current', /nataiji-shell-v33/.test(sw));
 assert('PWA caches final mobile css', /release-100-v1\.css/.test(sw));
 assert('PWA caches final visual polish', /nataiji-final-visual-v1\.css/.test(sw));
 assert('PWA caches premium v2 layer', /nataiji-premium-v2\.css/.test(sw) && /nataiji-premium-v2\.js/.test(sw));
@@ -52,6 +52,8 @@ const bilingualEditor = read('public/bilingual-data-editor-v1.js');
 assert('paired Arabic French fields sync live both ways', /a\.addEventListener\('input',\(\)=>\{f\.value=arToFr\(a\.value\)\}\)/.test(bilingualEditor) && /f\.addEventListener\('input',\(\)=>\{a\.value=frToAr\(f\.value\)\}\)/.test(bilingualEditor));
 assert('new subject starts with blank bilingual names and max score', /draft\.push\(\['',1,'','',''\]\)/.test(bilingualEditor));
 assert('subject save requires explicit maximum score', /حدد الدرجة القصوى للمادة/.test(bilingualEditor) && /bi-field-invalid/.test(bilingualEditor));
+assert('focused invalid subject fields remain red', /input\.bi-field-invalid:focus/.test(bilingualEditor));
+assert('subject validation summarizes all missing fields', /أكمل الحقول المطلوبة/.test(bilingualEditor) && /الاسم بالعربية/.test(bilingualEditor) && /الاسم بالفرنسية/.test(bilingualEditor) && /الدرجة القصوى/.test(bilingualEditor));
 assert('all report print actions are primary green', /#printResult,[\s\S]*\.report-print\{[\s\S]*color:#fff!important[\s\S]*background:linear-gradient\(135deg,#078b70,#086f61\)!important/.test(read('public/nataiji-premium-v2.css')));
 assert('install card has no legacy text glyph', !/[⬇↓↔]/u.test(read('public/app-power-v1.js')));
 const appPower = read('public/app-power-v1.js');
