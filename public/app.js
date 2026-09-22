@@ -45,21 +45,37 @@ function renderDashboard(){
  const total=state.pupils.length*state.subjects.length,
        filled=state.marks.flat().filter(x=>x!==''&&x!=null).length,
        complete=total>0&&filled===total,
-       rows=state.pupils.map((_,i)=>calc(i)),
-       eligible=rows.filter(x=>x?.absentAll!==true),
-       avgs=eligible.map(x=>Number(x?.avg)||0),
-       avgEl=$('#statAverage'),needsEl=$('#statNeeds');
+       avgEl=$('#statAverage'),needsEl=$('#statNeeds'),
+       isFr=localStorage.getItem('nataiji-lang')==='fr',
+       hasValue=v=>v!==''&&v!=null,
+       isAbsent=v=>/^(غائب|absent|a)$/i.test(String(v??'').trim()),
+       maxFor=(s)=>{const n=Number(s?.[3]);return Number.isFinite(n)&&n>0?n:20},
+       partialAvgs=state.pupils.map((_,i)=>{
+         const row=state.marks?.[i]||[];let sum=0,max=0,count=0;
+         state.subjects.forEach((sub,j)=>{
+           const v=row[j];if(!hasValue(v))return;
+           const m=maxFor(sub);max+=m;count++;
+           const n=isAbsent(v)?0:Number(v);
+           sum+=Number.isFinite(n)?Math.max(0,Math.min(m,n)):0
+         });
+         return count&&max?sum*20/max:null
+       }).filter(v=>v!=null&&Number.isFinite(v)),
+       finalAvgs=complete?state.pupils.map((_,i)=>Number(calc(i)?.avg)).filter(Number.isFinite):partialAvgs,
+       provisional=!complete&&filled>0&&partialAvgs.length>0;
  $('#statStudents').textContent=state.pupils.length;
  $('#statComplete').textContent=(total?Math.round(filled/total*100):0)+'%';
- avgEl.textContent=complete&&avgs.length?(avgs.reduce((a,b)=>a+b,0)/avgs.length).toFixed(1)+'/20':'—';
- needsEl.textContent=complete?avgs.filter(x=>x<10).length:'—';
+ avgEl.textContent=finalAvgs.length?(finalAvgs.reduce((a,b)=>a+b,0)/finalAvgs.length).toFixed(1)+'/20':'—';
+ needsEl.textContent=finalAvgs.length?finalAvgs.filter(x=>x<10).length:'—';
  [avgEl,needsEl].forEach(el=>{
    if(!el)return;
    const article=el.closest('article');if(!article)return;
    let note=article.querySelector('.stat-pending');
-   if(!complete&&total>0){
+   if(provisional){
      if(!note){note=document.createElement('small');note.className='stat-pending';article.appendChild(note)}
-     note.textContent='تظهر بعد اكتمال الدرجات';
+     note.textContent=isFr?'Provisoire selon les notes saisies':'مؤقت حسب الدرجات المدخلة';
+   }else if(!filled&&total>0){
+     if(!note){note=document.createElement('small');note.className='stat-pending';article.appendChild(note)}
+     note.textContent=isFr?'S’affiche après la saisie des premières notes':'يظهر بعد إدخال أولى الدرجات';
    }else if(note)note.remove();
  });
  $('#subjectProgress').innerHTML=state.subjects.map((s,j)=>{const n=state.marks.filter(r=>r[j]!==''&&r[j]!=null).length,p=state.pupils.length?Math.round(n/state.pupils.length*100):0;return `<div><span>${esc(s[0])}<small>${n}/${state.pupils.length}</small></span><i><b style="width:${p}%"></b></i><strong>${p}%</strong></div>`}).join('')
