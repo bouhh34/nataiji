@@ -171,36 +171,27 @@ window.addEventListener('beforeunload',e=>{
 
 $('#saveGrades').onclick=async()=>{
  if(syncBusy)return;
- manualGradeSaveActive=true;
- const focused=document.activeElement;
- if(focused?.matches?.('.mark,.mobile-mark'))focused.blur();
- const invalid=document.querySelector('.grade-invalid');
- if(invalid){invalid.focus();return}
- if(window.nataijiFindInvalidMark?.()){markSaveStatus(gradeText('صحح الدرجة غير الصالحة قبل الحفظ','Corrigez la note avant d’enregistrer'),true);return}
  const button=$('#saveGrades'),old=button.textContent,context=gradeContext(),key=gradeKey(context);
- button.disabled=true;button.textContent=gradeText('جارٍ الحفظ…','Enregistrement…');
+ button.disabled=true;button.textContent=gradeText('جارٍ التحقق…','Vérification…');
  try{
-  // Finish the automatic save caused by blur/change first. Only then snapshot
-  // the current matrix so the manual save cannot race a stale copy.
+  // Grades are persisted by the per-cell autosave endpoint. The manual button
+  // must not resend the whole matrix because teacher/subject scopes can differ
+  // from the full server matrix. It only flushes pending autosaves and confirms
+  // that no cell save failed.
+  const focused=document.activeElement;
+  if(focused?.matches?.('.mark,.mobile-mark')){
+   focused.dispatchEvent(new Event('change',{bubbles:true}));
+   focused.blur();
+  }
   await markCellSaveTail.catch(()=>{});
+  while((pendingGradeSaves.get(key)||0)>0)await new Promise(r=>setTimeout(r,40));
   if(!sameGradeContext(context))return;
-  const marks=structuredClone(state.marks);
-  failedGradeSaves.delete(key);
-  const result=await api('/api/marks',{method:'PUT',body:JSON.stringify({classId:context.classId,term:context.term,marks})});
-  if(!result?.ok)throw new Error('marks_save_failed');
-  if(!sameGradeContext(context))return;
-  state.marks=structuredClone(result.marks||marks);
-  state.marksByTerm=state.marksByTerm||{};state.marksByTerm[context.term]=structuredClone(state.marks);
-  const data=state.classData?.[context.classId];
-  if(data){data.marksByTerm=data.marksByTerm||{};data.marksByTerm[context.term]=structuredClone(state.marks)}
+  if(failedGradeSaves.has(key))throw new Error('cell_save_failed');
   localStorage.setItem('nataiji-data',JSON.stringify(state));
-  failedGradeSaves.delete(key);pendingGradeSaves.delete(key);
   markSaveStatus(gradeText('تم حفظ النتائج على الخادم','Notes enregistrées sur le serveur'),false);
-  renderReports();
  }catch(error){
-  failedGradeSaves.set(key,true);
-  if(sameGradeContext(context))markSaveStatus(gradeText('تعذر حفظ النتائج — تحقق من الاتصال ثم أعد المحاولة','Impossible d’enregistrer les notes. Vérifiez la connexion puis réessayez.'),true);
- }finally{button.textContent=old;button.disabled=false;manualGradeSaveActive=false}
+  if(sameGradeContext(context))markSaveStatus(gradeText('تعذر حفظ بعض النتائج — أعد تعديل الدرجة التي لم تُحفظ','Certaines notes ne sont pas enregistrées. Modifiez à nouveau la note concernée.'),true);
+ }finally{button.textContent=old;button.disabled=false}
 };
 $('#student').onchange=renderReports;const showResultBtn=$('#showResult');if(showResultBtn)showResultBtn.onclick=renderReports;$('#addStudent').onclick=addStudent;$('#settingsBtn').onclick=openSettings;$('#subjectsBtn').onclick=openSubjects;
 $('#logoutBtn').onclick=async()=>{try{await api('/api/auth/logout',{method:'POST',body:'{}'})}catch{}currentUser=null;await showAuth('login')};
