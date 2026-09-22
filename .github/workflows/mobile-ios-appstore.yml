@@ -40,6 +40,13 @@ jobs:
       - name: Generate iOS project
         run: npx cap add ios
 
+      - name: Apply RC version metadata
+        run: |
+          MARKETING_VERSION="$(node -e "const p=require('./package.json'); process.stdout.write(p.version.split('-')[0])")"
+          sed -i '' -E "s/MARKETING_VERSION = [^;]+;/MARKETING_VERSION = $MARKETING_VERSION;/g" ios/App/App.xcodeproj/project.pbxproj
+          sed -i '' -E "s/CURRENT_PROJECT_VERSION = [^;]+;/CURRENT_PROJECT_VERSION = 1;/g" ios/App/App.xcodeproj/project.pbxproj
+          grep -E "MARKETING_VERSION|CURRENT_PROJECT_VERSION" ios/App/App.xcodeproj/project.pbxproj | head
+
       - name: Generate branded iOS assets
         run: npm run mobile:assets:ios
 
