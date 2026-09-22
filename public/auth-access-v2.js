@@ -42,7 +42,7 @@ function classAccessCard(cls,checked=false){
    <div class="auth2-class-scope ${checked?'enabled':''}">
     <label class="auth2-inline"><input type="radio" name="scope-${esc3(cls.id)}" value="selected" checked> ${tr('تعديل مواد محددة','Modifier certaines matières')}</label>
     <label class="auth2-inline"><input type="radio" name="scope-${esc3(cls.id)}" value="full"> ${tr('صلاحيات كاملة للقسم','Accès complet à la classe')}</label>
-    <p class="auth2-note">${tr('المواد غير المحددة تبقى ظاهرة للقراءة. ويمكن إخفاؤها عند الحاجة.','Les matières non sélectionnées restent visibles en lecture seule. Vous pouvez aussi les masquer.')}</p>
+    <p class="auth2-note">${tr('اختر «تعديل» أمام المواد التي تريد أن يستطيع المعلم إدخال درجاتها. وتبقى المواد الأخرى «عرض فقط» ما لم تخفها.','Choisissez « Modifier » pour les matières dont l’enseignant pourra saisir les notes. Les autres restent en lecture seule sauf si vous les masquez.')}</p>
     <div class="auth2-subject-list">${subs.map(s=>`<div class="auth2-subject-perm" data-subject-id="${esc3(s.id)}"><span>${esc3(s.name)}${s.fr?`<small dir="ltr">${esc3(s.fr)}</small>`:''}</span><select class="auth2-subject-mode"><option value="view">${tr('عرض فقط','Lecture')}</option><option value="edit">${tr('تعديل','Modifier')}</option><option value="hide">${tr('إخفاء','Masquer')}</option></select></div>`).join('')||`<p class="auth2-note">${tr('لا توجد مواد محفوظة لهذا القسم بعد.','Aucune matière enregistrée pour cette classe.')}</p>`}</div>
    </div>
  </section>`
@@ -60,7 +60,7 @@ function inviteModal2(){
  const p=modal(tr('دعوة معلم','Inviter un enseignant'),`<p>${tr('حدّد القسم ثم اختر لكل مادة: عرض فقط، تعديل، أو إخفاء. ويمكن منح صلاحيات كاملة للقسم.','Choisissez la classe puis, pour chaque matière : lecture, modification ou masquage. Vous pouvez aussi accorder un accès complet.')}</p>
  <label>${tr('اسم المعلم','Nom de l’enseignant')}<input id="auth2TeacherName" autocomplete="name" placeholder="${tr('مثال: محمد أحمد','Ex. Mohamed Ahmed')}"></label>
  <fieldset class="auth2-shared-classes"><legend>${tr('الأقسام المشتركة','Classes partagées')}</legend>${classes.map(cls=>classAccessCard(cls,cls.id===initial)).join('')||`<p class="auth2-note">${tr('أضف قسمًا أولًا.','Ajoutez d’abord une classe.')}</p>`}</fieldset>
- <fieldset class="auth2-perms"><legend>${tr('الصلاحيات','Autorisations')}</legend><label><input type="checkbox" value="grades" checked> ${tr('إدخال وتعديل الدرجات','Saisir et modifier les notes')}</label><label><input type="checkbox" value="pupils"> ${tr('إدارة تلاميذ الأقسام المشتركة','Gérer les élèves des classes partagées')}</label><label><input type="checkbox" value="reports"> ${tr('عرض وطباعة التقارير','Afficher et imprimer les rapports')}</label></fieldset>
+ <fieldset class="auth2-perms"><legend>${tr('الصلاحيات','Autorisations')}</legend><label><input type="checkbox" value="grades" checked> ${tr('الوصول إلى الدرجات','Accès aux notes')}</label><label><input type="checkbox" value="pupils"> ${tr('إدارة تلاميذ الأقسام المشتركة','Gérer les élèves des classes partagées')}</label><label><input type="checkbox" value="reports"> ${tr('عرض وطباعة التقارير','Afficher et imprimer les rapports')}</label></fieldset>
  <button class="primary action">${tr('إنشاء رمز الدعوة','Créer le code d’invitation')}</button><div class="invite-code"></div><p class="message"></p>`);
  p.classList.add('auth2-invite');bindClassAccess(p);
  q('.action',p).onclick=async()=>{
