@@ -51,7 +51,7 @@ assert('grade enhancer scoped to real grade inputs', /input\.mark\[data-i\]\[dat
 assert('absence button exposes explicit selected state', /aria-pressed/.test(read('public/final-grade-entry.js')) && /aria-pressed/.test(read('public/grade-mobile-ui-v1.js')));
 const gradeMobileUi = read('public/grade-mobile-ui-v1.js');
 assert('grade entry renders current subject icon host', /grade-current-subject-icon/.test(gradeMobileUi));
-assert('grade entry keeps inactive absence control distinct from score field', /border:1px solid #e5cf79/.test(gradeMobileUi) && /background:#fff9e7!important;color:#836712/.test(gradeMobileUi));
+assert('grade entry keeps inactive absence control distinct from score field', /border:1px solid #d9ab38/.test(gradeMobileUi) && /background:#fff3c4!important;color:#6f4f00/.test(gradeMobileUi) && /absent-btn::before/.test(gradeMobileUi));
 assert('grade entry compacts filters and rows', /padding:11px!important;border-radius:15px/.test(gradeMobileUi) && /height:58px!important;min-height:58px!important;max-height:58px/.test(gradeMobileUi));
 assert('bulk grade save persists validated values', /normalizedMarks/.test(server));
 assert('secure cookie enabled', /httpOnly:true/.test(server) && /sameSite:'lax'/.test(server));
