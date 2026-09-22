@@ -57,7 +57,6 @@ assert('subject header uses compact edit delete guide', /السهم لفتح ا�
 const structureManager = read('public/structure-manager.js');
 assert('school structure uses exactly three fixed trimesters', /const FIXED_TERMS=\['الفصل الأول','الفصل الثاني','الفصل الثالث'\]/.test(structureManager) && !/id="addTerm"/.test(structureManager) && !/data-term-del/.test(structureManager));
 assert('structure modal localizes trimesters and standard classes', /TERM_FR/.test(structureManager) && /CLASS_FR/.test(structureManager) && /Trimestres et classes/.test(structureManager));
-const authAccess = read('public/auth-access-v2.js');
 const onboarding = read('public/onboarding-v1.js');
 assert('school form uses precise French school label', /Nom de l’école en français/.test(authAccess) && /Nom de l’école en français/.test(onboarding) && /Nom de l’école en français/.test(bilingualEditor));
 assert('My Schools keeps Arabic and French school names synchronized', /schoolAr\.addEventListener\('input'.*schoolFr\.value=toFr/s.test(authAccess) && /schoolFr\.addEventListener\('input'.*schoolAr\.value=toAr/s.test(authAccess));
