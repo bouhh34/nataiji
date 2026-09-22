@@ -75,7 +75,7 @@ assert('More page is grouped without moving cards out of settings grid', /GROUPS
 assert('More page keeps cards compact for mobile', /\.nataiji-more-grid>\.menu-card\.more-row-card/.test(morePageCss) && /@media\(max-width:390px\)/.test(morePageCss));
 assert('More page preserves RTL LTR chevron direction', /inset-inline-end:17px/.test(morePageCss) && /\.lang-fr \.nataiji-more-grid>\.menu-card\.more-row-card:after\{content:"›"\}/.test(morePageCss));
 assert('More page assets are loaded last', /more-page-v1\.css\?v=2/.test(index) && /more-page-v1\.js\?v=2/.test(index));
-assert('legacy danger reorder yields to grouped More page', /grid\.classList\.contains\('nataiji-more-grid'\)/.test(appPower));
+assert('legacy danger reorder yields to grouped More page', /grid\.classList\.contains\('nataiji-more-grid'\)/.test(read('public/app-power-v1.js')));
 assert('account danger actions stay in account group', /termsPolicyBtn','logoutBtn','deleteAccountBtn'/.test(morePageJs));
 assert('Super Admin card overrides generic More row styling', /menu-card\.owner-card\.more-row-card/.test(morePageCss) && /background:linear-gradient\(120deg,#071f38/.test(morePageCss));
 assert('subject save requires explicit maximum score', /الدرجة القصوى/.test(bilingualEditor) && /bi-field-invalid/.test(bilingualEditor) && /data-sm/.test(bilingualEditor));
