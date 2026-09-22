@@ -8,7 +8,7 @@ on:
     paths:
       - 'src/**'
       - 'public/**'
-      - 'scripts/server-smoke.mjs'
+      - 'scripts/**'
       - 'package.json'
       - 'package-lock.json'
       - '.github/workflows/server-quality.yml'
