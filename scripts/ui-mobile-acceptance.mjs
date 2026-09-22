@@ -138,7 +138,7 @@ try{
   let absentButton=firstRow.locator('.absent-btn');
   let absentInput=firstRow.locator('.mobile-mark');
   const inactiveAbsentStyle=await absentButton.evaluate(el=>({pressed:el.getAttribute('aria-pressed'),background:getComputedStyle(el).backgroundColor,border:getComputedStyle(el).borderTopColor,color:getComputedStyle(el).color}));
-  check('inactive absence control is visually neutral',inactiveAbsentStyle.pressed==='false'&&inactiveAbsentStyle.background==='rgb(255, 255, 255)',JSON.stringify(inactiveAbsentStyle));
+  check('inactive absence control is visually distinct but unselected',inactiveAbsentStyle.pressed==='false'&&inactiveAbsentStyle.background==='rgb(255, 249, 231)'&&inactiveAbsentStyle.border==='rgb(229, 207, 121)',JSON.stringify(inactiveAbsentStyle));
   await absentButton.click();
   await page.waitForTimeout(80);
   let absentValue=await absentInput.inputValue();
