@@ -110,7 +110,7 @@ assert('all report print actions are primary green', /#printResult,[\s\S]*\.repo
 const reportEnhancements = read('public/report-enhancements.js');
 const printDocuments = read('public/print-documents.js');
 assert('zero-result pupil cannot print individual report', /zeroResultPupil/.test(appJs) && /type==='student'/.test(appJs) && /مجموعه ومعدله صفر/.test(appJs));
-assert('zero-result pupils are excluded from batch reports', /opts=\[\.\.\.s\.options\]\.filter/.test(reportEnhancements) && /Number\(c\?\.sum\)===0&&Number\(c\?\.avg\)===0/.test(reportEnhancements));
+assert('zero-result pupils are excluded from batch reports', /allOptions=\[\.\.\.s\.options\]/.test(reportEnhancements) && /sum===0&&Number\(c\?\.avg\)===0/.test(reportEnhancements));
 assert('zero-result pupils stay in class result list as absent', /absent=Number\(c\?\.sum\)===0&&Number\(c\?\.avg\)===0/.test(printDocuments) && /absent\?'غائب'/.test(printDocuments));
 assert('install card has no legacy text glyph', !/[⬇↓↔]/u.test(read('public/app-power-v1.js')));
 const appPower = read('public/app-power-v1.js');
