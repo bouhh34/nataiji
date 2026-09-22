@@ -171,29 +171,33 @@ window.addEventListener('beforeunload',e=>{
 $('#saveGrades').onclick=async()=>{
  if(syncBusy)return;
  const focused=document.activeElement;
- if(focused?.matches?.('.mark,.mobile-mark'))focused.dispatchEvent(new Event('change',{bubbles:true}));
+ if(focused?.matches?.('.mark,.mobile-mark'))focused.blur();
  const invalid=document.querySelector('.grade-invalid');
  if(invalid){invalid.focus();return}
  if(window.nataijiFindInvalidMark?.()){markSaveStatus(gradeText('صحح الدرجة غير الصالحة قبل الحفظ','Corrigez la note avant d’enregistrer'),true);return}
- const button=$('#saveGrades'),old=button.textContent,context=gradeContext(),marks=structuredClone(state.marks),key=gradeKey(context);
+ const button=$('#saveGrades'),old=button.textContent,context=gradeContext(),key=gradeKey(context);
  button.disabled=true;button.textContent=gradeText('جارٍ الحفظ…','Enregistrement…');
- // The manual button is the authoritative retry for this class/term. Wait for
- // automatic cell saves already queued, then retry the complete matrix.
- await markCellSaveTail.catch(()=>{});
- failedGradeSaves.delete(key);
  try{
-  await queueGradeSave(context,()=>api('/api/marks',{method:'PUT',body:JSON.stringify({classId:context.classId,term:context.term,marks})}),result=>{
-   failedGradeSaves.delete(key);
-   // Do not replace a different class or edits made while this request was in flight.
-   if(sameGradeContext(context)&&JSON.stringify(state.marks)!==JSON.stringify(marks)&&(pendingGradeSaves.get(key)||0)===1)failedGradeSaves.set(key,true);
-   if(sameGradeContext(context)&&JSON.stringify(state.marks)===JSON.stringify(marks)){
-    state.marks=structuredClone(result.marks||marks);
-    state.marksByTerm=state.marksByTerm||{};state.marksByTerm[context.term]=structuredClone(state.marks);
-    const data=state.classData?.[context.classId];
-    if(data){data.marksByTerm=data.marksByTerm||{};data.marksByTerm[context.term]=structuredClone(state.marks)}
-    localStorage.setItem('nataiji-data',JSON.stringify(state));renderReports();
-   }
-  });
+  // Finish the automatic save caused by blur/change first. Only then snapshot
+  // the current matrix so the manual save cannot race a stale copy.
+  await markCellSaveTail.catch(()=>{});
+  if(!sameGradeContext(context))return;
+  const marks=structuredClone(state.marks);
+  failedGradeSaves.delete(key);
+  const result=await api('/api/marks',{method:'PUT',body:JSON.stringify({classId:context.classId,term:context.term,marks})});
+  if(!result?.ok)throw new Error('marks_save_failed');
+  if(!sameGradeContext(context))return;
+  state.marks=structuredClone(result.marks||marks);
+  state.marksByTerm=state.marksByTerm||{};state.marksByTerm[context.term]=structuredClone(state.marks);
+  const data=state.classData?.[context.classId];
+  if(data){data.marksByTerm=data.marksByTerm||{};data.marksByTerm[context.term]=structuredClone(state.marks)}
+  localStorage.setItem('nataiji-data',JSON.stringify(state));
+  failedGradeSaves.delete(key);pendingGradeSaves.delete(key);
+  markSaveStatus(gradeText('تم حفظ النتائج على الخادم','Notes enregistrées sur le serveur'),false);
+  renderReports();
+ }catch(error){
+  failedGradeSaves.set(key,true);
+  if(sameGradeContext(context))markSaveStatus(gradeText('تعذر حفظ النتائج — تحقق من الاتصال ثم أعد المحاولة','Impossible d’enregistrer les notes. Vérifiez la connexion puis réessayez.'),true);
  }finally{button.textContent=old;button.disabled=false}
 };
 $('#student').onchange=renderReports;const showResultBtn=$('#showResult');if(showResultBtn)showResultBtn.onclick=renderReports;$('#addStudent').onclick=addStudent;$('#settingsBtn').onclick=openSettings;$('#subjectsBtn').onclick=openSubjects;
