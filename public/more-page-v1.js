@@ -64,6 +64,15 @@ function heading(group){
 function decorateCard(card,key){
   card.dataset.moreGroup=key;
   card.classList.add('more-row-card','more-row-'+key);
+  if(card.id==='langSwitch'){
+    const title=card.querySelector(':scope > b');
+    if(title&&!title.querySelector(':scope > .lux-feather,:scope > [data-feather],:scope > svg')){
+      const icon=document.createElement('i');
+      icon.className='lux-feather';
+      icon.dataset.feather='globe';
+      title.prepend(icon);
+    }
+  }
   if(['supportBtn','changePasswordBtn','privacyPolicyBtn','termsPolicyBtn','installAppBtn','deleteAccountBtn','logoutBtn'].includes(card.id)){
     card.classList.add('more-row-compact');
   }
