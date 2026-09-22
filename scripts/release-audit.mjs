@@ -37,7 +37,7 @@ assert('premium v2 visual layer loaded', /nataiji-premium-v2\.css/.test(index) &
 assert('approved home reference layer loaded last', /nataiji-home-reference-v1\.css/.test(index) && /nataiji-home-reference-v1\.js/.test(index));
 assert('privacy page exists', exists('public/privacy.html'));
 assert('terms page exists', exists('public/terms.html'));
-assert('PWA cache version current', /nataiji-shell-v45/.test(sw));
+assert('PWA cache version current', /nataiji-shell-v46/.test(sw));
 assert('PWA caches final mobile css', /release-100-v1\.css/.test(sw));
 assert('PWA caches final visual polish', /nataiji-final-visual-v1\.css/.test(sw));
 assert('PWA caches premium v2 layer', /nataiji-premium-v2\.css/.test(sw) && /nataiji-premium-v2\.js/.test(sw));
@@ -86,6 +86,7 @@ assert('dashboard below-ten count uses entered marks provisionally', /needsEl\.t
 const appPowerJs = read('public/app-power-v1.js');
 assert('More page exposes app share action', /id='shareAppBtn'/.test(appPowerJs) && /navigator\.share/.test(appPowerJs));
 assert('install action hides after app installation', /isAppInstalled/.test(appPowerJs) && /appinstalled/.test(appPowerJs));
+assert('share/install cards do not rewrite after feather rendering', /dataset\.uiLang===uiLang/.test(appPowerJs) && !/b\.innerHTML!==html/.test(appPowerJs));
 assert('install and share precede support', /installAppBtn','shareAppBtn','supportBtn'/.test(morePageJs));
 assert('Super Admin card overrides generic More row styling', /menu-card\.owner-card\.more-row-card/.test(morePageCss) && /background:linear-gradient\(120deg,#071f38/.test(morePageCss));
 assert('subject save requires explicit maximum score', /الدرجة القصوى/.test(bilingualEditor) && /bi-field-invalid/.test(bilingualEditor) && /data-sm/.test(bilingualEditor));
