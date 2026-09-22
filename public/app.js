@@ -113,6 +113,7 @@ let markCellSaveTail=Promise.resolve();
 const pendingGradeSaves=new Map(),failedGradeSaves=new Map();
 const gradeText=(ar,fr)=>document.documentElement.lang==='fr'?fr:ar;
 const gradeAccount=()=>JSON.stringify([currentUser?.id,currentUser?.schoolId,currentUser?.activeSharedGrant]);
+let manualGradeSaveActive=false;
 const gradeContext=()=>({account:gradeAccount(),classId:state.activeClassId,term:state.term});
 const gradeKey=c=>JSON.stringify([c.account,c.classId,c.term]);
 const sameGradeContext=c=>gradeKey(c)===gradeKey(gradeContext());
@@ -163,13 +164,14 @@ function persistMarkCell(input){
   if(sameGradeContext(context))localStorage.setItem('nataiji-data',JSON.stringify(state));
  });
 }
-document.addEventListener('change',e=>{if(e.target?.matches?.('.mark,.mobile-mark'))persistMarkCell(e.target)},true);
+document.addEventListener('change',e=>{if(!manualGradeSaveActive&&e.target?.matches?.('.mark,.mobile-mark'))persistMarkCell(e.target)},true);
 window.addEventListener('beforeunload',e=>{
  if(pendingGradeSaves.size||failedGradeSaves.size){e.preventDefault();e.returnValue=''}
 });
 
 $('#saveGrades').onclick=async()=>{
  if(syncBusy)return;
+ manualGradeSaveActive=true;
  const focused=document.activeElement;
  if(focused?.matches?.('.mark,.mobile-mark'))focused.blur();
  const invalid=document.querySelector('.grade-invalid');
@@ -198,7 +200,7 @@ $('#saveGrades').onclick=async()=>{
  }catch(error){
   failedGradeSaves.set(key,true);
   if(sameGradeContext(context))markSaveStatus(gradeText('تعذر حفظ النتائج — تحقق من الاتصال ثم أعد المحاولة','Impossible d’enregistrer les notes. Vérifiez la connexion puis réessayez.'),true);
- }finally{button.textContent=old;button.disabled=false}
+ }finally{button.textContent=old;button.disabled=false;manualGradeSaveActive=false}
 };
 $('#student').onchange=renderReports;const showResultBtn=$('#showResult');if(showResultBtn)showResultBtn.onclick=renderReports;$('#addStudent').onclick=addStudent;$('#settingsBtn').onclick=openSettings;$('#subjectsBtn').onclick=openSubjects;
 $('#logoutBtn').onclick=async()=>{try{await api('/api/auth/logout',{method:'POST',body:'{}'})}catch{}currentUser=null;await showAuth('login')};
