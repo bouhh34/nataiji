@@ -37,7 +37,7 @@ assert('premium v2 visual layer loaded', /nataiji-premium-v2\.css/.test(index) &
 assert('approved home reference layer loaded last', /nataiji-home-reference-v1\.css/.test(index) && /nataiji-home-reference-v1\.js/.test(index));
 assert('privacy page exists', exists('public/privacy.html'));
 assert('terms page exists', exists('public/terms.html'));
-assert('PWA cache version current', /nataiji-shell-v43/.test(sw));
+assert('PWA cache version current', /nataiji-shell-v44/.test(sw));
 assert('PWA caches final mobile css', /release-100-v1\.css/.test(sw));
 assert('PWA caches final visual polish', /nataiji-final-visual-v1\.css/.test(sw));
 assert('PWA caches premium v2 layer', /nataiji-premium-v2\.css/.test(sw) && /nataiji-premium-v2\.js/.test(sw));
@@ -80,6 +80,9 @@ assert('account danger actions stay in account group', /termsPolicyBtn','logoutB
 assert('account management is the last More page section', /key:'academic'[\s\S]*key:'collaboration'[\s\S]*key:'account'/.test(morePageJs));
 assert('language card keeps a single globe icon', /card\.id==='langSwitch'/.test(morePageJs) && /icon\.dataset\.feather='globe'/.test(morePageJs));
 assert('More page leaves room above bottom navigation', /padding-bottom:84px/.test(morePageCss));
+const appJs = read('public/app.js');
+assert('dashboard shows provisional average before completion', /partialAvgs=state\.pupils\.map/.test(appJs) && /مؤقت حسب الدرجات المدخلة/.test(appJs));
+assert('dashboard below-ten count uses entered marks provisionally', /needsEl\.textContent=finalAvgs\.length\?finalAvgs\.filter\(x=>x<10\)\.length:'—'/.test(appJs));
 assert('Super Admin card overrides generic More row styling', /menu-card\.owner-card\.more-row-card/.test(morePageCss) && /background:linear-gradient\(120deg,#071f38/.test(morePageCss));
 assert('subject save requires explicit maximum score', /الدرجة القصوى/.test(bilingualEditor) && /bi-field-invalid/.test(bilingualEditor) && /data-sm/.test(bilingualEditor));
 assert('focused invalid subject fields remain red', /input\.bi-field-invalid:focus/.test(bilingualEditor));
