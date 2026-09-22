@@ -153,6 +153,79 @@ async function verifyPasswordRotation(account){
   return true;
 }
 
+async function expectHttpError(action,status,code){
+  let caught=null;
+  try{await action()}catch(e){caught=e}
+  assert.ok(caught,'expected request to fail');
+  assert.equal(caught.status,status);
+  if(code)assert.equal(caught.data?.error,code);
+}
+
+async function verifySharingPermissions(owner,recipient){
+  const editableSubjectId=String(owner.subjects?.[0]?.[4]||'');
+  const blockedSubjectId=String(owner.subjects?.[1]?.[4]||'');
+  assert.ok(editableSubjectId&&blockedSubjectId,'share permission test needs at least two subjects');
+
+  const invite=await owner.client.request('/api/invites',{method:'POST',body:{
+    teacherName:'Mobile CI shared teacher',
+    permissions:['grades'],
+    classAccess:{
+      [owner.classId]:{
+        allSubjects:false,
+        subjectIds:[editableSubjectId],
+        hiddenSubjectIds:[],
+        fullClass:false
+      }
+    }
+  }});
+  assert.ok(invite.code,'invite code missing');
+
+  const attached=await recipient.client.request('/api/access/attach',{method:'POST',body:{code:invite.code}});
+  assert.equal(attached.user?.role,'teacher');
+  assert.equal(attached.user?.schoolId,owner.user.schoolId);
+  assert.deepEqual(attached.user?.permissions,['grades']);
+  const grantId=attached.grant?.grantId;
+  assert.ok(grantId,'grant id missing');
+
+  const sharedState=await recipient.client.request('/api/state?classId='+encodeURIComponent(owner.classId)+'&term='+encodeURIComponent(TERM1));
+  const sharedText=JSON.stringify(sharedState.state||{});
+  assert.ok(sharedText.includes(owner.pupilName),'shared class did not expose permitted school data');
+  assert.ok(!sharedText.includes(recipient.pupilName),'recipient own-school pupil leaked into shared workspace');
+
+  const allowed=await recipient.client.request('/api/mark',{method:'PUT',body:{
+    classId:owner.classId,term:TERM1,pupilKey:owner.nns,subjectId:editableSubjectId,value:'1'
+  }});
+  assert.equal(allowed.ok,true,'permitted subject could not be edited');
+
+  await expectHttpError(
+    ()=>recipient.client.request('/api/mark',{method:'PUT',body:{
+      classId:owner.classId,term:TERM1,pupilKey:owner.nns,subjectId:blockedSubjectId,value:'1'
+    }}),
+    403,'subject_forbidden'
+  );
+
+  await expectHttpError(
+    ()=>recipient.client.request('/api/pupils',{method:'POST',body:{
+      classId:owner.classId,pupil:['CI-SHARE-BLOCK','Blocked pupil','','2018-02-02','M','','','']
+    }}),
+    403,'forbidden'
+  );
+
+  const revoked=await owner.client.request('/api/shares/'+encodeURIComponent(grantId),{method:'DELETE'});
+  assert.equal(revoked.ok,true,'share revocation failed');
+
+  const status=await recipient.client.request('/api/auth/status');
+  assert.equal(status.user?.activeSharedGrant,'','revoked share remained active');
+  assert.equal(status.user?.schoolId,recipient.user.schoolId,'recipient did not return to own school after revocation');
+
+  const ownState=await recipient.client.request('/api/state?classId='+encodeURIComponent(recipient.classId)+'&term='+encodeURIComponent(TERM1));
+  const ownText=JSON.stringify(ownState.state||{});
+  assert.ok(ownText.includes(recipient.pupilName),'recipient own school was not restored after revocation');
+  assert.ok(!ownText.includes(owner.pupilName),'revoked owner data remained visible');
+
+  return true;
+}
+
 async function deleteAccount(account){
   if(!account)return;
   try{
