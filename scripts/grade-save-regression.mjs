@@ -31,7 +31,7 @@ test('later success does not hide an earlier failed save',async()=>{
  const f=fixture(),first=f.edit('10');await tick();const second=f.edit('11');f.deferred[0].reject(new Error('offline'));await first;await tick();f.deferred[1].resolve({ok:true});await second;assert.equal(f.status.classList.dirty,true);
 });
 test('manual save confirmation does not issue a bulk overwrite',async()=>{
- const f=fixture();await f.button.onclick();assert.equal(f.requests.length,0);assert.equal(f.button.disabled,false);assert.equal(f.status.classList.dirty,false);
+ const f=fixture();assert.equal(typeof f.button.onclick,'function');await f.button.onclick();assert.equal(f.requests.length,0);assert.equal(f.button.disabled,false);assert.equal(f.status.classList.dirty,false);
 });
 test('manual save confirmation does not overwrite another class',async()=>{
  const f=fixture();f.state.activeClassId='class-b';f.state.marks=[[24]];await f.button.onclick();assert.equal(f.requests.length,0);assert.equal(f.state.marks[0][0],24);
