@@ -24,11 +24,10 @@ function frWordToAr(w){let x=normFr(w);const exact=FR_AR[x];if(exact)return exac
 function frToAr(v){let z=String(v||'').trim();if(!z)return'';const exact=FR_AR[normFr(z)];if(exact)return exact;return z.split(/\s+/).map(frWordToAr).join(' ')}
 function bindBiPair(arSel,frSel){
  const a=q(arSel),f=q(frSel);if(!a||!f)return;
- let autoA='',autoF='',aManual=!!a.value.trim(),fManual=!!f.value.trim();
- if(a.value.trim()&&!f.value.trim()){f.value=arToFr(a.value);autoF=f.value;fManual=false}
- else if(f.value.trim()&&!a.value.trim()){a.value=frToAr(f.value);autoA=a.value;aManual=false}
- a.addEventListener('input',()=>{const next=arToFr(a.value);if(!fManual||!f.value.trim()||f.value===autoF){f.value=next;autoF=next;fManual=false}aManual=true});
- f.addEventListener('input',()=>{const next=frToAr(f.value);if(!aManual||!a.value.trim()||a.value===autoA){a.value=next;autoA=next;aManual=false}fManual=true});
+ if(a.value.trim()&&!f.value.trim())f.value=arToFr(a.value);
+ else if(f.value.trim()&&!a.value.trim())a.value=frToAr(f.value);
+ a.addEventListener('input',()=>{f.value=arToFr(a.value)});
+ f.addEventListener('input',()=>{a.value=frToAr(f.value)});
 }
 let open=false,draft={};
 function shouldOpen(){
@@ -57,7 +56,7 @@ function shell(step,body,footer=''){
 function step1(){
  syncFromState();shell(1,`<h2>بيانات المدرسة</h2><p>أدخل البيانات الأساسية التي ستظهر في الكشوف والتقارير.</p>
  <label>اسم المدرسة بالعربية <input id="nwSchool" value="${E(draft.school)}" placeholder="مثال: مدرسة النجاح"><small class="nw-hint">يُكتب المقابل الفرنسي تلقائيًا ويمكن تعديله</small></label>
- <label>Nom de l’établissement <input id="nwSchoolFr" dir="ltr" value="${E(draft.schoolFr)}" placeholder="Écriture automatique modifiable"><small class="nw-hint">Si vous écrivez en français, l’arabe est proposé automatiquement</small></label>
+ <label>Nom de l’école en français <input id="nwSchoolFr" dir="ltr" value="${E(draft.schoolFr)}" placeholder="Écriture automatique modifiable"><small class="nw-hint">Si vous écrivez en français, l’arabe est proposé automatiquement</small></label>
  <div class="nw-two"><label>الإدارة الجهوية للتربية بولاية <input id="nwRegion" value="${E(draft.region)}" placeholder="مثال: لبراكنة"><small class="nw-hint">اكتب اسم الولاية فقط</small></label><label>Direction régionale de l’Éducation – Wilaya de <input id="nwRegionFr" dir="ltr" value="${E(draft.regionFr)}" placeholder="Ex. Brakna"><small class="nw-hint">Traduction/transcription automatique modifiable</small></label></div>
  <div class="nw-two"><label>المفتشية بمقاطعة <input id="nwInspection" value="${E(draft.inspection)}" placeholder="مثال: مال"><small class="nw-hint">اكتب اسم المقاطعة فقط</small></label><label>Inspection – Moughataa de <input id="nwInspectionFr" dir="ltr" value="${E(draft.inspectionFr)}" placeholder="Ex. Mâl"><small class="nw-hint">Traduction/transcription automatique modifiable</small></label></div>
  <label>السنة الدراسية <input id="nwYear" dir="ltr" value="${E(draft.year)}" placeholder="2026 - 2027"></label>
