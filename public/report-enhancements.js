@@ -16,7 +16,30 @@ function settings(){let g=$('.settings-grid');if(!g||$('#printHeaderBtn'))return
 function refresh(){let b=$('#showResult');if(b)b.click();heads()}
 function one(){refresh();document.body.dataset.print='student';print();setTimeout(()=>delete document.body.dataset.print,400)}
 function host(){let h=$('#printBatch');if(!h){h=document.createElement('div');h.id='printBatch';document.body.appendChild(h)}return h}
-async function all(two=true){let s=$('#student'),h=host();if(!s)return;h.innerHTML='';let old=s.value,opts=[...s.options].filter(o=>{const selectedIndex=[...s.options].indexOf(o),raw=Number(o.value),i=Number.isInteger(raw)&&raw>=0&&raw<state.pupils.length?raw:selectedIndex,c=calc(i);return !(Number(c?.sum)===0&&Number(c?.avg)===0)});for(let i=0;i<opts.length;i++){s.value=opts[i].value;refresh();await new Promise(r=>setTimeout(r,30));let c=$('#officialSheet').cloneNode(true);c.removeAttribute('id');c.classList.add('batch-sheet');c.lang=lang();c.dir=lang()==='fr'?'ltr':'rtl';let p=h.lastElementChild;if(!p||!two||p.children.length===2){p=document.createElement('div');p.className='batch-page '+(two?'two':'one');h.appendChild(p)}p.appendChild(c)}s.value=old;refresh();window.nataijiI18n?.refresh();document.body.dataset.print='batch';print();setTimeout(()=>{delete document.body.dataset.print;h.innerHTML=''},600)}
+async function all(two=true){
+ let s=$('#student'),h=host();if(!s)return;h.innerHTML='';
+ let old=s.value,allOptions=[...s.options];
+ let opts=allOptions.filter(o=>{
+   const selectedIndex=allOptions.indexOf(o),raw=Number(o.value);
+   const idx=Number.isInteger(raw)&&raw>=0&&raw<state.pupils.length?raw:selectedIndex;
+   const row=state.marks?.[idx]||[];
+   const sum=(state.subjects||[]).reduce((total,_,j)=>{
+     const v=row[j];
+     if(v===''||v==null||/^(غائب|غائبة|absent|absente|a)$/i.test(String(v).trim()))return total;
+     const n=Number(v);return total+(Number.isFinite(n)?n:0)
+   },0);
+   const c=calc(idx);
+   return !(sum===0&&Number(c?.avg)===0)
+ });
+ for(let i=0;i<opts.length;i++){
+   s.value=opts[i].value;s.dispatchEvent(new Event('change',{bubbles:true}));refresh();
+   await new Promise(r=>setTimeout(r,60));
+   let c=$('#officialSheet').cloneNode(true);c.removeAttribute('id');c.classList.add('batch-sheet');c.lang=lang();c.dir=lang()==='fr'?'ltr':'rtl';
+   let p=h.lastElementChild;if(!p||!two||p.children.length===2){p=document.createElement('div');p.className='batch-page '+(two?'two':'one');h.appendChild(p)}p.appendChild(c)
+ }
+ s.value=old;s.dispatchEvent(new Event('change',{bubbles:true}));refresh();window.nataijiI18n?.refresh();
+ document.body.dataset.print='batch';print();setTimeout(()=>{delete document.body.dataset.print;h.innerHTML=''},600)
+}
 function chooser(){let p=document.createElement('div');p.className='modal';p.innerHTML='<div class="modal-card print-choice"><div class="modal-head"><h2>سحب كشوف الدرجات</h2><button class="x">×</button></div><button data-x="one">الطالب المحدد — كشف واحد في A4</button><button class="primary" data-x="all2">جميع التلاميذ — طالبان في كل A4</button><button data-x="all1">جميع التلاميذ — طالب واحد في كل A4</button></div>';document.body.appendChild(p);p.querySelector('.x').onclick=()=>p.remove();p.querySelector('[data-x=one]').onclick=()=>{p.remove();one()};p.querySelector('[data-x=all1]').onclick=()=>{p.remove();all(false)};p.querySelector('[data-x=all2]').onclick=()=>{p.remove();all(true)};window.nataijiI18n?.refresh()}
 function bind(){let b=$('#printResult');if(b&&!b.dataset.pro){b.dataset.pro='1';b.addEventListener('click',e=>{e.preventDefault();e.stopImmediatePropagation();chooser()},true)}$$('.report-print').forEach(x=>{if(!x.dataset.pro){x.dataset.pro='1';x.addEventListener('click',heads,true)}})}
 let css=document.createElement('style');css.textContent=`.doc-head{width:100%;display:grid;grid-template-columns:35% 30% 35%;align-items:start;font-size:9.4pt;line-height:1.55}.doc-right,.doc-left{padding-top:2mm}.doc-primary,.doc-motto{font-weight:700}.doc-line{display:flex;align-items:baseline;gap:3px}.doc-line b{font-weight:700}.doc-center{text-align:center}.doc-basmala{text-align:center;font-weight:700;font-size:9pt;margin:0 0 2mm}.doc-center img{display:block;width:25mm;height:25mm;object-fit:contain;margin:0 auto}.official-head.enhanced-head{display:block;width:100%}.lang-fr .doc-head{direction:ltr}.lang-fr .doc-right,.lang-fr .doc-left{text-align:left}.print-choice{display:grid;gap:10px}.print-choice>button:not(.x){min-height:50px;border:1px solid #d3e0e9;background:#fff;border-radius:9px;font-weight:700;color:#24465f}.print-choice>button.primary{background:#1288dd;color:#fff;border:0}#printBatch{display:none}@media print{body[data-print=batch]>.app-shell,body[data-print=batch]>.bottom-nav,body[data-print=batch]>.modal,body[data-print=batch]>.lang-switch{display:none!important}body[data-print=batch] #printBatch{display:block!important}.batch-page{width:190mm;height:277mm;margin:auto;display:flex;flex-direction:column;page-break-after:always}.batch-page:last-child{page-break-after:auto}.batch-page.two .batch-sheet{box-sizing:border-box;width:190mm!important;height:138.5mm!important;min-height:0!important;margin:0!important;padding:3mm 6mm!important;border:0!important;border-bottom:1px dashed #777!important;overflow:hidden!important}.batch-page.two .doc-head{font-size:6.7pt!important;line-height:1.22!important}.batch-page.two .doc-basmala{font-size:6.5pt!important;margin-bottom:.5mm!important}.batch-page.two .doc-center img{width:16mm!important;height:16mm!important}.batch-page.two h1{font-size:13pt!important;margin:1.5mm 0 .4mm!important}.batch-page.two h3{font-size:8pt!important;margin:0 0 .7mm!important}.batch-page.two .info{font-size:6.2pt!important}.batch-page.two .sheet{margin-top:.7mm!important;font-size:6.2pt!important}.batch-page.two .sheet th,.batch-page.two .sheet td{height:4mm!important;padding:.2mm!important}.batch-page.two footer{font-size:6.5pt!important;margin-top:1mm!important}}`;document.head.appendChild(css);
