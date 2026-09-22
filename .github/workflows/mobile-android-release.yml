@@ -52,6 +52,13 @@ jobs:
       - name: Generate Android project
         run: npx cap add android
 
+      - name: Apply RC version metadata
+        run: |
+          VERSION_NAME="$(node -e "const p=require('./package.json'); process.stdout.write(p.version)")"
+          sed -i -E "s/versionCode [0-9]+/versionCode 1/" android/app/build.gradle
+          sed -i -E "s/versionName \"[^\"]+\"/versionName \"$VERSION_NAME\"/" android/app/build.gradle
+          grep -E "versionCode|versionName" android/app/build.gradle
+
       - name: Generate branded Android assets
         run: npm run mobile:assets:android
 
