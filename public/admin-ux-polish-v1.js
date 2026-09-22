@@ -101,7 +101,7 @@ function translateModal(modal){
  if(!modal)return;
  qa('label',modal).forEach(label=>{
    const txt=String(label.textContent||'').trim();
-   if(txt.startsWith('Établissement en français'))setLabelText(label,'Nom de l’établissement en français');
+   if(txt.startsWith('Établissement en français')||txt.startsWith('Nom de l’établissement'))setLabelText(label,'Nom de l’école en français');
    else if(txt.startsWith('Direction régionale de l’Éducation – Wilaya de'))setLabelText(label,'Nom de la direction régionale de l’Éducation');
    else if(txt.startsWith('Inspection – Moughataa de'))setLabelText(label,'Nom de l’inspection');
    else if(txt.startsWith('Classe en français'))setLabelText(label,'Nom de la classe en français');
@@ -136,6 +136,7 @@ const css=document.createElement('style');css.id='nataiji-admin-ux-polish-v1-sty
  box-shadow:none!important
 }
 .ux-primary-action{min-height:46px!important;border-radius:11px!important;font-weight:800!important}
+.auth2-school-create,#auth2AddSchool{width:100%!important;display:block!important;min-height:50px!important;margin-top:12px!important;border-radius:12px!important;font-weight:800!important}
 .nataiji-structure-polish .ux-primary-action{
  width:100%!important;display:block!important;margin:18px 0 0!important;min-height:52px!important;
  border-radius:12px!important;font-size:15px!important;text-align:center!important
