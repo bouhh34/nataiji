@@ -43,16 +43,24 @@ jobs:
       - run: npx cap add android
       - run: npm run mobile:assets:android
       - run: npx cap sync android
-      - name: Build installable APK
+      - name: Apply RC version metadata
+        run: |
+          VERSION_NAME="$(node -e "const p=require('./package.json'); process.stdout.write(p.version)")"
+          sed -i -E "s/versionCode [0-9]+/versionCode 1/" android/app/build.gradle
+          sed -i -E "s/versionName \"[^\"]+\"/versionName \"$VERSION_NAME\"/" android/app/build.gradle
+          grep -E "versionCode|versionName" android/app/build.gradle
+      - name: Build installable release APK
         working-directory: android
-        run: ./gradlew assembleDebug --no-daemon
+        run: ./gradlew assembleRelease --no-daemon
       - name: Prepare public filename
-        run: cp android/app/build/outputs/apk/debug/app-debug.apk Nataiji-Android.apk
+        run: cp android/app/build/outputs/apk/release/app-release-unsigned.apk Nataiji-Android.apk
       - name: Publish stable download
         uses: softprops/action-gh-release@v2
         with:
           tag_name: download-latest
           name: Nataiji Android Download
           prerelease: true
-          body: نسخة أندرويد تجريبية قابلة للتثبيت مباشرة من موقع نتائجي.
+          body: |
+            نتائجي v1.0.0 RC1 — نسخة أندرويد مرشحة للإطلاق للتثبيت المباشر.
+            المصدر الرسمي للتنزيل هو صفحة نتائجي فقط.
           files: Nataiji-Android.apk
