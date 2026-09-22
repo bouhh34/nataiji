@@ -79,8 +79,8 @@ function inviteSummary(modal){
    const readOnlyGrades=gradesEnabled&&selectedClasses>0&&!fullAccess&&editableCount===0;
    const warning=readOnlyGrades
      ?'<strong class="auth2-invite-warning">⚠ '+(fr()
-       ?'L’accès aux notes est activé, mais toutes les matières sont en lecture seule. L’enseignant pourra consulter les notes sans les modifier.'
-       :'صلاحية الدرجات مفعّلة، لكن جميع المواد مضبوطة على «عرض فقط». سيتمكن المعلم من مشاهدة الدرجات دون تعديلها.')+'</strong>'
+       ?'Aucune matière n’est modifiable. L’enseignant pourra seulement consulter les notes tant que vous ne choisissez pas « Modifier » pour au moins une matière.'
+       :'لم تمنح المعلم تعديل أي مادة؛ سيتمكن من مشاهدة الدرجات فقط. اختر «تعديل» أمام مادة واحدة على الأقل إذا أردت السماح له بإدخال درجاتها.')+'</strong>'
      :'';
    const html='<b>'+(fr()?'Résumé avant création':'ملخص الصلاحيات قبل إنشاء الرمز')+'</b><span>'+(
      classParts.length?classParts.join(' • '):(fr()?'Aucune classe sélectionnée':'لم يتم اختيار قسم')
@@ -169,6 +169,8 @@ const css=document.createElement('style');css.id='nataiji-admin-ux-polish-v1-sty
 .auth2-invite .auth2-subject-perm small{font-size:10.5px!important}
 .auth2-invite .auth2-subject-mode{height:38px!important;padding:5px 7px!important;font-size:12px!important}
 .auth2-invite .auth2-perms{gap:7px!important;padding:10px!important}
+.auth2-invite .auth2-perms label{margin:0!important;padding:6px 4px!important;min-height:36px!important;display:flex!important;align-items:center!important;gap:8px!important}
+.auth2-invite .auth2-perms legend{margin-bottom:4px!important}
 .auth2-invite-summary{
  margin:10px 0 8px!important;padding:10px 11px!important;border:1px solid #cfe3ef!important;border-radius:11px!important;
  background:#f5fbff!important;color:#294d65!important;display:grid!important;gap:4px!important;line-height:1.45!important
