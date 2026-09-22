@@ -37,7 +37,7 @@ assert('premium v2 visual layer loaded', /nataiji-premium-v2\.css/.test(index) &
 assert('approved home reference layer loaded last', /nataiji-home-reference-v1\.css/.test(index) && /nataiji-home-reference-v1\.js/.test(index));
 assert('privacy page exists', exists('public/privacy.html'));
 assert('terms page exists', exists('public/terms.html'));
-assert('PWA cache version current', /nataiji-shell-v38/.test(sw));
+assert('PWA cache version current', /nataiji-shell-v39/.test(sw));
 assert('PWA caches final mobile css', /release-100-v1\.css/.test(sw));
 assert('PWA caches final visual polish', /nataiji-final-visual-v1\.css/.test(sw));
 assert('PWA caches premium v2 layer', /nataiji-premium-v2\.css/.test(sw) && /nataiji-premium-v2\.js/.test(sw));
@@ -64,6 +64,11 @@ assert('school create action is full width', /#auth2AddSchool\{width:100%!import
 assert('teacher invite labels grade access clearly', /الوصول إلى الدرجات/.test(authAccess) && /اختر «تعديل» أمام المواد/.test(authAccess));
 assert('teacher invite warns when no subject is editable', /لم تمنح المعلم تعديل أي مادة/.test(adminUxPolish) && /اختر «تعديل» أمام مادة واحدة على الأقل/.test(adminUxPolish));
 assert('teacher invite permissions are compact on mobile', /\.auth2-invite \.auth2-perms label\{margin:0!important;padding:6px 4px!important/.test(adminUxPolish));
+const interfaceLanguage = read('public/interface-language-fix.js');
+assert('institution academic year stays LTR', /id="by" class="bi-year-input" dir="ltr"/.test(bilingualEditor) && /\.bi-year-input\{direction:ltr!important/.test(bilingualEditor));
+assert('institution AR FR marker is a compact badge', /bi-title-badge/.test(bilingualEditor) && /بيانات المؤسسة<\/span><span class="bi-title-badge"/.test(bilingualEditor));
+assert('language card has only one icon source', !/<svg viewBox="0 0 24 24"[^>]*aria-hidden="true"[^>]*focusable="false"/.test(interfaceLanguage) && /langSwitch:'globe'/.test(read('public/luxury-ui-v1.js')));
+assert('shared class attach action is full width', /\.auth2-join-modal \.action\{width:100%!important/.test(adminUxPolish));
 assert('subject save requires explicit maximum score', /الدرجة القصوى/.test(bilingualEditor) && /bi-field-invalid/.test(bilingualEditor) && /data-sm/.test(bilingualEditor));
 assert('focused invalid subject fields remain red', /input\.bi-field-invalid:focus/.test(bilingualEditor));
 assert('subject validation summarizes all missing fields', /أكمل الحقول المطلوبة/.test(bilingualEditor) && /الاسم بالعربية/.test(bilingualEditor) && /الاسم بالفرنسية/.test(bilingualEditor) && /الدرجة القصوى/.test(bilingualEditor));
