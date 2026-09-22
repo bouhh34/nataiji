@@ -1,6 +1,14 @@
 (()=>{
 'use strict';
 const clone=x=>structuredClone(x),q=s=>document.querySelector(s),esc2=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const FIXED_TERMS=['الفصل الأول','الفصل الثاني','الفصل الثالث'];
+const uiFr=()=>localStorage.getItem('nataiji-lang')==='fr';
+const TERM_FR={'الفصل الأول':'1er trimestre','الفصل الثاني':'2e trimestre','الفصل الثالث':'3e trimestre'};
+const CLASS_AR={'1AF':'السنة الأولى ابتدائية','2AF':'السنة الثانية ابتدائية','3AF':'السنة الثالثة ابتدائية','4AF':'السنة الرابعة ابتدائية','5AF':'السنة الخامسة ابتدائية','6AF':'السنة السادسة ابتدائية'};
+const CLASS_FR={'1AF':'1re année fondamentale','2AF':'2e année fondamentale','3AF':'3e année fondamentale','4AF':'4e année fondamentale','5AF':'5e année fondamentale','6AF':'6e année fondamentale'};
+const termUi=t=>uiFr()?(TERM_FR[t]||t):t;
+const canonicalClassNames=code=>{code=String(code||'').toUpperCase();return{ar:code&&CLASS_AR[code]?code+' - '+CLASS_AR[code]:'',fr:code&&CLASS_FR[code]?code+' - '+CLASS_FR[code]:''}};
+const classUi=c=>{const code=String(c?.code||'').toUpperCase(),known=canonicalClassNames(code);return uiFr()?(known.fr||String(c?.nameFr||c?.name||code)):(known.ar||String(c?.name||c?.nameFr||code))};
 function normalizeLocal(){
  let classes=(Array.isArray(state.classes)?state.classes:[]).filter(x=>x&&x.id);
  if(!classes.length){const id=String(state.activeClassId||currentUser?.preferredClassId||currentUser?.classIds?.[0]||'');if(id&&(String(state.className||state.classCode||'').trim()||(state.pupils||[]).length||(state.subjects||[]).length))classes=[{id,name:String(state.className||state.classCode||'القسم الحالي'),nameFr:String(state.classNameFr||''),code:String(state.classCode||'')}]}
@@ -56,14 +64,14 @@ async function saveStructure(structure,deleteClassIds=[]){
  try{await reloadCanonical()}catch(e){console.warn('Canonical reload after structure save failed',e)}
  return saved;
 }
-function currentStructure(){normalizeLocal();return{classes:clone(state.classes),terms:clone(state.terms),activeClassId:state.activeClassId||'',term:state.term||''}}
+function currentStructure(){normalizeLocal();const term=FIXED_TERMS.includes(state.term)?state.term:FIXED_TERMS[0];return{classes:clone(state.classes),terms:clone(FIXED_TERMS),activeClassId:state.activeClassId||'',term}}
 function refreshSelectors(){
  normalizeLocal();
  const ct=q('#classTop'),tt=q('#term'),teacher=currentUser?.role==='teacher';
  // classTop is owned by the unified workspace selector when available.
  // Do not overwrite its "My classes / Shared classes" groups during render.
  if(ct&&!window.nataijiWorkspaceSelectorReady){
-   ct.innerHTML=state.classes.length?state.classes.map(c=>`<option value="${esc2(c.id)}" ${c.id===state.activeClassId?'selected':''}>${esc2(c.name)}</option>`).join(''):'<option value="">أضف قسمًا من الإعدادات</option>';
+   ct.innerHTML=state.classes.length?state.classes.map(c=>`<option value="${esc2(c.id)}" ${c.id===state.activeClassId?'selected':''}>${esc2(classUi(c))}</option>`).join(''):`<option value="">${uiFr()?'Ajoutez une classe dans les paramètres':'أضف قسمًا من الإعدادات'}</option>`;
    ct.disabled=!state.classes.length||(teacher&&state.classes.length<2);
    ct.onchange=async e=>{
      const selected=e.target.value,previous=state.activeClassId||'';
@@ -85,8 +93,8 @@ function refreshSelectors(){
    };
  }
  if(tt){
-   tt.innerHTML=state.terms.length?state.terms.map(t=>`<option value="${esc2(t)}" ${t===state.term?'selected':''}>${esc2(t)}</option>`).join(''):'<option value="">أضف فصلًا دراسيًا</option>';
-   tt.disabled=!state.terms.length;
+   const availableTerms=FIXED_TERMS;tt.innerHTML=availableTerms.map(t=>`<option value="${esc2(t)}" ${t===state.term?'selected':''}>${esc2(termUi(t))}</option>`).join('');
+   tt.disabled=false;
    tt.onchange=async e=>{
      const selected=e.target.value,previous=String(state.term||''),classId=String(state.activeClassId||''),seq=(window.__nataijiTermNavigationSeq=(window.__nataijiTermNavigationSeq||0)+1);
      if(!selected||selected===previous)return;
@@ -121,7 +129,7 @@ function refreshSelectors(){
        if(seq===window.__nataijiTermNavigationSeq){
          delete window.__nataijiPendingTerm;
          const live=q('#term');
-         if(live){live.removeAttribute('aria-busy');live.disabled=!state.terms.length;if(state.term)live.value=state.term}
+         if(live){live.removeAttribute('aria-busy');live.disabled=false;if(state.term)live.value=state.term}
        }
      }
    };
@@ -168,19 +176,30 @@ window.nataijiSelectClass=async function(classId){
 };
 function structureModal(draft=null){
  if(currentUser?.role!=='admin')return;
- const d=draft||currentStructure();
- const p=modal('الفصول الدراسية والأقسام',`<h3>الفصول الدراسية</h3><div id="termRows">${d.terms.length?d.terms.map((t,i)=>`<div class="subject-edit"><input data-term="${i}" value="${esc2(t)}"><button data-term-del="${i}">×</button></div>`).join(''):'<p class="message">لا يوجد فصل دراسي بعد.</p>'}</div><button id="addTerm">+ إضافة فصل دراسي</button><hr><h3>الأقسام</h3><div id="classRows">${d.classes.length?d.classes.map((c,i)=>`<div class="subject-edit"><input data-class-name="${i}" value="${esc2(c.name)}" placeholder="اسم القسم"><select data-class-code="${i}"><option value="">اختر القسم</option>${['1AF','2AF','3AF','4AF','5AF','6AF'].map(code=>`<option value="${code}" ${String(c.code||'').toUpperCase()===code?'selected':''}>${code}</option>`).join('')}</select><button data-class-del="${i}">×</button></div>`).join(''):'<p class="message">لا يوجد قسم بعد.</p>'}</div><button id="addClass">+ إضافة قسم</button><button class="primary action">حفظ وتثبيت</button><p class="message"></p>`);
- const syncDraft=()=>{p.querySelectorAll('[data-term]').forEach(x=>d.terms[+x.dataset.term]=x.value.trim());p.querySelectorAll('[data-class-name]').forEach(x=>d.classes[+x.dataset.className].name=x.value.trim());p.querySelectorAll('[data-class-code]').forEach(x=>{const z=d.classes[+x.dataset.classCode],code=x.value.trim();z.code=code;if(code&&(!z.name||z.name==='قسم جديد'))z.name=code+' - '+({1:'السنة الأولى ابتدائية',2:'السنة الثانية ابتدائية',3:'السنة الثالثة ابتدائية',4:'السنة الرابعة ابتدائية',5:'السنة الخامسة ابتدائية',6:'السنة السادسة ابتدائية'}[code[0]]||'')})};
- p.querySelector('#addTerm').onclick=()=>{syncDraft();d.terms.push('فصل جديد');if(!d.term)d.term=d.terms[0];p.remove();structureModal(d)};
- p.querySelector('#addClass').onclick=()=>{syncDraft();const id='class-'+crypto.randomUUID();d.classes.push({id,name:'قسم جديد',nameFr:'',code:''});if(!d.activeClassId)d.activeClassId=id;p.remove();structureModal(d)};
- p.querySelectorAll('[data-term-del]').forEach(b=>b.onclick=()=>{syncDraft();d.terms.splice(+b.dataset.termDel,1);if(!d.terms.includes(d.term))d.term=d.terms[0]||'';p.remove();structureModal(d)});
+ const d=draft||currentStructure(),fr=uiFr();
+ d.terms=clone(FIXED_TERMS);
+ if(!FIXED_TERMS.includes(d.term))d.term=FIXED_TERMS[0];
+ const title=fr?'Trimestres et classes':'الفصول الدراسية والأقسام';
+ const termsTitle=fr?'Trimestres':'الفصول الدراسية';
+ const classesTitle=fr?'Classes':'الأقسام';
+ const classPlaceholder=fr?'Nom de la classe':'اسم القسم';
+ const selectPlaceholder=fr?'Choisir la classe':'اختر القسم';
+ const addClassLabel=fr?'+ Ajouter une classe':'+ إضافة قسم';
+ const saveLabel=fr?'Enregistrer et confirmer':'حفظ وتثبيت';
+ const p=modal(title,`<h3>${termsTitle}</h3><div id="termRows">${FIXED_TERMS.map((t,i)=>`<div class="subject-edit fixed-term-row"><input data-term="${i}" value="${esc2(termUi(t))}" readonly aria-readonly="true"></div>`).join('')}</div><hr><h3>${classesTitle}</h3><div id="classRows">${d.classes.length?d.classes.map((c,i)=>`<div class="subject-edit"><input data-class-name="${i}" value="${esc2(classUi(c))}" placeholder="${classPlaceholder}"><select data-class-code="${i}"><option value="">${selectPlaceholder}</option>${['1AF','2AF','3AF','4AF','5AF','6AF'].map(code=>`<option value="${code}" ${String(c.code||'').toUpperCase()===code?'selected':''}>${code}</option>`).join('')}</select><button data-class-del="${i}">×</button></div>`).join(''):`<p class="message">${fr?'Aucune classe pour le moment.':'لا يوجد قسم بعد.'}</p>`}</div><button id="addClass">${addClassLabel}</button><button class="primary action">${saveLabel}</button><p class="message"></p>`);
+ const syncDraft=()=>{
+   p.querySelectorAll('[data-class-name]').forEach(x=>{const z=d.classes[+x.dataset.className],code=String(z?.code||'').toUpperCase(),known=canonicalClassNames(code);if(known.ar){z.name=known.ar;z.nameFr=known.fr}else if(fr)z.nameFr=x.value.trim();else z.name=x.value.trim()});
+   p.querySelectorAll('[data-class-code]').forEach(x=>{const z=d.classes[+x.dataset.classCode],code=x.value.trim().toUpperCase();z.code=code;const known=canonicalClassNames(code);if(known.ar){z.name=known.ar;z.nameFr=known.fr}});
+ };
+ p.querySelector('#addClass').onclick=()=>{syncDraft();const id='class-'+crypto.randomUUID();d.classes.push({id,name:'',nameFr:'',code:''});if(!d.activeClassId)d.activeClassId=id;p.remove();structureModal(d)};
+ p.querySelectorAll('[data-class-code]').forEach(sel=>sel.onchange=()=>{const i=+sel.dataset.classCode,z=d.classes[i],known=canonicalClassNames(sel.value);z.code=sel.value;if(known.ar){z.name=known.ar;z.nameFr=known.fr;const input=p.querySelector(`[data-class-name="${i}"]`);if(input)input.value=fr?known.fr:known.ar}});
  p.querySelectorAll('[data-class-del]').forEach(b=>b.onclick=()=>{syncDraft();const i=+b.dataset.classDel,id=d.classes[i]?.id;d.classes.splice(i,1);if(d.activeClassId===id)d.activeClassId=d.classes[0]?.id||'';p.remove();structureModal(d)});
- p.querySelector('.action').onclick=async()=>{syncDraft();d.terms=d.terms.map(x=>x.trim()).filter(Boolean);d.classes=d.classes.filter(x=>String(x.name||'').trim()).map(x=>({...x,name:String(x.name).trim(),code:String(x.code||'').trim()}));if(!d.classes.some(x=>x.id===d.activeClassId))d.activeClassId=d.classes[0]?.id||'';if(!d.terms.includes(d.term))d.term=d.terms[0]||'';const msg=p.querySelector('.message'),btn=p.querySelector('.action');btn.disabled=true;msg.textContent='جارٍ الحفظ والتثبيت…';try{const nextIds=new Set(d.classes.map(x=>x.id)),deleteClassIds=(state.classes||[]).map(x=>x.id).filter(id=>!nextIds.has(id));await saveStructure(d,deleteClassIds);msg.textContent='✓ تم حفظ الفصول والأقسام وتثبيتها';setTimeout(()=>p.remove(),220)}catch(e){btn.disabled=false;msg.textContent='تعذر تثبيت الفصول والأقسام على الخادم'+(e?.code?(' — '+e.code):'')}};
+ p.querySelector('.action').onclick=async()=>{syncDraft();d.terms=clone(FIXED_TERMS);d.classes=d.classes.filter(x=>String(x.name||x.nameFr||'').trim()).map(x=>({...x,name:String(x.name||'').trim(),nameFr:String(x.nameFr||'').trim(),code:String(x.code||'').trim().toUpperCase()}));if(!d.classes.some(x=>x.id===d.activeClassId))d.activeClassId=d.classes[0]?.id||'';if(!FIXED_TERMS.includes(d.term))d.term=FIXED_TERMS[0];const msg=p.querySelector('.message'),btn=p.querySelector('.action');btn.disabled=true;msg.textContent=fr?'Enregistrement en cours…':'جارٍ الحفظ والتثبيت…';try{const nextIds=new Set(d.classes.map(x=>x.id)),deleteClassIds=(state.classes||[]).map(x=>x.id).filter(id=>!nextIds.has(id));await saveStructure(d,deleteClassIds);msg.textContent=fr?'✓ Trimestres et classes enregistrés':'✓ تم حفظ الفصول والأقسام وتثبيتها';setTimeout(()=>p.remove(),220)}catch(e){btn.disabled=false;msg.textContent=(fr?'Impossible d’enregistrer les classes':'تعذر تثبيت الفصول والأقسام على الخادم')+(e?.code?(' — '+e.code):'')}};
 }
 function install(){
  normalizeLocal();
  const grid=q('.settings-grid');
- if(grid&&!q('#structureBtn')){const b=document.createElement('button');b.id='structureBtn';b.className='menu-card';b.innerHTML='<b>الفصول الدراسية والأقسام</b><span>إضافة وتعديل الفصول والأقسام مع حفظ دائم</span>';grid.insertBefore(b,q('#subjectsBtn'));b.onclick=()=>structureModal()}
+ if(grid&&!q('#structureBtn')){const b=document.createElement('button');b.id='structureBtn';b.className='menu-card';b.innerHTML=uiFr()?'<b>Trimestres et classes</b><span>Gérer les classes avec les trois trimestres fixes</span>':'<b>الفصول الدراسية والأقسام</b><span>إدارة الأقسام مع الفصول الدراسية الثلاثة الثابتة</span>';grid.insertBefore(b,q('#subjectsBtn'));b.onclick=()=>structureModal()}
  refreshSelectors();
 }
 function installWhenReady(){install()}
