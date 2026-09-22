@@ -31,7 +31,7 @@ const GROUPS=[
     fr:'Compte et école',
     subAr:'معلوماتك وإعدادات مدرستك',
     subFr:'Vos informations et réglages',
-    ids:['ownerDashboardBtn','langSwitch','schoolsBtn','settingsBtn','subscriptionBtn','installAppBtn','supportBtn','changePasswordBtn','privacyPolicyBtn','termsPolicyBtn','logoutBtn','deleteAccountBtn']
+    ids:['ownerDashboardBtn','langSwitch','schoolsBtn','settingsBtn','subscriptionBtn','installAppBtn','shareAppBtn','supportBtn','changePasswordBtn','privacyPolicyBtn','termsPolicyBtn','logoutBtn','deleteAccountBtn']
   }
 ];
 
@@ -73,7 +73,7 @@ function decorateCard(card,key){
       title.prepend(icon);
     }
   }
-  if(['supportBtn','changePasswordBtn','privacyPolicyBtn','termsPolicyBtn','installAppBtn','deleteAccountBtn','logoutBtn'].includes(card.id)){
+  if(['supportBtn','changePasswordBtn','privacyPolicyBtn','termsPolicyBtn','installAppBtn','shareAppBtn','deleteAccountBtn','logoutBtn'].includes(card.id)){
     card.classList.add('more-row-compact');
   }
   if(['deleteAccountBtn','logoutBtn'].includes(card.id))card.classList.add('more-row-danger');
