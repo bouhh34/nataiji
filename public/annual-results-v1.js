@@ -54,9 +54,10 @@ function ranksFromValues(vals){
   return vals.map(v=>v==null?null:1+vals.filter(x=>x!=null&&x>v).length);
 }
 function annualRanks(){
-  /* The final-trimester rank is always based on the weighted annual average,
-     never on a single trimester. Pending annual averages remain unranked. */
-  const vals=(state?.pupils||[]).map((_,i)=>annualAverage(i));
+  /* Final-trimester rank is based only on the weighted annual average:
+     (T1×1 + T2×2 + T3×3) / 6.
+     A zero annual average follows the app's absence rule and receives no rank. */
+  const vals=(state?.pupils||[]).map((_,i)=>{const v=annualAverage(i);return Number(v)>0?v:null});
   return ranksFromValues(vals);
 }
 function callNo(p,i){return String(p?.[5]??'').trim()||String(i+1)}
