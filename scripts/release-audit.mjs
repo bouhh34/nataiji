@@ -123,6 +123,8 @@ assert('grade entry renders current subject icon host', /grade-current-subject-i
 assert('grade entry keeps inactive absence control distinct from score field', /border:1px solid #d9ab38/.test(gradeMobileUi) && /background:#fff3c4!important;color:#6f4f00/.test(gradeMobileUi) && /absent-btn::before/.test(gradeMobileUi));
 assert('grade entry compacts filters and rows', /padding:11px!important;border-radius:15px/.test(gradeMobileUi) && /height:58px!important;min-height:58px!important;max-height:58px/.test(gradeMobileUi));
 assert('bulk grade save persists validated values', /normalizedMarks/.test(server));
+assert('manual grade save flushes autosave queue', /await markCellSaveTail\.catch/.test(appJs) && /pendingGradeSaves\.get\(key\)/.test(appJs));
+assert('manual grade save does not bulk-overwrite marks', !/\$\('#saveGrades'\)[\s\S]{0,2200}api\('\/api\/marks'/.test(appJs));
 assert('secure cookie enabled', /httpOnly:true/.test(server) && /sameSite:'lax'/.test(server));
 assert('origin protection enabled', /cross_site_request_blocked/.test(server));
 assert('CSP enabled', /Content-Security-Policy/.test(server));
