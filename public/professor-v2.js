@@ -171,7 +171,7 @@ function openAssignment(preselectClass=''){
  const opts=profile.classes.map(c=>`<option value="${esc(c.id)}" ${preselectClass===c.id?'selected':''}>${esc(profClass(c.name))}${c.levelCode?' · '+esc(c.levelCode):''}${linkFor(c.id)?' 🔗':''}</option>`).join('');
  const levelOpts=levels.map(l=>`<option value="${esc(l.code)}">${esc(l.code)} — ${esc(fr()?l.fr:l.ar)}</option>`).join('');
  const m=modal(tr('إضافة مادة وقسم','Ajouter matière + classe'),`
- <div class="prof-link-explain"><b>${tr('المستوى والمادة والمعامل','Niveau, matière et coefficient')}</b><p>${tr('اختر المستوى ثم المادة. إذا كان المعامل مثبتًا في الكتالوج الحالي سيُطبق تلقائيًا ولا تحتاج إلى كتابته.','Choisissez le niveau puis la matière. Si le coefficient est confirmé dans le catalogue actuel, il sera appliqué automatiquement.')}</p></div>
+ <div class="prof-link-explain"><b>${tr('المستوى والمادة والمعامل','Niveau, matière et coefficient')}</b><p>${tr('اختر المستوى ثم المادة. جميع المواد الرسمية في 1AS و2AS و3AS تحمل معاملها تلقائيًا ولا تحتاج إلى كتابته.','Choisissez le niveau puis la matière. Toutes les matières officielles de 1AS, 2AS et 3AS chargent automatiquement leur coefficient.')}</p></div>
  <label>${tr('القسم','Classe')}<select id="pv2Class"><option value="">${tr('إنشاء قسم جديد','Créer une nouvelle classe')}</option>${opts}</select></label>
  <label id="pv2NewClassLabel">${tr('اسم القسم','Nom de la classe')}<input id="pv2NewClass" maxlength="100" placeholder="${tr('مثال: 2AS-A','Ex. 2AS-A')}"></label>
  <label id="pv2LevelLabel">${tr('المستوى','Niveau')}<select id="pv2Level"><option value="">${tr('اختر المستوى','Choisir le niveau')}</option>${levelOpts}</select><small>${tr('المستويات الحالية فقط: 1AS، 2AS، 3AS. لا تظهر السنوات القديمة الملغاة.','Niveaux actuels uniquement : 1AS, 2AS, 3AS. Les anciens niveaux supprimés ne sont pas proposés.')}</small></label>
@@ -194,7 +194,7 @@ function openAssignment(preselectClass=''){
   customLabel.style.display=subjectSel.value==='__other__'?'grid':'none';
   const cls=sel.value?classById(sel.value):null,levelCode=cls?.levelCode||inferredLevelCode(cls?.name)||levelSel.value,spec=catalogSubject(levelCode,subjectSel.value);
   if(spec?.official){coef.value=spec.coefficient;coef.readOnly=true;coefHint.textContent=tr('معامل رسمي يُطبق تلقائيًا.','Coefficient officiel appliqué automatiquement.')}
-  else{coef.readOnly=false;if(!Number(coef.value)||Number(coef.value)<=0)coef.value='1';coefHint.textContent=subjectSel.value?tr('هذا المعامل غير مثبت بعد في الكتالوج الحالي؛ أدخله يدويًا ويمكن تعديله لاحقًا.','Coefficient non encore confirmé dans le catalogue actuel : saisissez-le manuellement; il pourra être modifié plus tard.') : ''}
+  else{coef.readOnly=false;if(!Number(coef.value)||Number(coef.value)<=0)coef.value='1';coefHint.textContent=subjectSel.value?tr('المعامل اليدوي متاح فقط للمادة الأخرى التي تضيفها خارج القائمة الرسمية.','Le coefficient manuel est réservé à une matière ajoutée hors de la liste officielle.') : ''}
  };
  sel.onchange=()=>{const cls=sel.value?classById(sel.value):null;if(!cls)levelSel.disabled=false;syncSubjects()};levelSel.onchange=syncSubjects;subjectSel.onchange=syncCoefficient;syncSubjects();
  q('#pv2SaveAssignment',m.wrap).onclick=async()=>{
