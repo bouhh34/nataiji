@@ -1011,3 +1011,63 @@ html.nataiji-professor-mode body{background:#f4f7f6;min-height:100vh;overflow-x:
   .nataiji-professor-mode .prof-home-shell .professor-reference-topbar .professor-brand b{font-size:15px!important}
   .nataiji-professor-mode .prof-home-shell .prof-home-context{grid-template-columns:1fr!important}
 }
+
+
+/* Professor student roster aligned with teacher cards v21 */
+.nataiji-professor-mode .prof-student-layout{grid-template-columns:minmax(0,1fr) 290px}
+.nataiji-professor-mode .prof-student-roster-card{padding:19px!important;border-radius:22px!important}
+.nataiji-professor-mode .prof-student-roster-head{display:flex;align-items:center;justify-content:space-between;gap:14px;padding-bottom:15px;border-bottom:1px solid #edf2f0}
+.nataiji-professor-mode .prof-student-roster-head>div{min-width:0}
+.nataiji-professor-mode .prof-student-roster-head small{display:block;color:#0b866e;font-weight:850;font-size:10px;margin-bottom:3px}
+.nataiji-professor-mode .prof-student-roster-head h2{margin:0;color:#173d51;font-size:27px;line-height:1.15}
+.nataiji-professor-mode .prof-student-roster-head p{margin:6px 0 0;color:#7d8b91;font-size:10px}
+.nataiji-professor-mode .prof-add-student{min-height:48px!important;white-space:nowrap!important;padding:10px 16px!important;border-radius:14px!important;background:linear-gradient(135deg,#07896f,#0a9b7c)!important;border-color:#07896f!important;box-shadow:0 8px 20px rgba(8,137,111,.16)!important}
+.nataiji-professor-mode .prof-add-student span{font-size:18px;margin-inline-end:5px}
+.nataiji-professor-mode .prof-student-toolbar{display:grid;grid-template-columns:minmax(0,1fr) 205px;gap:10px;align-items:center;padding:17px 0 7px}
+.nataiji-professor-mode .prof-student-search{position:relative;display:block!important}
+.nataiji-professor-mode .prof-student-search>span{position:absolute;inset-inline-start:14px;top:50%;transform:translateY(-50%);color:#819099;font-size:20px;z-index:1}
+.nataiji-professor-mode .prof-student-search input{width:100%;height:49px;border:1px solid #dce7e8!important;border-radius:15px!important;background:#fff!important;padding-inline-start:42px!important;padding-inline-end:14px!important;font:inherit!important;color:#173d51!important;box-sizing:border-box!important}
+.nataiji-professor-mode .prof-student-toolbar select{height:49px;border:1px solid #dce7e8;border-radius:15px;background:#fff;padding:0 13px;color:#173d51;font:inherit;font-weight:750}
+.nataiji-professor-mode #profStudentCount{grid-column:1/-1;justify-self:start;color:#879499;font-size:10px;padding:0 2px}
+.nataiji-professor-mode .prof-student-list{display:grid!important;gap:11px!important;margin-top:10px!important}
+.nataiji-professor-mode .prof-student-card{display:block!important;border:1px solid #dfe8e8!important;border-radius:18px!important;padding:14px 15px!important;background:#fff!important;box-shadow:0 5px 15px rgba(8,43,75,.025)!important}
+.nataiji-professor-mode .prof-student-card[hidden]{display:none!important}
+.nataiji-professor-mode .prof-student-card-main{display:grid!important;grid-template-columns:auto minmax(0,1fr) auto!important;gap:11px!important;align-items:start!important}
+.nataiji-professor-mode .prof-student-number{width:42px!important;height:42px!important;border-radius:12px!important;display:grid!important;place-items:center!important;background:#edf7fb!important;color:#1680ad!important;font-size:18px!important;font-weight:900!important}
+.nataiji-professor-mode .prof-student-names{display:grid!important;min-width:0!important;gap:2px!important}
+.nataiji-professor-mode .prof-student-names b{font-size:16px!important;color:#173d51!important;white-space:normal!important;line-height:1.35!important}
+.nataiji-professor-mode .prof-student-names small{font-size:10.5px!important;color:#9aa6ab!important;white-space:normal!important;line-height:1.3!important}
+.nataiji-professor-mode .prof-student-gender{width:auto!important;height:auto!important;min-width:42px!important;padding:5px 8px!important;border-radius:999px!important;background:#f7faf9!important;border:1px solid #dde8e5!important;color:#637a72!important;font-size:9px!important;white-space:nowrap!important}
+.nataiji-professor-mode .prof-student-meta{display:grid!important;grid-template-columns:1fr 1fr!important;gap:10px!important;margin:12px 0 0!important;padding:10px 0 0!important;border-top:1px solid #eef2f1!important}
+.nataiji-professor-mode .prof-student-meta>span{display:grid!important;gap:3px!important}
+.nataiji-professor-mode .prof-student-meta small{font-size:9px!important;color:#9aa5a9!important}
+.nataiji-professor-mode .prof-student-meta b{font-size:10.5px!important;color:#5e737b!important;font-weight:700!important}
+.nataiji-professor-mode .prof-student-actions{display:grid!important;grid-template-columns:1fr 1fr!important;gap:9px!important;margin-top:12px!important}
+.nataiji-professor-mode .prof-student-actions button{min-height:42px!important;border-radius:13px!important;font-weight:850!important;font-size:11px!important;display:flex!important;align-items:center!important;justify-content:center!important;gap:6px!important}
+.nataiji-professor-mode .prof-student-edit{background:#f6fafc!important;border-color:#d7e4e9!important;color:#315c70!important}
+.nataiji-professor-mode .prof-student-delete{background:#fff7f7!important;border-color:#efcece!important;color:#a43e3e!important}
+.nataiji-professor-mode .prof-student-actions button span{font-size:16px!important}
+.nataiji-professor-mode .prof-student-locked{margin-top:12px;padding:9px 11px;border-radius:11px;background:#f6f8f7;color:#71827d;font-size:10px}
+.nataiji-professor-mode .prof-student-modal .locked{color:#0b866e!important;font-weight:800!important}
+
+@media(max-width:700px){
+ .nataiji-professor-mode .prof-student-layout{grid-template-columns:1fr!important}
+ .nataiji-professor-mode .prof-student-roster-card{padding:15px!important}
+ .nataiji-professor-mode .prof-student-roster-head{align-items:flex-end!important}
+ .nataiji-professor-mode .prof-student-roster-head h2{font-size:24px!important}
+ .nataiji-professor-mode .prof-add-student{min-height:46px!important;padding:9px 12px!important;font-size:11px!important}
+ .nataiji-professor-mode .prof-student-toolbar{grid-template-columns:1fr!important;padding-top:14px!important}
+ .nataiji-professor-mode .prof-student-toolbar select{width:62%!important;justify-self:end!important}
+ .nataiji-professor-mode #profStudentCount{grid-column:1!important;justify-self:start!important}
+ .nataiji-professor-mode .prof-student-card{padding:13px!important}
+ .nataiji-professor-mode .prof-student-card-main{grid-template-columns:auto minmax(0,1fr) auto!important}
+ .nataiji-professor-mode .prof-student-number{width:39px!important;height:39px!important;font-size:16px!important}
+ .nataiji-professor-mode .prof-student-names b{font-size:15px!important}
+}
+@media(max-width:390px){
+ .nataiji-professor-mode .prof-student-roster-head{display:grid!important;grid-template-columns:1fr auto!important;gap:8px!important}
+ .nataiji-professor-mode .prof-add-student{align-self:start!important}
+ .nataiji-professor-mode .prof-student-gender{font-size:8px!important;padding:4px 7px!important}
+ .nataiji-professor-mode .prof-student-toolbar select{width:100%!important}
+ .nataiji-professor-mode .prof-student-meta{grid-template-columns:1fr 1fr!important}
+}
