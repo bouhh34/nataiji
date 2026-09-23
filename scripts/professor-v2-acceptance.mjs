@@ -97,9 +97,10 @@ try{
  const weighted=(await page.locator('[data-weighted]').first().innerText()).trim();
  check('test and exam compute total and average',total==='32.00'&&avg==='16.00',JSON.stringify({total,avg}));
  check('coefficient computes weighted points',weighted==='48.00',JSON.stringify({weighted}));
- await page.locator('#pv2SaveGrades').click();
- await page.waitForTimeout(250);
- check('professor grade save succeeds',(await page.locator('#pv2SaveState').innerText()).includes('تم حفظ')||(await page.locator('#pv2SaveState').innerText()).includes('enregistr'));
+ await page.locator('[data-prof-nav="results"]').click();
+ await page.locator('#pv2ResultsBody .prof-results-table').waitFor({state:'visible',timeout:10000});
+ const autosavedResults=await page.locator('#pv2ResultsBody').innerText();
+ check('leaving grade page auto-saves professor grades',autosavedResults.includes('12.88'),autosavedResults);
 
  await page.reload({waitUntil:'domcontentloaded'});
  await page.locator('#profAddSubject').waitFor({state:'visible',timeout:12000});

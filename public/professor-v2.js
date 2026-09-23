@@ -6,6 +6,7 @@ const tr=(ar,f)=>fr()?f:ar;
 const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const uid=()=>globalThis.crypto?.randomUUID?.()||('p-'+Date.now().toString(36)+Math.random().toString(36).slice(2));
 let profile={schoolName:'',year:'',classes:[],assignments:[],marks:{}},links={},professorUser=null,currentView='home';
+let gradeSaveTimer=null,gradeEditRevision=0,gradeSavedRevision=0,gradeSaveInFlight=null;
 
 function hideLegacy(){
  document.documentElement.classList.add('nataiji-professor-mode');
@@ -39,6 +40,24 @@ function toast(text){let t=q('.professor-toast');if(!t){t=document.createElement
 function modal(title,body){const w=document.createElement('div');w.className='professor-modal';w.innerHTML=`<div class="professor-modal-card"><header><h2>${esc(title)}</h2><button type="button" class="professor-x" aria-label="Close">×</button></header><div class="professor-modal-body">${body}</div></div>`;document.body.appendChild(w);const close=()=>w.remove();q('.professor-x',w).onclick=close;w.onclick=e=>{if(e.target===w)close()};return{wrap:w,close}}
 async function refreshProfile(){const r=await api('/api/professor/profile');profile=normalize(r.profile);links=r.classLinks||{};return r}
 async function saveProfile(message=''){const r=await api('/api/professor/profile',{method:'PUT',body:JSON.stringify({profile})});profile=normalize(r.profile);links=r.classLinks||links||{};if(message)toast(message);return r}
+function gradeStatus(text){
+ const el=q('#pv2SaveState');if(el)el.textContent=text
+}
+function scheduleGradeAutosave(){
+ gradeEditRevision++;if(gradeSaveTimer)clearTimeout(gradeSaveTimer);
+ gradeStatus(tr('جارٍ انتظار الحفظ التلقائي…','En attente de l’enregistrement automatique…'));
+ gradeSaveTimer=setTimeout(()=>{gradeSaveTimer=null;void flushGradeAutosave()},550)
+}
+async function flushGradeAutosave(){
+ if(gradeSaveTimer){clearTimeout(gradeSaveTimer);gradeSaveTimer=null}
+ if(gradeSaveInFlight){try{await gradeSaveInFlight}catch{}}
+ if(gradeSavedRevision>=gradeEditRevision)return true;
+ const target=gradeEditRevision;gradeStatus(tr('جارٍ الحفظ تلقائيًا…','Enregistrement automatique…'));
+ gradeSaveInFlight=(async()=>{try{await saveProfile();gradeSavedRevision=Math.max(gradeSavedRevision,target);gradeStatus(tr('✓ تم الحفظ تلقائيًا','✓ Enregistré automatiquement'));return true}catch{gradeStatus(tr('تعذر الحفظ التلقائي — أعد المحاولة','Échec de l’enregistrement automatique — réessayez'));return false}finally{gradeSaveInFlight=null}})();
+ const ok=await gradeSaveInFlight;
+ if(ok&&gradeSavedRevision<gradeEditRevision)return flushGradeAutosave();
+ return ok
+}
 function toggleLanguage(){const next=fr()?'ar':'fr';localStorage.setItem('nataiji-lang',next);document.documentElement.lang=next;document.documentElement.dir=next==='fr'?'ltr':'rtl';renderCurrent()}
 
 function topbar(title='',subtitle=''){
@@ -47,9 +66,9 @@ function topbar(title='',subtitle=''){
   <div class="professor-top-actions"><button type="button" id="profLang" class="ghost">${fr()?'العربية':'FR'}</button><button type="button" id="profRefresh" class="ghost" title="${tr('تحديث','Actualiser')}">↻</button><button type="button" id="profLogout" class="ghost">${tr('خروج','Quitter')}</button></div>
  </header>`
 }
-function bindTop(el){q('#profLang',el)?.addEventListener('click',toggleLanguage);q('#profRefresh',el)?.addEventListener('click',async()=>{const b=q('#profRefresh',el);b.disabled=true;try{await refreshProfile();toast(tr('تم التحديث','Actualisé'));renderCurrent()}finally{b.disabled=false}});q('#profLogout',el)?.addEventListener('click',logout)}
+function bindTop(el){q('#profLang',el)?.addEventListener('click',async()=>{await flushGradeAutosave();toggleLanguage()});q('#profRefresh',el)?.addEventListener('click',async()=>{const b=q('#profRefresh',el);b.disabled=true;try{await flushGradeAutosave();await refreshProfile();toast(tr('تم التحديث','Actualisé'));renderCurrent()}finally{b.disabled=false}});q('#profLogout',el)?.addEventListener('click',async()=>{await flushGradeAutosave();logout()})}
 function nav(active='home'){return `<nav class="professor-nav"><button class="${active==='home'?'on':''}" data-prof-nav="home"><span>⌂</span>${tr('الرئيسية','Accueil')}</button><button class="${active==='classes'?'on':''}" data-prof-nav="classes"><span>▦</span>${tr('الأقسام','Classes')}</button><button class="${active==='results'?'on':''}" data-prof-nav="results"><span>▤</span>${tr('النتائج','Résultats')}</button><button data-prof-add><span>＋</span>${tr('إضافة','Ajouter')}</button></nav>`}
-function bindNav(el){qa('[data-prof-nav]',el).forEach(b=>b.onclick=()=>{currentView=b.dataset.profNav;renderCurrent()});q('[data-prof-add]',el)?.addEventListener('click',openAssignment)}
+function bindNav(el){qa('[data-prof-nav]',el).forEach(b=>b.onclick=async()=>{await flushGradeAutosave();currentView=b.dataset.profNav;renderCurrent()});q('[data-prof-add]',el)?.addEventListener('click',async()=>{await flushGradeAutosave();openAssignment()})}
 
 function renderCurrent(){if(currentView==='classes')return renderClasses();if(currentView==='results')return renderResults();if(currentView.startsWith('results:')){const [,id,term]=currentView.split(':');return renderResults(id,Number(term)||1)}if(currentView.startsWith('class:'))return openClass(currentView.slice(6));if(currentView.startsWith('grade:')){const [,id,term]=currentView.split(':');return openGrades(id,Number(term)||1)}return renderHome()}
 function renderHome(){
@@ -107,10 +126,10 @@ function openGrades(id,term=1){
  const rows=students.map((s,i)=>{const m=marks[s.id]||{},testValue=markNumber(m[testKey]),examValue=markNumber(m[examKey]),pairTotal=testValue==null||examValue==null?null:testValue+examValue,avg=termResult(m,term),weighted=avg==null?null:avg*coefficient;return`<tr><td>${i+1}</td><td class="professor-student-name"><b>${esc(s.name)}</b><small dir="ltr">${esc(s.nns||'')}</small></td><td><input inputmode="decimal" data-kind="${testKey}" data-sid="${esc(s.id)}" value="${esc(m[testKey]??'')}" placeholder="—"></td><td><input inputmode="decimal" data-kind="${examKey}" data-sid="${esc(s.id)}" value="${esc(m[examKey]??'')}" placeholder="—"></td><td data-total="${esc(s.id)}">${pairTotal==null?'—':pairTotal.toFixed(2)}</td><td data-avg="${esc(s.id)}">${avg==null?'—':avg.toFixed(2)}</td><td data-weighted="${esc(s.id)}">${weighted==null?'—':weighted.toFixed(2)}</td></tr>`}).join('');
  const termTabs=[1,2,3].map(t=>`<button class="${t===term?'on':''}" data-prof-term="${t}">${tr('الفصل '+t,'Trimestre '+t)}</button>`).join('');
  const el=root();el.innerHTML=`<div class="professor-shell">${topbar(a.subject,cls?.name||'')}<section class="prof-page-head"><div><button id="pv2BackGrade" class="prof-back-inline">‹ ${tr('رجوع','Retour')}</button><span class="professor-badge">${tr('اختبار واحد + امتحان واحد في كل فصل','Un test + un examen par trimestre')}</span><h1>${esc(a.subject)}</h1><p>${esc(cls?.name||'')} · ${tr('المعامل','Coefficient')} ${coefficient} ${l?'· 🔗 '+l.memberCount+' '+tr('أساتذة','professeurs'):''}</p></div><div><button class="primary" id="pv2SaveGrades">${tr('حفظ الدرجات','Enregistrer les notes')}</button><button id="pv2EditCoefficient">${tr('المعامل','Coefficient')} ×${coefficient}</button><button id="pv2AddStudentGrade">+ ${tr('تلميذ','Élève')}</button></div></section><section class="professor-content"><div class="prof-term-tabs">${termTabs}</div><div class="prof-term-formula"><b>${tr('طريقة الحساب','Formule')}</b><span>${esc(termFormula(term))}</span><small>${tr('بعد حساب معدل المادة يُضرب في معامل المادة للحصول على النقاط الموزونة.','Après le calcul de la moyenne, elle est multipliée par le coefficient de la matière.')}</small></div><div class="professor-table-wrap"><table class="professor-grade-table"><thead><tr><th>#</th><th>${tr('التلميذ','Élève')}</th><th>${tr('الاختبار '+term+' /20','Test '+term+' /20')}</th><th>${tr('الامتحان '+term+' /20','Examen '+term+' /20')}</th><th>${tr('المجموع /40','Total /40')}</th><th>${tr('معدل المادة /20','Moyenne /20')}</th><th>${tr('بعد المعامل','Pondéré')}</th></tr></thead><tbody>${rows||`<tr><td colspan="7" class="professor-no-students">${tr('أضف تلاميذ القسم أولًا.','Ajoutez d’abord les élèves de la classe.')}</td></tr>`}</tbody></table></div><div class="prof-save-bar"><span id="pv2SaveState">${tr('لا توجد تغييرات غير محفوظة','Aucune modification non enregistrée')}</span><small>${term===1?tr('الفصل الأول يحتاج خ1 وام1.','Le trimestre 1 nécessite Test 1 et Examen 1.'):term===2?tr('الفصل الثاني يحتاج درجات الفصلين الأول والثاني كاملة.','Le trimestre 2 nécessite les notes complètes des trimestres 1 et 2.'):tr('الفصل الثالث يحتاج درجات الفصول الثلاثة كاملة.','Le trimestre 3 nécessite les notes complètes des trois trimestres.')}</small></div></section>${nav('home')}</div>`;
- bindTop(el);bindNav(el);q('#pv2BackGrade',el).onclick=()=>openClass(a.classId);q('#pv2EditCoefficient',el).onclick=()=>editCoefficient(id);q('#pv2AddStudentGrade',el).onclick=()=>addStudent(a.classId,()=>openGrades(id,term));qa('[data-prof-term]',el).forEach(b=>b.onclick=()=>openGrades(id,Number(b.dataset.profTerm)));
+ bindTop(el);bindNav(el);q('#pv2BackGrade',el).onclick=async()=>{await flushGradeAutosave();openClass(a.classId)};q('#pv2EditCoefficient',el).onclick=async()=>{await flushGradeAutosave();editCoefficient(id)};q('#pv2AddStudentGrade',el).onclick=async()=>{await flushGradeAutosave();addStudent(a.classId,()=>openGrades(id,term))};qa('[data-prof-term]',el).forEach(b=>b.onclick=async()=>{await flushGradeAutosave();openGrades(id,Number(b.dataset.profTerm))});
  const recalc=sid=>{const m=marks[sid]||{},testValue=markNumber(m[testKey]),examValue=markNumber(m[examKey]),pairTotal=testValue==null||examValue==null?null:testValue+examValue,avg=termResult(m,term),weighted=avg==null?null:avg*coefficient;q(`[data-total="${CSS.escape(sid)}"]`,el).textContent=pairTotal==null?'—':pairTotal.toFixed(2);q(`[data-avg="${CSS.escape(sid)}"]`,el).textContent=avg==null?'—':avg.toFixed(2);q(`[data-weighted="${CSS.escape(sid)}"]`,el).textContent=weighted==null?'—':weighted.toFixed(2)};
- qa('[data-kind]',el).forEach(inp=>inp.oninput=()=>{const sid=inp.dataset.sid,kind=inp.dataset.kind;inp.value=cleanGrade(inp.value);marks[sid]=marks[sid]||{test1:'',exam1:'',test2:'',exam2:'',test3:'',exam3:''};marks[sid][kind]=inp.value;q('#pv2SaveState',el).textContent=tr('توجد تغييرات غير محفوظة','Modifications non enregistrées');recalc(sid)});
- q('#pv2SaveGrades',el).onclick=async()=>{const b=q('#pv2SaveGrades',el);b.disabled=true;try{await saveProfile();q('#pv2SaveState',el).textContent=tr('✓ تم حفظ درجات الفصل '+term,'✓ Notes du trimestre '+term+' enregistrées');toast(tr('تم الحفظ','Enregistré'))}catch{q('#pv2SaveState',el).textContent=tr('تعذر الحفظ — أعد المحاولة','Échec de l’enregistrement — réessayez')}finally{b.disabled=false}}
+ qa('[data-kind]',el).forEach(inp=>inp.oninput=()=>{const sid=inp.dataset.sid,kind=inp.dataset.kind;inp.value=cleanGrade(inp.value);marks[sid]=marks[sid]||{test1:'',exam1:'',test2:'',exam2:'',test3:'',exam3:''};marks[sid][kind]=inp.value;recalc(sid);scheduleGradeAutosave()});
+ q('#pv2SaveGrades',el).onclick=async()=>{const b=q('#pv2SaveGrades',el);b.disabled=true;try{const ok=await flushGradeAutosave();if(ok){q('#pv2SaveState',el).textContent=tr('✓ تم حفظ درجات الفصل '+term,'✓ Notes du trimestre '+term+' enregistrées');toast(tr('تم الحفظ','Enregistré'))}}finally{b.disabled=false}}
 }
 
 
