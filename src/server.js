@@ -461,10 +461,20 @@ app.delete('/api/professor/classes/:localClassId/link',auth,async(req,res)=>{
  await pool.query('DELETE FROM nataiji_professor_class_members WHERE class_id=$1 AND user_id=$2',[sharedClassId,req.user.id]);if(owner.rows[0]?.owner_user_id===req.user.id){await pool.query('DELETE FROM nataiji_professor_classrooms WHERE class_id=$1',[sharedClassId])}cls.sharedClassId='';await saveProfessorProfile(req.user.id,profile,{syncShared:false});res.json({ok:true,profile:cleanProfessorProfile(profile),classLinks:await professorClassLinks(profile,req.user.id)})
 });
 app.get('/api/owner/overview',auth,ownerOnly,async(_req,res)=>{
- const idx=await getIndex(),accounts=[];let schools=0;
- for(const [email,id] of Object.entries(idx)){const raw=await storeGet(userKey(id));if(!raw)continue;try{const u=JSON.parse(raw),baseRole=u.baseRole||u.role,owned=[...new Set(Array.isArray(u.ownedSchoolIds)?u.ownedSchoolIds:(u.schoolId?[u.schoolId]:[]))];schools+=owned.length;accounts.push({id:u.id,name:u.name||'',email,role:baseRole==='owner'?'owner':baseRole==='teacher'?'teacher':baseRole==='professor'?'professor':'admin',schools:baseRole==='professor'?0:owned.length,suspended:!!u.suspended,plan:u.plan||'free'})}catch{}}
- res.json({ok:true,stats:{users:accounts.length,schools,superAdmins:accounts.filter(x=>x.role==='owner').length,schoolAdmins:accounts.filter(x=>x.role==='admin').length,teachers:accounts.filter(x=>x.role==='teacher').length,professors:accounts.filter(x=>x.role==='professor').length},accounts:accounts.sort((a,b)=>String(a.name).localeCompare(String(b.name),'fr'))})
-});async function ownerAccountById(id){
+ const idx=await getIndex(),accounts=[],users=[];let schools=0;
+ for(const [email,id] of Object.entries(idx)){
+  const raw=await storeGet(userKey(id));if(!raw)continue;
+  try{
+   const u=JSON.parse(raw),baseRole=String(u.baseRole||u.role),owned=[...new Set(Array.isArray(u.ownedSchoolIds)?u.ownedSchoolIds:(isOwnerRole(baseRole)&&u.schoolId?[u.schoolId]:[]))];
+   users.push(u);if(isOwnerRole(baseRole))schools+=owned.length;
+   accounts.push({id:u.id,name:u.name||'',email,role:baseRole==='owner'?'owner':baseRole==='teacher'?'teacher':baseRole==='professor'?'professor':'admin',schools:isOwnerRole(baseRole)?owned.length:0,suspended:!!u.suspended,plan:u.plan||'free'})
+  }catch{}
+ }
+ const teacherIds=new Set();
+ for(const u of users){const role=String(u.baseRole||u.role);if(role==='professor')continue;const memberships=await ownerTeacherMembershipsForUser(u);if(memberships.length)teacherIds.add(String(u.id))}
+ res.json({ok:true,stats:{users:accounts.length,schools,superAdmins:accounts.filter(x=>x.role==='owner').length,schoolAdmins:accounts.filter(x=>x.role==='admin').length,teachers:teacherIds.size,professors:accounts.filter(x=>x.role==='professor').length},accounts:accounts.sort((a,b)=>String(a.name).localeCompare(String(b.name),'fr'))})
+});
+async function ownerAccountById(id){
  const raw=await storeGet(userKey(String(id||'')));if(!raw)return null;
  try{return JSON.parse(raw)}catch{return null}
 }
@@ -484,19 +494,52 @@ async function ownerProfessorView(user){
  const assignments=profile.assignments.map(a=>({id:a.id,classId:a.classId,subject:a.subject,subjectKey:a.subjectKey||'',coefficient:Number(a.coefficient)||1,coefficientSource:a.coefficientSource||'manual',hasGrades:professorAssignmentHasGrades(profile,a.id)}));
  return{account:{id:user.id,name:user.name||'',email:user.email||'',role:'professor',suspended:!!user.suspended,plan:user.plan||'free'},schoolName:profile.schoolName||'',year:profile.year||'',classes,assignments,versionCount:versions}
 }
-async function ownerTeacherSummary(user){
- let schoolName='';if(pool&&user.schoolId){const q=await pool.query('SELECT data FROM nataiji_school_settings WHERE school_id=$1',[user.schoolId]);schoolName=String(q.rows[0]?.data?.school||'')}
- return{id:user.id,name:user.name||'',email:user.email||'',role:'teacher',suspended:!!user.suspended,plan:user.plan||'free',schoolName,schoolId:String(user.schoolId||''),classCount:Array.isArray(user.classIds)?user.classIds.length:0}
+async function ownerSchoolName(schoolId,fallback=''){
+ if(!schoolId)return String(fallback||'');
+ if(pool){const q=await pool.query('SELECT data FROM nataiji_school_settings WHERE school_id=$1',[schoolId]);const d=q.rows[0]?.data||{};return String(d.school||fallback||'')}
+ return String(fallback||'')
+}
+async function ownerTeacherSummary(user,grant=null){
+ const schoolId=String(grant?.schoolId||user.schoolId||''),schoolName=await ownerSchoolName(schoolId,grant?.schoolName||''),classAccess=grant?.classAccess&&typeof grant.classAccess==='object'?grant.classAccess:null;
+ return{id:user.id,grantId:String(grant?.grantId||''),name:user.name||'',assignedName:String(grant?.teacherName||''),email:user.email||'',role:'teacher',suspended:!!user.suspended,plan:user.plan||'free',schoolName,schoolId,classCount:classAccess?Object.keys(classAccess).length:(Array.isArray(user.classIds)?user.classIds.length:0),permissions:grant?cleanPermissions(grant.permissions):cleanPermissions(user.permissions)}
+}
+async function ownerTeacherMembershipsForUser(user){
+ const out=[],seen=new Set(),grants=user?.sharedGrants&&typeof user.sharedGrants==='object'?Object.values(user.sharedGrants):[];
+ for(const local of grants){
+  if(!local?.grantId||!local?.schoolId)continue;
+  let live=local;const raw=await storeGet(grantKey(local.grantId));
+  if(raw){try{const parsed=JSON.parse(raw);if(parsed.revoked)continue;live={...local,...parsed}}catch{continue}}
+  const key=String(live.grantId);if(seen.has(key))continue;seen.add(key);out.push(await ownerTeacherSummary(user,live))
+ }
+ const role=String(user?.baseRole||user?.role);
+ if(role==='teacher'&&!out.length)out.push(await ownerTeacherSummary(user,null));
+ return out
+}
+async function ownerSchoolSummary(user,schoolId){
+ const sid=String(schoolId||'');let schoolName='',schoolNameFr='',classCount=0;
+ if(pool&&sid){
+  const [sq,st]=await Promise.all([pool.query('SELECT data FROM nataiji_school_settings WHERE school_id=$1',[sid]),loadDurableSchoolStructure(sid)]);
+  const d=sq.rows[0]?.data||{};schoolName=String(d.school||'');schoolNameFr=String(d.schoolFr||'');classCount=Array.isArray(st?.classes)?st.classes.length:0
+ }
+ return{schoolId:sid,schoolName:schoolName||'مدرسة',schoolNameFr,ownerId:user.id,ownerName:user.name||'',ownerEmail:user.email||'',classCount,teacherCount:0}
 }
 app.get('/api/owner/staff',auth,ownerOnly,async(_req,res)=>{
- const idx=await getIndex(),teachers=[],professors=[];
- for(const id of Object.values(idx)){
-  const user=await ownerAccountById(id);if(!user)continue;const role=String(user.baseRole||user.role);
-  if(role==='teacher')teachers.push(await ownerTeacherSummary(user));
+ const idx=await getIndex(),teachers=[],professors=[],schools=[],users=[];
+ for(const id of Object.values(idx)){const user=await ownerAccountById(id);if(user)users.push(user)}
+ for(const user of users){
+  const role=String(user.baseRole||user.role);
+  if(role!=='professor')teachers.push(...await ownerTeacherMembershipsForUser(user));
   if(role==='professor'){const view=await ownerProfessorView(user);professors.push({...view.account,schoolName:view.schoolName,year:view.year,classCount:view.classes.length,assignmentCount:view.assignments.length,linkedClassCount:view.classes.filter(x=>x.linkedProfessorCount>1).length,versionCount:view.versionCount})}
+  if(isOwnerRole(role)){
+   const owned=[...new Set(Array.isArray(user.ownedSchoolIds)&&user.ownedSchoolIds.length?user.ownedSchoolIds:(user.schoolId?[user.schoolId]:[]))];
+   for(const schoolId of owned)schools.push(await ownerSchoolSummary(user,schoolId))
+  }
  }
- const byName=(a,b)=>String(a.name||'').localeCompare(String(b.name||''),'fr');
- res.json({ok:true,teachers:teachers.sort(byName),professors:professors.sort(byName)})
+ const byName=(a,b)=>String(a.name||a.schoolName||'').localeCompare(String(b.name||b.schoolName||''),'fr');
+ const uniqueTeachers=[];const teacherKeys=new Set();
+ for(const row of teachers){const key=String(row.id)+'|'+String(row.grantId||row.schoolId||'');if(teacherKeys.has(key))continue;teacherKeys.add(key);uniqueTeachers.push(row)}
+ for(const school of schools)school.teacherCount=uniqueTeachers.filter(t=>String(t.schoolId)===String(school.schoolId)).length;
+ res.json({ok:true,teachers:uniqueTeachers.sort(byName),schools:schools.sort(byName),professors:professors.sort(byName)})
 });
 app.get('/api/owner/professors/:id',auth,ownerOnly,async(req,res)=>{
  if(!pool)return res.status(503).json({error:'durable_storage_required'});const user=await ownerProfessorAccount(req.params.id);if(!user)return res.status(404).json({error:'professor_account_not_found'});
