@@ -1,0 +1,100 @@
+import { chromium } from 'playwright';
+
+const base=process.env.NATAIJI_TEST_URL||'http://127.0.0.1:3222';
+const browser=await chromium.launch({headless:true});
+const context=await browser.newContext({viewport:{width:390,height:844},isMobile:true,hasTouch:true,locale:'ar'});
+const page=await context.newPage();
+const failures=[];
+const check=(name,ok,detail='')=>{console.log(`${ok?'PASS':'FAIL'}  ${name}${detail?' — '+detail:''}`);if(!ok)failures.push(name+(detail?': '+detail:''))};
+
+async function registerProfessor(name,email){
+ await page.goto(base,{waitUntil:'domcontentloaded',timeout:30000});
+ await page.locator('[data-auth2="register"]').waitFor({state:'visible',timeout:10000});
+ await page.locator('[data-auth2="register"]').click();
+ await page.locator('#auth2Form input[name="name"]').fill(name);
+ await page.locator('#auth2Form input[name="email"]').fill(email);
+ await page.locator('#auth2Form input[name="password"]').fill('ProfessorQA-9021');
+ await page.locator('#auth2Form .auth-submit').click();
+ await page.locator('[data-profile-type="professor"]').waitFor({state:'visible',timeout:12000});
+ await page.locator('[data-profile-type="professor"]').click();
+ await page.locator('#profAddSubject').waitFor({state:'visible',timeout:12000});
+}
+async function logout(){
+ await page.locator('#profLogout').click();
+ await page.locator('[data-auth2="login"]').waitFor({state:'visible',timeout:10000});
+}
+try{
+ await registerProfessor('Professor One','professor.one@example.com');
+ check('professor dashboard replaces legacy shell',await page.locator('#nataijiProfessorRoot .prof-v2-hero').count()===1 && await page.locator('.app-shell:visible').count()===0);
+
+ await page.locator('#profAddSubject').click();
+ await page.locator('#pv2Subject').fill('Mathématiques');
+ await page.locator('#pv2NewClass').fill('2AS-A');
+ await page.locator('#pv2SaveAssignment').click();
+ await page.locator('.prof-v2-assignment').waitFor({state:'visible',timeout:8000});
+ check('professor can create own subject and class',(await page.locator('.prof-v2-assignment').innerText()).includes('Mathématiques'));
+
+ await page.locator('#profAllClasses').click();
+ await page.locator('[data-manage-class]').first().click();
+ await page.locator('#pv2AddStudent').click();
+ await page.locator('#pv2StudentName').fill('طالب مشترك');
+ await page.locator('#pv2StudentNns').fill('NNS-001');
+ await page.locator('#pv2StudentSave').click();
+ await page.locator('.prof-student-row').waitFor({state:'visible',timeout:8000});
+ check('class student is saved',await page.locator('.prof-student-row').count()===1);
+
+ await page.locator('#pv2ShareClass').click();
+ await page.locator('.prof-class-code').waitFor({state:'visible',timeout:8000});
+ const code=(await page.locator('.prof-class-code').innerText()).trim();
+ check('shared class code has expected format',/^CL-[A-F0-9]{8}$/.test(code),code);
+ await page.locator('.professor-x').click();
+
+ await logout();
+ await page.locator('[data-auth2="register"]').click();
+ await page.locator('#auth2Form input[name="name"]').fill('Professor Two');
+ await page.locator('#auth2Form input[name="email"]').fill('professor.two@example.com');
+ await page.locator('#auth2Form input[name="password"]').fill('ProfessorQA-9021');
+ await page.locator('#auth2Form .auth-submit').click();
+ await page.locator('[data-profile-type="professor"]').waitFor({state:'visible',timeout:12000});
+ await page.locator('[data-profile-type="professor"]').click();
+ await page.locator('#profJoinClass').waitFor({state:'visible',timeout:12000});
+
+ await page.locator('#profJoinClass').click();
+ await page.locator('#pv2JoinCode').fill(code);
+ await page.locator('#pv2JoinNow').click();
+ await page.locator('.prof-class-card').waitFor({state:'visible',timeout:10000});
+ const cardText=await page.locator('.prof-class-card').first().innerText();
+ check('second professor joins same class',cardText.includes('2AS-A') && /2\s+أساتذة|2\s+professeurs/.test(cardText),cardText);
+
+ await page.locator('[data-manage-class]').first().click();
+ check('shared roster is visible to second professor',await page.locator('.prof-student-row').count()===1,await page.locator('.prof-student-row').first().innerText());
+
+ await page.locator('#pv2AddClassSubject').click();
+ await page.locator('#pv2Subject').fill('Physique');
+ await page.locator('#pv2SaveAssignment').click();
+ await page.locator('[data-class-grade]').waitFor({state:'visible',timeout:8000});
+ check('second professor can add private subject to shared class',(await page.locator('[data-class-grade]').innerText()).includes('Physique'));
+
+ await page.locator('[data-class-grade]').click();
+ const inputs=page.locator('[data-kind]');
+ await inputs.nth(0).fill('14');
+ await inputs.nth(1).fill('18');
+ const total=(await page.locator('[data-total]').first().innerText()).trim();
+ const avg=(await page.locator('[data-avg]').first().innerText()).trim();
+ check('test and exam compute total and average',total==='32.00'&&avg==='16.00',JSON.stringify({total,avg}));
+ await page.locator('#pv2SaveGrades').click();
+ await page.waitForTimeout(250);
+ check('professor grade save succeeds',(await page.locator('#pv2SaveState').innerText()).includes('تم حفظ')||(await page.locator('#pv2SaveState').innerText()).includes('enregistr'));
+
+ await page.reload({waitUntil:'domcontentloaded'});
+ await page.locator('#profAddSubject').waitFor({state:'visible',timeout:12000});
+ await page.locator('#profAllClasses').click();
+ await page.locator('[data-manage-class]').first().click();
+ await page.locator('[data-class-grade]').click();
+ check('professor grades persist after reload',(await page.locator('[data-total]').first().innerText()).trim()==='32.00');
+
+ if(failures.length)throw new Error(failures.join('\n'));
+ console.log('Professor v2 acceptance passed');
+}finally{
+ await browser.close();
+}
