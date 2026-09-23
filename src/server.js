@@ -61,6 +61,49 @@ function cleanProfessorProfile(input){
  }
  return{schoolName:String(src.schoolName||'').trim().slice(0,160),year:String(src.year||'').trim().slice(0,40),classes,assignments,marks}
 }
+const professorMarkNumber=v=>{if(v===''||v==null)return null;const n=Number(v);return Number.isFinite(n)?n:null};
+function professorTermResult(row,term){
+ const t1=professorMarkNumber(row?.test1),e1=professorMarkNumber(row?.exam1);if(t1==null||e1==null)return null;
+ if(term===1)return(t1+e1)/2;
+ const t2=professorMarkNumber(row?.test2),e2=professorMarkNumber(row?.exam2);if(t2==null||e2==null)return null;
+ if(term===2){const tests=(t1+t2)/2;return((tests*2)+e1+(e2*2))/5}
+ const t3=professorMarkNumber(row?.test3),e3=professorMarkNumber(row?.exam3);if(t3==null||e3==null)return null;
+ const tests=(t1+t2+t3)/3;return((tests*3)+e1+(e2*2)+(e3*3))/9
+}
+function professorRankCompleteStudents(students){
+ const complete=students.filter(x=>x.complete&&Number.isFinite(x.generalAverage)).sort((a,b)=>b.generalAverage-a.generalAverage||String(a.name).localeCompare(String(b.name),'ar'));
+ let previous=null,rank=0;
+ complete.forEach((row,index)=>{if(previous==null||Math.abs(row.generalAverage-previous)>1e-9)rank=index+1;row.rank=rank;previous=row.generalAverage});
+}
+async function buildProfessorClassResults(userId,localClassId,term){
+ const ownProfile=await loadProfessorProfile(userId),ownClass=ownProfile.classes.find(x=>x.id===localClassId);if(!ownClass)return null;
+ const sharedClassId=String(ownClass.sharedClassId||''),members=[];
+ if(sharedClassId){
+  const allowed=await pool.query('SELECT 1 FROM nataiji_professor_class_members WHERE class_id=$1 AND user_id=$2',[sharedClassId,userId]);if(!allowed.rowCount)return null;
+  const rows=(await pool.query('SELECT user_id FROM nataiji_professor_class_members WHERE class_id=$1 ORDER BY joined_at',[sharedClassId])).rows;for(const row of rows)members.push(String(row.user_id))
+ }else members.push(userId);
+ const studentSource=sharedClassId?(await pool.query('SELECT data FROM nataiji_professor_classrooms WHERE class_id=$1',[sharedClassId])).rows[0]?.data:null;
+ const sourceStudents=Array.isArray(studentSource?.students)?studentSource.students:(ownClass.students||[]);
+ const students=sourceStudents.map(s=>({id:String(s?.id||''),name:String(s?.name||''),nns:String(s?.nns||''),results:{},completedSubjects:0,totalSubjects:0,coefficientSum:0,weightedSum:0,generalAverage:null,complete:false,rank:null})).filter(s=>s.id&&s.name);
+ const studentMap=new Map(students.map(s=>[s.id,s])),subjects=[];
+ for(const memberId of members){
+  const profile=memberId===userId?ownProfile:await loadProfessorProfile(memberId),memberClass=profile.classes.find(x=>sharedClassId?x.sharedClassId===sharedClassId:x.id===localClassId);if(!memberClass)continue;
+  let professorName='';try{const raw=await storeGet(userKey(memberId));if(raw)professorName=String(JSON.parse(raw)?.name||'').trim()}catch{}
+  for(const assignment of profile.assignments.filter(a=>a.classId===memberClass.id)){
+   const coefficient=Number(assignment.coefficient)>0?Number(assignment.coefficient):1,key=memberId+':'+assignment.id;
+   subjects.push({key,subject:assignment.subject,coefficient,professorId:memberId,professorName,isMine:memberId===userId});
+   const rows=profile.marks?.[assignment.id]||{};
+   for(const student of students){
+    const average=professorTermResult(rows[student.id],term);if(average==null)continue;
+    const weighted=average*coefficient;student.results[key]={average,weighted};student.completedSubjects++;student.coefficientSum+=coefficient;student.weightedSum+=weighted
+   }
+  }
+ }
+ const totalSubjects=subjects.length,totalCoefficient=subjects.reduce((sum,s)=>sum+s.coefficient,0);
+ for(const student of students){student.totalSubjects=totalSubjects;student.complete=totalSubjects>0&&student.completedSubjects===totalSubjects;student.generalAverage=student.coefficientSum>0?student.weightedSum/student.coefficientSum:null}
+ professorRankCompleteStudents(students);
+ return{class:{localClassId,name:ownClass.name,schoolName:ownProfile.schoolName,year:ownProfile.year,shared:!!sharedClassId,sharedClassId,memberCount:members.length},term,subjects,totalCoefficient,students}
+}
 const professorJoinCode=()=>('CL-'+crypto.randomBytes(4).toString('hex').toUpperCase());
 async function loadProfessorProfile(userId){
  if(!pool)return emptyProfessorProfile();
@@ -292,6 +335,11 @@ app.post('/api/professor/classes/join',auth,async(req,res)=>{
  const client=await pool.connect();
  try{await client.query('BEGIN');await client.query('INSERT INTO nataiji_professor_class_members(class_id,user_id,role) VALUES($1,$2,$3) ON CONFLICT DO NOTHING',[shared.class_id,req.user.id,shared.owner_user_id===req.user.id?'owner':'member']);await client.query('INSERT INTO nataiji_professor_profiles(user_id,data,updated_at) VALUES($1,$2::jsonb,now()) ON CONFLICT(user_id) DO UPDATE SET data=EXCLUDED.data,updated_at=now()',[req.user.id,JSON.stringify(cleanProfessorProfile(profile))]);await client.query('COMMIT')}catch(e){await client.query('ROLLBACK');throw e}finally{client.release()}
  const clean=cleanProfessorProfile(profile),links=await professorClassLinks(clean,req.user.id);res.json({ok:true,profile:clean,classLinks:links,localClassId:cls.id,sharedClassId:shared.class_id})
+});
+app.get('/api/professor/classes/:localClassId/results',auth,async(req,res)=>{
+ if(req.user.role!=='professor')return res.status(403).json({error:'forbidden'});if(!pool)return res.status(503).json({error:'durable_storage_required'});
+ const localClassId=String(req.params.localClassId||''),term=Math.max(1,Math.min(3,Number(req.query?.term)||1)),report=await buildProfessorClassResults(req.user.id,localClassId,term);
+ if(!report)return res.status(404).json({error:'professor_class_not_found'});res.json({ok:true,...report})
 });
 app.delete('/api/professor/classes/:localClassId/link',auth,async(req,res)=>{
  if(req.user.role!=='professor')return res.status(403).json({error:'forbidden'});if(!pool)return res.status(503).json({error:'durable_storage_required'});
