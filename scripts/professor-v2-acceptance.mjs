@@ -84,9 +84,11 @@ try{
  await page.locator('[data-exam]').fill('15');await page.locator('#pv2SaveGrades').click();
  check('second own subject keeps independent trimester marks',(await page.locator('[data-avg]').first().innerText()).trim()==='15.00');
  check('annual subject average appears only in trimester 3',(await page.locator('[data-annual]').first().innerText()).trim()==='15.00');
+ check('trimester 3 individual list includes annual subject column',await page.locator('#pv2OwnSubjectList').count()===1);
  // Individual mode has a subject list but no collective student bulletin.
  await page.locator('#pv2OwnSubjectList').click();
  check('individual professor has bilingual subject list',await page.locator('.professor-own-list-table').count()===1&&(await page.locator('.prof-own-list-preview').innerText()).includes('Interrogation 1'));
+ check('trimester 3 subject list uses annual-average wording only there',(await page.locator('.prof-own-list-preview').innerText()).includes('Moyenne générale de la matière')&&(await page.locator('.prof-own-list-preview').innerText()).includes('المعدل العام للمادة'));
  await page.locator('.professor-x').click();
  const unsharedCollective=await page.evaluate(async()=>{const p=await fetch('/api/professor/profile');const j=await p.json();const id=j.profile.classes[0].id;const r=await fetch('/api/professor/classes/'+encodeURIComponent(id)+'/results?term=1');return{status:r.status,body:await r.json()}});
  check('individual professor cannot open collective student bulletins before sharing',unsharedCollective.status===409&&unsharedCollective.body?.error==='collective_mode_required',JSON.stringify(unsharedCollective));
@@ -181,7 +183,7 @@ try{
  await page.locator('[data-results-term="3"]').click();
  await page.locator('#pv2ResultsBody .prof-results-table').waitFor({state:'visible',timeout:10000});
  const term3Results=await page.locator('#pv2ResultsBody').innerText();
- check('shared term 3 result combines both professors',term3Results.includes('16.64'),term3Results);
+ check('shared term 3 result combines both professors',term3Results.includes('15.71'),term3Results);
 
  await page.reload({waitUntil:'domcontentloaded'});
  await page.locator('#profAddSubject').waitFor({state:'visible',timeout:12000});
