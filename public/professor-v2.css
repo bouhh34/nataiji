@@ -377,7 +377,7 @@ html.nataiji-professor-mode body{background:#f4f7f6;min-height:100vh;overflow-x:
   .nataiji-professor-mode .prof-home-guide button>div{display:block}
   .nataiji-professor-mode .prof-home-guide button b{display:block;font-size:11px}
   .nataiji-professor-mode .prof-home-guide button small{display:none}
-  .nataiji-professor-mode .prof-home-hidden-actions{display:none}
+  .nataiji-professor-mode .prof-home-hidden-actions{display:grid;grid-template-columns:1fr 1fr;gap:7px;margin:0 0 11px}.nataiji-professor-mode .prof-home-hidden-actions button{min-height:38px;padding:8px 9px;font-size:9.5px;border-radius:13px;background:#f8fbfa;color:#58736b}
   .nataiji-professor-mode .professor-content,.nataiji-professor-mode .prof-side-card{padding:13px;border-radius:19px}
   .nataiji-professor-mode .professor-section-title h2{font-size:19px}
   .nataiji-professor-mode .professor-section-title p{font-size:10px}
