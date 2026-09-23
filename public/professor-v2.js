@@ -97,7 +97,14 @@ function iconFor(subject){const s=String(subject||'').toLowerCase();if(/math|ر�
 function toast(text){let t=q('.professor-toast');if(!t){t=document.createElement('div');t.className='professor-toast';document.body.appendChild(t)}t.textContent=text;t.classList.add('show');setTimeout(()=>t.classList.remove('show'),1800)}
 function modal(title,body){const w=document.createElement('div');w.className='professor-modal';w.innerHTML=`<div class="professor-modal-card"><header><h2>${esc(title)}</h2><button type="button" class="professor-x" aria-label="${esc(tr('إغلاق','Fermer'))}">×</button></header><div class="professor-modal-body">${body}</div></div>`;document.body.appendChild(w);const close=()=>w.remove();q('.professor-x',w).onclick=close;w.onclick=e=>{if(e.target===w)close()};return{wrap:w,close}}
 async function refreshProfile(){const [r,cat]=await Promise.all([api('/api/professor/profile'),api('/api/professor/catalog').catch(()=>null)]);profile=normalize(r.profile);links=r.classLinks||{};if(cat?.catalog)academicCatalog=cat.catalog;return r}
-async function saveProfile(message=''){const r=await api('/api/professor/profile',{method:'PUT',body:JSON.stringify({profile})});profile=normalize(r.profile);links=r.classLinks||links||{};if(message)toast(message);return r}
+async function saveProfile(message=''){
+ const sent=structuredClone(profile),sentJson=JSON.stringify(sent);
+ const r=await api('/api/professor/profile',{method:'PUT',body:JSON.stringify({profile:sent})});
+ // Never let an older server response overwrite marks typed while this request
+ // was still in flight. A later autosave will persist the newer local revision.
+ if(JSON.stringify(profile)===sentJson)profile=normalize(r.profile);
+ links=r.classLinks||links||{};if(message)toast(message);return r
+}
 function gradeStatus(text){
  const el=q('#pv2SaveState');if(el)el.textContent=text
 }
