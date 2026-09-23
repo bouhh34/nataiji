@@ -62,7 +62,19 @@ try{
  await gradeInputs.nth(1).fill('12');
  await page.locator('#pv2SaveGrades').click();
  await page.waitForTimeout(250);
- check('first professor math result saved',(await page.locator('[data-avg]').first().innerText()).trim()==='11.00');
+ check('first professor math term 1 saved',(await page.locator('[data-avg]').first().innerText()).trim()==='11.00');
+ await page.locator('[data-prof-term="2"]').click();
+ gradeInputs=page.locator('[data-kind]');
+ await gradeInputs.nth(0).fill('14');
+ await gradeInputs.nth(1).fill('13');
+ await page.locator('#pv2SaveGrades').click();
+ await page.locator('[data-prof-term="3"]').click();
+ gradeInputs=page.locator('[data-kind]');
+ await gradeInputs.nth(0).fill('16');
+ await gradeInputs.nth(1).fill('15');
+ await page.locator('#pv2SaveGrades').click();
+ check('first professor math term 3 formula is correct',(await page.locator('[data-avg]').first().innerText()).trim()==='13.67');
+ check('official math coefficient weights term 3 correctly',(await page.locator('[data-weighted]').first().innerText()).trim()==='82.00');
  await page.locator('#pv2BackGrade').click();
 
  await logout();
@@ -102,10 +114,27 @@ try{
  const weighted=(await page.locator('[data-weighted]').first().innerText()).trim();
  check('test and exam compute total and average',total==='32.00'&&avg==='16.00',JSON.stringify({total,avg}));
  check('coefficient computes weighted points',weighted==='48.00',JSON.stringify({weighted}));
+ await page.locator('[data-prof-term="2"]').click();
+ let termInputs=page.locator('[data-kind]');
+ await termInputs.nth(0).fill('12');
+ await termInputs.nth(1).fill('16');
+ await page.locator('#pv2SaveGrades').click();
+ check('second professor term 2 cumulative formula is correct',(await page.locator('[data-avg]').first().innerText()).trim()==='15.20');
+ await page.locator('[data-prof-term="3"]').click();
+ termInputs=page.locator('[data-kind]');
+ await termInputs.nth(0).fill('13');
+ await termInputs.nth(1).fill('17');
+ await page.locator('#pv2SaveGrades').click();
+ check('second professor term 3 cumulative formula is correct',(await page.locator('[data-avg]').first().innerText()).trim()==='15.56');
  await page.locator('[data-prof-nav="reports"]').click();
  await page.locator('#pv2ResultsBody .prof-results-table').waitFor({state:'visible',timeout:10000});
  const autosavedResults=await page.locator('#pv2ResultsBody').innerText();
  check('leaving grade page auto-saves professor grades',autosavedResults.includes('12.67'),autosavedResults);
+ check('partial curriculum is clearly marked provisional',autosavedResults.includes('9 / 27')&&/مؤقت|provisoire/i.test(autosavedResults),autosavedResults);
+ await page.locator('[data-results-term="3"]').click();
+ await page.locator('#pv2ResultsBody .prof-results-table').waitFor({state:'visible',timeout:10000});
+ const term3Results=await page.locator('#pv2ResultsBody').innerText();
+ check('shared term 3 result combines both professors',term3Results.includes('14.30'),term3Results);
 
  await page.reload({waitUntil:'domcontentloaded'});
  await page.locator('#profAddSubject').waitFor({state:'visible',timeout:12000});
@@ -114,12 +143,15 @@ try{
  await page.locator('[data-class-grade]').click();
  check('professor grades persist after reload',(await page.locator('[data-total]').first().innerText()).trim()==='32.00');
  check('coefficient persists after reload',(await page.locator('[data-weighted]').first().innerText()).trim()==='48.00');
+ await page.locator('[data-prof-term="3"]').click();
+ check('term 3 professor grades persist after reload',(await page.locator('[data-avg]').first().innerText()).trim()==='15.56');
 
  await page.locator('[data-prof-nav="reports"]').click();
  await page.locator('#pv2ResultsBody .prof-results-table').waitFor({state:'visible',timeout:10000});
  const resultsText=await page.locator('#pv2ResultsBody').innerText();
  check('shared results include subjects from both professors',resultsText.includes('الرياضيات')&&resultsText.includes('العلوم الفيزيائية'),resultsText);
  check('shared general average uses subject coefficients',resultsText.includes('12.67'),resultsText);
+ check('report exposes official coefficient coverage',resultsText.includes('9 / 27'),resultsText);
  check('shared results expose one student bulletin button',await page.locator('[data-bulletin]').count()===1);
  await page.locator('[data-bulletin]').click();
  check('student bulletin contains all shared subjects',(await page.locator('.prof-bulletin-preview').innerText()).includes('الرياضيات')&&(await page.locator('.prof-bulletin-preview').innerText()).includes('العلوم الفيزيائية'));
