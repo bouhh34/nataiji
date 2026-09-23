@@ -234,8 +234,8 @@ try{
  check('shared term 3 result combines both professors',term3Results.includes('15.60'),term3Results);
 
  await page.reload({waitUntil:'domcontentloaded'});
- await page.locator('#profAddSubject').waitFor({state:'visible',timeout:12000});
- await page.locator('#profAllClasses').click();
+ await page.locator('.prof-reference-hero').waitFor({state:'visible',timeout:12000});
+ await page.locator('[data-prof-nav="students"]').click();
  await page.locator('[data-manage-class]').first().click();
  await page.locator('[data-class-grade]').click();
  check('professor grades persist after reload',(await page.locator('[data-avg]').first().innerText()).trim()==='16.00');
