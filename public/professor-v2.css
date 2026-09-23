@@ -1145,3 +1145,178 @@ html.nataiji-professor-mode body{background:#f4f7f6;min-height:100vh;overflow-x:
   font-weight:600!important;
   color:#9aa6ab!important
 }
+
+
+/* Professor grade entry mirrors teacher compact rows v24 */
+.nataiji-professor-mode .prof-grade-teacher-style{
+  padding:16px!important;
+  border-radius:21px!important
+}
+.nataiji-professor-mode .prof-grade-entry-list{
+  display:grid;
+  gap:9px;
+  margin-top:12px
+}
+.nataiji-professor-mode .prof-grade-student-card{
+  border:1px solid #e1e9ed;
+  border-radius:16px;
+  background:#fff;
+  padding:11px 12px;
+  box-shadow:0 3px 12px rgba(20,56,75,.025)
+}
+.nataiji-professor-mode .prof-grade-student-head{
+  display:grid;
+  grid-template-columns:40px minmax(0,1fr);
+  gap:10px;
+  align-items:center;
+  padding-bottom:8px;
+  border-bottom:1px solid #edf2f4
+}
+.nataiji-professor-mode .prof-grade-call{
+  width:40px;height:40px;border-radius:11px;
+  display:grid;place-items:center;
+  background:#eef7fb;color:#1680ad;
+  font-size:17px;font-weight:900
+}
+.nataiji-professor-mode .prof-grade-student-copy{
+  min-width:0;display:grid;gap:1px
+}
+.nataiji-professor-mode .prof-grade-student-copy b{
+  color:#17364d;font-size:14.5px;font-weight:900;
+  line-height:1.25;overflow-wrap:anywhere
+}
+.nataiji-professor-mode .prof-grade-student-copy small{
+  color:#96a3aa;font-size:9.5px;font-weight:600;
+  line-height:1.2;overflow-wrap:anywhere
+}
+.nataiji-professor-mode .prof-grade-student-copy em{
+  margin-top:2px;color:#9aa6ab;font-size:8.5px;
+  font-style:normal;font-weight:500
+}
+.nataiji-professor-mode .prof-grade-assessments{
+  display:grid;
+  grid-template-columns:1fr 1fr;
+  gap:8px;
+  padding-top:9px
+}
+.nataiji-professor-mode .prof-grade-assessment{
+  min-width:0;
+  display:grid;
+  grid-template-columns:minmax(0,1fr) auto;
+  align-items:center;
+  gap:8px;
+  min-height:52px;
+  padding:7px 8px;
+  border:1px solid #e7edf0;
+  border-radius:12px;
+  background:#fbfdfe;
+  transition:.15s ease
+}
+.nataiji-professor-mode .prof-grade-assessment-label{
+  min-width:0;display:grid;gap:1px
+}
+.nataiji-professor-mode .prof-grade-assessment-label b{
+  color:#405d6c;font-size:10.5px;font-weight:850;
+  line-height:1.2
+}
+.nataiji-professor-mode .prof-grade-assessment-label small{
+  color:#91a0aa;font-size:8.5px;font-weight:700
+}
+.nataiji-professor-mode .prof-grade-score-controls{
+  display:grid;
+  grid-template-columns:84px 56px;
+  align-items:center;
+  gap:5px;
+  direction:ltr
+}
+.nataiji-professor-mode .prof-grade-score-field{
+  width:84px;display:grid;
+  grid-template-columns:57px 25px;
+  align-items:center;gap:2px;direction:ltr
+}
+.nataiji-professor-mode .prof-grade-score-field input{
+  width:57px!important;height:37px!important;min-height:37px!important;
+  padding:0 4px!important;margin:0!important;
+  border:1px solid #c8dce7!important;border-radius:9px!important;
+  background:#f8fcfe!important;color:#17364d!important;
+  text-align:center!important;font-size:15px!important;font-weight:650!important;
+  line-height:37px!important;box-sizing:border-box!important;outline:none!important
+}
+.nataiji-professor-mode .prof-grade-score-field input:focus{
+  border-color:#218fd2!important;
+  box-shadow:0 0 0 3px rgba(33,143,210,.11)!important;
+  background:#fff!important
+}
+.nataiji-professor-mode .prof-grade-score-field em{
+  color:#80919d;font-size:10.5px;font-weight:750;
+  font-style:normal;white-space:nowrap
+}
+.nataiji-professor-mode .prof-grade-absent{
+  width:56px;min-width:56px;height:33px;min-height:33px;
+  padding:0 4px!important;margin:0!important;
+  display:inline-flex;align-items:center;justify-content:center;
+  border:1px solid #d8e1e8!important;border-radius:9px!important;
+  background:#fff!important;color:#667784!important;
+  font-size:10px!important;font-weight:850!important;white-space:nowrap;
+  box-shadow:0 1px 3px rgba(23,54,77,.04)!important
+}
+.nataiji-professor-mode .prof-grade-absent::before{
+  content:"";width:6px;height:6px;border-radius:50%;
+  background:#a9b7c1;margin-inline-end:4px;flex:none
+}
+.nataiji-professor-mode .prof-grade-assessment.is-absent{
+  background:linear-gradient(90deg,rgba(255,249,226,.3),rgba(255,249,226,.75));
+  border-color:#ecd999
+}
+.nataiji-professor-mode .prof-grade-assessment.is-absent .prof-grade-score-field input{
+  background:#fffaf0!important;border-color:#e6cc78!important;
+  color:#8a6200!important;font-size:10.5px!important;font-weight:800!important
+}
+.nataiji-professor-mode .prof-grade-assessment.is-absent .prof-grade-absent{
+  background:#f2b51d!important;border-color:#b98300!important;
+  color:#3f2b00!important;
+  box-shadow:0 0 0 3px rgba(242,181,29,.16)!important
+}
+.nataiji-professor-mode .prof-grade-assessment.is-absent .prof-grade-absent::before{
+  background:#704a00
+}
+.nataiji-professor-mode .prof-grade-student-results{
+  display:flex;gap:12px;justify-content:flex-end;flex-wrap:wrap;
+  padding-top:8px;margin-top:8px;border-top:1px solid #f0f3f4
+}
+.nataiji-professor-mode .prof-grade-student-results span{
+  display:flex;align-items:baseline;gap:5px
+}
+.nataiji-professor-mode .prof-grade-student-results small{
+  color:#8a9aa2;font-size:8.5px;font-weight:650
+}
+.nataiji-professor-mode .prof-grade-student-results b{
+  color:#17364d;font-size:11px;font-weight:900;direction:ltr
+}
+@media(max-width:760px){
+ .nataiji-professor-mode .prof-grade-teacher-style{padding:12px!important}
+ .nataiji-professor-mode .prof-grade-entry-list{gap:7px;margin-top:9px}
+ .nataiji-professor-mode .prof-grade-student-card{padding:9px 10px;border-radius:14px}
+ .nataiji-professor-mode .prof-grade-student-head{grid-template-columns:36px minmax(0,1fr);gap:8px;padding-bottom:7px}
+ .nataiji-professor-mode .prof-grade-call{width:36px;height:36px;border-radius:10px;font-size:15px}
+ .nataiji-professor-mode .prof-grade-student-copy b{font-size:13.5px}
+ .nataiji-professor-mode .prof-grade-student-copy small{font-size:9px}
+ .nataiji-professor-mode .prof-grade-assessments{grid-template-columns:1fr;gap:6px;padding-top:7px}
+ .nataiji-professor-mode .prof-grade-assessment{
+   grid-template-columns:minmax(90px,1fr) auto;
+   min-height:48px;padding:5px 7px;border-radius:10px
+ }
+ .nataiji-professor-mode .prof-grade-assessment-label b{font-size:10px}
+ .nataiji-professor-mode .prof-grade-score-controls{grid-template-columns:82px 54px;gap:4px}
+ .nataiji-professor-mode .prof-grade-score-field{width:82px;grid-template-columns:56px 24px}
+ .nataiji-professor-mode .prof-grade-score-field input{width:56px!important;height:36px!important;min-height:36px!important;line-height:36px!important;font-size:14px!important}
+ .nataiji-professor-mode .prof-grade-absent{width:54px;min-width:54px;height:32px;min-height:32px;font-size:9.5px!important}
+ .nataiji-professor-mode .prof-grade-student-results{justify-content:space-between;gap:6px;padding-top:7px;margin-top:7px}
+}
+@media(max-width:380px){
+ .nataiji-professor-mode .prof-grade-assessment{grid-template-columns:minmax(78px,1fr) auto;gap:5px}
+ .nataiji-professor-mode .prof-grade-score-controls{grid-template-columns:78px 51px}
+ .nataiji-professor-mode .prof-grade-score-field{width:78px;grid-template-columns:53px 23px}
+ .nataiji-professor-mode .prof-grade-score-field input{width:53px!important}
+ .nataiji-professor-mode .prof-grade-absent{width:51px;min-width:51px;font-size:9px!important}
+}
