@@ -28,19 +28,19 @@ try{
  check('professor dashboard replaces legacy shell',await page.locator('#nataijiProfessorRoot .prof-v2-hero').count()===1 && await page.locator('.app-shell:visible').count()===0);
 
  await page.locator('#profAddSubject').click();
- await page.locator('#pv2Subject').fill('Mathématiques');
+ await page.locator('#pv2Subject').fill('الرياضيات');
  await page.locator('#pv2Coefficient').fill('5');
  await page.locator('#pv2NewClass').fill('2AS-A');
  await page.locator('#pv2SaveAssignment').click();
  await page.locator('.prof-v2-assignment').waitFor({state:'visible',timeout:8000});
  const firstAssignmentText=await page.locator('.prof-v2-assignment').innerText();
- check('professor can create own subject and class',firstAssignmentText.includes('Mathématiques'));
+ check('professor can create own subject and class',firstAssignmentText.includes('الرياضيات'));
  check('subject coefficient is shown on dashboard',/معامل\s*×5|Coef\.\s*×5/.test(firstAssignmentText),firstAssignmentText);
 
  await page.locator('#profAllClasses').click();
  await page.locator('[data-manage-class]').first().click();
  await page.locator('#pv2AddStudent').click();
- await page.locator('#pv2StudentName').fill('طالب مشترك');
+ await page.locator('#pv2StudentName').fill('محمد سالم');
  await page.locator('#pv2StudentNns').fill('NNS-001');
  await page.locator('#pv2StudentSave').click();
  await page.locator('.prof-student-row').waitFor({state:'visible',timeout:8000});
@@ -113,12 +113,18 @@ try{
  await page.locator('[data-prof-nav="results"]').click();
  await page.locator('#pv2ResultsBody .prof-results-table').waitFor({state:'visible',timeout:10000});
  const resultsText=await page.locator('#pv2ResultsBody').innerText();
- check('shared results include subjects from both professors',resultsText.includes('Mathématiques')&&resultsText.includes('Physique'),resultsText);
+ check('shared results include subjects from both professors',resultsText.includes('الرياضيات')&&resultsText.includes('Physique'),resultsText);
  check('shared general average uses subject coefficients',resultsText.includes('12.88'),resultsText);
  check('shared results expose one student bulletin button',await page.locator('[data-bulletin]').count()===1);
  await page.locator('[data-bulletin]').click();
- check('student bulletin contains all shared subjects',(await page.locator('.prof-bulletin-preview').innerText()).includes('Mathématiques')&&(await page.locator('.prof-bulletin-preview').innerText()).includes('Physique'));
+ check('student bulletin contains all shared subjects',(await page.locator('.prof-bulletin-preview').innerText()).includes('الرياضيات')&&(await page.locator('.prof-bulletin-preview').innerText()).includes('Physique'));
  await page.locator('.professor-x').click();
+
+ await page.locator('#profLang').click();
+ await page.locator('#pv2ResultsBody .prof-results-table').waitFor({state:'visible',timeout:10000});
+ const frenchResults=await page.locator('#pv2ResultsBody').innerText();
+ check('French mode translates Arabic professor subject automatically',frenchResults.includes('Mathématiques'),frenchResults);
+ check('French mode transliterates student names automatically',frenchResults.includes('Mohamed Salem'),frenchResults);
 
  if(failures.length)throw new Error(failures.join('\n'));
  console.log('Professor v2 acceptance passed');
