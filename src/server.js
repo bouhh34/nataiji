@@ -87,6 +87,43 @@ async function loadProfessorProfile(userId){
  if(!q.rowCount){const fresh=emptyProfessorProfile();await pool.query('INSERT INTO nataiji_professor_profiles(user_id,data,updated_at) VALUES($1,$2::jsonb,now()) ON CONFLICT(user_id) DO NOTHING',[userId,JSON.stringify(fresh)]);q=await pool.query('SELECT data FROM nataiji_professor_profiles WHERE user_id=$1',[userId])}
  return cleanProfessorProfile(q.rows[0]?.data||{})
 }
+function professorResultNumber(v){if(v===''||v==null)return null;const n=Number(v);return Number.isFinite(n)?n:null}
+function professorTermAverage(row,term){
+ const t1=professorResultNumber(row?.test1),e1=professorResultNumber(row?.exam1);if(t1==null||e1==null)return null;
+ if(term===1)return(t1+e1)/2;
+ const t2=professorResultNumber(row?.test2),e2=professorResultNumber(row?.exam2);if(t2==null||e2==null)return null;
+ if(term===2)return((((t1+t2)/2)*2)+e1+(e2*2))/5;
+ const t3=professorResultNumber(row?.test3),e3=professorResultNumber(row?.exam3);if(t3==null||e3==null)return null;
+ return((((t1+t2+t3)/3)*3)+e1+(e2*2)+(e3*3))/9
+}
+async function professorAggregatedResults(userId,localClassId,term){
+ const requester=await loadProfessorProfile(userId),local=requester.classes.find(x=>String(x.id)===String(localClassId));if(!local)return null;
+ const sharedClassId=String(local.sharedClassId||''),members=[];
+ let className=String(local.name||''),students=Array.isArray(local.students)?structuredClone(local.students):[];
+ if(sharedClassId){
+  const membership=await pool.query('SELECT 1 FROM nataiji_professor_class_members WHERE class_id=$1 AND user_id=$2',[sharedClassId,userId]);if(!membership.rowCount)return null;
+  const room=await pool.query('SELECT data FROM nataiji_professor_classrooms WHERE class_id=$1',[sharedClassId]);if(room.rowCount){const d=room.rows[0].data||{};className=String(d.name||className);students=Array.isArray(d.students)?d.students.map(s=>({id:String(s?.id||''),name:String(s?.name||''),nns:String(s?.nns||'')})).filter(s=>s.id&&s.name):students}
+  const rows=(await pool.query('SELECT user_id FROM nataiji_professor_class_members WHERE class_id=$1 ORDER BY joined_at,user_id',[sharedClassId])).rows;for(const row of rows)members.push(String(row.user_id))
+ }else members.push(String(userId));
+ const subjects=[];
+ for(const memberId of members){
+  const p=await loadProfessorProfile(memberId),classes=sharedClassId?p.classes.filter(x=>String(x.sharedClassId||'')===sharedClassId):p.classes.filter(x=>String(x.id)===String(localClassId));
+  for(const cls of classes)for(const a of p.assignments.filter(x=>String(x.classId)===String(cls.id))){
+   const coefficient=Number(a.coefficient)>0?Number(a.coefficient):1,marks=p.marks?.[a.id]&&typeof p.marks[a.id]==='object'?p.marks[a.id]:{};
+   subjects.push({key:memberId+':'+a.id,subject:String(a.subject||''),coefficient,ownerUserId:memberId,own:memberId===String(userId),marks})
+  }
+ }
+ const rows=students.map((student,index)=>{
+  let weightedSum=0,coefficientSum=0,complete=true,completedSubjects=0;
+  const subjectResults=subjects.map(subject=>{const average=professorTermAverage(subject.marks?.[student.id]||{},term),weighted=average==null?null:average*subject.coefficient;if(average==null)complete=false;else{completedSubjects++;weightedSum+=weighted;coefficientSum+=subject.coefficient}return{key:subject.key,average,weighted}});
+  const general=subjects.length&&complete&&coefficientSum>0?weightedSum/coefficientSum:null;
+  return{student:{id:String(student.id),name:String(student.name||''),nns:String(student.nns||'')},position:index+1,subjectResults,general,complete:subjects.length>0&&complete,completedSubjects,totalSubjects:subjects.length}
+ });
+ const ranked=rows.filter(x=>x.general!=null).sort((a,b)=>b.general-a.general);
+ for(const row of rows)if(row.general!=null)row.rank=1+ranked.filter(x=>x.general>row.general).length;else row.rank=null;
+ const classValues=rows.map(x=>x.general).filter(x=>x!=null),classAverage=classValues.length?classValues.reduce((a,b)=>a+b,0)/classValues.length:null;
+ return{classId:String(local.id),sharedClassId:sharedClassId||'',className,term,memberCount:members.length,students:rows,subjects:subjects.map(({marks,...s})=>s),classAverage,completeStudents:classValues.length,totalStudents:rows.length}
+}
 async function professorClassLinks(profile,userId){
  const links={};if(!pool)return links;
  for(const cls of profile.classes||[]){
@@ -294,6 +331,12 @@ app.get('/api/professor/profile',auth,async(req,res)=>{
 app.put('/api/professor/profile',auth,async(req,res)=>{
  if(req.user.role!=='professor')return res.status(403).json({error:'forbidden'});if(!pool)return res.status(503).json({error:'durable_storage_required'});
  let profile=await saveProfessorProfile(req.user.id,req.body?.profile),classLinks=await professorClassLinks(profile,req.user.id);profile=cleanProfessorProfile(profile);await saveProfessorProfile(req.user.id,profile,{syncShared:false});res.json({ok:true,profile,classLinks})
+});
+app.get('/api/professor/classes/:localClassId/results',auth,async(req,res)=>{
+ if(req.user.role!=='professor')return res.status(403).json({error:'forbidden'});if(!pool)return res.status(503).json({error:'durable_storage_required'});
+ const term=Math.max(1,Math.min(3,Number(req.query.term)||1)),result=await professorAggregatedResults(req.user.id,String(req.params.localClassId||''),term);
+ if(!result)return res.status(404).json({error:'professor_class_not_found'});
+ res.json({ok:true,...result})
 });
 app.post('/api/professor/classes/:localClassId/share',auth,async(req,res)=>{
  if(req.user.role!=='professor')return res.status(403).json({error:'forbidden'});if(!pool)return res.status(503).json({error:'durable_storage_required'});
