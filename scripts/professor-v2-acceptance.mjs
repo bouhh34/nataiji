@@ -206,6 +206,8 @@ try{
  const studentPrintText=await studentPrint.locator('body').innerText();
  check('printed student bulletin has bilingual Mauritanian official header',studentPrintText.includes('الجمهورية الإسلامية الموريتانية')&&studentPrintText.includes('République Islamique de Mauritanie')&&studentPrintText.includes('وزارة التربية وإصلاح النظام التعليمي')&&studentPrintText.includes('Ministère de l’Éducation et de la Réforme du Système Éducatif'),studentPrintText);
  check('printed student bulletin keeps Arabic and French subject/name labels together',studentPrintText.includes('الرياضيات')&&studentPrintText.includes('Mathématiques')&&studentPrintText.includes('محمد سالم')&&studentPrintText.includes('Mohamed Salem'),studentPrintText);
+ check('printed student bulletin uses two copies on one A4 page',await studentPrint.locator('.student-copy').count()===2&&await studentPrint.locator('.official-head').count()===2&&await studentPrint.locator('.cut-line').count()===1);
+ check('both printed student copies are the same student',await studentPrint.locator('.student-copy').nth(0).innerText()===await studentPrint.locator('.student-copy').nth(1).innerText());
  await studentPrint.close();
  await page.locator('.professor-x').click();
 
@@ -215,6 +217,8 @@ try{
  await classPrint.waitForLoadState('domcontentloaded');
  const classPrintText=await classPrint.locator('body').innerText();
  check('printed collective class list is bilingual',classPrintText.includes('اللائحة الجماعية للقسم')&&classPrintText.includes('Liste collective de la classe')&&classPrintText.includes('العلوم الفيزيائية')&&classPrintText.includes('Sciences physiques'),classPrintText);
+ check('collective class list uses dedicated wider print layout',await classPrint.locator('main.class-list-doc').count()===1);
+ check('class list switches to landscape at six subjects',await page.evaluate(()=>window.NataijiProfessor?._classListLandscape?.(5)===false&&window.NataijiProfessor?._classListLandscape?.(6)===true));
  await classPrint.close();
 
  // Secondary-school bulletin structure stays trimester-aware.
