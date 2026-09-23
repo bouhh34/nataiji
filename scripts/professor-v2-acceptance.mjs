@@ -29,10 +29,13 @@ try{
 
  await page.locator('#profAddSubject').click();
  await page.locator('#pv2Subject').fill('Mathématiques');
+ await page.locator('#pv2Coefficient').fill('5');
  await page.locator('#pv2NewClass').fill('2AS-A');
  await page.locator('#pv2SaveAssignment').click();
  await page.locator('.prof-v2-assignment').waitFor({state:'visible',timeout:8000});
- check('professor can create own subject and class',(await page.locator('.prof-v2-assignment').innerText()).includes('Mathématiques'));
+ const firstAssignmentText=await page.locator('.prof-v2-assignment').innerText();
+ check('professor can create own subject and class',firstAssignmentText.includes('Mathématiques'));
+ check('subject coefficient is shown on dashboard',/معامل\s*×5|Coef\.\s*×5/.test(firstAssignmentText),firstAssignmentText);
 
  await page.locator('#profAllClasses').click();
  await page.locator('[data-manage-class]').first().click();
@@ -71,6 +74,7 @@ try{
 
  await page.locator('#pv2AddClassSubject').click();
  await page.locator('#pv2Subject').fill('Physique');
+ await page.locator('#pv2Coefficient').fill('3');
  await page.locator('#pv2SaveAssignment').click();
  await page.locator('[data-class-grade]').waitFor({state:'visible',timeout:8000});
  check('second professor can add private subject to shared class',(await page.locator('[data-class-grade]').innerText()).includes('Physique'));
@@ -81,7 +85,9 @@ try{
  await inputs.nth(1).fill('18');
  const total=(await page.locator('[data-total]').first().innerText()).trim();
  const avg=(await page.locator('[data-avg]').first().innerText()).trim();
+ const weighted=(await page.locator('[data-weighted]').first().innerText()).trim();
  check('test and exam compute total and average',total==='32.00'&&avg==='16.00',JSON.stringify({total,avg}));
+ check('coefficient computes weighted points',weighted==='48.00',JSON.stringify({weighted}));
  await page.locator('#pv2SaveGrades').click();
  await page.waitForTimeout(250);
  check('professor grade save succeeds',(await page.locator('#pv2SaveState').innerText()).includes('تم حفظ')||(await page.locator('#pv2SaveState').innerText()).includes('enregistr'));
@@ -92,6 +98,7 @@ try{
  await page.locator('[data-manage-class]').first().click();
  await page.locator('[data-class-grade]').click();
  check('professor grades persist after reload',(await page.locator('[data-total]').first().innerText()).trim()==='32.00');
+ check('coefficient persists after reload',(await page.locator('[data-weighted]').first().innerText()).trim()==='48.00');
 
  if(failures.length)throw new Error(failures.join('\n'));
  console.log('Professor v2 acceptance passed');
