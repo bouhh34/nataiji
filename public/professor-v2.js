@@ -29,10 +29,10 @@ const PROF_SUBJECT_FR={
  'الرياضة':'Éducation physique','الرسم':'Arts plastiques'
 };
 const PROF_NAME_FR={'محمد':'Mohamed','أحمد':'Ahmed','احمد':'Ahmed','محمود':'Mahmoud','عبد الله':'Abdallahi','عبدالله':'Abdallahi','عبد الرحمن':'Abderrahmane','فاطمة':'Fatimetou','خديجة':'Khadijetou','عائشة':'Aïcha','مريم':'Mariam','سارة':'Sara','ياسين':'Yacine','إبراهيم':'Ibrahim','ابراهيم':'Ibrahim','علي':'Ali','سالم':'Salem','أمينة':'Amina','خالد':'Khaled'};
-const PROF_PLACE_FR={'آدرار':'Adrar','ولاية آدرار':'Adrar','براكنة':'Brakna','ولاية براكنة':'Brakna','نواكشوط':'Nouakchott','نواذيبو':'Nouadhibou','داخلت نواذيبو':'Dakhlet Nouadhibou','كرمسين':'Keur Macène','مال':'Mâl','بوتلميت':'Boutilimit','روصو':'Rosso','ألاك':'Aleg','كيهيدي':'Kaédi','كيفة':'Kiffa','النعمة':'Néma','لعيون':'Aioun','أطار':'Atar','ازويرات':'Zouerate','سيلبابي':'Sélibabi','تجكجة':'Tidjikja','بوكي':'Boghé'};
+const PROF_PLACE_FR={'الحوض الشرقي':'Hodh Ech Chargui','الحوض الغربي':'Hodh El Gharbi','العصابة':'Assaba','كوركول':'Gorgol','براكنة':'Brakna','البراكنة':'Brakna','لبراكنة':'Brakna','اترارزة':'Trarza','الترارزة':'Trarza','آدرار':'Adrar','داخلت نواذيبو':'Dakhlet Nouadhibou','تكانت':'Tagant','كيديماغا':'Guidimakha','تيرس زمور':'Tiris Zemmour','إنشيري':'Inchiri','انشيري':'Inchiri','نواكشوط الشمالية':'Nouakchott Nord','نواكشوط الغربية':'Nouakchott Ouest','نواكشوط الجنوبية':'Nouakchott Sud','نواكشوط':'Nouakchott','نواذيبو':'Nouadhibou','كرمسين':'Keur Macène','مال':'Mâl','بوتلميت':'Boutilimit','روصو':'Rosso','ألاك':'Aleg','كيهيدي':'Kaédi','كيفة':'Kiffa','النعمة':'Néma','لعيون':'Aioun','أطار':'Atar','ازويرات':'Zouerate','سيلبابي':'Sélibabi','تجكجة':'Tidjikja','بوكي':'Boghé'};
 function profTranslit(v){
  const raw=String(v||'').trim();if(!raw)return'';if(PROF_PLACE_FR[raw])return PROF_PLACE_FR[raw];if(PROF_NAME_FR[raw])return PROF_NAME_FR[raw];
- const s=raw.replace(/^ولاية\s+/,'').replace(/^مقاطعة\s+/,'').replace(/[ًٌٍَُِّْـ]/g,'');if(PROF_PLACE_FR[s])return PROF_PLACE_FR[s];
+ const s=raw.replace(/^ب?ولاية\s+/,'').replace(/^مقاطعة\s+/,'').replace(/[ًٌٍَُِّْـ]/g,'');if(PROF_PLACE_FR[s])return PROF_PLACE_FR[s];
  const m={'ا':'a','أ':'a','إ':'i','آ':'a','ب':'b','ت':'t','ث':'th','ج':'j','ح':'h','خ':'kh','د':'d','ذ':'dh','ر':'r','ز':'z','س':'s','ش':'ch','ص':'s','ض':'d','ط':'t','ظ':'z','ع':'','غ':'gh','ف':'f','ق':'q','ك':'k','ل':'l','م':'m','ن':'n','ه':'h','ة':'a','و':'ou','ؤ':'ou','ي':'i','ى':'a','ئ':'i','ء':'',' ':' ','-':'-'};
  let out='';for(const ch of s)out+=m[ch]??ch;return out.replace(/\s+/g,' ').trim().replace(/(^|\s)([a-zà-ÿ])/g,(x,a,b)=>a+b.toUpperCase())
 }
