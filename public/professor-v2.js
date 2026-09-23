@@ -121,8 +121,8 @@ function ensureProfessorTerm(m,term){
  m.terms[key]={tests:[tests[0]??''],exam:raw.exam??''};return m.terms[key]
 }
 function termRecord(m,term){
- const raw=m?.terms?.[String(term)]||m?.terms?.[term]||{},tests=Array.isArray(raw?.tests)?raw.tests:[],test=markNumber(tests[0]);
- return{test,tests:[test],exam:markNumber(raw?.exam)}
+ const raw=m?.terms?.[String(term)]||m?.terms?.[term]||{},tests=Array.isArray(raw?.tests)?raw.tests:[],rawTest=tests[0]??'',rawExam=raw?.exam??'',test=markNumber(rawTest),exam=markNumber(rawExam);
+ return{test,tests:[test],exam,displayTest:professorIsAbsent(rawTest)?'ABSENT':test,displayExam:professorIsAbsent(rawExam)?'ABSENT':exam}
 }
 function termResult(m,term){
  const rec=termRecord(m,term);if(rec.test==null||rec.exam==null)return null;
@@ -398,7 +398,7 @@ function termAverageLabel(term){return term===1?tr('معدل الفصل الأو
 
 function professorSubjectListRows(a,term){
  const cls=classById(a.classId),marks=marksFor(a.id),students=cls?.students||[],annual=term===3;
- return students.map((s,i)=>{const m=marks[s.id]||{},rec=termRecord(m,term),avg=termResult(m,term),annualAvg=annual?annualSubjectResult(m):null,name=profStudentNamePair(s);return`<tr><td>${esc(s.callNumber||i+1)}</td><td class="name">${dualReportLabel(name.ar||s.name,name.fr||s.name)}${s.nns?`<small dir="ltr">NNS: ${esc(s.nns)}</small>`:''}</td><td>${reportMark(rec.test,s)}</td><td>${reportMark(rec.exam,s)}</td><td>${resultText(avg)}</td>${annual?`<td>${resultText(annualAvg)}</td>`:''}</tr>`}).join('')
+ return students.map((s,i)=>{const m=marks[s.id]||{},rec=termRecord(m,term),avg=termResult(m,term),annualAvg=annual?annualSubjectResult(m):null,name=profStudentNamePair(s);return`<tr><td>${esc(s.callNumber||i+1)}</td><td class="name">${dualReportLabel(name.ar||s.name,name.fr||s.name)}${s.nns?`<small dir="ltr">NNS: ${esc(s.nns)}</small>`:''}</td><td>${reportMark(rec.displayTest,s)}</td><td>${reportMark(rec.displayExam,s)}</td><td>${resultText(avg)}</td>${annual?`<td>${resultText(annualAvg)}</td>`:''}</tr>`}).join('')
 }
 function professorSubjectListTable(a,term){
  const annual=term===3,rows=professorSubjectListRows(a,term),avgLabel=term===1?['معدل الفصل الأول','Moyenne du 1er trimestre']:term===2?['معدل الفصل الثاني','Moyenne du 2e trimestre']:['معدل الفصل الثالث','Moyenne du 3e trimestre'];
@@ -408,7 +408,7 @@ function professorMySubjectsTable(classId,term){
  const cls=classById(classId),assignments=assignmentsForClass(classId),students=cls?.students||[],annual=term===3;
  const top=assignments.map(a=>{const subject=profSubjectPair(a.subject,a.subjectKey,cls?.levelCode);return `<th colspan="${annual?4:3}" class="own-subject-group">${dualReportLabel(subject.ar,subject.fr)}<small>×${coefficientOf(a)}</small></th>`}).join('');
  const sub=assignments.map(()=>`<th>${dualReportLabel('اختبار /20','Test /20')}</th><th>${dualReportLabel(term===3?'الامتحان النهائي /20':'الامتحان /20',term===3?'Examen final /20':'Composition /20')}</th><th>${dualReportLabel('معدل الفصل','Moy. trimestre')}</th>${annual?`<th>${dualReportLabel('المعدل النهائي','Moy. finale')}</th>`:''}`).join('');
- const rows=students.map((student,i)=>{const name=profStudentNamePair(student),cells=assignments.map(a=>{const mark=marksFor(a.id)?.[student.id]||{},rec=termRecord(mark,term),avg=termResult(mark,term),finalAvg=annual?annualSubjectResult(mark):null;return `<td>${reportMark(rec.test,s)}</td><td>${reportMark(rec.exam,s)}</td><td>${resultText(avg)}</td>${annual?`<td>${resultText(finalAvg)}</td>`:''}`}).join('');return `<tr><td>${esc(student.callNumber||i+1)}</td><td class="name">${dualReportLabel(name.ar||student.name,name.fr||student.name)}</td>${cells}</tr>`}).join('');
+ const rows=students.map((student,i)=>{const name=profStudentNamePair(student),cells=assignments.map(a=>{const mark=marksFor(a.id)?.[student.id]||{},rec=termRecord(mark,term),avg=termResult(mark,term),finalAvg=annual?annualSubjectResult(mark):null;return `<td>${reportMark(rec.displayTest,s)}</td><td>${reportMark(rec.displayExam,s)}</td><td>${resultText(avg)}</td>${annual?`<td>${resultText(finalAvg)}</td>`:''}`}).join('');return `<tr><td>${esc(student.callNumber||i+1)}</td><td class="name">${dualReportLabel(name.ar||student.name,name.fr||student.name)}</td>${cells}</tr>`}).join('');
  const colspan=2+(assignments.length*(annual?4:3));
  return `<table class="result-table professor-my-subjects-table" data-term="${term}"><thead><tr><th rowspan="2">${dualReportLabel('رقم النداء','N°')}</th><th rowspan="2">${dualReportLabel('التلميذ','Élève')}</th>${top}</tr><tr>${sub}</tr></thead><tbody>${rows||`<tr><td colspan="${colspan}">${dualReportLabel('لا يوجد تلاميذ','Aucun élève')}</td></tr>`}</tbody></table>`
 }
