@@ -354,8 +354,19 @@ function studentEditor(classId,studentId,onDone){
  const fromFrench=()=>{if(arManual)return;syncing=true;ar.value=profNameAr(frInput.value);syncing=false};
  ar.addEventListener('input',()=>{if(syncing)return;arManual=!!ar.value.trim();fromArabic();arHint.textContent=arManual?'تم اعتماد الاسم العربي يدويًا / Nom arabe saisi manuellement':'يمكنك البدء بالعربية أو الفرنسية؛ سيقترح التطبيق اللغة الأخرى تلقائيًا.';arHint.classList.toggle('locked',arManual)});
  frInput.addEventListener('input',()=>{if(syncing)return;frenchManual=!!frInput.value.trim();fromFrench();frHint.textContent=frenchManual?'Nom français saisi manuellement / تم اعتماد الاسم الفرنسي يدويًا':'Commencez en arabe ou en français : l’autre langue est proposée automatiquement.';frHint.classList.toggle('locked',frenchManual)});
+ const resolvedNames=()=>{
+  let name=ar.value.trim(),nameFr=frInput.value.trim();
+  if(!arManual&&nameFr)name=profNameAr(nameFr);
+  if(!frenchManual&&name)nameFr=profNameFr(name);
+  if(!name&&nameFr)name=profNameAr(nameFr);
+  if(!nameFr&&name)nameFr=profNameFr(name);
+  if(name&&ar.value!==name)ar.value=name;if(nameFr&&frInput.value!==nameFr)frInput.value=nameFr;
+  return{name,nameFr}
+ };
+ ar.addEventListener('blur',()=>{if(!frenchManual&&ar.value.trim()){syncing=true;frInput.value=profNameFr(ar.value);syncing=false}});
+ frInput.addEventListener('blur',()=>{if(!arManual&&frInput.value.trim()){syncing=true;ar.value=profNameAr(frInput.value);syncing=false}});
  q('#pv2StudentSave',m.wrap).onclick=async()=>{
-  let name=ar.value.trim(),nameFr=frInput.value.trim();if(!name&&nameFr)name=profNameAr(nameFr);if(!nameFr&&name)nameFr=profNameFr(name);const nns=q('#pv2StudentNns',m.wrap).value.trim(),callNumber=Number(q('#pv2StudentCall',m.wrap).value),sex=q('#pv2StudentSex',m.wrap).value,birthDate=q('#pv2StudentBirthDate',m.wrap).value.trim(),msg=q('.professor-msg',m.wrap);
+  let {name,nameFr}=resolvedNames();const nns=q('#pv2StudentNns',m.wrap).value.trim(),callNumber=Number(q('#pv2StudentCall',m.wrap).value),sex=q('#pv2StudentSex',m.wrap).value,birthDate=q('#pv2StudentBirthDate',m.wrap).value.trim(),msg=q('.professor-msg',m.wrap);
   if(!name&&!nameFr){msg.textContent='اكتب الاسم الكامل بالعربية أو الفرنسية / Saisissez le nom complet en arabe ou en français';return}
   if(nns&&cls.students.some(s=>String(s.id)!==String(existing?.id||'')&&String(s.nns||'')===nns)){msg.textContent='هذا NNS موجود في القسم / Ce NNS existe déjà dans la classe';return}
   if(!Number.isInteger(callNumber)||callNumber<1||callNumber>9999){msg.textContent='رقم النداء غير صحيح / Numéro d’appel invalide';return}
