@@ -1,4 +1,5 @@
 import { spawn } from 'node:child_process';
+import { Pool } from 'pg';
 
 const port=3223;
 const base=`http://127.0.0.1:${port}`;
@@ -67,6 +68,24 @@ try{
     method:'PUT',
     body:{structure:{classes,terms,activeClassId:'class-b',term:terms[0]}}
   });
+
+  // Reproduce the production failure: the legacy school snapshot still knows the
+  // classes, while the normalized structure row has temporarily lost them.
+  const db=new Pool({connectionString:process.env.DATABASE_URL});
+  await db.query(
+    'UPDATE nataiji_structure SET data=$2::jsonb,updated_at=now() WHERE school_id=$1',
+    [ownerRegistration.user.schoolId,JSON.stringify({classes:[],terms,activeClassId:'',term:terms[0]})]
+  );
+  const recoveredPupil=await owner.request('/api/pupils',{
+    method:'POST',
+    body:{classId:'class-a',pupil:['','طالب استعادة','','','','Recovered Student','','']},
+    expected:201
+  });
+  if(!recoveredPupil.pupils?.some(p=>p?.[1]==='طالب استعادة'))throw new Error('pupil save did not recover a stale structure row');
+  const repairedRow=await db.query('SELECT data FROM nataiji_structure WHERE school_id=$1',[ownerRegistration.user.schoolId]);
+  const repairedIds=(repairedRow.rows[0]?.data?.classes||[]).map(x=>String(x.id));
+  if(!repairedIds.includes('class-a')||!repairedIds.includes('class-b'))throw new Error(`structure was not repaired before pupil save: ${JSON.stringify(repairedIds)}`);
+  await db.end();
 
   const invite=await owner.request('/api/invites',{
     method:'POST',
