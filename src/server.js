@@ -60,7 +60,7 @@ function cleanProfessorProfile(input){
   }
   marks[a.id]=out
  }
- return{schoolName:String(src.schoolName||'').trim().slice(0,160),year:String(src.year||'').trim().slice(0,40),classes,assignments,marks}
+ return{schoolName:String(src.schoolName||'').trim().slice(0,160),schoolNameFr:String(src.schoolNameFr||'').trim().slice(0,160),region:String(src.region||'').trim().slice(0,160),regionFr:String(src.regionFr||'').trim().slice(0,160),inspection:String(src.inspection||'').trim().slice(0,160),inspectionFr:String(src.inspectionFr||'').trim().slice(0,160),schoolNns:String(src.schoolNns||'').trim().slice(0,80),year:String(src.year||'').trim().slice(0,40),classes,assignments,marks}
 }
 const professorJoinCode=()=>('CL-'+crypto.randomBytes(4).toString('hex').toUpperCase());
 async function archiveProfessorProfileVersion(userId,client,reason='save',data=null){
