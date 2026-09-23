@@ -154,7 +154,7 @@ async function professorAggregatedResults(userId,localClassId,term){
  const assignedCoefficientTotal=subjects.reduce((sum,s)=>sum+(Number(s.coefficient)||0),0),curriculumComplete=expectedCoefficientTotal!=null?Math.abs(assignedCoefficientTotal-expectedCoefficientTotal)<0.001:false;
  const rows=students.map((student,index)=>{
   let weightedSum=0,coefficientSum=0,complete=true,completedSubjects=0;
-  const subjectResults=subjects.map(subject=>{const average=professorTermAverage(subject.marks?.[student.id]||{},term),weighted=average==null?null:average*subject.coefficient;if(average==null)complete=false;else{completedSubjects++;weightedSum+=weighted;coefficientSum+=subject.coefficient}return{key:subject.key,average,weighted}});
+  const subjectResults=subjects.map(subject=>{const markRow=subject.marks?.[student.id]||{},average=professorTermAverage(markRow,term),weighted=average==null?null:average*subject.coefficient,tests=[1,2,3].map(i=>professorResultNumber(markRow?.['test'+i])),exams=[1,2,3].map(i=>professorResultNumber(markRow?.['exam'+i])),activeTests=tests.slice(0,term).filter(v=>v!=null),testMean=activeTests.length===term?activeTests.reduce((a,b)=>a+b,0)/activeTests.length:null;if(average==null)complete=false;else{completedSubjects++;weightedSum+=weighted;coefficientSum+=subject.coefficient}return{key:subject.key,average,weighted,tests,exams,testMean}});
   const general=subjects.length&&complete&&coefficientSum>0?weightedSum/coefficientSum:null,officialReady=general!=null&&curriculumComplete;
   return{student:{id:String(student.id),name:String(student.name||''),nns:String(student.nns||'')},position:index+1,subjectResults,general,complete:subjects.length>0&&complete,officialReady,completedSubjects,totalSubjects:subjects.length}
  });

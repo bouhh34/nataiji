@@ -217,6 +217,22 @@ try{
  check('printed collective class list is bilingual',classPrintText.includes('اللائحة الجماعية للقسم')&&classPrintText.includes('Liste collective de la classe')&&classPrintText.includes('العلوم الفيزيائية')&&classPrintText.includes('Sciences physiques'),classPrintText);
  await classPrint.close();
 
+ // Secondary-school bulletin structure stays trimester-aware.
+ await page.locator('[data-results-term="1"]').click();
+ await page.locator('#pv2ResultsBody .prof-results-table').waitFor({state:'visible',timeout:10000});
+ await page.locator('[data-bulletin]').click();
+ check('first trimester bulletin has one interrogation and one composition',await page.locator('.secondary-bulletin-table[data-term="1"] thead tr:nth-child(2) th').count()===2);
+ await page.locator('.professor-x').click();
+ await page.locator('[data-results-term="2"]').click();
+ await page.locator('#pv2ResultsBody .prof-results-table').waitFor({state:'visible',timeout:10000});
+ await page.locator('[data-bulletin]').click();
+ const term2Bulletin=await page.locator('.prof-bulletin-preview').innerText();
+ check('second trimester bulletin has two interrogations and two compositions',await page.locator('.secondary-bulletin-table[data-term="2"] thead tr:nth-child(2) th').count()===4);
+ check('second trimester bulletin shows bilingual assessment groups',term2Bulletin.includes('الاختبارات')&&term2Bulletin.includes('Interrogations')&&term2Bulletin.includes('الامتحانات')&&term2Bulletin.includes('Compositions'),term2Bulletin);
+ const physicsTerm2=await page.locator('.secondary-bulletin-table tbody tr').filter({hasText:'العلوم الفيزيائية'}).innerText();
+ check('second trimester bulletin includes first and second exams',physicsTerm2.includes('14')&&physicsTerm2.includes('12')&&physicsTerm2.includes('18')&&physicsTerm2.includes('16'),physicsTerm2);
+ await page.locator('.professor-x').click();
+
  await page.locator('#profLang').click();
  await page.locator('#pv2ResultsBody .prof-results-table').waitFor({state:'visible',timeout:10000});
  const frenchResults=await page.locator('#pv2ResultsBody').innerText();

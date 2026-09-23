@@ -58,3 +58,19 @@ html.nataiji-professor-mode body{background:#f4f7f6;min-height:100vh;overflow-x:
 .prof-bilingual-preview .prof-report-summary b{display:grid;gap:2px}
 .prof-bilingual-preview .prof-report-warning{line-height:1.55}
 @media(max-width:640px){.prof-bilingual-preview .prof-report-meta{align-items:flex-start}.prof-bilingual-preview .prof-report-summary{display:grid}}
+
+/* Secondary-school collective student bulletin: professor workspace only */
+.prof-secondary-preview .secondary-bulletin-table{min-width:920px;font-size:11px;table-layout:fixed}
+.prof-secondary-preview .secondary-bulletin-table th,
+.prof-secondary-preview .secondary-bulletin-table td{padding:7px 5px;text-align:center;vertical-align:middle}
+.prof-secondary-preview .secondary-bulletin-table thead th{background:rgba(15,76,65,.045)}
+.prof-secondary-preview .secondary-bulletin-table .discipline-head{width:190px}
+.prof-secondary-preview .secondary-bulletin-table .assessment-col{width:64px}
+.prof-secondary-preview .secondary-bulletin-table .mean-head,
+.prof-secondary-preview .secondary-bulletin-table .coef-head,
+.prof-secondary-preview .secondary-bulletin-table .weighted-head{width:78px}
+.prof-secondary-preview .secondary-bulletin-table .obs-head{width:140px}
+.prof-secondary-preview .secondary-bulletin-table .dual-ar,
+.prof-secondary-preview .secondary-bulletin-table .dual-fr{display:block;line-height:1.2}
+.prof-secondary-preview .secondary-bulletin-table .dual-fr{font-size:.82em;font-weight:600;margin-top:2px}
+@media(max-width:640px){.prof-secondary-preview .professor-table-wrap{margin-inline:-4px}.prof-secondary-preview .secondary-bulletin-table{min-width:860px}}
