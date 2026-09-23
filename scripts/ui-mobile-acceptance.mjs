@@ -210,6 +210,55 @@ try{
   const reportPrintIcon=await page.locator('#printResult .npv2-button-icon').count();
   check('premium v2 report controls keep canonical icons',reportTabIcons===3&&reportPrintIcon===1,JSON.stringify({reportTabIcons,reportPrintIcon}));
 
+  await page.evaluate(()=>{
+    state.marks=Array.isArray(state.marks)?state.marks:[];
+    state.marks[0]=Array.isArray(state.marks[0])?state.marks[0]:[];
+    state.marks[0][0]='1';
+    try{renderReports()}catch{}
+    window.__nativePrintCalls=0;
+    window.print=()=>{
+      window.__nativePrintCalls++;
+      window.dispatchEvent(new Event('beforeprint'));
+      setTimeout(()=>window.dispatchEvent(new Event('afterprint')),20);
+    };
+  });
+  await page.locator('#printResult').click();
+  await page.waitForTimeout(140);
+  const singlePrintPending=await page.evaluate(()=>({
+    mode:document.body.dataset.print||'',
+    calls:window.__nativePrintCalls||0,
+    reportText:(document.querySelector('#officialSheet')?.textContent||'').trim().slice(0,180)
+  }));
+  check('single-pupil Android preview keeps printable report alive after early afterprint',singlePrintPending.mode==='student'&&singlePrintPending.calls===1&&singlePrintPending.reportText.length>20,JSON.stringify(singlePrintPending));
+  await page.evaluate(()=>window.dispatchEvent(new Event('focus')));
+  await page.waitForTimeout(240);
+  const singleCleaned=await page.evaluate(()=>document.body.dataset.print||'');
+  check('single-pupil print mode cleans up after returning from native preview',singleCleaned==='',JSON.stringify({mode:singleCleaned}));
+
+  const twoButton=page.locator('#printAllStudents');
+  await twoButton.waitFor({state:'visible',timeout:3000});
+  await twoButton.click();
+  await page.waitForTimeout(140);
+  await page.emulateMedia({media:'print'});
+  const twoPrintPending=await page.evaluate(()=>{
+    const root=document.querySelector('#twoStudentsA4'),pageEl=root?.querySelector('.ta-page'),half=root?.querySelector('.ta-half');
+    return{
+      mode:document.body.dataset.print||'',
+      active:document.body.classList.contains('print-two-a4'),
+      display:root?getComputedStyle(root).display:'',
+      pageDisplay:pageEl?getComputedStyle(pageEl).display:'',
+      text:(root?.textContent||'').trim().slice(0,180),
+      halfHeight:half?Math.round(half.getBoundingClientRect().height):0,
+      calls:window.__nativePrintCalls||0
+    };
+  });
+  check('two-pupil Android preview keeps the generated A4 content visible',twoPrintPending.mode==='two-a4'&&twoPrintPending.active&&twoPrintPending.display!=='none'&&twoPrintPending.pageDisplay!=='none'&&twoPrintPending.text.length>20&&twoPrintPending.halfHeight>100&&twoPrintPending.calls>=2,JSON.stringify(twoPrintPending));
+  await page.emulateMedia({media:'screen'});
+  await page.evaluate(()=>window.dispatchEvent(new Event('focus')));
+  await page.waitForTimeout(240);
+  const twoCleaned=await page.evaluate(()=>({mode:document.body.dataset.print||'',active:document.body.classList.contains('print-two-a4')}));
+  check('two-pupil print mode cleans up after returning from native preview',twoCleaned.mode===''&&!twoCleaned.active,JSON.stringify(twoCleaned));
+
   await page.evaluate(()=>localStorage.setItem('nataiji-lang','fr'));
   await page.reload({waitUntil:'domcontentloaded'});
   await page.locator('.app-shell').waitFor({state:'visible',timeout:12000});

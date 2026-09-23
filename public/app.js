@@ -120,6 +120,29 @@ function zeroResultPupil(i){
  return !hasAnnualResult
 }
 window.nataijiZeroResultPupil=zeroResultPupil;
+let nativePrintStartedAt=0,nativePrintCleanupPending=false;
+function armNativePrintLifecycle(){
+ nativePrintStartedAt=Date.now();
+ nativePrintCleanupPending=false;
+}
+function finishNativePrintLifecycle(){
+ if(!nativePrintCleanupPending&&document.body.dataset.print==null)return;
+ nativePrintCleanupPending=false;
+ nativePrintStartedAt=0;
+ delete document.body.dataset.print;
+ window.dispatchEvent(new CustomEvent('nataiji-print-finished'));
+}
+function requestNativePrintCleanup(){
+ nativePrintCleanupPending=true;
+ const elapsed=Date.now()-nativePrintStartedAt;
+ if(document.hasFocus()&&elapsed>1200)finishNativePrintLifecycle()
+}
+window.nataijiArmPrintLifecycle=armNativePrintLifecycle;
+window.addEventListener('beforeprint',()=>{if(!nativePrintStartedAt)armNativePrintLifecycle()});
+window.addEventListener('afterprint',requestNativePrintCleanup);
+window.addEventListener('focus',()=>{if(nativePrintCleanupPending)setTimeout(finishNativePrintLifecycle,160)});
+document.addEventListener('visibilitychange',()=>{if(!document.hidden&&nativePrintCleanupPending)setTimeout(finishNativePrintLifecycle,160)});
+document.addEventListener('pointerdown',()=>{if(nativePrintCleanupPending)finishNativePrintLifecycle()},{capture:true});
 function printOnly(type){
  const isFr=localStorage.getItem('nataiji-lang')==='fr';
  if(!Array.isArray(state.pupils)||!state.pupils.length){modal(isFr?'Aucun élève':'لا يوجد تلاميذ',`<p>${isFr?'Choisissez une classe contenant des élèves avant d’imprimer.':'اختر قسمًا يحتوي على تلاميذ قبل الطباعة.'}</p>`);return false}
@@ -129,7 +152,7 @@ function printOnly(type){
   if(zeroResultPupil(i)){modal(isFr?'Élève absent':'تلميذ غائب',`<p>${isFr?'Aucun relevé individuel n’est généré pour un élève dont le total et la moyenne sont nuls. Il reste présent dans la liste avec le statut « Absent ».':'لا يُنشأ كشف فردي للتلميذ الذي مجموعه ومعدله صفر. يبقى اسمه في اللائحة وتظهر حالته «غائب».'}</p>`);return false}
   const sheet=$('#officialSheet');if(!sheet||!String(sheet.textContent||'').trim()){modal(isFr?'Rapport indisponible':'تعذر تجهيز الكشف','<p>'+ (isFr?'Le relevé n’est pas encore prêt. Rechargez la classe puis réessayez.':'الكشف غير جاهز بعد. أعد تحميل القسم ثم حاول مرة أخرى.') +'</p>');return false}
  }
- document.body.dataset.print=type;requestAnimationFrame(()=>requestAnimationFrame(()=>window.print()));return true
+ armNativePrintLifecycle();document.body.dataset.print=type;requestAnimationFrame(()=>requestAnimationFrame(()=>window.print()));return true
 }
 function importCsv(file){const r=new FileReader();r.onload=async()=>{const lines=String(r.result).replace(/^\uFEFF/,'').split(/\r?\n/).filter(Boolean),rows=lines.map(x=>x.split(/[;,]/).map(v=>v.trim()));if(rows[0]&&/NNS|الرقم/.test(rows[0].join(' ')))rows.shift();const valid=rows.filter(x=>x.length>=2&&x[0]&&x[1]);if(!valid.length)return modal('الاستيراد','<p>لم أجد صفوفًا صالحة. الأعمدة المطلوبة: NNS، الاسم، الجنس، تاريخ الميلاد.</p>');state.pupils=valid.map(x=>[x[0],x[1],x[2]||'',x[3]||'']);state.marks=state.pupils.map(()=>state.subjects.map(()=>''));await save(true);render();modal('تم الاستيراد',`<p>تم استيراد ${valid.length} تلميذًا وحفظهم على الخادم.</p>`)};r.readAsText(file,'UTF-8')}
 function showReport(type){$$('[data-report]').forEach(b=>b.classList.toggle('active',b.dataset.report===type));$('#studentReport').classList.toggle('hidden',type!=='student');$('#classReport').classList.toggle('hidden',type!=='class');$('#listReport').classList.toggle('hidden',type!=='list')}
@@ -251,5 +274,5 @@ $('#logoutBtn').onclick=async()=>{try{await api('/api/auth/logout',{method:'POST
 $('#printResult').onclick=()=>printOnly('student');$('#printList').onclick=()=>{setView('reports');showReport('list');setTimeout(()=>printOnly('list'),50)};
 $('#importBtn').onclick=()=>$('#importFile').click();$('#importFile').onchange=e=>{if(e.target.files[0])importCsv(e.target.files[0])};
 $$('[data-report]').forEach(b=>b.onclick=()=>showReport(b.dataset.report));$$('.report-print').forEach(b=>b.onclick=()=>printOnly(b.dataset.print));
-window.addEventListener('afterprint',()=>delete document.body.dataset.print);
+
 window.__nataijiBootPromise=showAuth('resume');
