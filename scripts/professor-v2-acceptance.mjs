@@ -38,13 +38,17 @@ try{
  check('official math coefficient loads automatically',await page.locator('#pv2Coefficient').inputValue()==='6'&&await page.locator('#pv2Coefficient').getAttribute('readonly')!==null);
  await page.locator('#pv2NewClass').fill('2AS-A');
  await page.locator('#pv2SaveAssignment').click();
- await page.locator('.prof-v2-assignment').waitFor({state:'visible',timeout:8000});
- const firstAssignmentText=await page.locator('.prof-v2-assignment').innerText();
- check('professor class label is not duplicated',!firstAssignmentText.includes('2AS · 2AS'),firstAssignmentText);
+ await page.locator('.prof-home-subject-row').waitFor({state:'visible',timeout:8000});
+ const homeSubjectText=await page.locator('.prof-home-subject-row').innerText();
+ const homeClassText=await page.locator('#profHomeClass option:checked').innerText();
+ check('professor class label is not duplicated',!homeClassText.includes('2AS · 2AS'),homeClassText);
  const homeAverageDir=await page.locator('.prof-reference-stats .average strong').getAttribute('dir');
  check('professor /20 averages are isolated left-to-right',homeAverageDir==='ltr',String(homeAverageDir));
- check('professor can create own subject and class',firstAssignmentText.includes('الرياضيات'));
- check('official subject coefficient is shown on dashboard',/معامل\s*×6|Coef\.\s*×6/.test(firstAssignmentText),firstAssignmentText);
+ check('professor can create own subject and class',homeSubjectText.includes('الرياضيات'),homeSubjectText);
+ await page.locator('[data-prof-nav="grades"]').click();
+ await page.locator('.prof-v2-assignment').waitFor({state:'visible',timeout:8000});
+ const firstAssignmentText=await page.locator('.prof-v2-assignment').innerText();
+ check('official subject coefficient is shown on professor grade card',firstAssignmentText.includes('×6'),firstAssignmentText);
 
  await page.locator('[data-prof-nav="students"]').click();
  await page.locator('[data-manage-class]').first().click();
