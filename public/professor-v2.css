@@ -74,3 +74,33 @@ html.nataiji-professor-mode body{background:#f4f7f6;min-height:100vh;overflow-x:
 .prof-secondary-preview .secondary-bulletin-table .dual-fr{display:block;line-height:1.2}
 .prof-secondary-preview .secondary-bulletin-table .dual-fr{font-size:.82em;font-weight:600;margin-top:2px}
 @media(max-width:640px){.prof-secondary-preview .professor-table-wrap{margin-inline:-4px}.prof-secondary-preview .secondary-bulletin-table{min-width:860px}}
+
+
+/* Professor-only student form: bilingual, mobile bottom-sheet */
+.prof-student-modal{background:rgba(9,28,40,.56);backdrop-filter:blur(3px)}
+.prof-student-modal .professor-modal-card{width:min(680px,100%);border-radius:30px;overflow:hidden}
+.prof-student-modal .professor-modal-card>header{direction:rtl;padding:22px 28px 18px;border-bottom:0}
+.prof-student-modal .professor-modal-card>header h2{font-size:25px;line-height:1.25;color:#12344c;text-align:right}
+.prof-student-modal .professor-x{width:50px;height:50px;padding:0!important;border-radius:50%!important;background:#f1f5f8!important;color:#143a52!important;border:0!important;display:grid;place-items:center}
+.prof-student-modal .professor-modal-body{padding:0 28px 26px}
+.prof-student-form{display:grid;gap:16px;direction:rtl}
+.prof-student-field{display:grid;gap:7px}
+.prof-student-field>b{font-size:15px;color:#17394f}
+.prof-student-field>small,.prof-field-optional{font-size:11px;line-height:1.45;color:#7a8791;font-weight:500}
+.prof-student-field>small.locked{color:#16785a;font-weight:700}
+.prof-student-field input,.prof-student-field select{height:58px;border:1px solid #d7e0e5!important;border-radius:15px!important;padding:0 16px!important;background:#fff!important;font-size:16px!important;color:#283943!important}
+.prof-student-field select{background:#f3f4f5!important}
+.prof-student-save-row{display:flex;justify-content:flex-start;padding-top:2px}
+.prof-student-save-row .primary{min-width:220px;height:54px;border-radius:16px!important;font-size:15px!important}
+.prof-student-msg{color:#a96b00!important;font-weight:800!important;text-align:center;font-size:12px!important;line-height:1.5;min-height:20px}
+@media(max-width:640px){
+ .prof-student-modal{padding:0!important;align-items:end;justify-items:stretch}
+ .prof-student-modal .professor-modal-card{width:100%;max-width:none;max-height:89dvh;border-radius:32px 32px 0 0}
+ .prof-student-modal .professor-modal-card>header{padding:28px 30px 14px;position:sticky;top:0;background:#fff;z-index:2}
+ .prof-student-modal .professor-modal-card>header h2{font-size:24px}
+ .prof-student-modal .professor-modal-body{padding:0 30px calc(30px + env(safe-area-inset-bottom))}
+ .prof-student-form{gap:17px}
+ .prof-student-field>b{font-size:15px}
+ .prof-student-field input,.prof-student-field select{height:64px;border-radius:16px!important}
+ .prof-student-save-row .primary{min-width:222px;height:58px;font-size:16px!important}
+}
