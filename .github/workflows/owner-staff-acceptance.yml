@@ -1,0 +1,47 @@
+name: Owner staff acceptance
+
+on:
+  pull_request:
+    paths:
+      - 'src/**'
+      - 'public/owner-staff-v1.js'
+      - 'scripts/owner-staff-acceptance.mjs'
+      - '.github/workflows/owner-staff-acceptance.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  owner-staff:
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_DB: nataiji_owner_staff
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: owner_staff_password
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 12
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+      - run: npm ci --no-audit --no-fund
+      - name: Syntax check
+        run: |
+          node --check src/server.js
+          node --check public/owner-staff-v1.js
+      - name: Run owner staff acceptance
+        env:
+          DATABASE_URL: postgresql://postgres:owner_staff_password@127.0.0.1:5432/nataiji_owner_staff
+        run: node scripts/owner-staff-acceptance.mjs
