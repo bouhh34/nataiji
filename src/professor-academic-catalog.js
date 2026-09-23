@@ -28,34 +28,36 @@ const ALIASES=new Map([
   ['التربية البدنية','eps'],['الرياضة','eps'],['eps','eps'],['éducation physique','eps'],['éducation physique et sportive','eps']
 ]);
 
-// 2025 first-cycle curriculum. Only coefficients directly confirmed in current
-// curriculum material are locked here; the remaining subjects stay selectable
-// with a manual coefficient until their current official coefficient is verified.
+// 2025 first-cycle curriculum (current three-year collège reform).
+// Standard subjects use the official coefficient distribution for the level.
+// The sums match the official totals: 27 in 1AS and 28 in 2AS/3AS.
 const LEVELS=[
   {
     code:'1AS',ar:'السنة الأولى إعدادية',fr:'1re année secondaire',cycle:'first',expectedCoefficientTotal:27,
     subjects:[
-      ['math',6],['arabic',5],['french',4],['english',2],['history_geo',2],['eps',1],
-      ['islamic',null],['natural_sciences',null],['civic',null],['technology',null],['informatics',null],['physical_sciences',null]
+      ['math',6],['arabic',5],['french',4],
+      ['english',2],['islamic',2],['history_geo',2],['natural_sciences',2],
+      ['civic',1],['technology',1],['informatics',1],['eps',1]
     ]
   },
   {
     code:'2AS',ar:'السنة الثانية إعدادية',fr:'2e année secondaire',cycle:'first',expectedCoefficientTotal:28,
     subjects:[
-      ['math',6],['english',2],['arabic',null],['french',null],['islamic',null],['history_geo',null],
-      ['natural_sciences',null],['physical_sciences',null],['civic',null],['technology',null],['informatics',null],['eps',null]
+      ['math',6],['arabic',5],['french',4],
+      ['english',2],['islamic',2],['history_geo',2],['natural_sciences',2],
+      ['physical_sciences',1],['civic',1],['technology',1],['informatics',1],['eps',1]
     ]
   },
   {
     code:'3AS',ar:'السنة الثالثة إعدادية',fr:'3e année secondaire',cycle:'first',expectedCoefficientTotal:28,
     subjects:[
-      ['math',6],['english',2],['arabic',null],['french',null],['islamic',null],['history_geo',null],
-      ['natural_sciences',null],['physical_sciences',null],['civic',null],['technology',null],['informatics',null],['eps',null]
+      ['math',6],['arabic',5],['french',4],
+      ['english',2],['islamic',2],['history_geo',2],['natural_sciences',2],
+      ['physical_sciences',1],['civic',1],['technology',1],['informatics',1],['eps',1]
     ]
   }
 ];
-
-export const PROFESSOR_CATALOG_VERSION='MR-SECONDARY-2025-V1';
+export const PROFESSOR_CATALOG_VERSION='MR-SECONDARY-2025-V2';
 
 export function normalizeProfessorSubjectKey(value){
   const raw=String(value||'').trim();
