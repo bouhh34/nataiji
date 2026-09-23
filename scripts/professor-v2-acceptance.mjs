@@ -190,6 +190,8 @@ try{
  await page.locator('#pv2ResultsBody .prof-results-table').waitFor({state:'visible',timeout:10000});
  const resultsText=await page.locator('#pv2ResultsBody').innerText();
  check('shared results include subjects from both professors',resultsText.includes('الرياضيات')&&resultsText.includes('اللغة الفرنسية')&&resultsText.includes('العلوم الفيزيائية'),resultsText);
+ const orderedSubjects=await page.locator('#pv2ResultsBody .prof-result-subject').allTextContents();
+ check('collective report subjects follow curriculum order',JSON.stringify(orderedSubjects.slice(0,3))===JSON.stringify(['الرياضيات','اللغة الفرنسية','العلوم الفيزيائية']),JSON.stringify(orderedSubjects));
  check('shared general average uses subject coefficients',resultsText.includes('12.91'),resultsText);
  check('report exposes official coefficient coverage',resultsText.includes('11 / 28'),resultsText);
  check('shared results expose one student bulletin button',await page.locator('[data-bulletin]').count()===1);
