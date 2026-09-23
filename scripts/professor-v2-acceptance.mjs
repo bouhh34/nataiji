@@ -52,6 +52,15 @@ try{
  check('shared class code has expected format',/^CL-[A-F0-9]{8}$/.test(code),code);
  await page.locator('.professor-x').click();
 
+ await page.locator('[data-class-grade]').click();
+ let gradeInputs=page.locator('[data-kind]');
+ await gradeInputs.nth(0).fill('10');
+ await gradeInputs.nth(1).fill('12');
+ await page.locator('#pv2SaveGrades').click();
+ await page.waitForTimeout(250);
+ check('first professor math result saved',(await page.locator('[data-avg]').first().innerText()).trim()==='11.00');
+ await page.locator('#pv2BackGrade').click();
+
  await logout();
  await page.locator('[data-auth2="register"]').click();
  await page.locator('#auth2Form input[name="name"]').fill('Professor Two');
@@ -99,6 +108,16 @@ try{
  await page.locator('[data-class-grade]').click();
  check('professor grades persist after reload',(await page.locator('[data-total]').first().innerText()).trim()==='32.00');
  check('coefficient persists after reload',(await page.locator('[data-weighted]').first().innerText()).trim()==='48.00');
+
+ await page.locator('[data-prof-nav="results"]').click();
+ await page.locator('#pv2ResultsBody .prof-results-table').waitFor({state:'visible',timeout:10000});
+ const resultsText=await page.locator('#pv2ResultsBody').innerText();
+ check('shared results include subjects from both professors',resultsText.includes('Mathématiques')&&resultsText.includes('Physique'),resultsText);
+ check('shared general average uses subject coefficients',resultsText.includes('12.88'),resultsText);
+ check('shared results expose one student bulletin button',await page.locator('[data-bulletin]').count()===1);
+ await page.locator('[data-bulletin]').click();
+ check('student bulletin contains all shared subjects',(await page.locator('.prof-bulletin-preview').innerText()).includes('Mathématiques')&&(await page.locator('.prof-bulletin-preview').innerText()).includes('Physique'));
+ await page.locator('.professor-x').click();
 
  if(failures.length)throw new Error(failures.join('\n'));
  console.log('Professor v2 acceptance passed');
