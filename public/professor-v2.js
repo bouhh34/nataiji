@@ -151,7 +151,8 @@ function assignmentCard(a){
 function renderCurrent(){
  if(currentView==='grades')return renderGrades();
  if(currentView==='students'||currentView==='classes')return renderClasses();
- if(currentView==='reports'||currentView==='results')return renderResults();
+ if(currentView==='reports')return renderReportsHub();
+ if(currentView==='results')return renderResults();
  if(currentView==='more')return renderMore();
  if(currentView.startsWith('results:')){const [,id,term]=currentView.split(':');return renderResults(id,Number(term)||1)}
  if(currentView.startsWith('class:'))return openClass(currentView.slice(6));
