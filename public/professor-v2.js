@@ -23,7 +23,7 @@ function normalize(p){const x=p&&typeof p==='object'?structuredClone(p):{};x.sch
 const PROF_SUBJECT_FR={
  'التربية الإسلامية':'Éducation islamique','اللغة العربية':'Langue arabe','العربية':'Langue arabe','الرياضيات':'Mathématiques',
  'اللغة الفرنسية':'Langue française','الفرنسية':'Français','اللغة الإنجليزية':'Anglais','الإنجليزية':'Anglais',
- 'الفيزياء':'Physique','الكيمياء':'Chimie','العلوم الطبيعية':'Sciences naturelles','علوم الحياة والأرض':'Sciences de la vie et de la Terre',
+ 'الفيزياء':'Physique','العلوم الفيزيائية':'Sciences physiques','الكيمياء':'Chimie','العلوم الطبيعية':'Sciences naturelles','علوم الحياة والأرض':'Sciences de la vie et de la Terre',
  'التاريخ والجغرافيا':'Histoire et géographie','التاريخ':'Histoire','الجغرافيا':'Géographie','التربية المدنية':'Éducation civique',
  'الفلسفة':'Philosophie','الإعلام الآلي':'Informatique','المعلوماتية':'Informatique','التربية البدنية':'Éducation physique',
  'الرياضة':'Éducation physique','الرسم':'Arts plastiques'
