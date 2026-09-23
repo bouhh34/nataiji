@@ -615,17 +615,78 @@ function renderReportsHub(term=1){
 }
 
 async function renderResults(classId='',term=1){
- term=Math.max(1,Math.min(3,Number(term)||1));const classes=displayClasses().filter(x=>!!linkFor(x.id));if(!classId||!classes.some(x=>x.id===classId))classId=classes[0]?.id||'';currentView=classId?'results:'+classId+':'+term:'reports';const el=root();
- if(!classes.length){el.innerHTML=`<div class="professor-shell">${topbar(tr('التقارير والطباعة','Rapports et impression'),tr('النتائج الجماعية','Résultats collectifs'))}<section class="professor-content prof-reports-switch-card">${professorReportSwitcher('collective')}</section><section class="professor-empty prof-collective-empty"><div>🔗</div><h3>${tr('لا يوجد قسم جماعي بعد','Aucune classe collective')}</h3><p>${tr('لائحة موادي متاحة دائمًا. أما الكشف الجماعي واللائحة الجماعية فيظهران بعد إنشاء رمز قسم مشترك أو الانضمام إليه.','Les listes de mes matières restent disponibles. Le bulletin collectif et la liste collective apparaissent après création ou adhésion à un code de classe partagé.')}</p><button class="primary" id="profReportsGoClasses">${tr('إدارة الأقسام والرمز الجماعي','Gérer les classes et le code collectif')}</button></section>${nav('reports')}</div>`;bindTop(el);bindNav(el);q('[data-report-section="own"]',el).onclick=()=>renderReportsHub(term);q('#profReportsGoClasses',el).onclick=()=>{currentView='students';renderClasses()};return}
- el.innerHTML=`<div class="professor-shell">${topbar(tr('التقارير والطباعة','Rapports et impression'),tr('النتائج الجماعية','Résultats collectifs'))}<section class="professor-content prof-reports-switch-card">${professorReportSwitcher('collective')}</section><section class="prof-page-head prof-collective-head"><div><h1>${tr('النتائج الجماعية','Résultats collectifs')}</h1><p>${tr('يجمع القسم المشترك مواد جميع الأساتذة. من هنا تحصل على كشف جماعي لكل تلميذ وعلى اللائحة الجماعية للقسم.','La classe partagée regroupe les matières de tous les professeurs. Vous y trouvez le bulletin collectif de chaque élève et la liste collective de la classe.')}</p><div class="prof-collective-tags"><em>${tr('كشف جماعي','Bulletin collectif')}</em><em>${tr('اللائحة','Liste')}</em></div></div><div><select id="pv2ResultsClass" class="prof-results-select">${classes.map(x=>`<option value="${esc(x.id)}" ${x.id===classId?'selected':''}>${esc(profClass(x.name))}</option>`).join('')}</select></div></section><section class="professor-content"><div class="prof-term-tabs">${[1,2,3].map(t=>`<button class="${t===term?'on':''}" data-results-term="${t}">${tr('الفصل '+t,'Trimestre '+t)}</button>`).join('')}</div><div id="pv2ResultsBody" class="prof-results-loading">${tr('جاري تجميع نتائج جميع المواد…','Agrégation des résultats de toutes les matières…')}</div></section>${nav('reports')}</div>`;
- bindTop(el);bindNav(el);q('[data-report-section="own"]',el).onclick=()=>renderReportsHub(term);q('#pv2ResultsClass',el).onchange=e=>renderResults(e.target.value,term);qa('[data-results-term]',el).forEach(b=>b.onclick=()=>renderResults(classId,Number(b.dataset.resultsTerm)));
+ term=Math.max(1,Math.min(3,Number(term)||1));
+ const classes=displayClasses().filter(x=>!!linkFor(x.id));
+ if(!classId||!classes.some(x=>x.id===classId))classId=classes[0]?.id||'';
+ currentView=classId?'results:'+classId+':'+term:'reports';
+ const el=root();
+ const icon=(name)=>{
+  const common='viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"';
+  const icons={
+   file:`<svg ${common}><path d="M7 3h7l4 4v14H7z"/><path d="M14 3v5h5"/><path d="M10 12h5M10 16h5"/></svg>`,
+   group:`<svg ${common}><circle cx="9" cy="8" r="3"/><path d="M3.8 19c.4-3.7 2.4-5.5 5.2-5.5s4.8 1.8 5.2 5.5"/><circle cx="17" cy="9" r="2.2"/><path d="M15.5 14.2c3.2-.5 5.1 1.1 5.5 4.8"/></svg>`,
+   book:`<svg ${common}><path d="M4 5.5c2.8-.8 5.2-.2 8 1.6v12.2c-2.8-1.8-5.2-2.3-8-1.5z"/><path d="M20 5.5c-2.8-.8-5.2-.2-8 1.6v12.2c2.8-1.8 5.2-2.3 8-1.5z"/></svg>`,
+   check:`<svg ${common}><rect x="5" y="5" width="14" height="15" rx="2"/><path d="M9 5V3h6v2"/><path d="m8.5 13 2.2 2.2 4.8-5"/></svg>`,
+   chart:`<svg ${common}><path d="M5 20V11M10 20V7M15 20V13M20 20V4"/></svg>`,
+   warn:`<svg ${common}><path d="M12 3 2.8 20h18.4z"/><path d="M12 9v5"/><path d="M12 17h.01"/></svg>`,
+   class:`<svg ${common}><circle cx="9" cy="8" r="2.7"/><path d="M4 19c.4-3.2 2.1-4.9 5-4.9s4.6 1.7 5 4.9"/><path d="M17 7v6M14 10h6"/></svg>`,
+   print:`<svg ${common}><path d="M7 9V3h10v6"/><rect x="5" y="14" width="14" height="7" rx="1"/><path d="M5 17H3V9h18v8h-2"/><path d="M17 12h.01"/></svg>`
+  };return icons[name]||''
+ };
+ const switcher=`<div class="prof-collective-switcher">
+  <button type="button" data-report-section="own"><span>${icon('file')}</span><b>${tr('نتائج موادي','Mes résultats')}</b></button>
+  <button type="button" class="on" data-report-section="collective"><span>${icon('group')}</span><b>${tr('النتائج الجماعية','Résultats collectifs')}</b></button>
+ </div>`;
+ if(!classes.length){
+  el.innerHTML=`<div class="professor-shell prof-collective-reference">${topbar('','')}<section class="professor-content prof-collective-card">${switcher}<div class="professor-empty prof-collective-empty"><div>🔗</div><h3>${tr('لا يوجد قسم جماعي بعد','Aucune classe collective')}</h3><p>${tr('أنشئ رمز قسم مشترك أو انضم إليه لعرض النتائج الجماعية.','Créez ou rejoignez un code de classe partagé pour afficher les résultats collectifs.')}</p><button class="primary" id="profReportsGoClasses">${tr('إدارة الأقسام','Gérer les classes')}</button></div></section>${nav('reports')}</div>`;
+  bindTop(el);bindNav(el);q('[data-report-section="own"]',el).onclick=()=>renderReportsHub(term);q('#profReportsGoClasses',el).onclick=()=>{currentView='students';renderClasses()};return
+ }
+ const options=classes.map(x=>`<option value="${esc(x.id)}" ${x.id===classId?'selected':''}>${esc(profClass(x.name))}</option>`).join('');
+ const tabs=[1,2,3].map(t=>`<button class="${t===term?'on':''}" data-results-term="${t}>${tr('الفصل '+t,'Trimestre '+t)}</button>`).join('');
+ // Fix accidental missing quote safely after generation.
+ const safeTabs=[1,2,3].map(t=>`<button class="${t===term?'on':''}" data-results-term="${t}">${tr('الفصل '+t,'Trimestre '+t)}</button>`).join('');
+ el.innerHTML=`<div class="professor-shell prof-collective-reference">${topbar('','')}
+  <section class="professor-content prof-collective-card">
+   ${switcher}
+   <div class="prof-collective-title-block">
+    <h1>${tr('النتائج الجماعية','Résultats collectifs')}</h1>
+    <p>${tr('يجمع القسم المشترك مواد جميع الأساتذة. من هنا تحصل على كشف جماعي لكل تلميذ وعلى اللائحة الجماعية للقسم.','La classe partagée regroupe les matières de tous les professeurs. Vous y trouvez le bulletin collectif de chaque élève et la liste collective de la classe.')}</p>
+   </div>
+   <label class="prof-collective-class-picker"><span class="prof-class-picker-icon">${icon('class')}</span><select id="pv2ResultsClass">${options}</select><span class="prof-class-picker-arrow">⌄</span></label>
+   <div class="prof-term-tabs prof-collective-tabs">${safeTabs}</div>
+   <div id="pv2ResultsBody" class="prof-results-loading">${tr('جاري تجميع النتائج…','Agrégation des résultats…')}</div>
+  </section>
+  ${nav('reports')}
+ </div>`;
+ bindTop(el);bindNav(el);
+ q('[data-report-section="own"]',el).onclick=()=>renderReportsHub(term);
+ q('#pv2ResultsClass',el).onchange=e=>renderResults(e.target.value,term);
+ qa('[data-results-term]',el).forEach(b=>b.onclick=()=>renderResults(classId,Number(b.dataset.resultsTerm)));
  try{
   const data=await api('/api/professor/classes/'+encodeURIComponent(classId)+'/results?term='+term),body=q('#pv2ResultsBody',el);if(!body)return;
-  const subjectHeads=data.subjects.map(s=>`<th><span class="prof-result-subject">${esc(profSubject(s.subject))}</span><small>×${s.coefficient}${s.own?' · '+tr('مادتي','ma matière'):''}</small></th>`).join('');
-  const rows=data.students.map((row,i)=>`<tr><td>${esc(row.student.callNumber||i+1)}</td><td class="professor-student-name"><b>${esc(profStudentName(row.student))}</b><small dir="ltr">${esc(row.student.nns||'')}</small></td>${row.subjectResults.map(r=>`<td>${resultText(data.term===3?r.annualAverage:r.average)}</td>`).join('')}<td class="${row.general==null?'prof-incomplete-cell':''}">${resultText(row.general)}</td><td>${row.rank??'—'}</td><td><button class="prof-bulletin-btn" data-bulletin="${esc(row.student.id)}" >${tr('كشف جماعي','Bulletin collectif')}</button></td></tr>`).join('');
-  body.innerHTML=`<div class="prof-results-summary"><article><small>${tr('المواد','Matières')}</small><strong>${data.subjects.length}</strong></article><article><small>${tr('الأساتذة المرتبطون','Professeurs liés')}</small><strong>${data.memberCount}</strong></article><article><small>${tr('مجموع المعاملات','Total coefficients')}</small><strong>${curriculumProgressText(data)}</strong></article><article><small>${tr('نتائج مكتملة','Résultats complets')}</small><strong>${data.completeStudents}/${data.totalStudents}</strong></article><article><small>${term===3?(data.curriculumComplete?tr('المعدل العام','Moyenne générale'):tr('معدل عام مؤقت','Moyenne générale provisoire')):(data.curriculumComplete?tr('معدل الفصل','Moyenne du trimestre'):tr('معدل فصل مؤقت','Moyenne provisoire du trimestre'))}</small><strong>${resultText(data.classAverage)}</strong></article></div>${!data.curriculumComplete?`<div class="prof-curriculum-warning"><b>⚠ ${tr('الكشف لم يكتمل بعد','Résultat encore provisoire')}</b><span>${esc(curriculumNotice(data))}</span></div>`:''}<div class="prof-results-actions"><div><b>${esc(profClass(data.className))}</b><span>${tr('الفصل','Trimestre')} ${data.term}</span></div><div class="prof-results-print-actions"><button id="pv2PrintAllStudents">🖨 ${tr('كشوف التلاميذ — طالبان/A4','Bulletins — 2 élèves/A4')}</button><button class="primary" id="pv2PrintClass">🖨 ${tr('اللائحة الجماعية / PDF','Liste collective / PDF')}</button></div></div><div class="professor-table-wrap"><table class="professor-grade-table prof-results-table"><thead><tr><th>#</th><th>${tr('التلميذ','Élève')}</th>${subjectHeads}<th>${term===3?tr('المعدل العام','Moy. générale'):tr('معدل الفصل','Moy. trimestre')}</th><th>${tr('الترتيب','Rang')}</th><th>${tr('الكشف الجماعي','Bulletin collectif')}</th></tr></thead><tbody>${rows||`<tr><td colspan="${data.subjects.length+5}" class="professor-no-students">${tr('لا يوجد تلاميذ في القسم.','Aucun élève dans cette classe.')}</td></tr>`}</tbody></table></div><p class="prof-results-note">${data.curriculumComplete?tr('المعدل والترتيب يشملان جميع مواد الأساتذة المرتبطين؛ المادة التي لم تُدخل درجاتها تُحتسب 0 مؤقتًا.','La moyenne et le rang incluent toutes les matières des professeurs liés ; une matière non saisie compte provisoirement comme 0.'):tr('تظهر جميع المواد المرتبطة. المادة بلا درجات تُحتسب 0، وتبقى النتيجة مؤقتة حتى تكتمل مواد القسم الرسمية.','Toutes les matières liées restent visibles. Une matière sans notes compte 0 et le résultat reste provisoire jusqu’à ce que le programme officiel soit complet.')}</p>`;
-  q('#pv2PrintClass',body).onclick=()=>printClassList(data);q('#pv2PrintAllStudents',body).onclick=()=>printAllStudentBulletins(data);qa('[data-bulletin]',body).forEach(b=>b.onclick=()=>{const row=data.students.find(x=>x.student.id===b.dataset.bulletin);if(row)studentBulletin(data,row)})
- }catch(e){const body=q('#pv2ResultsBody',el);if(body)body.innerHTML=`<div class="professor-empty compact"><p>${tr('تعذر تحميل النتائج. أعد المحاولة.','Impossible de charger les résultats. Réessayez.')}</p></div>`}
+  const avgLabel=term===3?(data.curriculumComplete?tr('المعدل العام','Moyenne générale'):tr('معدل عام مؤقت','Moyenne générale provisoire')):(data.curriculumComplete?tr('معدل الفصل','Moyenne du trimestre'):tr('معدل فصل مؤقت','Moyenne provisoire du trimestre'));
+  const studentRows=data.students.map((row,i)=>`<tr><td>${esc(row.student.callNumber||i+1)}</td><td>${esc(profStudentName(row.student))}</td></tr>`).join('');
+  const warning=!data.curriculumComplete?`<div class="prof-curriculum-warning prof-collective-warning"><span class="prof-warning-icon">${icon('warn')}</span><div><b>${tr('الكشف لم يكتمل بعد','Le relevé n’est pas encore complet')}</b><p>${tr('مجموع معاملات المواد المضافة هو ','Le total des coefficients ajoutés est de ')}<strong dir="ltr">${esc(curriculumProgressText(data))}</strong>.<br>${tr('يثبت المعدل والترتيب الرسميان عند اكتمال معاملات مواد القسم.','La moyenne et le classement officiels seront établis lorsque tous les coefficients de la classe seront complets.')}</p></div></div>`:'';
+  body.innerHTML=`
+   <div class="prof-results-summary prof-collective-summary">
+    <article class="stat-members"><span>${icon('group')}</span><div><small>${tr('الأساتذة المرتبطون','Professeurs liés')}</small><strong>${data.memberCount}</strong></div></article>
+    <article class="stat-subjects"><span>${icon('book')}</span><div><small>${tr('المواد','Matières')}</small><strong>${data.subjects.length}</strong></div></article>
+    <article class="stat-complete"><span>${icon('check')}</span><div><small>${tr('نتائج مكتملة','Résultats complets')}</small><strong>${data.completeStudents}/${data.totalStudents}</strong></div></article>
+    <article class="stat-average"><span>${icon('chart')}</span><div><small>${avgLabel}</small><strong>${resultText(data.classAverage)}</strong></div></article>
+   </div>
+   ${warning}
+   <div class="prof-collective-section-title"><span>${icon('group')}</span><b>${tr('الفصل','Classe')} – ${esc(profClass(data.className))}</b></div>
+   <div class="prof-results-print-actions prof-collective-print-actions">
+    <button id="pv2PrintAllStudents">${icon('print')}<b>${tr('كشوف التلاميذ – طالبان A4','Bulletins élèves – 2 par A4')}</b></button>
+    <button class="primary" id="pv2PrintClass">${icon('file')}<b>${tr('اللائحة الجماعية / PDF','Liste collective / PDF')}</b></button>
+   </div>
+   <div class="prof-collective-roster"><table><thead><tr><th>#</th><th>${tr('اسم التلميذ','Nom de l’élève')}</th></tr></thead><tbody>${studentRows||`<tr><td colspan="2">${tr('لا يوجد تلاميذ في القسم.','Aucun élève dans cette classe.')}</td></tr>`}</tbody></table></div>
+  `;
+  q('#pv2PrintClass',body).onclick=()=>printClassList(data);
+  q('#pv2PrintAllStudents',body).onclick=()=>printAllStudentBulletins(data)
+ }catch(e){
+  const body=q('#pv2ResultsBody',el);if(body)body.innerHTML=`<div class="professor-empty compact"><p>${tr('تعذر تحميل النتائج. أعد المحاولة.','Impossible de charger les résultats. Réessayez.')}</p></div>`
+ }
 }
 
 function chooseAccountType(user){
