@@ -91,7 +91,7 @@ try{
     method:'POST',
     body:{
       teacherName:'معلم محدود',
-      permissions:['pupils','reports'],
+      permissions:['pupils'],
       classAccess:{'class-a':{fullClass:true,allSubjects:true,subjectIds:[],hiddenSubjectIds:[]}}
     },
     expected:201
@@ -105,6 +105,7 @@ try{
   });
   const attached=await teacher.request('/api/access/attach',{method:'POST',body:{code:invite.code}});
   if(attached.user?.role!=='teacher'||!attached.user?.activeSharedGrant)throw new Error('attached account did not enter teacher workspace');
+  if(!attached.user?.permissions?.includes('reports'))throw new Error('teacher reports baseline permission was not restored');
 
   const structure=await teacher.request('/api/structure');
   const visibleClassIds=(structure.structure?.classes||[]).map(x=>String(x.id));
