@@ -26,7 +26,7 @@ async function storeGet(key){if(pool){let v=await pgGet(key);if(v!==null)return 
 async function storeSet(key,value,ttl){if(pool)return pgSet(key,value,ttl);if(redis){if(ttl)return redis.set(key,value,{EX:ttl});return redis.set(key,value)}memory.set(key,{value,exp:ttl?Date.now()+ttl*1000:0})}
 async function storeDel(key){if(pool)await pool.query('DELETE FROM kv_store WHERE key=$1',[key]);if(redis)await redis.del(key);else memory.delete(key)}
 async function initStore(){
- if(process.env.DATABASE_URL){try{const databaseUrl=String(process.env.DATABASE_URL),localDatabase=/^(?:postgres(?:ql)?:\/\/)?[^@]*@?(?:localhost|127\.0\.0\.1)(?::|\/)/i.test(databaseUrl);pool=new Pool({connectionString:databaseUrl,ssl:localDatabase?false:{rejectUnauthorized:false},max:5});await pool.query('SELECT 1');await pool.query('CREATE TABLE IF NOT EXISTS kv_store (key text PRIMARY KEY,value text NOT NULL,expires_at timestamptz,updated_at timestamptz NOT NULL DEFAULT now())');await pool.query(`CREATE TABLE IF NOT EXISTS nataiji_pupils (school_id text NOT NULL,class_id text NOT NULL,nns text NOT NULL,data jsonb NOT NULL,position integer NOT NULL DEFAULT 0,updated_at timestamptz NOT NULL DEFAULT now(),PRIMARY KEY(school_id,class_id,nns))`);await pool.query(`CREATE TABLE IF NOT EXISTS nataiji_school_settings (school_id text PRIMARY KEY,data jsonb NOT NULL,updated_at timestamptz NOT NULL DEFAULT now())`);await pool.query(`CREATE TABLE IF NOT EXISTS nataiji_class_settings (school_id text NOT NULL,class_id text NOT NULL,data jsonb NOT NULL,updated_at timestamptz NOT NULL DEFAULT now(),PRIMARY KEY(school_id,class_id))`);await pool.query(`CREATE TABLE IF NOT EXISTS nataiji_subjects (school_id text NOT NULL,class_id text NOT NULL,subject_id text NOT NULL,data jsonb NOT NULL,position integer NOT NULL DEFAULT 0,updated_at timestamptz NOT NULL DEFAULT now(),PRIMARY KEY(school_id,class_id,subject_id))`);await pool.query(`CREATE TABLE IF NOT EXISTS nataiji_structure (school_id text PRIMARY KEY,data jsonb NOT NULL,updated_at timestamptz NOT NULL DEFAULT now())`);await pool.query(`CREATE TABLE IF NOT EXISTS nataiji_migrations (school_id text NOT NULL,class_id text NOT NULL,resource text NOT NULL,migrated_at timestamptz NOT NULL DEFAULT now(),PRIMARY KEY(school_id,class_id,resource))`);await pool.query(`CREATE TABLE IF NOT EXISTS nataiji_marks (school_id text NOT NULL,class_id text NOT NULL,term text NOT NULL,pupil_key text NOT NULL,subject_id text NOT NULL,value text NOT NULL,updated_at timestamptz NOT NULL DEFAULT now(),PRIMARY KEY(school_id,class_id,term,pupil_key,subject_id))`);await pool.query(`CREATE TABLE IF NOT EXISTS nataiji_professor_profiles (user_id text PRIMARY KEY,data jsonb NOT NULL DEFAULT '{}'::jsonb,updated_at timestamptz NOT NULL DEFAULT now())`);await pool.query(`CREATE TABLE IF NOT EXISTS nataiji_professor_classrooms (class_id text PRIMARY KEY,owner_user_id text NOT NULL,join_code text UNIQUE NOT NULL,data jsonb NOT NULL DEFAULT '{}'::jsonb,updated_at timestamptz NOT NULL DEFAULT now())`);await pool.query(`CREATE TABLE IF NOT EXISTS nataiji_professor_class_members (class_id text NOT NULL,user_id text NOT NULL,role text NOT NULL DEFAULT 'member',joined_at timestamptz NOT NULL DEFAULT now(),PRIMARY KEY(class_id,user_id))`);storage='postgres'}catch(e){console.error('Postgres unavailable:',e.message);pool=null}}
+ if(process.env.DATABASE_URL){try{const databaseUrl=String(process.env.DATABASE_URL),localDatabase=/^(?:postgres(?:ql)?:\/\/)?[^@]*@?(?:localhost|127\.0\.0\.1)(?::|\/)/i.test(databaseUrl);pool=new Pool({connectionString:databaseUrl,ssl:localDatabase?false:{rejectUnauthorized:false},max:5});await pool.query('SELECT 1');await pool.query('CREATE TABLE IF NOT EXISTS kv_store (key text PRIMARY KEY,value text NOT NULL,expires_at timestamptz,updated_at timestamptz NOT NULL DEFAULT now())');await pool.query(`CREATE TABLE IF NOT EXISTS nataiji_pupils (school_id text NOT NULL,class_id text NOT NULL,nns text NOT NULL,data jsonb NOT NULL,position integer NOT NULL DEFAULT 0,updated_at timestamptz NOT NULL DEFAULT now(),PRIMARY KEY(school_id,class_id,nns))`);await pool.query(`CREATE TABLE IF NOT EXISTS nataiji_school_settings (school_id text PRIMARY KEY,data jsonb NOT NULL,updated_at timestamptz NOT NULL DEFAULT now())`);await pool.query(`CREATE TABLE IF NOT EXISTS nataiji_class_settings (school_id text NOT NULL,class_id text NOT NULL,data jsonb NOT NULL,updated_at timestamptz NOT NULL DEFAULT now(),PRIMARY KEY(school_id,class_id))`);await pool.query(`CREATE TABLE IF NOT EXISTS nataiji_subjects (school_id text NOT NULL,class_id text NOT NULL,subject_id text NOT NULL,data jsonb NOT NULL,position integer NOT NULL DEFAULT 0,updated_at timestamptz NOT NULL DEFAULT now(),PRIMARY KEY(school_id,class_id,subject_id))`);await pool.query(`CREATE TABLE IF NOT EXISTS nataiji_structure (school_id text PRIMARY KEY,data jsonb NOT NULL,updated_at timestamptz NOT NULL DEFAULT now())`);await pool.query(`CREATE TABLE IF NOT EXISTS nataiji_migrations (school_id text NOT NULL,class_id text NOT NULL,resource text NOT NULL,migrated_at timestamptz NOT NULL DEFAULT now(),PRIMARY KEY(school_id,class_id,resource))`);await pool.query(`CREATE TABLE IF NOT EXISTS nataiji_marks (school_id text NOT NULL,class_id text NOT NULL,term text NOT NULL,pupil_key text NOT NULL,subject_id text NOT NULL,value text NOT NULL,updated_at timestamptz NOT NULL DEFAULT now(),PRIMARY KEY(school_id,class_id,term,pupil_key,subject_id))`);await pool.query(`CREATE TABLE IF NOT EXISTS nataiji_professor_profiles (user_id text PRIMARY KEY,data jsonb NOT NULL DEFAULT '{}'::jsonb,updated_at timestamptz NOT NULL DEFAULT now())`);await pool.query(`CREATE TABLE IF NOT EXISTS nataiji_professor_profile_versions (id bigserial PRIMARY KEY,user_id text NOT NULL,data jsonb NOT NULL,reason text NOT NULL DEFAULT 'save',created_at timestamptz NOT NULL DEFAULT now())`);await pool.query(`CREATE INDEX IF NOT EXISTS nataiji_professor_profile_versions_user_idx ON nataiji_professor_profile_versions(user_id,created_at DESC)`);await pool.query(`CREATE TABLE IF NOT EXISTS nataiji_professor_classrooms (class_id text PRIMARY KEY,owner_user_id text NOT NULL,join_code text UNIQUE NOT NULL,data jsonb NOT NULL DEFAULT '{}'::jsonb,updated_at timestamptz NOT NULL DEFAULT now())`);await pool.query(`CREATE TABLE IF NOT EXISTS nataiji_professor_class_members (class_id text NOT NULL,user_id text NOT NULL,role text NOT NULL DEFAULT 'member',joined_at timestamptz NOT NULL DEFAULT now(),PRIMARY KEY(class_id,user_id))`);storage='postgres'}catch(e){console.error('Postgres unavailable:',e.message);pool=null}}
  if(process.env.REDIS_URL){try{const client=createClient({url:process.env.REDIS_URL,socket:{connectTimeout:5000,reconnectStrategy:false}});client.on('error',e=>console.error('Redis:',e.message));await client.connect();redis=client;if(!pool)storage='redis'}catch(e){console.error('Redis unavailable:',e.message)}}
 }
 
@@ -63,6 +63,24 @@ function cleanProfessorProfile(input){
  return{schoolName:String(src.schoolName||'').trim().slice(0,160),year:String(src.year||'').trim().slice(0,40),classes,assignments,marks}
 }
 const professorJoinCode=()=>('CL-'+crypto.randomBytes(4).toString('hex').toUpperCase());
+async function archiveProfessorProfileVersion(userId,client,reason='save',data=null){
+ const runner=client||pool;if(!runner)return;
+ let snapshot=data;
+ if(snapshot==null){const q=await runner.query('SELECT data FROM nataiji_professor_profiles WHERE user_id=$1',[userId]);if(!q.rowCount)return;snapshot=q.rows[0].data}
+ await runner.query('INSERT INTO nataiji_professor_profile_versions(user_id,data,reason,created_at) VALUES($1,$2::jsonb,$3,now())',[userId,JSON.stringify(cleanProfessorProfile(snapshot)),String(reason||'save').slice(0,80)]);
+ await runner.query('DELETE FROM nataiji_professor_profile_versions WHERE user_id=$1 AND id NOT IN (SELECT id FROM nataiji_professor_profile_versions WHERE user_id=$1 ORDER BY id DESC LIMIT 30)',[userId]);
+}
+async function schoolHasDurableContent(schoolId,client=null){
+ const runner=client||pool;if(!runner||!schoolId)return false;
+ const st=await runner.query('SELECT data FROM nataiji_structure WHERE school_id=$1',[schoolId]),data=st.rows[0]?.data||{};
+ if(Array.isArray(data.classes)&&data.classes.length)return true;
+ for(const table of ['nataiji_pupils','nataiji_subjects','nataiji_marks','nataiji_class_settings']){
+  const q=await runner.query('SELECT 1 FROM '+table+' WHERE school_id=$1 LIMIT 1',[schoolId]);if(q.rowCount)return true
+ }
+ const legacy=await runner.query('SELECT value FROM kv_store WHERE key=$1',[schoolKey(schoolId)]);
+ if(legacy.rowCount){try{const s=JSON.parse(legacy.rows[0].value),classData=s?.classData&&typeof s.classData==='object'?s.classData:{};if((Array.isArray(s?.classes)&&s.classes.length)||(Array.isArray(s?.pupils)&&s.pupils.length)||(Array.isArray(s?.subjects)&&s.subjects.length))return true;for(const d of Object.values(classData))if((Array.isArray(d?.pupils)&&d.pupils.length)||(Array.isArray(d?.subjects)&&d.subjects.length)||Object.values(d?.marksByTerm||{}).some(m=>Array.isArray(m)&&m.some(r=>Array.isArray(r)&&r.some(v=>v!==''&&v!=null))))return true}catch{}}
+ return false
+}
 async function loadProfessorProfile(userId){
  if(!pool)return emptyProfessorProfile();
  let q=await pool.query('SELECT data FROM nataiji_professor_profiles WHERE user_id=$1',[userId]);
@@ -86,6 +104,11 @@ async function saveProfessorProfile(userId,input,{syncShared=true}={}){
  const client=await pool.connect();
  try{
   await client.query('BEGIN');
+  const previous=await client.query('SELECT data FROM nataiji_professor_profiles WHERE user_id=$1 FOR UPDATE',[userId]);
+  if(previous.rowCount){
+   const before=cleanProfessorProfile(previous.rows[0].data||{}),beforeJson=JSON.stringify(before),nextJson=JSON.stringify(profile);
+   if(beforeJson!==nextJson)await archiveProfessorProfileVersion(userId,client,'before-save',before)
+  }
   if(syncShared)for(const cls of profile.classes||[]){
    const sharedClassId=String(cls.sharedClassId||'');if(!sharedClassId)continue;
    const member=await client.query('SELECT 1 FROM nataiji_professor_class_members WHERE class_id=$1 AND user_id=$2',[sharedClassId,userId]);
@@ -98,6 +121,7 @@ async function saveProfessorProfile(userId,input,{syncShared=true}={}){
  return profile
 }
 async function cleanupProfessorSharing(userId,client){
+ await archiveProfessorProfileVersion(userId,client,'before-account-delete');
  const memberships=(await client.query('SELECT class_id FROM nataiji_professor_class_members WHERE user_id=$1',[userId])).rows;
  for(const row of memberships){
   const classId=String(row.class_id),cq=await client.query('SELECT owner_user_id FROM nataiji_professor_classrooms WHERE class_id=$1',[classId]);
@@ -248,13 +272,17 @@ app.post('/api/account/profile-type',auth,async(req,res)=>{
  const type=String(req.body?.type||'').trim();if(!['teacher','professor'].includes(type))return res.status(400).json({error:'invalid_profile_type'});
  const raw=await storeGet(userKey(req.user.id));if(!raw)return res.status(404).json({error:'account_not_found'});const user=JSON.parse(raw),base=user.baseRole||user.role;
  if(base==='owner')return res.status(403).json({error:'forbidden'});
- if(user.needsProfileChoice!==true&&user.profileType&&user.profileType!==type)return res.status(409).json({error:'profile_type_locked'});
+ if(user.profileType===type&&user.needsProfileChoice!==true)return res.json({ok:true,user:safeUser(user)});
+ if(user.needsProfileChoice!==true)return res.status(409).json({error:'profile_type_locked'});
  if(type==='teacher'){user.profileType='teacher';user.needsProfileChoice=false}
  else{
+  const seeded=[...new Set((Array.isArray(user.ownedSchoolIds)?user.ownedSchoolIds:(user.schoolId?[user.schoolId]:[])).map(String).filter(Boolean))];
+  if(pool)for(const schoolId of seeded)if(await schoolHasDurableContent(schoolId))return res.status(409).json({error:'profile_type_school_has_data'});
   user.profileType='professor';user.needsProfileChoice=false;user.role='professor';user.baseRole='professor';user.permissions=['professor'];user.classIds=[];user.classAccess={};user.subjectIds=[];user.sharedGrants={};user.activeSharedGrant='';user.workspaceMode='professor';
-  const seeded=[...new Set(Array.isArray(user.ownedSchoolIds)?user.ownedSchoolIds:(user.schoolId?[user.schoolId]:[]))];
-  if(pool){const client=await pool.connect();try{await client.query('BEGIN');for(const schoolId of seeded)for(const table of ['nataiji_marks','nataiji_pupils','nataiji_subjects','nataiji_class_settings','nataiji_migrations','nataiji_school_settings','nataiji_structure'])await client.query('DELETE FROM '+table+' WHERE school_id=$1',[schoolId]);await client.query('INSERT INTO nataiji_professor_profiles(user_id,data,updated_at) VALUES($1,$2::jsonb,now()) ON CONFLICT(user_id) DO NOTHING',[user.id,JSON.stringify(emptyProfessorProfile())]);await client.query('COMMIT')}catch(e){await client.query('ROLLBACK');throw e}finally{client.release()}}
-  for(const schoolId of seeded)await storeDel(schoolKey(schoolId));user.ownedSchoolIds=[];user.schoolId=''
+  if(pool)await pool.query('INSERT INTO nataiji_professor_profiles(user_id,data,updated_at) VALUES($1,$2::jsonb,now()) ON CONFLICT(user_id) DO NOTHING',[user.id,JSON.stringify(emptyProfessorProfile())]);
+  // Never delete school rows during profile selection. Empty registration shells
+  // may be orphaned, but preserving data is safer than any destructive cleanup.
+  user.ownedSchoolIds=[];user.schoolId=''
  }
  await storeSet(userKey(user.id),JSON.stringify(user));res.json({ok:true,user:await createSession(res,user)})
 });
