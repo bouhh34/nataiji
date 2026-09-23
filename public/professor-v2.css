@@ -160,3 +160,274 @@ html.nataiji-professor-mode body{background:#f4f7f6;min-height:100vh;overflow-x:
  .prof-collective-entry{align-items:stretch;display:grid}
  .prof-collective-entry>button{width:100%}
 }
+
+/* Professor premium mobile polish — isolated from teacher/director UI */
+.nataiji-professor-mode .professor-v2{
+  --prof-navy:#103b5b;
+  --prof-navy-2:#0a3150;
+  --prof-teal:#0b8b73;
+  --prof-teal-2:#12a084;
+  --prof-mint:#edf8f5;
+  --prof-line:#dbe8e4;
+  --prof-muted:#71837d;
+  background:
+    radial-gradient(circle at 88% 4%,rgba(18,160,132,.10),transparent 24%),
+    linear-gradient(180deg,#f7fbfa 0,#f4f8f7 290px,#f7f9f8 100%);
+  color:#173d4d;
+}
+.nataiji-professor-mode .professor-shell{max-width:980px;padding-top:16px}
+.nataiji-professor-mode .professor-topbar{
+  background:rgba(255,255,255,.96);
+  border:1px solid rgba(173,199,191,.52);
+  border-radius:24px;
+  padding:13px 15px;
+  margin:0 0 14px;
+  box-shadow:0 10px 30px rgba(24,73,61,.07);
+}
+.nataiji-professor-mode .professor-brand{gap:11px}
+.nataiji-professor-mode .professor-brand img{
+  width:50px;height:50px;border-radius:16px;box-shadow:none;background:#fff;padding:2px
+}
+.nataiji-professor-mode .professor-brand span{gap:1px}
+.nataiji-professor-mode .professor-brand small{font-size:10px;color:#81918b}
+.nataiji-professor-mode .professor-brand b{font-size:17px;color:#173d4d;line-height:1.25}
+.nataiji-professor-mode .professor-brand em{
+  max-width:230px;font-style:normal;font-size:9px;color:#91a09b;
+  white-space:nowrap;overflow:hidden;text-overflow:ellipsis
+}
+.nataiji-professor-mode .professor-top-actions{align-items:center;gap:6px}
+.nataiji-professor-mode .professor-top-actions .ghost{
+  min-height:38px;background:#fff;border-color:#d8e4e0;box-shadow:none;color:#294d45
+}
+.nataiji-professor-mode .professor-top-actions .prof-icon-action{width:40px;padding:8px}
+.nataiji-professor-mode .professor-top-actions .prof-logout{color:#8f4545}
+
+.nataiji-professor-mode .prof-v2-hero{
+  min-height:185px;
+  padding:23px 24px;
+  border-radius:25px;
+  background:linear-gradient(125deg,var(--prof-navy-2) 0%,var(--prof-navy) 42%,var(--prof-teal) 100%);
+  box-shadow:0 16px 36px rgba(10,67,77,.17);
+  align-items:stretch;
+}
+.nataiji-professor-mode .prof-v2-hero:before{
+  content:"";position:absolute;inset:-45% auto auto -8%;width:220px;height:220px;
+  border:1px solid rgba(255,255,255,.10);border-radius:50%;box-shadow:0 0 0 38px rgba(255,255,255,.035),0 0 0 75px rgba(255,255,255,.025)
+}
+.nataiji-professor-mode .prof-v2-hero:after{
+  width:190px;height:190px;border-width:1px;border-color:rgba(255,255,255,.10);
+  inset-inline-end:-66px;top:-50px;box-shadow:0 0 0 35px rgba(255,255,255,.035)
+}
+.nataiji-professor-mode .prof-hero-copy{display:flex;flex-direction:column;justify-content:center;max-width:620px}
+.nataiji-professor-mode .prof-v2-hero .professor-badge{
+  width:max-content;background:rgba(255,255,255,.14);border:1px solid rgba(255,255,255,.15);
+  padding:6px 10px;font-size:10px;letter-spacing:.1px
+}
+.nataiji-professor-mode .prof-v2-hero h1{font-size:clamp(26px,4vw,35px);margin:11px 0 5px;letter-spacing:-.4px}
+.nataiji-professor-mode .prof-v2-hero p{font-size:12px;line-height:1.65;color:#d9ece8}
+.nataiji-professor-mode .prof-hero-actions{align-self:flex-end;align-items:end}
+.nataiji-professor-mode .prof-hero-actions button{
+  min-height:43px;border-radius:13px;padding:10px 14px
+}
+.nataiji-professor-mode .prof-hero-actions .primary{
+  background:#fff;color:#08745f;border-color:#fff;box-shadow:0 8px 20px rgba(1,35,42,.14)
+}
+.nataiji-professor-mode .prof-hero-actions button:not(.primary){
+  background:rgba(255,255,255,.11);border-color:rgba(255,255,255,.18)
+}
+.nataiji-professor-mode .prof-hero-actions button span{font-size:16px}
+
+.nataiji-professor-mode .prof-v2-stats{gap:11px;margin:14px 0}
+.nataiji-professor-mode .prof-v2-stats article{
+  min-height:88px;padding:14px 15px;border-radius:19px;border-color:#dee9e5;
+  box-shadow:0 7px 22px rgba(27,72,61,.045);grid-template-columns:auto 1fr
+}
+.nataiji-professor-mode .prof-v2-stats article>span,
+.nataiji-professor-mode .prof-v2-stats .prof-stat-icon{
+  width:39px;height:39px;border-radius:13px;background:#edf8f5;color:#0d876f;font-size:18px
+}
+.nataiji-professor-mode .prof-v2-stats article>div{display:grid;gap:2px}
+.nataiji-professor-mode .prof-v2-stats strong{font-size:25px;color:#143c4e}
+.nataiji-professor-mode .prof-v2-stats small{font-size:10px}
+
+.nataiji-professor-mode .prof-home-guide{gap:9px;margin:0 0 14px}
+.nataiji-professor-mode .prof-home-guide button{
+  border-radius:18px!important;border-color:#dde8e4!important;background:#fff!important;
+  min-height:88px;padding:12px 13px!important;box-shadow:0 5px 17px rgba(31,74,63,.035)
+}
+.nataiji-professor-mode .prof-home-guide button>span{
+  width:38px;height:38px;border-radius:12px;background:#edf8f5;color:#0c856e;font-size:18px
+}
+.nataiji-professor-mode .prof-home-guide button>div{display:grid;gap:2px}
+.nataiji-professor-mode .prof-home-guide button b{font-size:13px;color:#163d4b}
+.nataiji-professor-mode .prof-home-guide button small{font-size:9.5px;color:#7f8f8a;line-height:1.35;font-weight:500}
+
+.nataiji-professor-mode .professor-content,
+.nataiji-professor-mode .prof-side-card{
+  border-color:#dee9e5;border-radius:22px;box-shadow:0 8px 26px rgba(28,72,62,.045)
+}
+.nataiji-professor-mode .professor-section-title h2{font-size:20px;color:#153e4d}
+.nataiji-professor-mode .professor-section-title p{line-height:1.55}
+.nataiji-professor-mode .prof-v2-assignment{
+  border-radius:18px;padding:13px 14px;border-color:#dfe9e5;box-shadow:0 5px 18px rgba(31,76,64,.035)
+}
+.nataiji-professor-mode .prof-subject-icon{
+  width:48px;height:48px;border-radius:15px;background:#edf8f5;color:#0c856e;font-size:17px
+}
+.nataiji-professor-mode .prof-card-eyebrow{gap:5px}
+.nataiji-professor-mode .prof-card-eyebrow em{background:#f0f8f5;color:#19735f}
+.nataiji-professor-mode .prof-card-body h3{font-size:17px;color:#173d4d;margin:5px 0 9px}
+.nataiji-professor-mode .prof-progress{height:6px}
+.nataiji-professor-mode .prof-card-meta{align-items:center;gap:8px}
+.nataiji-professor-mode .prof-card-meta span{min-width:0}
+.nataiji-professor-mode .prof-card-meta strong{white-space:nowrap;font-size:11px}
+.nataiji-professor-mode .prof-card-actions{gap:7px}
+.nataiji-professor-mode .prof-card-actions>button{min-height:39px;padding:9px 11px}
+
+.nataiji-professor-mode .prof-page-head{
+  background:#fff;border:1px solid #e0e9e6;border-radius:21px;padding:16px 18px;margin:0 0 13px;
+  box-shadow:0 7px 22px rgba(29,74,63,.04);align-items:center
+}
+.nataiji-professor-mode .prof-page-head h1{font-size:25px;color:#173d4d;margin:3px 0 5px}
+.nataiji-professor-mode .prof-page-head p{font-size:11px;line-height:1.65;color:#73867f}
+.nataiji-professor-mode .prof-page-head>div:last-child button{min-height:42px}
+.nataiji-professor-mode .prof-class-grid{gap:11px}
+.nataiji-professor-mode .prof-class-card{
+  border-radius:20px;padding:16px;border-color:#dce8e4;box-shadow:0 7px 23px rgba(28,73,62,.045)
+}
+.nataiji-professor-mode .prof-class-avatar{width:45px;height:45px;border-radius:14px;background:#edf8f5;color:#0b846d}
+.nataiji-professor-mode .prof-class-tags span{background:#f2f7f5}
+.nataiji-professor-mode .prof-class-link-state{border:1px solid #edf2f0;background:#f9fbfa}
+
+.nataiji-professor-mode .prof-class-subject-group{
+  border:1px solid #e1e9e6;border-radius:18px;background:#fbfdfc;padding:14px;margin-bottom:11px
+}
+.nataiji-professor-mode .prof-class-subject-head{padding:1px 2px 9px}
+.nataiji-professor-mode .prof-class-subject-head h2{font-size:20px;color:#153d4b}
+.nataiji-professor-mode .prof-class-subject-head p{font-size:10px;color:#778982}
+
+.nataiji-professor-mode .prof-report-switcher{
+  border-radius:18px;padding:5px;background:#edf5f2;border-color:#d8e6e1
+}
+.nataiji-professor-mode .prof-report-switcher button{
+  min-height:64px;border-radius:14px;padding:10px 13px;background:transparent
+}
+.nataiji-professor-mode .prof-report-switcher button.on{
+  background:linear-gradient(135deg,#0c856d,#11967c);box-shadow:0 7px 18px rgba(12,133,109,.17)
+}
+.nataiji-professor-mode .prof-report-subject-card{
+  border-radius:18px;border-color:#dce7e3;box-shadow:0 5px 18px rgba(30,73,63,.035)
+}
+.nataiji-professor-mode .prof-collective-entry{
+  border-radius:18px;background:linear-gradient(135deg,#f2faf7,#eaf7f2);border-color:#d4e7df
+}
+
+.nataiji-professor-mode .prof-more-head{
+  color:#fff;border:0;background:linear-gradient(125deg,var(--prof-navy-2),var(--prof-teal));padding:19px 20px;
+  box-shadow:0 14px 30px rgba(10,67,77,.14)
+}
+.nataiji-professor-mode .prof-more-head small{color:#cce8e2;font-weight:800}
+.nataiji-professor-mode .prof-more-head h1{color:#fff}
+.nataiji-professor-mode .prof-more-head p{color:#d9ece8}
+.nataiji-professor-mode .prof-more-grid{gap:10px}
+.nataiji-professor-mode .prof-more-grid>button{
+  border-radius:18px!important;border-color:#dce7e3!important;background:#fff!important;
+  min-height:91px!important;box-shadow:0 5px 18px rgba(31,75,64,.035)
+}
+.nataiji-professor-mode .prof-more-grid>button>span{background:#edf8f5;color:#0c866f}
+.nataiji-professor-mode .prof-more-grid .prof-more-danger{border-color:#ecd8d8!important;background:#fffafa!important}
+.nataiji-professor-mode .prof-more-grid .prof-more-danger>span{background:#fff0f0;color:#9c4141}
+
+.nataiji-professor-mode .professor-nav{
+  border-radius:23px;padding:6px;background:rgba(255,255,255,.97);border-color:#d8e6e1;
+  box-shadow:0 13px 35px rgba(18,66,55,.16)
+}
+.nataiji-professor-mode .professor-nav button{
+  position:relative;border-radius:17px;padding:9px 4px;color:#56706a;transition:.16s
+}
+.nataiji-professor-mode .professor-nav button span{font-size:19px;line-height:1}
+.nataiji-professor-mode .professor-nav button.on{
+  background:#e9f6f2;color:#07846d
+}
+.nataiji-professor-mode .professor-nav button.on:after{
+  content:"";position:absolute;bottom:2px;left:50%;width:17px;height:2px;border-radius:999px;background:#d4a62c;transform:translateX(-50%)
+}
+
+@media(max-width:700px){
+  .nataiji-professor-mode .professor-shell{padding:10px 14px 116px}
+  .nataiji-professor-mode .professor-topbar{padding:12px 13px;border-radius:22px;margin-bottom:12px}
+  .nataiji-professor-mode .professor-brand img{width:48px;height:48px}
+  .nataiji-professor-mode .professor-brand b{font-size:16px}
+  .nataiji-professor-mode .professor-brand em{max-width:155px}
+  .nataiji-professor-mode .professor-top-actions{gap:5px}
+  .nataiji-professor-mode .professor-top-actions .ghost{min-height:36px;padding:7px 9px;font-size:10px}
+  .nataiji-professor-mode .professor-top-actions .prof-icon-action{width:37px;padding:7px}
+  .nataiji-professor-mode .professor-top-actions .prof-logout{font-size:9.5px}
+  .nataiji-professor-mode .prof-v2-hero{min-height:205px;padding:20px;border-radius:23px;display:flex;flex-direction:column;justify-content:space-between}
+  .nataiji-professor-mode .prof-v2-hero h1{font-size:29px;margin-top:10px}
+  .nataiji-professor-mode .prof-v2-hero p{font-size:11px;max-width:92%}
+  .nataiji-professor-mode .prof-hero-actions{width:100%;display:grid;grid-template-columns:1.25fr 1fr 44px;gap:7px;align-self:auto}
+  .nataiji-professor-mode .prof-hero-actions button{min-width:0;padding:9px 8px;font-size:11px}
+  .nataiji-professor-mode .prof-v2-stats{grid-template-columns:1fr 1fr;gap:8px;margin:11px 0}
+  .nataiji-professor-mode .prof-v2-stats article{min-height:79px;padding:11px 12px}
+  .nataiji-professor-mode .prof-v2-stats strong{font-size:22px}
+  .nataiji-professor-mode .prof-home-guide{grid-template-columns:repeat(3,minmax(0,1fr));gap:7px;margin-bottom:11px}
+  .nataiji-professor-mode .prof-home-guide button{display:flex!important;flex-direction:column;align-items:center!important;justify-content:center;text-align:center!important;min-height:92px;padding:10px 6px!important;gap:5px}
+  .nataiji-professor-mode .prof-home-guide button>span{width:34px;height:34px;font-size:16px}
+  .nataiji-professor-mode .prof-home-guide button>div{display:block}
+  .nataiji-professor-mode .prof-home-guide button b{display:block;font-size:11px}
+  .nataiji-professor-mode .prof-home-guide button small{display:none}
+  .nataiji-professor-mode .prof-home-hidden-actions{display:none}
+  .nataiji-professor-mode .professor-content,.nataiji-professor-mode .prof-side-card{padding:13px;border-radius:19px}
+  .nataiji-professor-mode .professor-section-title h2{font-size:19px}
+  .nataiji-professor-mode .professor-section-title p{font-size:10px}
+  .nataiji-professor-mode .prof-v2-assignment{grid-template-columns:auto minmax(0,1fr);gap:10px;padding:12px}
+  .nataiji-professor-mode .prof-card-body{min-width:0}
+  .nataiji-professor-mode .prof-card-eyebrow{font-size:9px}
+  .nataiji-professor-mode .prof-card-body h3{font-size:16px;margin:4px 0 8px}
+  .nataiji-professor-mode .prof-card-meta{display:grid;grid-template-columns:minmax(0,1fr) auto;font-size:9px}
+  .nataiji-professor-mode .prof-card-actions{grid-column:1/-1;display:grid;grid-template-columns:1fr 1fr;width:100%}
+  .nataiji-professor-mode .prof-card-actions>button{width:100%;font-size:10.5px;padding:9px 6px}
+  .nataiji-professor-mode .prof-page-head{padding:15px;border-radius:19px;margin-bottom:11px}
+  .nataiji-professor-mode .prof-page-head h1{font-size:24px}
+  .nataiji-professor-mode .prof-page-head p{font-size:10.5px}
+  .nataiji-professor-mode .prof-page-head>div:last-child{grid-template-columns:1fr 1fr}
+  .nataiji-professor-mode .prof-page-head>div:last-child:only-child{grid-template-columns:1fr}
+  .nataiji-professor-mode .prof-class-card{padding:14px;border-radius:19px}
+  .nataiji-professor-mode .prof-class-card footer{gap:7px}
+  .nataiji-professor-mode .prof-class-card footer button{font-size:10px;padding:9px 6px}
+  .nataiji-professor-mode .prof-class-subject-group{padding:11px;border-radius:17px}
+  .nataiji-professor-mode .prof-class-subject-head h2{font-size:18px}
+  .nataiji-professor-mode .prof-report-switcher{gap:4px}
+  .nataiji-professor-mode .prof-report-switcher button{min-height:57px;padding:8px 7px}
+  .nataiji-professor-mode .prof-report-switcher button>b{font-size:11px}
+  .nataiji-professor-mode .prof-report-switcher button>small{font-size:8.5px}
+  .nataiji-professor-mode .prof-report-subject-grid{gap:8px}
+  .nataiji-professor-mode .prof-report-subject-card{padding:11px;border-radius:16px}
+  .nataiji-professor-mode .prof-collective-entry{padding:12px;border-radius:16px}
+  .nataiji-professor-mode .prof-more-grid{grid-template-columns:1fr 1fr;gap:8px}
+  .nataiji-professor-mode .prof-more-grid>button{min-height:102px!important;display:flex!important;flex-direction:column;align-items:flex-start!important;justify-content:center;gap:5px;padding:12px!important}
+  .nataiji-professor-mode .prof-more-grid>button>span{width:36px;height:36px;font-size:16px}
+  .nataiji-professor-mode .prof-more-grid>button>b{font-size:12px}
+  .nataiji-professor-mode .prof-more-grid>button>small{font-size:9px}
+  .nataiji-professor-mode .professor-nav{
+    left:12px;right:12px;bottom:calc(8px + env(safe-area-inset-bottom));transform:none;width:auto;max-width:none;
+    grid-template-columns:repeat(5,1fr);border-radius:22px
+  }
+  .nataiji-professor-mode .professor-nav button{font-size:9px;padding:8px 2px}
+  .nataiji-professor-mode .professor-nav button span{font-size:18px}
+}
+
+@media(max-width:420px){
+  .nataiji-professor-mode .professor-shell{padding-inline:11px}
+  .nataiji-professor-mode .professor-topbar{padding:10px 11px}
+  .nataiji-professor-mode .professor-brand img{width:44px;height:44px}
+  .nataiji-professor-mode .professor-brand em{display:none}
+  .nataiji-professor-mode .professor-top-actions .prof-logout{padding-inline:8px}
+  .nataiji-professor-mode .prof-v2-hero{min-height:198px;padding:18px}
+  .nataiji-professor-mode .prof-v2-hero h1{font-size:27px}
+  .nataiji-professor-mode .prof-v2-stats article{min-height:74px}
+  .nataiji-professor-mode .prof-v2-stats article>span{width:35px;height:35px}
+  .nataiji-professor-mode .prof-v2-stats strong{font-size:21px}
+}
+
