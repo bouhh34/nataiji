@@ -18,7 +18,7 @@ function showLegacy(){
  q('.app-shell')?.style.removeProperty('display');q('.bottom-nav')?.style.removeProperty('display');q('#nataijiProfessorRoot')?.remove()
 }
 function root(){let el=q('#nataijiProfessorRoot');if(!el){el=document.createElement('main');el.id='nataijiProfessorRoot';el.className='professor-app professor-v2';document.body.appendChild(el)}return el}
-function normalize(p){const x=p&&typeof p==='object'?structuredClone(p):{};x.schoolName=String(x.schoolName||'');x.year=String(x.year||'');x.classes=Array.isArray(x.classes)?x.classes:[];x.assignments=Array.isArray(x.assignments)?x.assignments:[];x.marks=x.marks&&typeof x.marks==='object'?x.marks:{};return x}
+function normalize(p){const x=p&&typeof p==='object'?structuredClone(p):{};x.schoolName=String(x.schoolName||'');x.schoolNameFr=String(x.schoolNameFr||'');x.region=String(x.region||'');x.regionFr=String(x.regionFr||'');x.inspection=String(x.inspection||'');x.inspectionFr=String(x.inspectionFr||'');x.schoolNns=String(x.schoolNns||'');x.year=String(x.year||'');x.classes=Array.isArray(x.classes)?x.classes:[];x.assignments=Array.isArray(x.assignments)?x.assignments:[];x.marks=x.marks&&typeof x.marks==='object'?x.marks:{};return x}
 function classById(id){return profile.classes.find(c=>String(c.id)===String(id))}
 function assignmentsForClass(id){return profile.assignments.filter(a=>a.classId===id)}
 function marksFor(id){profile.marks[id]=profile.marks[id]&&typeof profile.marks[id]==='object'?profile.marks[id]:{};return profile.marks[id]}
