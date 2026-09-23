@@ -330,6 +330,22 @@ function classAccessMap(user){
  return out
 }
 function assignedClassIds(user,s){const access=classAccessMap(user),requested=Object.keys(access),existing=requested.filter(id=>s.classes.some(c=>c.id===id));return existing.length?existing:(Array.isArray(user.classIds)?user.classIds:[]).filter(id=>s.classes.some(c=>c.id===id))}
+function resolveTeacherMutationClass(user,structure,requestedClassId=''){
+ const classes=Array.isArray(structure?.classes)?structure.classes:[],requested=String(requestedClassId||'').trim(),allowed=(user?.role==='admin'?classes.map(x=>String(x.id)):assignedClassIds(user,{classes}).map(String)),existing=new Set(classes.map(x=>String(x.id)));
+ if(requested&&allowed.includes(requested))return{ok:true,classId:requested,allowed};
+ if(requested&&existing.has(requested))return{ok:false,error:user?.role==='teacher'?'forbidden_class':'invalid_class',allowed};
+ if(user?.role==='teacher'){
+  const preferred=String(user?.preferredClassId||'').trim();
+  if(preferred&&allowed.includes(preferred))return{ok:true,classId:preferred,allowed,recoveredStaleClass:!!requested};
+  if(allowed.length===1)return{ok:true,classId:allowed[0],allowed,recoveredStaleClass:!!requested}
+ }
+ if(!requested){
+  const active=String(structure?.activeClassId||'').trim();
+  if(active&&allowed.includes(active))return{ok:true,classId:active,allowed};
+  if(allowed.length===1)return{ok:true,classId:allowed[0],allowed}
+ }
+ return{ok:false,error:user?.role==='teacher'?'forbidden_class':'invalid_class',allowed}
+}
 function subjectScopeFor(user,classId){const map=classAccessMap(user);return map[classId]||null}
 function subjectAllowed(user,classId,subjectId){if(user?.role==='admin')return true;const scope=subjectScopeFor(user,classId);return !!scope&&(scope.allSubjects!==false||new Set(scope.subjectIds||[]).has(String(subjectId)))}
 function teacherView(full,user,requestedClassId='',requestedTerm=''){
@@ -445,10 +461,20 @@ app.delete('/api/professor/classes/:localClassId/link',auth,async(req,res)=>{
  await pool.query('DELETE FROM nataiji_professor_class_members WHERE class_id=$1 AND user_id=$2',[sharedClassId,req.user.id]);if(owner.rows[0]?.owner_user_id===req.user.id){await pool.query('DELETE FROM nataiji_professor_classrooms WHERE class_id=$1',[sharedClassId])}cls.sharedClassId='';await saveProfessorProfile(req.user.id,profile,{syncShared:false});res.json({ok:true,profile:cleanProfessorProfile(profile),classLinks:await professorClassLinks(profile,req.user.id)})
 });
 app.get('/api/owner/overview',auth,ownerOnly,async(_req,res)=>{
- const idx=await getIndex(),accounts=[];let schools=0;
- for(const [email,id] of Object.entries(idx)){const raw=await storeGet(userKey(id));if(!raw)continue;try{const u=JSON.parse(raw),baseRole=u.baseRole||u.role,owned=[...new Set(Array.isArray(u.ownedSchoolIds)?u.ownedSchoolIds:(u.schoolId?[u.schoolId]:[]))];schools+=owned.length;accounts.push({id:u.id,name:u.name||'',email,role:baseRole==='owner'?'owner':baseRole==='teacher'?'teacher':baseRole==='professor'?'professor':'admin',schools:baseRole==='professor'?0:owned.length,suspended:!!u.suspended,plan:u.plan||'free'})}catch{}}
- res.json({ok:true,stats:{users:accounts.length,schools,superAdmins:accounts.filter(x=>x.role==='owner').length,schoolAdmins:accounts.filter(x=>x.role==='admin').length,teachers:accounts.filter(x=>x.role==='teacher').length,professors:accounts.filter(x=>x.role==='professor').length},accounts:accounts.sort((a,b)=>String(a.name).localeCompare(String(b.name),'fr'))})
-});async function ownerAccountById(id){
+ const idx=await getIndex(),accounts=[],users=[];let schools=0;
+ for(const [email,id] of Object.entries(idx)){
+  const raw=await storeGet(userKey(id));if(!raw)continue;
+  try{
+   const u=JSON.parse(raw),baseRole=String(u.baseRole||u.role),owned=[...new Set(Array.isArray(u.ownedSchoolIds)?u.ownedSchoolIds:(isOwnerRole(baseRole)&&u.schoolId?[u.schoolId]:[]))];
+   users.push(u);if(isOwnerRole(baseRole))schools+=owned.length;
+   accounts.push({id:u.id,name:u.name||'',email,role:baseRole==='owner'?'owner':baseRole==='teacher'?'teacher':baseRole==='professor'?'professor':'admin',schools:isOwnerRole(baseRole)?owned.length:0,suspended:!!u.suspended,plan:u.plan||'free'})
+  }catch{}
+ }
+ const teacherIds=new Set();
+ for(const u of users){const role=String(u.baseRole||u.role);if(role==='professor')continue;const memberships=await ownerTeacherMembershipsForUser(u);if(memberships.length)teacherIds.add(String(u.id))}
+ res.json({ok:true,stats:{users:accounts.length,schools,superAdmins:accounts.filter(x=>x.role==='owner').length,schoolAdmins:accounts.filter(x=>x.role==='admin').length,teachers:teacherIds.size,professors:accounts.filter(x=>x.role==='professor').length},accounts:accounts.sort((a,b)=>String(a.name).localeCompare(String(b.name),'fr'))})
+});
+async function ownerAccountById(id){
  const raw=await storeGet(userKey(String(id||'')));if(!raw)return null;
  try{return JSON.parse(raw)}catch{return null}
 }
@@ -468,19 +494,52 @@ async function ownerProfessorView(user){
  const assignments=profile.assignments.map(a=>({id:a.id,classId:a.classId,subject:a.subject,subjectKey:a.subjectKey||'',coefficient:Number(a.coefficient)||1,coefficientSource:a.coefficientSource||'manual',hasGrades:professorAssignmentHasGrades(profile,a.id)}));
  return{account:{id:user.id,name:user.name||'',email:user.email||'',role:'professor',suspended:!!user.suspended,plan:user.plan||'free'},schoolName:profile.schoolName||'',year:profile.year||'',classes,assignments,versionCount:versions}
 }
-async function ownerTeacherSummary(user){
- let schoolName='';if(pool&&user.schoolId){const q=await pool.query('SELECT data FROM nataiji_school_settings WHERE school_id=$1',[user.schoolId]);schoolName=String(q.rows[0]?.data?.school||'')}
- return{id:user.id,name:user.name||'',email:user.email||'',role:'teacher',suspended:!!user.suspended,plan:user.plan||'free',schoolName,schoolId:String(user.schoolId||''),classCount:Array.isArray(user.classIds)?user.classIds.length:0}
+async function ownerSchoolName(schoolId,fallback=''){
+ if(!schoolId)return String(fallback||'');
+ if(pool){const q=await pool.query('SELECT data FROM nataiji_school_settings WHERE school_id=$1',[schoolId]);const d=q.rows[0]?.data||{};return String(d.school||fallback||'')}
+ return String(fallback||'')
+}
+async function ownerTeacherSummary(user,grant=null){
+ const schoolId=String(grant?.schoolId||user.schoolId||''),schoolName=await ownerSchoolName(schoolId,grant?.schoolName||''),classAccess=grant?.classAccess&&typeof grant.classAccess==='object'?grant.classAccess:null;
+ return{id:user.id,grantId:String(grant?.grantId||''),name:user.name||'',assignedName:String(grant?.teacherName||''),email:user.email||'',role:'teacher',suspended:!!user.suspended,plan:user.plan||'free',schoolName,schoolId,classCount:classAccess?Object.keys(classAccess).length:(Array.isArray(user.classIds)?user.classIds.length:0),permissions:grant?cleanPermissions(grant.permissions):cleanPermissions(user.permissions)}
+}
+async function ownerTeacherMembershipsForUser(user){
+ const out=[],seen=new Set(),grants=user?.sharedGrants&&typeof user.sharedGrants==='object'?Object.values(user.sharedGrants):[];
+ for(const local of grants){
+  if(!local?.grantId||!local?.schoolId)continue;
+  let live=local;const raw=await storeGet(grantKey(local.grantId));
+  if(raw){try{const parsed=JSON.parse(raw);if(parsed.revoked)continue;live={...local,...parsed}}catch{continue}}
+  const key=String(live.grantId);if(seen.has(key))continue;seen.add(key);out.push(await ownerTeacherSummary(user,live))
+ }
+ const role=String(user?.baseRole||user?.role);
+ if(role==='teacher'&&!out.length)out.push(await ownerTeacherSummary(user,null));
+ return out
+}
+async function ownerSchoolSummary(user,schoolId){
+ const sid=String(schoolId||'');let schoolName='',schoolNameFr='',classCount=0;
+ if(pool&&sid){
+  const [sq,st]=await Promise.all([pool.query('SELECT data FROM nataiji_school_settings WHERE school_id=$1',[sid]),loadDurableSchoolStructure(sid)]);
+  const d=sq.rows[0]?.data||{};schoolName=String(d.school||'');schoolNameFr=String(d.schoolFr||'');classCount=Array.isArray(st?.classes)?st.classes.length:0
+ }
+ return{schoolId:sid,schoolName:schoolName||'مدرسة',schoolNameFr,ownerId:user.id,ownerName:user.name||'',ownerEmail:user.email||'',classCount,teacherCount:0}
 }
 app.get('/api/owner/staff',auth,ownerOnly,async(_req,res)=>{
- const idx=await getIndex(),teachers=[],professors=[];
- for(const id of Object.values(idx)){
-  const user=await ownerAccountById(id);if(!user)continue;const role=String(user.baseRole||user.role);
-  if(role==='teacher')teachers.push(await ownerTeacherSummary(user));
+ const idx=await getIndex(),teachers=[],professors=[],schools=[],users=[];
+ for(const id of Object.values(idx)){const user=await ownerAccountById(id);if(user)users.push(user)}
+ for(const user of users){
+  const role=String(user.baseRole||user.role);
+  if(role!=='professor')teachers.push(...await ownerTeacherMembershipsForUser(user));
   if(role==='professor'){const view=await ownerProfessorView(user);professors.push({...view.account,schoolName:view.schoolName,year:view.year,classCount:view.classes.length,assignmentCount:view.assignments.length,linkedClassCount:view.classes.filter(x=>x.linkedProfessorCount>1).length,versionCount:view.versionCount})}
+  if(isOwnerRole(role)){
+   const owned=[...new Set(Array.isArray(user.ownedSchoolIds)&&user.ownedSchoolIds.length?user.ownedSchoolIds:(user.schoolId?[user.schoolId]:[]))];
+   for(const schoolId of owned)schools.push(await ownerSchoolSummary(user,schoolId))
+  }
  }
- const byName=(a,b)=>String(a.name||'').localeCompare(String(b.name||''),'fr');
- res.json({ok:true,teachers:teachers.sort(byName),professors:professors.sort(byName)})
+ const byName=(a,b)=>String(a.name||a.schoolName||'').localeCompare(String(b.name||b.schoolName||''),'fr');
+ const uniqueTeachers=[];const teacherKeys=new Set();
+ for(const row of teachers){const key=String(row.id)+'|'+String(row.grantId||row.schoolId||'');if(teacherKeys.has(key))continue;teacherKeys.add(key);uniqueTeachers.push(row)}
+ for(const school of schools)school.teacherCount=uniqueTeachers.filter(t=>String(t.schoolId)===String(school.schoolId)).length;
+ res.json({ok:true,teachers:uniqueTeachers.sort(byName),schools:schools.sort(byName),professors:professors.sort(byName)})
 });
 app.get('/api/owner/professors/:id',auth,ownerOnly,async(req,res)=>{
  if(!pool)return res.status(503).json({error:'durable_storage_required'});const user=await ownerProfessorAccount(req.params.id);if(!user)return res.status(404).json({error:'professor_account_not_found'});
@@ -739,11 +798,11 @@ app.post('/api/subjects/normalize-primary',auth,async(req,res)=>{
  try{await client.query('BEGIN');const sourceIds=mergeRows.map(r=>String(r.subject_id)),mq=await client.query('SELECT term,pupil_key,subject_id,value FROM nataiji_marks WHERE school_id=$1 AND class_id=$2 AND subject_id=ANY($3::text[])',[req.user.schoolId,classId,sourceIds]),groups=new Map();for(const row of mq.rows){const k=String(row.term)+'\u0000'+String(row.pupil_key);if(!groups.has(k))groups.set(k,{term:row.term,pupil:row.pupil_key,values:[]});groups.get(k).values.push(row.value)}await client.query('DELETE FROM nataiji_marks WHERE school_id=$1 AND class_id=$2 AND subject_id=ANY($3::text[])',[req.user.schoolId,classId,sourceIds]);const mergedId=target.find(x=>x.sourceIds.length>1)?.id;if(mergedId)for(const g of groups.values()){const value=primaryMergedValue(g.values);if(value!=='')await client.query('INSERT INTO nataiji_marks(school_id,class_id,term,pupil_key,subject_id,value,updated_at) VALUES($1,$2,$3,$4,$5,$6,now()) ON CONFLICT(school_id,class_id,term,pupil_key,subject_id) DO UPDATE SET value=EXCLUDED.value,updated_at=now()',[req.user.schoolId,classId,g.term,g.pupil,mergedId,value])}await client.query('DELETE FROM nataiji_subjects WHERE school_id=$1 AND class_id=$2',[req.user.schoolId,classId]);for(let i=0;i<target.length;i++)await client.query('INSERT INTO nataiji_subjects(school_id,class_id,subject_id,data,position) VALUES($1,$2,$3,$4::jsonb,$5)',[req.user.schoolId,classId,target[i].id,JSON.stringify(target[i].data),i]);await client.query('INSERT INTO nataiji_migrations(school_id,class_id,resource) VALUES($1,$2,$3) ON CONFLICT DO NOTHING',[req.user.schoolId,classId,'primary-subjects-v2']);await client.query('COMMIT')}catch(e){await client.query('ROLLBACK');console.error('primary subject normalization failed',req.user.schoolId,classId,e);return res.status(500).json({error:'subject_normalization_failed'})}finally{client.release()}
  const q=await pool.query('SELECT subject_id,data FROM nataiji_subjects WHERE school_id=$1 AND class_id=$2 ORDER BY position,updated_at',[req.user.schoolId,classId]);res.json({ok:true,changed:true,subjects:subjectRows(q.rows)})
 });
-app.post('/api/pupils',auth,async(req,res)=>{if(!pool)return res.status(503).json({error:'durable_storage_required'});const st=await loadDurableSchoolStructure(req.user.schoolId),requestedClassId=String(req.body?.classId||'').trim(),fallbackClassId=String(st.activeClassId||''),allowed=req.user.role==='admin'?(st.classes||[]).map(x=>String(x.id)):assignedClassIds(req.user,{classes:st.classes||[]}).map(String);if(requestedClassId&&!allowed.includes(requestedClassId))return res.status(req.user.role==='teacher'?403:400).json({error:req.user.role==='teacher'?'forbidden_class':'invalid_class'});const classId=requestedClassId||(allowed.includes(fallbackClassId)?fallbackClassId:(allowed[0]||'')),pupil=Array.isArray(req.body?.pupil)?structuredClone(req.body.pupil):null;if(!classId||!st.classes?.some(x=>String(x.id)===classId)||!pupil||!String(pupil[1]||'').trim())return res.status(400).json({error:'invalid_pupil'});if(req.user.role!=='admin'&&!new Set(req.user.permissions||[]).has('pupils'))return res.status(403).json({error:'forbidden'});const displayNns=String(pupil[0]||'').trim(),storageKey=displayNns||('auto-'+crypto.randomUUID());pupil[0]=displayNns;pupil[7]=storageKey;const client=await pool.connect();try{await client.query('BEGIN');const pos=(await client.query('SELECT COALESCE(MAX(position),-1)+1 AS n FROM nataiji_pupils WHERE school_id=$1 AND class_id=$2',[req.user.schoolId,classId])).rows[0].n;await client.query('INSERT INTO nataiji_pupils(school_id,class_id,nns,data,position) VALUES($1,$2,$3,$4::jsonb,$5)',[req.user.schoolId,classId,storageKey,JSON.stringify(pupil),pos]);await client.query('INSERT INTO nataiji_migrations(school_id,class_id,resource) VALUES($1,$2,$3) ON CONFLICT DO NOTHING',[req.user.schoolId,classId,'pupils']);await client.query('COMMIT')}catch(e){await client.query('ROLLBACK');if(e.code==='23505')return res.status(409).json({error:'pupil_exists'});throw e}finally{client.release()}const q=await pool.query('SELECT nns,data FROM nataiji_pupils WHERE school_id=$1 AND class_id=$2 ORDER BY position,updated_at',[req.user.schoolId,classId]);res.status(201).json({ok:true,pupils:pupilRows(q.rows)})});
+app.post('/api/pupils',auth,async(req,res)=>{if(!pool)return res.status(503).json({error:'durable_storage_required'});const st=await loadDurableSchoolStructure(req.user.schoolId),requestedClassId=String(req.body?.classId||'').trim(),resolved=resolveTeacherMutationClass(req.user,st,requestedClassId);if(!resolved.ok)return res.status(req.user.role==='teacher'?403:400).json({error:resolved.error});const classId=resolved.classId,pupil=Array.isArray(req.body?.pupil)?structuredClone(req.body.pupil):null;if(!classId||!st.classes?.some(x=>String(x.id)===classId)||!pupil||!String(pupil[1]||'').trim())return res.status(400).json({error:'invalid_pupil'});if(req.user.role!=='admin'&&!new Set(req.user.permissions||[]).has('pupils'))return res.status(403).json({error:'forbidden'});const displayNns=String(pupil[0]||'').trim(),storageKey=displayNns||('auto-'+crypto.randomUUID());pupil[0]=displayNns;pupil[7]=storageKey;const client=await pool.connect();try{await client.query('BEGIN');const pos=(await client.query('SELECT COALESCE(MAX(position),-1)+1 AS n FROM nataiji_pupils WHERE school_id=$1 AND class_id=$2',[req.user.schoolId,classId])).rows[0].n;await client.query('INSERT INTO nataiji_pupils(school_id,class_id,nns,data,position) VALUES($1,$2,$3,$4::jsonb,$5)',[req.user.schoolId,classId,storageKey,JSON.stringify(pupil),pos]);await client.query('INSERT INTO nataiji_migrations(school_id,class_id,resource) VALUES($1,$2,$3) ON CONFLICT DO NOTHING',[req.user.schoolId,classId,'pupils']);await client.query('COMMIT')}catch(e){await client.query('ROLLBACK');if(e.code==='23505')return res.status(409).json({error:'pupil_exists'});throw e}finally{client.release()}const q=await pool.query('SELECT nns,data FROM nataiji_pupils WHERE school_id=$1 AND class_id=$2 ORDER BY position,updated_at',[req.user.schoolId,classId]);res.status(201).json({ok:true,classId,pupils:pupilRows(q.rows)})});
 
-app.put('/api/pupils/:nns',auth,async(req,res)=>{if(!pool)return res.status(503).json({error:'durable_storage_required'});const st=await loadDurableSchoolStructure(req.user.schoolId),requestedClassId=String(req.body?.classId||'').trim(),fallbackClassId=String(st.activeClassId||''),allowed=req.user.role==='admin'?(st.classes||[]).map(x=>String(x.id)):assignedClassIds(req.user,{classes:st.classes||[]}).map(String);if(requestedClassId&&!allowed.includes(requestedClassId))return res.status(req.user.role==='teacher'?403:400).json({error:req.user.role==='teacher'?'forbidden_class':'invalid_class'});const classId=requestedClassId||(allowed.includes(fallbackClassId)?fallbackClassId:(allowed[0]||'')),pupil=Array.isArray(req.body?.pupil)?structuredClone(req.body.pupil):null;if(!classId||!st.classes?.some(x=>String(x.id)===classId)||!pupil||!String(pupil[1]||'').trim())return res.status(400).json({error:'invalid_pupil'});if(req.user.role!=='admin'&&!new Set(req.user.permissions||[]).has('pupils'))return res.status(403).json({error:'forbidden'});const oldKey=String(req.params.nns),displayNns=String(pupil[0]||'').trim(),newKey=displayNns||(oldKey.startsWith('auto-')?oldKey:'auto-'+crypto.randomUUID());pupil[0]=displayNns;pupil[7]=newKey;const client=await pool.connect();try{await client.query('BEGIN');const old=await client.query('SELECT position FROM nataiji_pupils WHERE school_id=$1 AND class_id=$2 AND nns=$3 FOR UPDATE',[req.user.schoolId,classId,oldKey]);if(!old.rowCount){await client.query('ROLLBACK');return res.status(404).json({error:'pupil_not_found'})}if(newKey!==oldKey)await client.query('UPDATE nataiji_marks SET pupil_key=$4,updated_at=now() WHERE school_id=$1 AND class_id=$2 AND pupil_key=$3',[req.user.schoolId,classId,oldKey,newKey]);await client.query('DELETE FROM nataiji_pupils WHERE school_id=$1 AND class_id=$2 AND nns=$3',[req.user.schoolId,classId,oldKey]);await client.query('INSERT INTO nataiji_pupils(school_id,class_id,nns,data,position) VALUES($1,$2,$3,$4::jsonb,$5)',[req.user.schoolId,classId,newKey,JSON.stringify(pupil),old.rows[0].position]);await client.query('INSERT INTO nataiji_migrations(school_id,class_id,resource) VALUES($1,$2,$3) ON CONFLICT DO NOTHING',[req.user.schoolId,classId,'pupils']);await client.query('COMMIT')}catch(e){try{await client.query('ROLLBACK')}catch{}if(e.code==='23505')return res.status(409).json({error:'pupil_exists'});throw e}finally{client.release()}const q=await pool.query('SELECT nns,data FROM nataiji_pupils WHERE school_id=$1 AND class_id=$2 ORDER BY position,updated_at',[req.user.schoolId,classId]);res.json({ok:true,pupils:pupilRows(q.rows)})});
+app.put('/api/pupils/:nns',auth,async(req,res)=>{if(!pool)return res.status(503).json({error:'durable_storage_required'});const st=await loadDurableSchoolStructure(req.user.schoolId),requestedClassId=String(req.body?.classId||'').trim(),resolved=resolveTeacherMutationClass(req.user,st,requestedClassId);if(!resolved.ok)return res.status(req.user.role==='teacher'?403:400).json({error:resolved.error});const classId=resolved.classId,pupil=Array.isArray(req.body?.pupil)?structuredClone(req.body.pupil):null;if(!classId||!st.classes?.some(x=>String(x.id)===classId)||!pupil||!String(pupil[1]||'').trim())return res.status(400).json({error:'invalid_pupil'});if(req.user.role!=='admin'&&!new Set(req.user.permissions||[]).has('pupils'))return res.status(403).json({error:'forbidden'});const oldKey=String(req.params.nns),displayNns=String(pupil[0]||'').trim(),newKey=displayNns||(oldKey.startsWith('auto-')?oldKey:'auto-'+crypto.randomUUID());pupil[0]=displayNns;pupil[7]=newKey;const client=await pool.connect();try{await client.query('BEGIN');const old=await client.query('SELECT position FROM nataiji_pupils WHERE school_id=$1 AND class_id=$2 AND nns=$3 FOR UPDATE',[req.user.schoolId,classId,oldKey]);if(!old.rowCount){await client.query('ROLLBACK');return res.status(404).json({error:'pupil_not_found'})}if(newKey!==oldKey)await client.query('UPDATE nataiji_marks SET pupil_key=$4,updated_at=now() WHERE school_id=$1 AND class_id=$2 AND pupil_key=$3',[req.user.schoolId,classId,oldKey,newKey]);await client.query('DELETE FROM nataiji_pupils WHERE school_id=$1 AND class_id=$2 AND nns=$3',[req.user.schoolId,classId,oldKey]);await client.query('INSERT INTO nataiji_pupils(school_id,class_id,nns,data,position) VALUES($1,$2,$3,$4::jsonb,$5)',[req.user.schoolId,classId,newKey,JSON.stringify(pupil),old.rows[0].position]);await client.query('INSERT INTO nataiji_migrations(school_id,class_id,resource) VALUES($1,$2,$3) ON CONFLICT DO NOTHING',[req.user.schoolId,classId,'pupils']);await client.query('COMMIT')}catch(e){try{await client.query('ROLLBACK')}catch{}if(e.code==='23505')return res.status(409).json({error:'pupil_exists'});throw e}finally{client.release()}const q=await pool.query('SELECT nns,data FROM nataiji_pupils WHERE school_id=$1 AND class_id=$2 ORDER BY position,updated_at',[req.user.schoolId,classId]);res.json({ok:true,classId,pupils:pupilRows(q.rows)})});
 
-app.delete('/api/pupils/:nns',auth,async(req,res)=>{if(!pool)return res.status(503).json({error:'durable_storage_required'});const st=await loadDurableSchoolStructure(req.user.schoolId),requestedClassId=String(req.query.classId||'').trim(),fallbackClassId=String(st.activeClassId||''),allowed=req.user.role==='admin'?(st.classes||[]).map(x=>String(x.id)):assignedClassIds(req.user,{classes:st.classes||[]}).map(String);if(requestedClassId&&!allowed.includes(requestedClassId))return res.status(req.user.role==='teacher'?403:400).json({error:req.user.role==='teacher'?'forbidden_class':'invalid_class'});const classId=requestedClassId||(allowed.includes(fallbackClassId)?fallbackClassId:(allowed[0]||''));if(req.user.role!=='admin'&&!new Set(req.user.permissions||[]).has('pupils'))return res.status(403).json({error:'forbidden'});if(!classId||!st.classes?.some(x=>x.id===classId))return res.status(400).json({error:'invalid_class'});await pool.query('DELETE FROM nataiji_marks WHERE school_id=$1 AND class_id=$2 AND pupil_key=$3',[req.user.schoolId,classId,String(req.params.nns)]);await pool.query('DELETE FROM nataiji_pupils WHERE school_id=$1 AND class_id=$2 AND nns=$3',[req.user.schoolId,classId,String(req.params.nns)]);await pool.query('INSERT INTO nataiji_migrations(school_id,class_id,resource) VALUES($1,$2,$3) ON CONFLICT DO NOTHING',[req.user.schoolId,classId,'pupils']);const q=await pool.query('SELECT nns,data FROM nataiji_pupils WHERE school_id=$1 AND class_id=$2 ORDER BY position,updated_at',[req.user.schoolId,classId]);res.json({ok:true,pupils:pupilRows(q.rows)})});
+app.delete('/api/pupils/:nns',auth,async(req,res)=>{if(!pool)return res.status(503).json({error:'durable_storage_required'});const st=await loadDurableSchoolStructure(req.user.schoolId),requestedClassId=String(req.query.classId||'').trim(),resolved=resolveTeacherMutationClass(req.user,st,requestedClassId);if(!resolved.ok)return res.status(req.user.role==='teacher'?403:400).json({error:resolved.error});const classId=resolved.classId;if(req.user.role!=='admin'&&!new Set(req.user.permissions||[]).has('pupils'))return res.status(403).json({error:'forbidden'});if(!classId||!st.classes?.some(x=>x.id===classId))return res.status(400).json({error:'invalid_class'});await pool.query('DELETE FROM nataiji_marks WHERE school_id=$1 AND class_id=$2 AND pupil_key=$3',[req.user.schoolId,classId,String(req.params.nns)]);await pool.query('DELETE FROM nataiji_pupils WHERE school_id=$1 AND class_id=$2 AND nns=$3',[req.user.schoolId,classId,String(req.params.nns)]);await pool.query('INSERT INTO nataiji_migrations(school_id,class_id,resource) VALUES($1,$2,$3) ON CONFLICT DO NOTHING',[req.user.schoolId,classId,'pupils']);const q=await pool.query('SELECT nns,data FROM nataiji_pupils WHERE school_id=$1 AND class_id=$2 ORDER BY position,updated_at',[req.user.schoolId,classId]);res.json({ok:true,classId,pupils:pupilRows(q.rows)})});
 
 async function overlayCanonicalMarks(full,schoolId){
  if(!pool)return full;
