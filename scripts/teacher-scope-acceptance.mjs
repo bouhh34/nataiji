@@ -127,6 +127,13 @@ try{
   });
   await teacher.request('/api/pupils/not-a-real-pupil?classId=class-b',{method:'DELETE',expected:403});
 
+  const staleRecovered=await teacher.request('/api/pupils',{
+    method:'POST',
+    body:{classId:'legacy-owned-class',pupil:['','طالب من قسم قديم','','','','Recovered From Stale Class','','']},
+    expected:201
+  });
+  if(staleRecovered.classId!=='class-a'||!staleRecovered.pupils?.some(p=>p?.[1]==='طالب من قسم قديم'))throw new Error('stale cross-workspace class id was not safely recovered to the only assigned class');
+
   const created=await teacher.request('/api/pupils',{
     method:'POST',
     body:{classId:'class-a',pupil:['','طالب مسموح','','','','Allowed Student','','']},
