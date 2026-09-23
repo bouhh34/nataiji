@@ -1,0 +1,69 @@
+name: Professor UI acceptance
+
+on:
+  pull_request:
+    paths:
+      - 'src/**'
+      - 'public/professor-v2.*'
+      - 'public/index.html'
+      - 'scripts/professor-v2-acceptance.mjs'
+      - '.github/workflows/professor-ui-acceptance.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  professor-ui:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_DB: nataiji_professor_ui
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: local_test_password
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 12
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+      - run: npm ci --no-audit --no-fund
+      - name: Syntax check professor UI
+        run: node --check public/professor-v2.js
+      - name: Install Playwright
+        run: |
+          npm install --no-save --no-package-lock playwright@1.55.0
+          npx playwright install --with-deps chromium
+      - name: Start local Nataiji
+        env:
+          NODE_ENV: development
+          PORT: '3222'
+          DATABASE_URL: postgresql://postgres:local_test_password@127.0.0.1:5432/nataiji_professor_ui
+          REDIS_URL: ''
+          SUPER_ADMIN_EMAIL: owner.professor.qa@example.com
+          SUPER_ADMIN_NAME: Professor QA Owner
+        run: |
+          npm start > /tmp/nataiji-professor-ui.log 2>&1 &
+          for i in $(seq 1 40); do
+            if curl --silent --fail http://127.0.0.1:3222/health >/dev/null; then exit 0; fi
+            sleep 1
+          done
+          cat /tmp/nataiji-professor-ui.log
+          exit 1
+      - name: Run professor browser acceptance
+        env:
+          NATAIJI_TEST_URL: http://127.0.0.1:3222
+        run: node scripts/professor-v2-acceptance.mjs
+      - name: Show server log on failure
+        if: failure()
+        run: cat /tmp/nataiji-professor-ui.log || true
