@@ -620,4 +620,38 @@ app.put('/api/state',auth,async(req,res)=>{const incoming=req.body?.state;if(!in
 
 app.use((req,res,next)=>{if(req.method==='GET'&&(req.path==='/'||req.path.endsWith('.html')||req.path==='/sw.js'))res.setHeader('Cache-Control','no-store, no-cache, must-revalidate');next()});app.use(express.static(path.join(__dirname,'../public')));app.use((_req,res)=>{res.setHeader('Cache-Control','no-store, no-cache, must-revalidate');res.sendFile(path.join(__dirname,'../public/index.html'))});
 app.use((err,req,res,_next)=>{const requestId=crypto.randomUUID();console.error('Unhandled request error',{requestId,method:req.method,path:req.path,error:err?.message||String(err),code:err?.code});if(res.headersSent)return;res.status(500).json({error:'internal_server_error',requestId})});
-const port=process.env.PORT||3000;await initStore();await reconcileConfiguredOwner();app.listen(port,()=>console.log(`Nataiji running on ${port} with ${storage}${pool&&redis?' (Redis migration fallback enabled)':''}`));
+async function logDataInventory(){
+ if(!pool)return;
+ try{
+  const refs=new Map(),userRows=(await pool.query("SELECT key,value FROM kv_store WHERE key LIKE 'nataiji:user:%'")).rows;let superAdmin=null;
+  for(const row of userRows){
+   try{
+    const u=JSON.parse(row.value),ids=[...new Set([...(Array.isArray(u.ownedSchoolIds)?u.ownedSchoolIds:[]),...(u.schoolId?[u.schoolId]:[])].map(String).filter(Boolean))];
+    for(const id of ids)refs.set(id,(refs.get(id)||0)+1);
+    if(configuredOwnerEmail()&&normEmail(u.email)===configuredOwnerEmail())superAdmin={currentSchoolId:String(u.schoolId||''),ownedSchoolIds:ids};
+   }catch{}
+  }
+  const ids=new Set();
+  for(const table of ['nataiji_school_settings','nataiji_structure','nataiji_pupils','nataiji_subjects','nataiji_marks']){
+   const rows=(await pool.query('SELECT DISTINCT school_id FROM '+table)).rows;for(const row of rows)if(row.school_id)ids.add(String(row.school_id));
+  }
+  const legacyRows=(await pool.query("SELECT key FROM kv_store WHERE key LIKE 'nataiji:school:%:state'")).rows;
+  for(const row of legacyRows){const m=String(row.key||'').match(/^nataiji:school:(.+):state$/);if(m)ids.add(m[1])}
+  const schools=[];
+  for(const schoolId of ids){
+   const [st,pu,su,ma,se,lg]=await Promise.all([
+    pool.query('SELECT data FROM nataiji_structure WHERE school_id=$1',[schoolId]),
+    pool.query('SELECT count(*)::int AS n FROM nataiji_pupils WHERE school_id=$1',[schoolId]),
+    pool.query('SELECT count(*)::int AS n FROM nataiji_subjects WHERE school_id=$1',[schoolId]),
+    pool.query('SELECT count(*)::int AS n FROM nataiji_marks WHERE school_id=$1',[schoolId]),
+    pool.query('SELECT count(*)::int AS n FROM nataiji_school_settings WHERE school_id=$1',[schoolId]),
+    pool.query('SELECT count(*)::int AS n FROM kv_store WHERE key=$1',['nataiji:school:'+schoolId+':state'])
+   ]);
+   const data=st.rows[0]?.data||{};
+   schools.push({schoolId,classes:Array.isArray(data.classes)?data.classes.length:0,terms:Array.isArray(data.terms)?data.terms.length:0,pupils:Number(pu.rows[0]?.n||0),subjects:Number(su.rows[0]?.n||0),marks:Number(ma.rows[0]?.n||0),settings:Number(se.rows[0]?.n||0),legacyState:Number(lg.rows[0]?.n||0)>0,referencedBy:Number(refs.get(schoolId)||0)});
+  }
+  console.log('NATAIJI_DATA_AUDIT',JSON.stringify({users:userRows.length,superAdmin,schools}));
+ }catch(e){console.error('NATAIJI_DATA_AUDIT_FAILED',e?.message||String(e))}
+}
+
+const port=process.env.PORT||3000;await initStore();await reconcileConfiguredOwner();await logDataInventory();app.listen(port,()=>console.log(`Nataiji running on ${port} with ${storage}${pool&&redis?' (Redis migration fallback enabled)':''}`));
