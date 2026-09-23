@@ -101,17 +101,35 @@ try{
  await page.locator('.professor-x').click();
 
  await page.locator('[data-class-grade]').filter({hasText:'الرياضيات'}).click();
+ let delayedGradePut=false;
+ await page.route('**/api/professor/profile',async route=>{
+  if(route.request().method()==='PUT'&&!delayedGradePut){delayedGradePut=true;await new Promise(r=>setTimeout(r,900))}
+  await route.continue()
+ });
  let gradeTests=page.locator('[data-test-index]');
- for(const [i,v] of ['10','11','12'].entries())await gradeTests.nth(i).fill(v);
- await page.locator('[data-exam]').fill('13');await page.locator('#pv2SaveGrades').click();
- check('first professor math trimester 1 uses three tests plus exam',(await page.locator('[data-avg]').first().innerText()).trim()==='12.00');
+ await gradeTests.nth(0).fill('10');
+ await page.waitForTimeout(650);
+ await gradeTests.nth(1).fill('11');
+ await gradeTests.nth(2).fill('12');
+ await page.locator('[data-exam]').fill('13');
+ await page.locator('#pv2SaveGrades').click();
+ await page.waitForFunction(()=>document.querySelector('#pv2SaveState')?.textContent?.includes('✓'),null,{timeout:8000});
+ await page.unroute('**/api/professor/profile');
+ check('autosave response cannot erase newer professor grade edits',(await page.locator('[data-avg]').first().innerText()).trim()==='12.00');
+ await page.waitForFunction(async()=>{const r=await fetch('/api/professor/profile');const j=await r.json(),a=j.profile.assignments.find(x=>x.subjectKey==='math'||String(x.subject||'').includes('رياض')),sid=j.profile.classes.find(x=>x.id===a.classId)?.students?.[0]?.id,rec=j.profile.marks?.[a.id]?.[sid]?.terms?.['1'];return JSON.stringify(rec?.tests)===JSON.stringify(['10','11','12'])&&rec?.exam==='13'},null,{timeout:8000});
+ const persistedRaceMarks=await page.evaluate(async()=>{const r=await fetch('/api/professor/profile');const j=await r.json();const a=j.profile.assignments.find(x=>x.subjectKey==='math'||String(x.subject||'').includes('رياض'));const sid=j.profile.classes.find(x=>x.id===a.classId)?.students?.[0]?.id;return j.profile.marks?.[a.id]?.[sid]?.terms?.['1']||null});
+ check('raced professor grades are durably saved',JSON.stringify(persistedRaceMarks?.tests)===JSON.stringify(['10','11','12'])&&persistedRaceMarks?.exam==='13',JSON.stringify(persistedRaceMarks));
  await page.locator('[data-prof-term="2"]').click();
+ await page.locator('[data-prof-term="2"].on').waitFor({state:'visible',timeout:8000});
  gradeTests=page.locator('[data-test-index]');for(const [i,v] of ['14','15','16'].entries())await gradeTests.nth(i).fill(v);
  await page.locator('[data-exam]').fill('17');await page.locator('#pv2SaveGrades').click();
+ await page.waitForFunction(()=>document.querySelector('#pv2SaveState')?.textContent?.includes('✓'),null,{timeout:8000});
  check('math trimester 2 is independent from trimester 1',(await page.locator('[data-avg]').first().innerText()).trim()==='16.00');
  await page.locator('[data-prof-term="3"]').click();
+ await page.locator('[data-prof-term="3"].on').waitFor({state:'visible',timeout:8000});
  gradeTests=page.locator('[data-test-index]');for(const [i,v] of ['16','17','18'].entries())await gradeTests.nth(i).fill(v);
  await page.locator('[data-exam]').fill('19');await page.locator('#pv2SaveGrades').click();
+ await page.waitForFunction(()=>document.querySelector('#pv2SaveState')?.textContent?.includes('✓'),null,{timeout:8000});
  check('math trimester 3 uses its own three tests and exam',(await page.locator('[data-avg]').first().innerText()).trim()==='18.00');
  check('math annual subject average appears in trimester 3',(await page.locator('[data-annual]').first().innerText()).trim()==='16.33');
  await page.locator('#pv2BackGrade').click();
