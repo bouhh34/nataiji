@@ -9,6 +9,9 @@ const uid=()=>globalThis.crypto?.randomUUID?.()||('p-'+Date.now().toString(36)+M
 let profile={schoolName:'',year:'',classes:[],assignments:[],marks:{}},links={},professorUser=null,currentView='home',academicCatalog={version:'',levels:[]};
 let homeClassId='';
 let gradeSaveTimer=null,gradeEditRevision=0,gradeSavedRevision=0,gradeSaveInFlight=null;
+let professorInstallPrompt=null;
+window.addEventListener('beforeinstallprompt',e=>{try{e.preventDefault();professorInstallPrompt=e}catch{}});
+window.addEventListener('appinstalled',()=>{professorInstallPrompt=null});
 
 function hideLegacy(){
  document.documentElement.classList.add('nataiji-professor-mode');
