@@ -389,7 +389,73 @@ app.get('/api/owner/overview',auth,ownerOnly,async(_req,res)=>{
  const idx=await getIndex(),accounts=[];let schools=0;
  for(const [email,id] of Object.entries(idx)){const raw=await storeGet(userKey(id));if(!raw)continue;try{const u=JSON.parse(raw),baseRole=u.baseRole||u.role,owned=[...new Set(Array.isArray(u.ownedSchoolIds)?u.ownedSchoolIds:(u.schoolId?[u.schoolId]:[]))];schools+=owned.length;accounts.push({id:u.id,name:u.name||'',email,role:baseRole==='owner'?'owner':baseRole==='teacher'?'teacher':baseRole==='professor'?'professor':'admin',schools:baseRole==='professor'?0:owned.length,suspended:!!u.suspended,plan:u.plan||'free'})}catch{}}
  res.json({ok:true,stats:{users:accounts.length,schools,superAdmins:accounts.filter(x=>x.role==='owner').length,schoolAdmins:accounts.filter(x=>x.role==='admin').length,teachers:accounts.filter(x=>x.role==='teacher').length,professors:accounts.filter(x=>x.role==='professor').length},accounts:accounts.sort((a,b)=>String(a.name).localeCompare(String(b.name),'fr'))})
+});async function ownerAccountById(id){
+ const raw=await storeGet(userKey(String(id||'')));if(!raw)return null;
+ try{return JSON.parse(raw)}catch{return null}
+}
+async function ownerProfessorAccount(id){
+ const user=await ownerAccountById(id);if(!user)return null;
+ return String(user.baseRole||user.role)==='professor'?user:null
+}
+function professorAssignmentHasGrades(profile,assignmentId){
+ const rows=profile?.marks?.[assignmentId];if(!rows||typeof rows!=='object')return false;
+ for(const row of Object.values(rows||{}))for(const value of Object.values(row||{}))if(String(value??'').trim()!=='')return true;
+ return false
+}
+async function ownerProfessorView(user){
+ let profile=await loadProfessorProfile(user.id),links=await professorClassLinks(profile,user.id);profile=cleanProfessorProfile(profile);
+ const versions=pool?Number((await pool.query('SELECT count(*)::int AS n FROM nataiji_professor_profile_versions WHERE user_id=$1',[user.id])).rows[0]?.n||0):0;
+ const classes=profile.classes.map(cls=>({id:cls.id,name:cls.name,levelCode:cls.levelCode||'',branchCode:cls.branchCode||'',studentCount:(cls.students||[]).length,sharedClassId:cls.sharedClassId||'',linkedProfessorCount:Number(links?.[cls.id]?.memberCount||1)}));
+ const assignments=profile.assignments.map(a=>({id:a.id,classId:a.classId,subject:a.subject,subjectKey:a.subjectKey||'',coefficient:Number(a.coefficient)||1,coefficientSource:a.coefficientSource||'manual',hasGrades:professorAssignmentHasGrades(profile,a.id)}));
+ return{account:{id:user.id,name:user.name||'',email:user.email||'',role:'professor',suspended:!!user.suspended,plan:user.plan||'free'},schoolName:profile.schoolName||'',year:profile.year||'',classes,assignments,versionCount:versions}
+}
+async function ownerTeacherSummary(user){
+ let schoolName='';if(pool&&user.schoolId){const q=await pool.query('SELECT data FROM nataiji_school_settings WHERE school_id=$1',[user.schoolId]);schoolName=String(q.rows[0]?.data?.school||'')}
+ return{id:user.id,name:user.name||'',email:user.email||'',role:'teacher',suspended:!!user.suspended,plan:user.plan||'free',schoolName,schoolId:String(user.schoolId||''),classCount:Array.isArray(user.classIds)?user.classIds.length:0}
+}
+app.get('/api/owner/staff',auth,ownerOnly,async(_req,res)=>{
+ const idx=await getIndex(),teachers=[],professors=[];
+ for(const id of Object.values(idx)){
+  const user=await ownerAccountById(id);if(!user)continue;const role=String(user.baseRole||user.role);
+  if(role==='teacher')teachers.push(await ownerTeacherSummary(user));
+  if(role==='professor'){const view=await ownerProfessorView(user);professors.push({...view.account,schoolName:view.schoolName,year:view.year,classCount:view.classes.length,assignmentCount:view.assignments.length,linkedClassCount:view.classes.filter(x=>x.linkedProfessorCount>1).length,versionCount:view.versionCount})}
+ }
+ const byName=(a,b)=>String(a.name||'').localeCompare(String(b.name||''),'fr');
+ res.json({ok:true,teachers:teachers.sort(byName),professors:professors.sort(byName)})
 });
+app.get('/api/owner/professors/:id',auth,ownerOnly,async(req,res)=>{
+ if(!pool)return res.status(503).json({error:'durable_storage_required'});const user=await ownerProfessorAccount(req.params.id);if(!user)return res.status(404).json({error:'professor_account_not_found'});
+ res.json({ok:true,professor:await ownerProfessorView(user),catalog:professorCatalog()})
+});
+app.post('/api/owner/professors/:id/classes',auth,ownerOnly,async(req,res)=>{
+ if(!pool)return res.status(503).json({error:'durable_storage_required'});const user=await ownerProfessorAccount(req.params.id);if(!user)return res.status(404).json({error:'professor_account_not_found'});
+ const name=String(req.body?.name||'').trim().slice(0,120),levelCode=String(req.body?.levelCode||'').trim().toUpperCase(),branchCode=String(req.body?.branchCode||'').trim().slice(0,40);
+ if(!name||!['1AS','2AS','3AS'].includes(levelCode))return res.status(400).json({error:'invalid_input'});
+ const profile=await loadProfessorProfile(user.id);if(profile.classes.some(x=>String(x.name).trim().toLowerCase()===name.toLowerCase()))return res.status(409).json({error:'professor_class_exists'});
+ profile.classes.push({id:crypto.randomUUID(),name,levelCode,branchCode,students:[],sharedClassId:''});await saveProfessorProfile(user.id,profile,{syncShared:false});
+ res.status(201).json({ok:true,professor:await ownerProfessorView(user)})
+});
+app.delete('/api/owner/professors/:id/classes/:classId',auth,ownerOnly,async(req,res)=>{
+ if(!pool)return res.status(503).json({error:'durable_storage_required'});if(String(req.body?.confirm||'')!=='REMOVE_EMPTY_CLASS')return res.status(400).json({error:'delete_confirmation_required'});
+ const user=await ownerProfessorAccount(req.params.id);if(!user)return res.status(404).json({error:'professor_account_not_found'});const profile=await loadProfessorProfile(user.id),cls=profile.classes.find(x=>x.id===String(req.params.classId||''));if(!cls)return res.status(404).json({error:'professor_class_not_found'});
+ if((cls.students||[]).length||profile.assignments.some(a=>a.classId===cls.id)||cls.sharedClassId)return res.status(409).json({error:'professor_class_not_empty'});
+ profile.classes=profile.classes.filter(x=>x.id!==cls.id);await saveProfessorProfile(user.id,profile,{syncShared:false});res.json({ok:true,professor:await ownerProfessorView(user)})
+});
+app.post('/api/owner/professors/:id/assignments',auth,ownerOnly,async(req,res)=>{
+ if(!pool)return res.status(503).json({error:'durable_storage_required'});const user=await ownerProfessorAccount(req.params.id);if(!user)return res.status(404).json({error:'professor_account_not_found'});const profile=await loadProfessorProfile(user.id),classId=String(req.body?.classId||''),cls=profile.classes.find(x=>x.id===classId);if(!cls)return res.status(404).json({error:'professor_class_not_found'});
+ const requestedKey=normalizeProfessorSubjectKey(req.body?.subjectKey||req.body?.subject),spec=requestedKey?professorSubjectFor(cls.levelCode,requestedKey):null,custom=String(req.body?.subject||'').trim().slice(0,120),subjectKey=spec?.key||'',subject=spec?.ar||custom,official=spec?.official?Number(spec.coefficient):null,rawCoefficient=Number(req.body?.coefficient),coefficient=official??(Number.isFinite(rawCoefficient)&&rawCoefficient>0&&rawCoefficient<=20?Math.round(rawCoefficient*100)/100:null);
+ if(!subject||coefficient==null)return res.status(400).json({error:'invalid_input'});
+ if(profile.assignments.some(a=>a.classId===classId&&((subjectKey&&a.subjectKey===subjectKey)||String(a.subject).trim().toLowerCase()===subject.toLowerCase())))return res.status(409).json({error:'professor_assignment_exists'});
+ const assignment={id:crypto.randomUUID(),subject,classId,subjectKey,coefficient,coefficientSource:official!=null?'official':'manual'};profile.assignments.push(assignment);profile.marks[assignment.id]={};await saveProfessorProfile(user.id,profile,{syncShared:false});
+ res.status(201).json({ok:true,professor:await ownerProfessorView(user)})
+});
+app.delete('/api/owner/professors/:id/assignments/:assignmentId',auth,ownerOnly,async(req,res)=>{
+ if(!pool)return res.status(503).json({error:'durable_storage_required'});if(String(req.body?.confirm||'')!=='REMOVE_ASSIGNMENT')return res.status(400).json({error:'delete_confirmation_required'});
+ const user=await ownerProfessorAccount(req.params.id);if(!user)return res.status(404).json({error:'professor_account_not_found'});const profile=await loadProfessorProfile(user.id),assignment=profile.assignments.find(x=>x.id===String(req.params.assignmentId||''));if(!assignment)return res.status(404).json({error:'professor_assignment_not_found'});
+ if(professorAssignmentHasGrades(profile,assignment.id))return res.status(409).json({error:'assignment_has_grades'});
+ profile.assignments=profile.assignments.filter(x=>x.id!==assignment.id);delete profile.marks[assignment.id];await saveProfessorProfile(user.id,profile,{syncShared:false});res.json({ok:true,professor:await ownerProfessorView(user)})
+});
+
 app.post('/api/account/password',auth,resetPasswordRate,async(req,res)=>{
  const current=String(req.body?.currentPassword||''),password=String(req.body?.password||'');
  if(password.length<8||password.length>256)return res.status(400).json({error:'invalid_input'});
