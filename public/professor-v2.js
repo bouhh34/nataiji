@@ -642,8 +642,6 @@ async function renderResults(classId='',term=1){
   bindTop(el);bindNav(el);q('[data-report-section="own"]',el).onclick=()=>renderReportsHub(term);q('#profReportsGoClasses',el).onclick=()=>{currentView='students';renderClasses()};return
  }
  const options=classes.map(x=>`<option value="${esc(x.id)}" ${x.id===classId?'selected':''}>${esc(profClass(x.name))}</option>`).join('');
- const tabs=[1,2,3].map(t=>`<button class="${t===term?'on':''}" data-results-term="${t}>${tr('الفصل '+t,'Trimestre '+t)}</button>`).join('');
- // Fix accidental missing quote safely after generation.
  const safeTabs=[1,2,3].map(t=>`<button class="${t===term?'on':''}" data-results-term="${t}">${tr('الفصل '+t,'Trimestre '+t)}</button>`).join('');
  el.innerHTML=`<div class="professor-shell prof-collective-reference">${topbar('','')}
   <section class="professor-content prof-collective-card">
@@ -669,10 +667,10 @@ async function renderResults(classId='',term=1){
   const warning=!data.curriculumComplete?`<div class="prof-curriculum-warning prof-collective-warning"><span class="prof-warning-icon">${icon('warn')}</span><div><b>${tr('الكشف لم يكتمل بعد','Le relevé n’est pas encore complet')}</b><p>${tr('مجموع معاملات المواد المضافة هو ','Le total des coefficients ajoutés est de ')}<strong dir="ltr">${esc(curriculumProgressText(data))}</strong>.<br>${tr('يثبت المعدل والترتيب الرسميان عند اكتمال معاملات مواد القسم.','La moyenne et le classement officiels seront établis lorsque tous les coefficients de la classe seront complets.')}</p></div></div>`:'';
   body.innerHTML=`
    <div class="prof-results-summary prof-collective-summary">
-    <article class="stat-members"><span>${icon('group')}</span><div><small>${tr('الأساتذة المرتبطون','Professeurs liés')}</small><strong>${data.memberCount}</strong></div></article>
     <article class="stat-subjects"><span>${icon('book')}</span><div><small>${tr('المواد','Matières')}</small><strong>${data.subjects.length}</strong></div></article>
-    <article class="stat-complete"><span>${icon('check')}</span><div><small>${tr('نتائج مكتملة','Résultats complets')}</small><strong>${data.completeStudents}/${data.totalStudents}</strong></div></article>
+    <article class="stat-members"><span>${icon('group')}</span><div><small>${tr('الأساتذة المرتبطون','Professeurs liés')}</small><strong>${data.memberCount}</strong></div></article>
     <article class="stat-average"><span>${icon('chart')}</span><div><small>${avgLabel}</small><strong>${resultText(data.classAverage)}</strong></div></article>
+    <article class="stat-complete"><span>${icon('check')}</span><div><small>${tr('نتائج مكتملة','Résultats complets')}</small><strong>${data.completeStudents}/${data.totalStudents}</strong></div></article>
    </div>
    ${warning}
    <div class="prof-collective-section-title"><span>${icon('group')}</span><b>${tr('الفصل','Classe')} – ${esc(profClass(data.className))}</b></div>
