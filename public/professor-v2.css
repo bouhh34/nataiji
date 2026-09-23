@@ -104,3 +104,19 @@ html.nataiji-professor-mode body{background:#f4f7f6;min-height:100vh;overflow-x:
  .prof-student-field input,.prof-student-field select{height:64px;border-radius:16px!important}
  .prof-student-save-row .primary{min-width:222px;height:58px;font-size:16px!important}
 }
+
+
+/* Professor-only individual subject lists */
+.prof-card-actions{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+.prof-card-actions>button{border-radius:12px;padding:10px 12px;font-weight:800}
+.prof-card-actions>button[data-subject-list-id]{background:#fff;border:1px solid rgba(15,76,65,.18);color:#0f4c41}
+.prof-own-grade-table{min-width:900px}
+.prof-own-grade-table input{min-width:72px;text-align:center}
+.prof-own-list-preview .professor-table-wrap{margin-top:12px}
+.professor-own-list-table th,.professor-own-list-table td{text-align:center;vertical-align:middle}
+.professor-own-list-table .name .dual-ar,.professor-own-list-table .name .dual-fr{display:block}
+.professor-own-list-meta{margin-bottom:2mm}
+.professor-own-list-doc .result-table{font-size:8.2pt}
+.professor-own-list-doc .result-table th,.professor-own-list-doc .result-table td{padding:1.15mm .7mm}
+.professor-own-list-doc .own-list-annual-note{font-size:7pt;text-align:center;margin:2mm 0 0}
+@media(max-width:640px){.prof-card-actions{width:100%}.prof-card-actions>button{flex:1 1 auto}.prof-own-grade-table{min-width:820px}}
