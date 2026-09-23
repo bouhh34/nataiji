@@ -33,21 +33,21 @@ const ALIASES=new Map([
 // with a manual coefficient until their current official coefficient is verified.
 const LEVELS=[
   {
-    code:'1AS',ar:'السنة الأولى إعدادية',fr:'1re année secondaire',cycle:'first',
+    code:'1AS',ar:'السنة الأولى إعدادية',fr:'1re année secondaire',cycle:'first',expectedCoefficientTotal:27,
     subjects:[
       ['math',6],['arabic',5],['french',4],['english',2],['history_geo',2],['eps',1],
       ['islamic',null],['natural_sciences',null],['civic',null],['technology',null],['informatics',null],['physical_sciences',null]
     ]
   },
   {
-    code:'2AS',ar:'السنة الثانية إعدادية',fr:'2e année secondaire',cycle:'first',
+    code:'2AS',ar:'السنة الثانية إعدادية',fr:'2e année secondaire',cycle:'first',expectedCoefficientTotal:28,
     subjects:[
       ['math',6],['english',2],['arabic',null],['french',null],['islamic',null],['history_geo',null],
       ['natural_sciences',null],['physical_sciences',null],['civic',null],['technology',null],['informatics',null],['eps',null]
     ]
   },
   {
-    code:'3AS',ar:'السنة الثالثة إعدادية',fr:'3e année secondaire',cycle:'first',
+    code:'3AS',ar:'السنة الثالثة إعدادية',fr:'3e année secondaire',cycle:'first',expectedCoefficientTotal:28,
     subjects:[
       ['math',6],['english',2],['arabic',null],['french',null],['islamic',null],['history_geo',null],
       ['natural_sciences',null],['physical_sciences',null],['civic',null],['technology',null],['informatics',null],['eps',null]
@@ -74,7 +74,7 @@ export function professorCatalog(){
   return {
     version:PROFESSOR_CATALOG_VERSION,
     levels:LEVELS.map(level=>({
-      code:level.code,ar:level.ar,fr:level.fr,cycle:level.cycle,branches:[],
+      code:level.code,ar:level.ar,fr:level.fr,cycle:level.cycle,expectedCoefficientTotal:level.expectedCoefficientTotal,branches:[],
       subjects:level.subjects.map(([key,coefficient])=>({...SUBJECTS[key],coefficient,official:coefficient!=null}))
     }))
   };
@@ -98,4 +98,9 @@ export function officialProfessorCoefficient(levelCode,subjectKeyOrName){
 export function professorSubjectLabel(subjectKeyOrName,lang='ar'){
   const key=normalizeProfessorSubjectKey(subjectKeyOrName);
   return key&&SUBJECTS[key]?SUBJECTS[key][lang==='fr'?'fr':'ar']:String(subjectKeyOrName||'');
+}
+
+export function expectedProfessorCoefficientTotal(levelCode){
+  const level=LEVELS.find(x=>x.code===String(levelCode||'').toUpperCase());
+  return level?.expectedCoefficientTotal?Number(level.expectedCoefficientTotal):null;
 }
