@@ -5,7 +5,7 @@ html.nataiji-professor-mode body{background:#f4f7f6;min-height:100vh;overflow-x:
 
 .prof-results-select{min-width:210px;border:1px solid #cbdad4;border-radius:11px;padding:10px 12px;background:#fff;font:inherit;color:#17362d}
 .prof-results-loading{padding:36px;text-align:center;color:#71847d}
-.prof-results-summary{display:grid;grid-template-columns:repeat(4,1fr);gap:9px;margin:2px 0 14px}
+.prof-results-summary{display:grid;grid-template-columns:repeat(auto-fit,minmax(112px,1fr));gap:9px;margin:2px 0 14px}
 .prof-results-summary article{border:1px solid #e1ebe6;background:#f8fbfa;border-radius:14px;padding:11px;display:grid;gap:3px}
 .prof-results-summary small{color:#70837b;font-size:10px}.prof-results-summary strong{font-size:20px}
 .prof-results-actions{display:flex;align-items:center;justify-content:space-between;gap:10px;margin:0 0 10px}
@@ -31,3 +31,6 @@ html.nataiji-professor-mode body{background:#f4f7f6;min-height:100vh;overflow-x:
 .prof-more-grid .prof-more-danger{border-color:#efd8d8;color:#8e3535}.prof-more-grid .prof-more-danger>span{background:#fff0f0;color:#9a3939}
 
 .prof-official-coefficient{display:grid;place-items:center;min-height:92px;margin:10px 0 14px;border:1px solid #cfe4db;border-radius:16px;background:#eff8f4;color:#137956;font-size:34px;font-weight:900}.professor-modal input[readonly]{background:#eef7f3;color:#176b51;font-weight:800}.professor-modal label>small{display:block;margin-top:5px;color:#71847d;font-size:10px;line-height:1.45}
+
+.prof-curriculum-warning{display:grid;gap:4px;margin:0 0 12px;padding:10px 12px;border:1px solid #ecd99f;background:#fff9e8;border-radius:13px;color:#725b1d;font-size:11px;line-height:1.5}
+.prof-curriculum-warning b{font-size:12px}.prof-curriculum-warning span{color:#7b6938}

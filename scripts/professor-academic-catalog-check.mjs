@@ -1,9 +1,13 @@
 import assert from 'node:assert/strict';
-import {professorCatalog,inferProfessorLevelCode,normalizeProfessorSubjectKey,officialProfessorCoefficient,professorSubjectFor} from '../src/professor-academic-catalog.js';
+import {professorCatalog,inferProfessorLevelCode,normalizeProfessorSubjectKey,officialProfessorCoefficient,professorSubjectFor,expectedProfessorCoefficientTotal} from '../src/professor-academic-catalog.js';
 
 const catalog=professorCatalog();
 assert.deepEqual(catalog.levels.map(x=>x.code),['1AS','2AS','3AS']);
 assert.equal(catalog.levels.some(x=>['4AS','5AS'].includes(x.code)),false);
+assert.deepEqual(catalog.levels.map(x=>x.expectedCoefficientTotal),[27,28,28]);
+assert.equal(expectedProfessorCoefficientTotal('1AS'),27);
+assert.equal(expectedProfessorCoefficientTotal('2AS'),28);
+assert.equal(expectedProfessorCoefficientTotal('3AS'),28);
 assert.equal(inferProfessorLevelCode('2AS-A'),'2AS');
 assert.equal(inferProfessorLevelCode('3AS'),'3AS');
 assert.equal(inferProfessorLevelCode('4AS'),'');
