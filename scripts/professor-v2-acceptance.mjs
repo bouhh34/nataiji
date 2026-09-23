@@ -29,14 +29,18 @@ try{
  check('professor navigation matches teacher mental model',await page.locator('[data-prof-nav]').count()===5 && await page.locator('[data-prof-nav="grades"]').count()===1 && await page.locator('[data-prof-nav="students"]').count()===1 && await page.locator('[data-prof-nav="reports"]').count()===1 && await page.locator('[data-prof-nav="more"]').count()===1);
 
  await page.locator('#profAddSubject').click();
- await page.locator('#pv2Subject').fill('الرياضيات');
- await page.locator('#pv2Coefficient').fill('5');
+ const levelValues=await page.locator('#pv2Level option').evaluateAll(opts=>opts.map(o=>o.value));
+ check('current professor levels include only 1AS, 2AS and 3AS',JSON.stringify(levelValues)===JSON.stringify(['1AS','2AS','3AS']),JSON.stringify(levelValues));
+ check('obsolete 4AS and 5AS are not offered',!levelValues.includes('4AS')&&!levelValues.includes('5AS'),JSON.stringify(levelValues));
+ await page.locator('#pv2Level').selectOption('2AS');
+ await page.locator('#pv2SubjectCode').selectOption('math');
+ check('math coefficient is automatic and official in 2AS',await page.locator('#pv2Coefficient').inputValue()==='6'&&await page.locator('#pv2Coefficient').getAttribute('readonly')!==null);
  await page.locator('#pv2NewClass').fill('2AS-A');
  await page.locator('#pv2SaveAssignment').click();
  await page.locator('.prof-v2-assignment').waitFor({state:'visible',timeout:8000});
  const firstAssignmentText=await page.locator('.prof-v2-assignment').innerText();
- check('professor can create own subject and class',firstAssignmentText.includes('الرياضيات'));
- check('subject coefficient is shown on dashboard',/معامل\s*×5|Coef\.\s*×5/.test(firstAssignmentText),firstAssignmentText);
+ check('professor can create own subject and class',firstAssignmentText.includes('الرياضيات')&&firstAssignmentText.includes('2AS'));
+ check('official subject coefficient is shown on dashboard',/معامل\s*×6|Coef\.\s*×6/.test(firstAssignmentText),firstAssignmentText);
 
  await page.locator('#profAllClasses').click();
  await page.locator('[data-manage-class]').first().click();
@@ -83,11 +87,13 @@ try{
  check('shared roster is visible to second professor',await page.locator('.prof-student-row').count()===1,await page.locator('.prof-student-row').first().innerText());
 
  await page.locator('#pv2AddClassSubject').click();
- await page.locator('#pv2Subject').fill('Physique');
+ check('shared class keeps its 2AS level',await page.locator('#pv2Level').inputValue()==='2AS');
+ await page.locator('#pv2SubjectCode').selectOption('physics');
+ check('unverified physics coefficient stays manually editable',await page.locator('#pv2Coefficient').getAttribute('readonly')===null);
  await page.locator('#pv2Coefficient').fill('3');
  await page.locator('#pv2SaveAssignment').click();
  await page.locator('[data-class-grade]').waitFor({state:'visible',timeout:8000});
- check('second professor can add private subject to shared class',(await page.locator('[data-class-grade]').innerText()).includes('Physique'));
+ check('second professor can add private subject to shared class',(await page.locator('[data-class-grade]').innerText()).includes('الفيزياء'));
 
  await page.locator('[data-class-grade]').click();
  const inputs=page.locator('[data-kind]');
@@ -101,7 +107,7 @@ try{
  await page.locator('[data-prof-nav="reports"]').click();
  await page.locator('#pv2ResultsBody .prof-results-table').waitFor({state:'visible',timeout:10000});
  const autosavedResults=await page.locator('#pv2ResultsBody').innerText();
- check('leaving grade page auto-saves professor grades',autosavedResults.includes('12.88'),autosavedResults);
+ check('leaving grade page auto-saves professor grades',autosavedResults.includes('12.67'),autosavedResults);
 
  await page.reload({waitUntil:'domcontentloaded'});
  await page.locator('#profAddSubject').waitFor({state:'visible',timeout:12000});
@@ -114,11 +120,11 @@ try{
  await page.locator('[data-prof-nav="reports"]').click();
  await page.locator('#pv2ResultsBody .prof-results-table').waitFor({state:'visible',timeout:10000});
  const resultsText=await page.locator('#pv2ResultsBody').innerText();
- check('shared results include subjects from both professors',resultsText.includes('الرياضيات')&&resultsText.includes('Physique'),resultsText);
- check('shared general average uses subject coefficients',resultsText.includes('12.88'),resultsText);
+ check('shared results include subjects from both professors',resultsText.includes('الرياضيات')&&resultsText.includes('الفيزياء'),resultsText);
+ check('shared general average uses subject coefficients',resultsText.includes('12.67'),resultsText);
  check('shared results expose one student bulletin button',await page.locator('[data-bulletin]').count()===1);
  await page.locator('[data-bulletin]').click();
- check('student bulletin contains all shared subjects',(await page.locator('.prof-bulletin-preview').innerText()).includes('الرياضيات')&&(await page.locator('.prof-bulletin-preview').innerText()).includes('Physique'));
+ check('student bulletin contains all shared subjects',(await page.locator('.prof-bulletin-preview').innerText()).includes('الرياضيات')&&(await page.locator('.prof-bulletin-preview').innerText()).includes('الفيزياء'));
  await page.locator('.professor-x').click();
 
  await page.locator('#profLang').click();
