@@ -96,6 +96,10 @@ try{
  const ownSubjectsPrintText=await ownSubjectsPrint.locator('body').innerText();
  check('own-subject PDF combines all professor subjects in the class',ownSubjectsPrintText.includes('الرياضيات')&&ownSubjectsPrintText.includes('Mathématiques')&&ownSubjectsPrintText.includes('اللغة الفرنسية')&&ownSubjectsPrintText.includes('Français'),ownSubjectsPrintText);
  check('combined own-subject PDF uses one-test and final-average columns',ownSubjectsPrintText.includes('Test /20')&&ownSubjectsPrintText.includes('Moy. finale')&&ownSubjectsPrintText.includes('المعدل النهائي'),ownSubjectsPrintText);
+ check('two-subject own-list PDF stays portrait and uses the enlarged portrait layout',await ownSubjectsPrint.locator('main.professor-own-list-portrait.professor-own-list-2-subject').count()===1&&await ownSubjectsPrint.locator('main.landscape-doc').count()===0);
+ const ownListFont=await ownSubjectsPrint.locator('.professor-my-subjects-table').evaluate(el=>parseFloat(getComputedStyle(el).fontSize));
+ check('portrait own-list PDF keeps readable table text',ownListFont>=11,String(ownListFont));
+ check('own-list PDF changes to landscape only from three subjects',await page.evaluate(()=>window.NataijiProfessor?._ownListLandscape?.(1)===false&&window.NataijiProfessor?._ownListLandscape?.(2)===false&&window.NataijiProfessor?._ownListLandscape?.(3)===true));
  await ownSubjectsPrint.close();
  await page.locator('.professor-x').click();
  const unsharedCollective=await page.evaluate(async()=>{const p=await fetch('/api/professor/profile');const j=await p.json();const id=j.profile.classes[0].id;const r=await fetch('/api/professor/classes/'+encodeURIComponent(id)+'/results?term=1');return{status:r.status,body:await r.json()}});
