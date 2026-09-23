@@ -146,6 +146,11 @@ async function professorAggregatedResults(userId,localClassId,term){
    subjects.push({key:memberId+':'+a.id,subject:String(a.subject||''),subjectKey:String(a.subjectKey||''),coefficient,coefficientSource:official!=null?'official':'manual',ownerUserId:memberId,own:memberId===String(userId),marks})
   }
  }
+ const levelCatalog=professorCatalog().levels.find(x=>String(x.code)===levelCode),subjectOrder=new Map((levelCatalog?.subjects||[]).map((s,i)=>[String(s.key),i]));
+ subjects.sort((a,b)=>{
+  const ak=normalizeProfessorSubjectKey(a.subjectKey||a.subject),bk=normalizeProfessorSubjectKey(b.subjectKey||b.subject),ai=subjectOrder.has(ak)?subjectOrder.get(ak):999,bi=subjectOrder.has(bk)?subjectOrder.get(bk):999;
+  return ai-bi||String(a.subject).localeCompare(String(b.subject),'fr',{sensitivity:'base'})
+ });
  const assignedCoefficientTotal=subjects.reduce((sum,s)=>sum+(Number(s.coefficient)||0),0),curriculumComplete=expectedCoefficientTotal!=null?Math.abs(assignedCoefficientTotal-expectedCoefficientTotal)<0.001:false;
  const rows=students.map((student,index)=>{
   let weightedSum=0,coefficientSum=0,complete=true,completedSubjects=0;
