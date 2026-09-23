@@ -106,7 +106,7 @@ try{
  await page.locator('#pv2Coefficient').fill('2');
  await page.locator('#pv2SaveAssignment').click();
  const subjectButtons=page.locator('[data-class-grade]');
- check('same professor can have multiple subjects in one class',await subjectButtons.count()===2);
+ check('same professor can have multiple subjects in one class',await subjectButtons.filter({hasText:'Physique'}).count()===1&&await subjectButtons.filter({hasText:'Chimie'}).count()===1);
  await subjectButtons.filter({hasText:'Chimie'}).click();
  inputs=page.locator('[data-kind]');
  await inputs.nth(0).fill('12');
@@ -135,7 +135,7 @@ try{
  await page.locator('#profAddSubject').waitFor({state:'visible',timeout:12000});
  await page.locator('#profAllClasses').click();
  await page.locator('[data-manage-class]').first().click();
- await page.locator('[data-class-grade]').click();
+ await page.locator('[data-class-grade]').filter({hasText:'Physique'}).click();
  check('professor grades persist after reload',(await page.locator('[data-total]').first().innerText()).trim()==='32.00');
  check('coefficient persists after reload',(await page.locator('[data-weighted]').first().innerText()).trim()==='48.00');
 
