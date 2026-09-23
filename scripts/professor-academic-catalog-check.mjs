@@ -23,7 +23,21 @@ assert.equal(officialProfessorCoefficient('1AS','arabic'),5);
 assert.equal(officialProfessorCoefficient('1AS','french'),4);
 assert.equal(officialProfessorCoefficient('1AS','history_geo'),2);
 assert.equal(officialProfessorCoefficient('1AS','eps'),1);
-assert.equal(officialProfessorCoefficient('2AS','physical_sciences'),null);
-assert.equal(professorSubjectFor('2AS','physical_sciences')?.official,false);
+assert.equal(officialProfessorCoefficient('2AS','physical_sciences'),1);
+assert.equal(officialProfessorCoefficient('3AS','physical_sciences'),1);
+assert.equal(professorSubjectFor('2AS','physical_sciences')?.official,true);
+assert.equal(professorSubjectFor('1AS','physical_sciences'),null);
+for(const level of catalog.levels){
+  assert.equal(level.subjects.every(s=>s.official===true),true,`${level.code} must have only official standard coefficients`);
+  assert.equal(level.subjects.reduce((sum,s)=>sum+Number(s.coefficient||0),0),level.expectedCoefficientTotal,`${level.code} coefficients must match official total`);
+}
+assert.deepEqual(
+  catalog.levels.find(x=>x.code==='1AS').subjects.map(s=>[s.key,s.coefficient]),
+  [['math',6],['arabic',5],['french',4],['english',2],['islamic',2],['history_geo',2],['natural_sciences',2],['civic',1],['technology',1],['informatics',1],['eps',1]]
+);
+assert.deepEqual(
+  catalog.levels.find(x=>x.code==='2AS').subjects.map(s=>[s.key,s.coefficient]),
+  [['math',6],['arabic',5],['french',4],['english',2],['islamic',2],['history_geo',2],['natural_sciences',2],['physical_sciences',1],['civic',1],['technology',1],['informatics',1],['eps',1]]
+);
 
 console.log('Professor academic catalog checks passed');
