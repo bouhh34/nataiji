@@ -61,7 +61,7 @@ function cleanProfessorProfile(input){
   assignmentIds.add(id);assignments.push({id,subject,classId,subjectKey,coefficient,coefficientSource})
  }
  const marks={},srcMarks=src.marks&&typeof src.marks==='object'?src.marks:{},classMap=new Map(classes.map(x=>[x.id,new Set(x.students.map(s=>s.id))]));
- const cleanMark=v=>{const s=String(v??'').trim().replace(',','.');if(s==='')return'';const n=Number(s);return Number.isFinite(n)?String(Math.max(0,Math.min(20,n))):''};
+ const cleanMark=v=>{const raw=String(v??'').trim(),s=raw.replace(',','.');if(s==='')return'';if(/^(ABSENT|غائب|غائبة|absent|absente|a)$/i.test(raw))return'ABSENT';const n=Number(s);return Number.isFinite(n)?String(Math.max(0,Math.min(20,n))):''};
  const cleanProfessorTerm=(row,term)=>{
   const raw=row?.terms?.[String(term)]||row?.terms?.[term]||{},tests=Array.isArray(raw?.tests)?raw.tests:[],legacyTest=term===1?(row?.test1==null?row?.test:row?.test1):row?.['test'+term],legacyExam=term===1?(row?.exam1==null?row?.exam:row?.exam1):row?.['exam'+term];
   return{tests:[cleanMark(tests[0]??legacyTest)],exam:cleanMark(raw?.exam??legacyExam)}
@@ -101,10 +101,11 @@ async function loadProfessorProfile(userId){
  if(!q.rowCount){const fresh=emptyProfessorProfile();await pool.query('INSERT INTO nataiji_professor_profiles(user_id,data,updated_at) VALUES($1,$2::jsonb,now()) ON CONFLICT(user_id) DO NOTHING',[userId,JSON.stringify(fresh)]);q=await pool.query('SELECT data FROM nataiji_professor_profiles WHERE user_id=$1',[userId])}
  return cleanProfessorProfile(q.rows[0]?.data||{})
 }
-function professorResultNumber(v){if(v===''||v==null)return null;const n=Number(v);return Number.isFinite(n)?n:null}
+function professorResultAbsent(v){return /^(ABSENT|غائب|غائبة|absent|absente|a)$/i.test(String(v??'').trim())}
+function professorResultNumber(v){if(v===''||v==null)return null;if(professorResultAbsent(v))return 0;const n=Number(v);return Number.isFinite(n)?n:null}
 function professorTermRecord(row,term){
- const raw=row?.terms?.[String(term)]||row?.terms?.[term]||{},tests=Array.isArray(raw?.tests)?raw.tests:[],test=professorResultNumber(tests[0]);
- return{test,tests:[test],exam:professorResultNumber(raw?.exam)}
+ const raw=row?.terms?.[String(term)]||row?.terms?.[term]||{},tests=Array.isArray(raw?.tests)?raw.tests:[],rawTest=tests[0]??'',rawExam=raw?.exam??'',test=professorResultNumber(rawTest),exam=professorResultNumber(rawExam);
+ return{test,tests:[professorResultAbsent(rawTest)?'ABSENT':test],exam,displayExam:professorResultAbsent(rawExam)?'ABSENT':exam}
 }
 function professorTermAverage(row,term){
  const rec=professorTermRecord(row,term);if(rec.test==null||rec.exam==null)return null;
@@ -167,7 +168,7 @@ async function professorAggregatedResults(userId,localClassId,term){
  const assignedCoefficientTotal=subjects.reduce((sum,s)=>sum+(Number(s.coefficient)||0),0),curriculumComplete=expectedCoefficientTotal!=null?Math.abs(assignedCoefficientTotal-expectedCoefficientTotal)<0.001:false;
  const rows=students.map((student,index)=>{
   let weightedSum=0,coefficientSum=0,complete=true,completedSubjects=0;
-  const subjectResults=subjects.map(subject=>{const markRow=subject.marks?.[student.id]||{},rec=professorTermRecord(markRow,term),rawAverage=professorTermAverage(markRow,term),rawAnnualAverage=term===3?professorAnnualAverage(markRow):null,hasResult=(term===3?rawAnnualAverage:rawAverage)!=null,aggregateAverage=hasResult?(term===3?rawAnnualAverage:rawAverage):0,weighted=aggregateAverage*subject.coefficient;if(!hasResult)complete=false;else completedSubjects++;weightedSum+=weighted;coefficientSum+=subject.coefficient;return{key:subject.key,average:rawAverage??0,aggregateAverage,weighted,tests:rec.tests,exam:rec.exam,testMean:rec.test,annualAverage:term===3?(rawAnnualAverage??0):null,entered:hasResult}});
+  const subjectResults=subjects.map(subject=>{const markRow=subject.marks?.[student.id]||{},rec=professorTermRecord(markRow,term),rawAverage=professorTermAverage(markRow,term),rawAnnualAverage=term===3?professorAnnualAverage(markRow):null,hasResult=(term===3?rawAnnualAverage:rawAverage)!=null,aggregateAverage=hasResult?(term===3?rawAnnualAverage:rawAverage):0,weighted=aggregateAverage*subject.coefficient;if(!hasResult)complete=false;else completedSubjects++;weightedSum+=weighted;coefficientSum+=subject.coefficient;return{key:subject.key,average:rawAverage??0,aggregateAverage,weighted,tests:rec.tests,exam:rec.displayExam,testMean:rec.test,annualAverage:term===3?(rawAnnualAverage??0):null,entered:hasResult}});
   const general=subjects.length&&coefficientSum>0?weightedSum/coefficientSum:null,officialReady=general!=null&&curriculumComplete&&complete;
   return{student:professorStudentData(student),position:index+1,subjectResults,general,complete:subjects.length>0&&complete,officialReady,completedSubjects,totalSubjects:subjects.length}
  });
