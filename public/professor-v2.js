@@ -37,12 +37,21 @@ function profTranslit(v){
  const m={'ا':'a','أ':'a','إ':'i','آ':'a','ب':'b','ت':'t','ث':'th','ج':'j','ح':'h','خ':'kh','د':'d','ذ':'dh','ر':'r','ز':'z','س':'s','ش':'ch','ص':'s','ض':'d','ط':'t','ظ':'z','ع':'','غ':'gh','ف':'f','ق':'q','ك':'k','ل':'l','م':'m','ن':'n','ه':'h','ة':'a','و':'ou','ؤ':'ou','ي':'i','ى':'a','ئ':'i','ء':'',' ':' ','-':'-'};
  let out='';for(const ch of s)out+=m[ch]??ch;return out.replace(/\s+/g,' ').trim().replace(/(^|\s)([a-zà-ÿ])/g,(x,a,b)=>a+b.toUpperCase())
 }
-function profName(v){if(!fr())return String(v||'');const raw=String(v||'').trim();return raw.split(/\s+/).map(x=>PROF_NAME_FR[x]||profTranslit(x)).join(' ')}
-function profSubject(v){const raw=String(v||'').trim();return fr()?(PROF_SUBJECT_FR[raw]||profTranslit(raw)):raw}
-function profClass(v){const raw=String(v||'').trim();if(!fr())return raw;const map={'السنة الأولى ابتدائية':'1re année primaire','السنة الثانية ابتدائية':'2e année primaire','السنة الثالثة ابتدائية':'3e année primaire','السنة الرابعة ابتدائية':'4e année primaire','السنة الخامسة ابتدائية':'5e année primaire','السنة السادسة ابتدائية':'6e année primaire'};return map[raw]||(/^[0-9A-Z-]+$/i.test(raw)?raw:profTranslit(raw))}
+function profNameFr(v){const raw=String(v||'').trim();if(!raw)return'';return raw.split(/\s+/).map(x=>PROF_NAME_FR[x]||profTranslit(x)).join(' ')}
+function profName(v){const raw=String(v||'').trim();return fr()?profNameFr(raw):raw}
+function profSubjectFr(v){const raw=String(v||'').trim();return PROF_SUBJECT_FR[raw]||profTranslit(raw)}
+function profSubject(v){const raw=String(v||'').trim();return fr()?profSubjectFr(raw):raw}
+function profClassFr(v){const raw=String(v||'').trim();const map={'السنة الأولى ابتدائية':'1re année primaire','السنة الثانية ابتدائية':'2e année primaire','السنة الثالثة ابتدائية':'3e année primaire','السنة الرابعة ابتدائية':'4e année primaire','السنة الخامسة ابتدائية':'5e année primaire','السنة السادسة ابتدائية':'6e année primaire'};return map[raw]||(/^[0-9A-Z-]+$/i.test(raw)?raw:profTranslit(raw))}
+function profClass(v){const raw=String(v||'').trim();return fr()?profClassFr(raw):raw}
 function profSchool(){return fr()?(profile.schoolNameFr||profTranslit(profile.schoolName)):profile.schoolName}
 function profRegion(){return fr()?(profile.regionFr||PROF_PLACE_FR[profile.region]||profTranslit(profile.region)):profile.region}
 function profInspection(){return fr()?(profile.inspectionFr||profTranslit(profile.inspection)):profile.inspection}
+function profNamePair(v){const raw=String(v||'').trim(),hasArabic=/[\u0600-\u06ff]/u.test(raw);return{ar:hasArabic?raw:'',fr:hasArabic?profNameFr(raw):raw}}
+function profClassPair(v){const raw=String(v||'').trim();return{ar:raw,fr:profClassFr(raw)}}
+function profSchoolPair(){const ar=String(profile.schoolName||'').trim(),frName=String(profile.schoolNameFr||'').trim()||profTranslit(ar);return{ar,fr:frName}}
+function profRegionPair(){const ar=String(profile.region||'').trim(),frName=String(profile.regionFr||'').trim()||PROF_PLACE_FR[ar]||profTranslit(ar);return{ar,fr:frName}}
+function profInspectionPair(){const ar=String(profile.inspection||'').trim(),frName=String(profile.inspectionFr||'').trim()||profTranslit(ar);return{ar,fr:frName}}
+function profSubjectPair(subject,subjectKey='',levelCode=''){const spec=catalogSubject(levelCode,subjectKey||subject),raw=String(subject||'').trim();return{ar:String(spec?.ar||raw),fr:String(spec?.fr||profSubjectFr(raw))}}
 
 function catalogLevel(code){return (academicCatalog.levels||[]).find(x=>x.code===String(code||'').toUpperCase())||null}
 function inferredLevelCode(name){const m=String(name||'').toUpperCase().replace(/\s+/g,'').match(/^([123])AS/);return m?m[1]+'AS':''}
