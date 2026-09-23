@@ -329,6 +329,10 @@ app.post('/api/account/profile-type',auth,async(req,res)=>{
  }
  await storeSet(userKey(user.id),JSON.stringify(user));res.json({ok:true,user:await createSession(res,user)})
 });
+app.get('/api/professor/catalog',auth,(req,res)=>{
+ if(req.user.role!=='professor')return res.status(403).json({error:'forbidden'});
+ res.json({ok:true,catalog:professorCatalog()})
+});
 app.get('/api/professor/profile',auth,async(req,res)=>{
  if(req.user.role!=='professor')return res.status(403).json({error:'forbidden'});if(!pool)return res.status(503).json({error:'durable_storage_required'});
  let profile=await loadProfessorProfile(req.user.id),classLinks=await professorClassLinks(profile,req.user.id);profile=cleanProfessorProfile(profile);await saveProfessorProfile(req.user.id,profile,{syncShared:false});
