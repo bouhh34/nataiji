@@ -246,18 +246,123 @@ function renderClasses(){
  bindTop(el);bindNav(el);q('#profClassAddSubject',el).onclick=openAssignment;q('#profClassJoin',el).onclick=openJoinClass;q('#profStudentsCreate',el)?.addEventListener('click',()=>{currentView='grades';renderGrades()});qa('[data-manage-class]',el).forEach(b=>b.onclick=()=>openClass(b.dataset.manageClass));qa('[data-share-class]',el).forEach(b=>b.onclick=()=>shareClass(b.dataset.shareClass))
 }
 
+function professorMoreIcon(name){
+ const common='viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"';
+ const icons={
+  account:`<svg ${common}><circle cx="12" cy="8" r="3.5"/><path d="M4.5 20c.6-4.1 3.2-6.3 7.5-6.3s6.9 2.2 7.5 6.3"/></svg>`,
+  school:`<svg ${common}><path d="M4 20V8l8-4 8 4v12"/><path d="M8 20v-5h3v5M14 11h2M14 15h2M7 11h1"/></svg>`,
+  books:`<svg ${common}><path d="M4 5c3-.7 5.5-.1 8 1.7V20c-2.5-1.8-5-2.4-8-1.7z"/><path d="M20 5c-3-.7-5.5-.1-8 1.7V20c2.5-1.8 5-2.4 8-1.7z"/></svg>`,
+  link:`<svg ${common}><path d="M9.5 14.5 14.5 9.5"/><path d="M7.3 17.7 5.2 19.8a4 4 0 0 1-5.6-5.6l3.1-3.1a4 4 0 0 1 5.6 0"/><path d="m16.7 6.3 2.1-2.1a4 4 0 0 1 5.6 5.6l-3.1 3.1a4 4 0 0 1-5.6 0"/></svg>`,
+  refresh:`<svg ${common}><path d="M20 11a8 8 0 0 0-14.8-4L3 10"/><path d="M3 5v5h5"/><path d="M4 13a8 8 0 0 0 14.8 4L21 14"/><path d="M21 19v-5h-5"/></svg>`,
+  language:`<svg ${common}><circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3a14 14 0 0 1 0 18M12 3a14 14 0 0 0 0 18"/></svg>`,
+  shield:`<svg ${common}><path d="M12 3 19 6v5c0 4.8-2.7 8-7 10-4.3-2-7-5.2-7-10V6z"/><path d="m9.5 12 1.7 1.7 3.6-4"/></svg>`,
+  chat:`<svg ${common}><path d="M4 5h16v11H9l-5 4z"/><path d="M8 10h.01M12 10h.01M16 10h.01"/></svg>`,
+  install:`<svg ${common}><path d="M12 3v12"/><path d="m8 11 4 4 4-4"/><path d="M5 20h14"/></svg>`,
+  trash:`<svg ${common}><path d="M4 7h16M9 7V4h6v3M7 7l1 13h8l1-13M10 11v5M14 11v5"/></svg>`
+ };return icons[name]||''
+}
+
+function openProfessorAccountSettings(){
+ const email=String(professorUser?.email||'').trim(),name=profName(professorUser?.name||'');
+ const m=modal(tr('إعدادات الحساب','Paramètres du compte'),`<div class="prof-account-settings">
+  <div class="prof-account-summary"><span>${professorMoreIcon('account')}</span><div><b>${esc(name||tr('الأستاذ','Professeur'))}</b><small dir="ltr">${esc(email||'—')}</small></div></div>
+  <div class="prof-link-explain"><b>${tr('تغيير كلمة المرور','Changer le mot de passe')}</b><p>${tr('أدخل كلمة المرور الحالية ثم كلمة مرور جديدة لا تقل عن 8 أحرف.','Saisissez le mot de passe actuel puis un nouveau mot de passe d’au moins 8 caractères.')}</p></div>
+  <label>${tr('كلمة المرور الحالية','Mot de passe actuel')}<input id="profCurrentPassword" type="password" autocomplete="current-password"></label>
+  <label>${tr('كلمة المرور الجديدة','Nouveau mot de passe')}<input id="profNewPassword" type="password" autocomplete="new-password" minlength="8"></label>
+  <label>${tr('تأكيد كلمة المرور الجديدة','Confirmer le nouveau mot de passe')}<input id="profConfirmPassword" type="password" autocomplete="new-password" minlength="8"></label>
+  <button class="primary" id="profSavePassword">${tr('حفظ كلمة المرور','Enregistrer le mot de passe')}</button><p class="professor-msg"></p>
+ </div>`);
+ q('#profSavePassword',m.wrap).onclick=async()=>{
+  const currentPassword=q('#profCurrentPassword',m.wrap).value,password=q('#profNewPassword',m.wrap).value,confirmPassword=q('#profConfirmPassword',m.wrap).value,msg=q('.professor-msg',m.wrap),btn=q('#profSavePassword',m.wrap);
+  if(password.length<8){msg.textContent=tr('كلمة المرور الجديدة يجب أن تكون 8 أحرف على الأقل.','Le nouveau mot de passe doit contenir au moins 8 caractères.');return}
+  if(password!==confirmPassword){msg.textContent=tr('تأكيد كلمة المرور غير مطابق.','La confirmation du mot de passe ne correspond pas.');return}
+  btn.disabled=true;try{const r=await api('/api/account/password',{method:'POST',body:JSON.stringify({currentPassword,password})});if(r?.user)professorUser=r.user;m.close();toast(tr('تم تغيير كلمة المرور','Mot de passe modifié'))}catch(e){msg.textContent=e.code==='bad_password'?tr('كلمة المرور الحالية غير صحيحة.','Mot de passe actuel incorrect.'):tr('تعذر تغيير كلمة المرور.','Impossible de modifier le mot de passe.')}finally{btn.disabled=false}
+ }
+}
+
+function openProfessorPrivacy(){
+ const m=modal(tr('سياسة الخصوصية','Politique de confidentialité'),`<div class="prof-info-sheet">
+  <span class="prof-info-icon privacy">${professorMoreIcon('shield')}</span>
+  <h3>${tr('خصوصيتك وبياناتك','Votre confidentialité et vos données')}</h3>
+  <p>${tr('يستخدم نتائجي بيانات الحساب والمؤسسة والأقسام والتلاميذ والدرجات لتقديم وظائف التطبيق وحفظ النتائج ومزامنتها بين الحسابات المصرح لها.','Nataiji utilise les données du compte, de l’établissement, des classes, des élèves et des notes pour fournir les fonctions de l’application et synchroniser les résultats entre les comptes autorisés.')}</p>
+  <p>${tr('يمكن حذف الحساب وبياناته من خيار حذف الحساب في هذه الصفحة.','Vous pouvez supprimer votre compte et ses données depuis l’option Supprimer le compte sur cette page.')}</p>
+  <button class="primary professor-x-inline">${tr('حسنًا','Fermer')}</button>
+ </div>`);q('.professor-x-inline',m.wrap).onclick=m.close
+}
+
+function openProfessorSupport(){
+ const m=modal(tr('الدعم والملاحظات','Support et commentaires'),`<div class="prof-support-sheet">
+  <span class="prof-info-icon support">${professorMoreIcon('chat')}</span>
+  <h3>${tr('شارك ملاحظاتك','Partagez vos commentaires')}</h3>
+  <p>${tr('اكتب المشكلة أو الاقتراح، ثم استخدم زر المشاركة لإرساله عبر التطبيق الذي تختاره على هاتفك.','Décrivez le problème ou votre suggestion, puis utilisez Partager pour l’envoyer via l’application de votre choix sur votre téléphone.')}</p>
+  <textarea id="profSupportText" rows="5" maxlength="1200" placeholder="${tr('اكتب ملاحظتك هنا…','Écrivez votre commentaire ici…')}"></textarea>
+  <button class="primary" id="profShareFeedback">${tr('مشاركة الملاحظة','Partager le commentaire')}</button><p class="professor-msg"></p>
+ </div>`);
+ q('#profShareFeedback',m.wrap).onclick=async()=>{
+  const text=q('#profSupportText',m.wrap).value.trim(),msg=q('.professor-msg',m.wrap);if(!text){msg.textContent=tr('اكتب الملاحظة أولًا.','Écrivez d’abord votre commentaire.');return}
+  const payload={title:'Nataiji',text:'Nataiji — '+text};
+  try{if(navigator.share){await navigator.share(payload);return}await navigator.clipboard.writeText(payload.text);msg.textContent=tr('تم نسخ الملاحظة. يمكنك لصقها في وسيلة التواصل التي تستخدمها.','Commentaire copié. Vous pouvez le coller dans votre moyen de contact habituel.')}catch{msg.textContent=tr('تعذرت المشاركة. انسخ النص يدويًا.','Partage impossible. Copiez le texte manuellement.')}
+ }
+}
+
+async function openProfessorInstall(){
+ if(window.matchMedia?.('(display-mode: standalone)').matches||navigator.standalone===true){toast(tr('التطبيق مثبت بالفعل','L’application est déjà installée'));return}
+ if(professorInstallPrompt){try{professorInstallPrompt.prompt();await professorInstallPrompt.userChoice;professorInstallPrompt=null;return}catch{}}
+ const ua=navigator.userAgent||'',ios=/iPad|iPhone|iPod/i.test(ua);
+ const m=modal(tr('تثبيت التطبيق','Installer l’application'),`<div class="prof-info-sheet">
+  <span class="prof-info-icon install">${professorMoreIcon('install')}</span>
+  <h3>${tr('إضافة نتائجي إلى الشاشة الرئيسية','Ajouter Nataiji à l’écran d’accueil')}</h3>
+  <p>${ios?tr('في Safari اضغط زر المشاركة ثم اختر «إضافة إلى الشاشة الرئيسية».','Dans Safari, touchez Partager puis « Sur l’écran d’accueil ».'):tr('من قائمة المتصفح اختر «تثبيت التطبيق» أو «إضافة إلى الشاشة الرئيسية».','Dans le menu du navigateur, choisissez « Installer l’application » ou « Ajouter à l’écran d’accueil ».')}</p>
+  <button class="primary professor-x-inline">${tr('فهمت','Compris')}</button>
+ </div>`);q('.professor-x-inline',m.wrap).onclick=m.close
+}
+
+function openProfessorDeleteAccount(){
+ const m=modal(tr('حذف الحساب','Supprimer le compte'),`<div class="prof-delete-sheet">
+  <span class="prof-info-icon delete">${professorMoreIcon('trash')}</span>
+  <h3>${tr('حذف الحساب نهائيًا','Supprimer définitivement le compte')}</h3>
+  <p>${tr('سيتم حذف الحساب وبيانات الأستاذ المرتبطة به. هذا الإجراء لا يمكن التراجع عنه.','Le compte et les données professeur qui lui sont associées seront supprimés. Cette action est irréversible.')}</p>
+  <label>${tr('كلمة المرور','Mot de passe')}<input id="profDeletePassword" type="password" autocomplete="current-password"></label>
+  <label>${tr('اكتب «حذف» للتأكيد','Saisissez « DELETE » pour confirmer')}<input id="profDeleteConfirm" autocomplete="off" placeholder="${fr()?'DELETE':'حذف'}"></label>
+  <button class="prof-delete-confirm" id="profDeleteAccountNow">${tr('حذف الحساب نهائيًا','Supprimer définitivement')}</button><p class="professor-msg"></p>
+ </div>`);
+ q('#profDeleteAccountNow',m.wrap).onclick=async()=>{
+  const password=q('#profDeletePassword',m.wrap).value,confirm=q('#profDeleteConfirm',m.wrap).value.trim(),msg=q('.professor-msg',m.wrap),btn=q('#profDeleteAccountNow',m.wrap);
+  if(!password||!confirm){msg.textContent=tr('أدخل كلمة المرور وكلمة التأكيد.','Saisissez le mot de passe et la confirmation.');return}
+  btn.disabled=true;try{await api('/api/account',{method:'DELETE',body:JSON.stringify({password,confirm})});location.reload()}catch(e){msg.textContent=e.code==='bad_password'?tr('كلمة المرور غير صحيحة.','Mot de passe incorrect.'):tr('تعذر حذف الحساب. تحقق من كلمة التأكيد ثم أعد المحاولة.','Impossible de supprimer le compte. Vérifiez la confirmation puis réessayez.')}finally{btn.disabled=false}
+ }
+}
+
 function renderMore(){
  currentView='more';const el=root();
- el.innerHTML=`<div class="professor-shell">${topbar(tr('المزيد','Plus'),tr('الإعدادات والأدوات','Paramètres et outils'))}<section class="prof-page-head prof-more-head"><div><small>${tr('أدوات وإعدادات','Outils et paramètres')}</small><h1>${tr('المزيد','Plus')}</h1><p>${tr('كل ما تحتاجه لإدارة حساب الأستاذ في مكان واحد.','Tout ce dont vous avez besoin pour gérer le compte professeur au même endroit.')}</p></div></section><section class="prof-more-grid">
- <button id="profMoreSettings"><span>⚙</span><b>${tr('إعدادات الكشوف','Paramètres des relevés')}</b><small>${tr('المؤسسة، الإدارة الجهوية، المفتشية والسنة','Établissement, direction régionale, inspection et année')}</small></button>
- <button id="profMoreAddSubject"><span>＋</span><b>${tr('إضافة مادة أو قسم','Ajouter une matière ou une classe')}</b><small>${tr('إنشاء مادة جديدة وربطها بقسم','Créer une matière et la lier à une classe')}</small></button>
- <button id="profMoreJoin"><span>🔗</span><b>${tr('الانضمام برمز القسم','Rejoindre avec le code de classe')}</b><small>${tr('ربط أساتذة نفس القسم بالرمز الجماعي','Relier les professeurs de la même classe avec le code collectif')}</small></button>
- <button id="profMoreStudents"><span>♙</span><b>${tr('إدارة التلاميذ','Gérer les élèves')}</b><small>${tr('الأقسام وقوائم التلاميذ','Classes et listes des élèves')}</small></button>
- <button id="profMoreLang"><span>文</span><b>${tr('اللغة','Langue')}</b><small>${fr()?'العربية':'Français'}</small></button>
- <button id="profMoreRefresh"><span>↻</span><b>${tr('تحديث البيانات','Actualiser')}</b><small>${tr('تحميل آخر نسخة محفوظة من الخادم','Charger la dernière version enregistrée')}</small></button>
- <button id="profMoreLogout" class="prof-more-danger"><span>↪</span><b>${tr('تسجيل الخروج','Déconnexion')}</b><small>${tr('الخروج من هذا الحساب','Quitter ce compte')}</small></button>
- </section>${nav('more')}</div>`;
- bindTop(el);bindNav(el);q('#profMoreSettings',el).onclick=openSettings;q('#profMoreAddSubject',el).onclick=openAssignment;q('#profMoreJoin',el).onclick=openJoinClass;q('#profMoreStudents',el).onclick=()=>{currentView='students';renderClasses()};q('#profMoreLang',el).onclick=async()=>{await flushGradeAutosave();toggleLanguage()};q('#profMoreRefresh',el).onclick=async()=>{await flushGradeAutosave();await refreshProfile();toast(tr('تم التحديث','Actualisé'));renderMore()};q('#profMoreLogout',el).onclick=async()=>{await flushGradeAutosave();logout()}
+ const row=(id,icon,title,subtitle,tone='')=>`<button type="button" id="${id}" class="prof-more-list-row ${tone}"><span class="prof-more-row-icon">${professorMoreIcon(icon)}</span><span class="prof-more-row-copy"><b>${title}</b><small>${subtitle}</small></span><span class="prof-more-chevron">‹</span></button>`;
+ el.innerHTML=`<div class="professor-shell prof-more-reference">${topbar('','')}
+  <section class="prof-more-reference-hero"><div><small>${tr('المزيد','Plus')}</small><h1>${tr('الإعدادات والأدوات','Paramètres et outils')}</h1><p>${tr('جميع الخيارات المهمة لحسابك في مكان واحد.','Toutes les options importantes de votre compte au même endroit.')}</p></div><span class="prof-more-hero-icon">⚙</span></section>
+  <section class="prof-more-list">
+   ${row('profMoreAccount','account',tr('إعدادات الحساب','Paramètres du compte'),tr('الملف الشخصي، كلمة المرور وتفضيلات الحساب','Profil, mot de passe et préférences du compte'))}
+   ${row('profMoreSettings','school',tr('إعدادات المؤسسة','Paramètres de l’établissement'),tr('معلومات المؤسسة والجهات الرسمية','Informations de l’établissement et autorités officielles'))}
+   ${row('profMoreSubjects','books',tr('إدارة المواد والأقسام','Gestion des matières et classes'),tr('إضافة وإدارة المواد والأقسام','Ajouter et gérer les matières et les classes'))}
+   ${row('profMoreJoin','link',tr('الانضمام برمز القسم','Rejoindre avec un code de classe'),tr('ربط أستاذ آخر بنفس القسم','Relier un autre professeur à la même classe'))}
+   ${row('profMoreRefresh','refresh',tr('تحديث البيانات','Actualiser les données'),tr('تحميل أحدث نسخة محفوظة من الخادم','Charger la dernière version enregistrée sur le serveur'))}
+   ${row('profMoreLang','language',tr('اللغة','Langue'),fr()?'العربية / Français':'العربية / Français')}
+   ${row('profMorePrivacy','shield',tr('سياسة الخصوصية','Politique de confidentialité'),tr('سياسة استخدام التطبيق وحماية البيانات','Utilisation de l’application et protection des données'))}
+   ${row('profMoreSupport','chat',tr('الدعم والملاحظات','Support et commentaires'),tr('تواصل معنا وشارك ملاحظاتك','Contactez-nous et partagez vos commentaires'))}
+   ${row('profMoreInstall','install',tr('تثبيت التطبيق','Installer l’application'),tr('إضافة التطبيق إلى الشاشة الرئيسية','Ajouter l’application à l’écran d’accueil'))}
+   ${row('profMoreDelete','trash',tr('حذف الحساب','Supprimer le compte'),tr('حذف حسابك وجميع بياناته نهائيًا','Supprimer définitivement votre compte et ses données'),'danger')}
+  </section>
+  ${nav('more')}
+ </div>`;
+ bindTop(el);bindNav(el);
+ q('#profMoreAccount',el).onclick=openProfessorAccountSettings;
+ q('#profMoreSettings',el).onclick=openSettings;
+ q('#profMoreSubjects',el).onclick=()=>{currentView='grades';renderGrades()};
+ q('#profMoreJoin',el).onclick=openJoinClass;
+ q('#profMoreRefresh',el).onclick=async()=>{const b=q('#profMoreRefresh',el);b.disabled=true;try{await flushGradeAutosave();await refreshProfile();toast(tr('تم التحديث','Actualisé'));renderMore()}finally{b.disabled=false}};
+ q('#profMoreLang',el).onclick=async()=>{await flushGradeAutosave();toggleLanguage()};
+ q('#profMorePrivacy',el).onclick=openProfessorPrivacy;
+ q('#profMoreSupport',el).onclick=openProfessorSupport;
+ q('#profMoreInstall',el).onclick=openProfessorInstall;
+ q('#profMoreDelete',el).onclick=openProfessorDeleteAccount
 }
 
 function openSettings(){
