@@ -196,8 +196,26 @@ try{
  check('report exposes official coefficient coverage',resultsText.includes('11 / 28'),resultsText);
  check('shared results expose one student bulletin button',await page.locator('[data-bulletin]').count()===1);
  await page.locator('[data-bulletin]').click();
- check('student bulletin contains all shared subjects',(await page.locator('.prof-bulletin-preview').innerText()).includes('الرياضيات')&&(await page.locator('.prof-bulletin-preview').innerText()).includes('اللغة الفرنسية')&&(await page.locator('.prof-bulletin-preview').innerText()).includes('العلوم الفيزيائية'));
+ const bulletinPreview=await page.locator('.prof-bulletin-preview').innerText();
+ check('student bulletin contains all shared subjects',bulletinPreview.includes('الرياضيات')&&bulletinPreview.includes('اللغة الفرنسية')&&bulletinPreview.includes('العلوم الفيزيائية'));
+ check('student bulletin preview is bilingual independent of Arabic UI',bulletinPreview.includes('Mathématiques')&&bulletinPreview.includes('Français')&&bulletinPreview.includes('Sciences physiques')&&bulletinPreview.includes('محمد سالم')&&bulletinPreview.includes('Mohamed Salem'),bulletinPreview);
+ const studentPopupPromise=page.waitForEvent('popup');
+ await page.locator('#pv2PrintStudent').click();
+ const studentPrint=await studentPopupPromise;
+ await studentPrint.waitForLoadState('domcontentloaded');
+ const studentPrintText=await studentPrint.locator('body').innerText();
+ check('printed student bulletin has bilingual Mauritanian official header',studentPrintText.includes('الجمهورية الإسلامية الموريتانية')&&studentPrintText.includes('République Islamique de Mauritanie')&&studentPrintText.includes('وزارة التربية وإصلاح النظام التعليمي')&&studentPrintText.includes('Ministère de l’Éducation et de la Réforme du Système Éducatif'),studentPrintText);
+ check('printed student bulletin keeps Arabic and French subject/name labels together',studentPrintText.includes('الرياضيات')&&studentPrintText.includes('Mathématiques')&&studentPrintText.includes('محمد سالم')&&studentPrintText.includes('Mohamed Salem'),studentPrintText);
+ await studentPrint.close();
  await page.locator('.professor-x').click();
+
+ const classPopupPromise=page.waitForEvent('popup');
+ await page.locator('#pv2PrintClass').click();
+ const classPrint=await classPopupPromise;
+ await classPrint.waitForLoadState('domcontentloaded');
+ const classPrintText=await classPrint.locator('body').innerText();
+ check('printed collective class list is bilingual',classPrintText.includes('اللائحة الجماعية للقسم')&&classPrintText.includes('Liste collective de la classe')&&classPrintText.includes('العلوم الفيزيائية')&&classPrintText.includes('Sciences physiques'),classPrintText);
+ await classPrint.close();
 
  await page.locator('#profLang').click();
  await page.locator('#pv2ResultsBody .prof-results-table').waitFor({state:'visible',timeout:10000});
