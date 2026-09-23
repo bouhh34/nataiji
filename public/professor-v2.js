@@ -5,7 +5,7 @@ const lang=()=>localStorage.getItem('nataiji-lang')||'ar',fr=()=>lang()==='fr';
 const tr=(ar,f)=>fr()?f:ar;
 const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const uid=()=>globalThis.crypto?.randomUUID?.()||('p-'+Date.now().toString(36)+Math.random().toString(36).slice(2));
-let profile={schoolName:'',year:'',classes:[],assignments:[],marks:{}},links={},professorUser=null,currentView='home';
+let profile={schoolName:'',year:'',classes:[],assignments:[],marks:{}},links={},professorUser=null,currentView='home',academicCatalog={version:'',levels:[]};
 let gradeSaveTimer=null,gradeEditRevision=0,gradeSavedRevision=0,gradeSaveInFlight=null;
 
 function hideLegacy(){
@@ -43,11 +43,17 @@ function profSchool(){return fr()?(profile.schoolNameFr||profTranslit(profile.sc
 function profRegion(){return fr()?(profile.regionFr||PROF_PLACE_FR[profile.region]||profTranslit(profile.region)):profile.region}
 function profInspection(){return fr()?(profile.inspectionFr||profTranslit(profile.inspection)):profile.inspection}
 
+function catalogLevel(code){return (academicCatalog.levels||[]).find(x=>x.code===String(code||'').toUpperCase())||null}
+function inferredLevelCode(name){const m=String(name||'').toUpperCase().replace(/\s+/g,'').match(/^([123])AS/);return m?m[1]+'AS':''}
+function classLevel(cls){return catalogLevel(cls?.levelCode||inferredLevelCode(cls?.name))}
+function normalizedSubjectKey(value){const raw=String(value||'').trim().toLowerCase();for(const level of academicCatalog.levels||[])for(const s of level.subjects||[]){if(raw===String(s.key||'').toLowerCase()||raw===String(s.ar||'').toLowerCase()||raw===String(s.fr||'').toLowerCase())return s.key}return''}
+function catalogSubject(levelCode,keyOrName){const level=catalogLevel(levelCode),key=normalizedSubjectKey(keyOrName)||String(keyOrName||'');return level?.subjects?.find(s=>s.key===key)||null}
+function levelLabel(cls){const l=classLevel(cls);return l?(fr()?l.fr:l.ar):''}
 function classById(id){return profile.classes.find(c=>String(c.id)===String(id))}
 function assignmentsForClass(id){return profile.assignments.filter(a=>a.classId===id)}
 function marksFor(id){profile.marks[id]=profile.marks[id]&&typeof profile.marks[id]==='object'?profile.marks[id]:{};return profile.marks[id]}
 function linkFor(localId){return links?.[localId]||null}
-function coefficientOf(a){const n=Number(a?.coefficient);return Number.isFinite(n)&&n>0?n:1}
+function coefficientOf(a){const cls=classById(a?.classId),spec=catalogSubject(cls?.levelCode||inferredLevelCode(cls?.name),a?.subjectKey||a?.subject);if(spec?.official&&Number(spec.coefficient)>0)return Number(spec.coefficient);const n=Number(a?.coefficient);return Number.isFinite(n)&&n>0?n:1}
 function markNumber(v){if(v===''||v==null)return null;const n=Number(v);return Number.isFinite(n)?n:null}
 function termResult(m,term){
  const t1=markNumber(m?.test1),e1=markNumber(m?.exam1);if(t1==null||e1==null)return null;
@@ -62,7 +68,7 @@ function statsFor(a){const students=classById(a.classId)?.students||[],marks=mar
 function iconFor(subject){const s=String(subject||'').toLowerCase();if(/math|رياض/.test(s))return'∑';if(/fran|فرنس/.test(s))return'FR';if(/anglais|english|إنج/.test(s))return'EN';if(/phys|فيز/.test(s))return'⚛';if(/chim|كيم/.test(s))return'⚗';if(/arab|عرب/.test(s))return'ع';if(/islam|إسلام/.test(s))return'☾';return'✦'}
 function toast(text){let t=q('.professor-toast');if(!t){t=document.createElement('div');t.className='professor-toast';document.body.appendChild(t)}t.textContent=text;t.classList.add('show');setTimeout(()=>t.classList.remove('show'),1800)}
 function modal(title,body){const w=document.createElement('div');w.className='professor-modal';w.innerHTML=`<div class="professor-modal-card"><header><h2>${esc(title)}</h2><button type="button" class="professor-x" aria-label="Close">×</button></header><div class="professor-modal-body">${body}</div></div>`;document.body.appendChild(w);const close=()=>w.remove();q('.professor-x',w).onclick=close;w.onclick=e=>{if(e.target===w)close()};return{wrap:w,close}}
-async function refreshProfile(){const r=await api('/api/professor/profile');profile=normalize(r.profile);links=r.classLinks||{};return r}
+async function refreshProfile(){const [r,cat]=await Promise.all([api('/api/professor/profile'),api('/api/professor/catalog').catch(()=>null)]);profile=normalize(r.profile);links=r.classLinks||{};if(cat?.catalog)academicCatalog=cat.catalog;return r}
 async function saveProfile(message=''){const r=await api('/api/professor/profile',{method:'PUT',body:JSON.stringify({profile})});profile=normalize(r.profile);links=r.classLinks||links||{};if(message)toast(message);return r}
 function gradeStatus(text){
  const el=q('#pv2SaveState');if(el)el.textContent=text
