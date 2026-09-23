@@ -222,6 +222,9 @@ try{
  check('printed student bulletin keeps Arabic and French subject/name labels together',studentPrintText.includes('الرياضيات')&&studentPrintText.includes('Mathématiques')&&studentPrintText.includes('محمد سالم')&&studentPrintText.includes('Mohamed Salem'),studentPrintText);
  check('printed student bulletin uses two copies on one A4 page',await studentPrint.locator('.student-copy').count()===2&&await studentPrint.locator('.official-head').count()===2&&await studentPrint.locator('.cut-line').count()===1);
  check('both printed student copies are the same student',await studentPrint.locator('.student-copy').nth(0).innerText()===await studentPrint.locator('.student-copy').nth(1).innerText());
+ check('school-style footer has date, signatures and stamp zones in both copies',await studentPrint.locator('.school-signatures').count()===2&&await studentPrint.locator('.official-date-line').count()===2&&await studentPrint.locator('.stamp-zone').count()===2);
+ const schoolGridStyle=await studentPrint.locator('.secondary-summary').first().evaluate(el=>({left:getComputedStyle(el).borderLeftStyle,bottom:getComputedStyle(el).borderBottomStyle,color:getComputedStyle(el).color}));
+ check('student bulletin uses formal bordered school-record blocks',schoolGridStyle.left==='solid'&&schoolGridStyle.bottom==='solid',JSON.stringify(schoolGridStyle));
  await studentPrint.close();
  await page.locator('.professor-x').click();
 
@@ -232,6 +235,7 @@ try{
  const classPrintText=await classPrint.locator('body').innerText();
  check('printed collective class list is bilingual',classPrintText.includes('اللائحة الجماعية للقسم')&&classPrintText.includes('Liste collective de la classe')&&classPrintText.includes('العلوم الفيزيائية')&&classPrintText.includes('Sciences physiques'),classPrintText);
  check('collective class list uses dedicated wider print layout',await classPrint.locator('main.class-list-doc').count()===1);
+ check('collective class list keeps formal signature/date/stamp footer',await classPrint.locator('.school-signatures').count()===1&&await classPrint.locator('.official-date-line').count()===1&&await classPrint.locator('.stamp-zone').count()===1);
  check('class list switches to landscape at six subjects',await page.evaluate(()=>window.NataijiProfessor?._classListLandscape?.(5)===false&&window.NataijiProfessor?._classListLandscape?.(6)===true));
  await classPrint.close();
 
