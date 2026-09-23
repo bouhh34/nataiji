@@ -46,6 +46,14 @@ try{
  await page.locator('.prof-student-row').waitFor({state:'visible',timeout:8000});
  check('class student is saved',await page.locator('.prof-student-row').count()===1);
 
+ await page.locator('[data-class-grade]').click();
+ let inputs=page.locator('[data-kind]');
+ await inputs.nth(0).fill('10');
+ await inputs.nth(1).fill('12');
+ check('first professor subject result is calculated',(await page.locator('[data-avg]').first().innerText()).trim()==='11.00');
+ await page.locator('#pv2SaveGrades').click();
+ await page.locator('#pv2BackGrade').click();
+
  await page.locator('#pv2ShareClass').click();
  await page.locator('.prof-class-code').waitFor({state:'visible',timeout:8000});
  const code=(await page.locator('.prof-class-code').innerText()).trim();
@@ -80,7 +88,7 @@ try{
  check('second professor can add private subject to shared class',(await page.locator('[data-class-grade]').innerText()).includes('Physique'));
 
  await page.locator('[data-class-grade]').click();
- const inputs=page.locator('[data-kind]');
+ inputs=page.locator('[data-kind]');
  await inputs.nth(0).fill('14');
  await inputs.nth(1).fill('18');
  const total=(await page.locator('[data-total]').first().innerText()).trim();
@@ -92,11 +100,42 @@ try{
  await page.waitForTimeout(250);
  check('professor grade save succeeds',(await page.locator('#pv2SaveState').innerText()).includes('تم حفظ')||(await page.locator('#pv2SaveState').innerText()).includes('enregistr'));
 
+ await page.locator('#pv2BackGrade').click();
+ await page.locator('#pv2AddClassSubject').click();
+ await page.locator('#pv2Subject').fill('Chimie');
+ await page.locator('#pv2Coefficient').fill('2');
+ await page.locator('#pv2SaveAssignment').click();
+ const subjectButtons=page.locator('[data-class-grade]');
+ check('same professor can have multiple subjects in one class',await subjectButtons.filter({hasText:'Physique'}).count()===1&&await subjectButtons.filter({hasText:'Chimie'}).count()===1);
+ await subjectButtons.filter({hasText:'Chimie'}).click();
+ inputs=page.locator('[data-kind]');
+ await inputs.nth(0).fill('12');
+ await inputs.nth(1).fill('14');
+ check('second subject of same professor calculates independently',(await page.locator('[data-avg]').first().innerText()).trim()==='13.00');
+ await page.locator('#pv2SaveGrades').click();
+ await page.locator('#pv2BackGrade').click();
+
+ await page.locator('#pv2OpenReports').click();
+ await page.locator('.prof-student-report').waitFor({state:'visible',timeout:10000});
+ check('unified student report contains all professor subjects',await page.locator('.prof-student-report tbody tr').count()===3);
+ check('unified weighted general average is correct',(await page.locator('.prof-report-summary').innerText()).includes('12.90'));
+ check('complete unified report gives a rank',(await page.locator('.prof-report-summary').innerText()).includes('1'));
+
+ await page.locator('[data-report-view="class"]').click();
+ await page.locator('.prof-class-report').waitFor({state:'visible',timeout:8000});
+ check('all-subject class report is available',await page.locator('.prof-class-report thead th').count()===7);
+
+ await page.locator('[data-report-view="list"]').click();
+ await page.locator('.prof-list-report').waitFor({state:'visible',timeout:8000});
+ check('student results list is available',await page.locator('.prof-list-report tbody tr').count()===1);
+ await page.locator('#reportBack').click();
+ await page.locator('[data-class-grade]').filter({hasText:'Physique'}).click();
+
  await page.reload({waitUntil:'domcontentloaded'});
  await page.locator('#profAddSubject').waitFor({state:'visible',timeout:12000});
  await page.locator('#profAllClasses').click();
  await page.locator('[data-manage-class]').first().click();
- await page.locator('[data-class-grade]').click();
+ await page.locator('[data-class-grade]').filter({hasText:'Physique'}).click();
  check('professor grades persist after reload',(await page.locator('[data-total]').first().innerText()).trim()==='32.00');
  check('coefficient persists after reload',(await page.locator('[data-weighted]').first().innerText()).trim()==='48.00');
 
