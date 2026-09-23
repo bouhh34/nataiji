@@ -29,3 +29,10 @@ html.nataiji-professor-mode body{background:#f4f7f6;min-height:100vh;overflow-x:
 .prof-more-grid>button>span{grid-row:1/3;width:38px;height:38px;border-radius:12px;background:#edf7f3;color:#126b4d;display:grid;place-items:center;font-size:18px}
 .prof-more-grid>button>b{font-size:14px}.prof-more-grid>button>small{font-size:10px;color:#74877f;font-weight:500;line-height:1.45}
 .prof-more-grid .prof-more-danger{border-color:#efd8d8;color:#8e3535}.prof-more-grid .prof-more-danger>span{background:#fff0f0;color:#9a3939}
+
+.prof-curriculum-note{display:grid;gap:3px;padding:10px 12px;border:1px solid #d8e8e1;background:#f2f9f6;border-radius:13px;font-size:11px;line-height:1.5;color:#60776d}
+.prof-curriculum-note b{color:#145f48;font-size:12px}.prof-coefficient-state{display:grid;gap:2px;margin-top:-5px;padding:8px 10px;border-radius:11px;background:#f8fbfa;border:1px solid #e1ebe6;font-size:10px;color:#667b73}
+.prof-coefficient-state b{font-size:11px;color:#176e52}.prof-official-coef-card{display:flex;gap:11px;align-items:flex-start;padding:13px;border-radius:14px;background:#eef9f4;border:1px solid #cfe9de;margin-bottom:10px}
+.prof-official-coef-card>span{width:34px;height:34px;border-radius:50%;display:grid;place-items:center;background:#177b59;color:#fff;font-weight:900}.prof-official-coef-card div{display:grid;gap:3px}.prof-official-coef-card p{margin:0;font-weight:800}.prof-official-coef-card small{color:#62776e;line-height:1.45}
+.prof-level-badge,.prof-level-inline{background:#edf6f2!important;color:#176c51!important;border-radius:999px;padding:2px 7px;font-weight:800}.prof-official-badge{background:#e8f8ef!important;color:#126a4c!important}
+@media(max-width:640px){.prof-curriculum-note{padding:9px 10px}.prof-coefficient-state{font-size:9.5px}}
