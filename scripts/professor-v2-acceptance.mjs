@@ -17,9 +17,10 @@ async function registerProfessor(name,email){
  await page.locator('#auth2Form .auth-submit').click();
  await page.locator('[data-profile-type="professor"]').waitFor({state:'visible',timeout:12000});
  await page.locator('[data-profile-type="professor"]').click();
- await page.locator('#profAddSubject').waitFor({state:'visible',timeout:12000});
+ await page.locator('.prof-reference-hero').waitFor({state:'visible',timeout:12000});
 }
 async function logout(){
+ await page.locator('#profUtilityToggle').click();
  await page.locator('#profLogout').click();
  await page.locator('[data-auth2="login"]').waitFor({state:'visible',timeout:10000});
 }
@@ -28,7 +29,8 @@ try{
  check('professor dashboard replaces legacy shell',await page.locator('#nataijiProfessorRoot .prof-v2-hero').count()===1 && await page.locator('.app-shell:visible').count()===0);
  check('professor navigation matches teacher mental model',await page.locator('[data-prof-nav]').count()===5 && await page.locator('[data-prof-nav="grades"]').count()===1 && await page.locator('[data-prof-nav="students"]').count()===1 && await page.locator('[data-prof-nav="reports"]').count()===1 && await page.locator('[data-prof-nav="more"]').count()===1);
 
- await page.locator('#profAddSubject').click();
+ check('professor home follows teacher dashboard structure',await page.locator('.professor-reference-topbar').count()===1&&await page.locator('.prof-reference-stats article').count()===4&&await page.locator('.prof-home-status').count()===1);
+ await page.locator('#profEmptyAdd').click();
  const levelOptions=await page.locator('#pv2Level option').allTextContents();
  check('only current first-cycle levels are offered',levelOptions.some(x=>x.includes('1AS'))&&levelOptions.some(x=>x.includes('2AS'))&&levelOptions.some(x=>x.includes('3AS'))&&!levelOptions.some(x=>/4AS|5AS/.test(x)),levelOptions.join(' | '));
  await page.locator('#pv2Level').selectOption('2AS');
@@ -36,12 +38,19 @@ try{
  check('official math coefficient loads automatically',await page.locator('#pv2Coefficient').inputValue()==='6'&&await page.locator('#pv2Coefficient').getAttribute('readonly')!==null);
  await page.locator('#pv2NewClass').fill('2AS-A');
  await page.locator('#pv2SaveAssignment').click();
+ await page.locator('.prof-home-subject-row').waitFor({state:'visible',timeout:8000});
+ const homeSubjectText=await page.locator('.prof-home-subject-row').innerText();
+ const homeClassText=await page.locator('#profHomeClass option:checked').innerText();
+ check('professor class label is not duplicated',!homeClassText.includes('2AS · 2AS'),homeClassText);
+ const homeAverageDir=await page.locator('.prof-reference-stats .average strong').getAttribute('dir');
+ check('professor /20 averages are isolated left-to-right',homeAverageDir==='ltr',String(homeAverageDir));
+ check('professor can create own subject and class',homeSubjectText.includes('الرياضيات'),homeSubjectText);
+ await page.locator('[data-prof-nav="grades"]').click();
  await page.locator('.prof-v2-assignment').waitFor({state:'visible',timeout:8000});
  const firstAssignmentText=await page.locator('.prof-v2-assignment').innerText();
- check('professor can create own subject and class',firstAssignmentText.includes('الرياضيات'));
- check('official subject coefficient is shown on dashboard',/معامل\s*×6|Coef\.\s*×6/.test(firstAssignmentText),firstAssignmentText);
+ check('official subject coefficient is shown on professor grade card',firstAssignmentText.includes('×6'),firstAssignmentText);
 
- await page.locator('#profAllClasses').click();
+ await page.locator('[data-prof-nav="students"]').click();
  await page.locator('[data-manage-class]').first().click();
  await page.locator('#pv2AddStudent').click();
  check('professor add-student opens dedicated bilingual sheet',await page.locator('.prof-student-modal').count()===1&&(await page.locator('.prof-student-modal h2').innerText()).includes('Ajouter un élève')&&(await page.locator('.prof-student-modal h2').innerText()).includes('إضافة تلميذ'));
@@ -229,8 +238,8 @@ try{
  check('shared term 3 result combines both professors',term3Results.includes('15.60'),term3Results);
 
  await page.reload({waitUntil:'domcontentloaded'});
- await page.locator('#profAddSubject').waitFor({state:'visible',timeout:12000});
- await page.locator('#profAllClasses').click();
+ await page.locator('.prof-reference-hero').waitFor({state:'visible',timeout:12000});
+ await page.locator('[data-prof-nav="students"]').click();
  await page.locator('[data-manage-class]').first().click();
  await page.locator('[data-class-grade]').click();
  check('professor grades persist after reload',(await page.locator('[data-avg]').first().innerText()).trim()==='16.00');
@@ -304,6 +313,7 @@ try{
  check('second trimester bulletin shows that trimester test and exam',physicsTerm2.includes('12')&&physicsTerm2.includes('16'),physicsTerm2);
  await page.locator('.professor-x').click();
 
+ await page.locator('#profUtilityToggle').click();
  await page.locator('#profLang').click();
  await page.locator('#pv2ResultsBody .prof-results-table').waitFor({state:'visible',timeout:10000});
  const frenchResults=await page.locator('#pv2ResultsBody').innerText();
@@ -312,6 +322,7 @@ try{
  const frenchMeta=await page.evaluate(()=>({lang:document.documentElement.lang,dir:document.documentElement.dir,htmlFr:document.documentElement.classList.contains('lang-fr')}));
  check('professor French mode applies LTR metadata consistently',frenchMeta.lang==='fr'&&frenchMeta.dir==='ltr'&&frenchMeta.htmlFr,JSON.stringify(frenchMeta));
  check('collective results body is fully localized in French',!/[\u0600-\u06ff]/u.test(frenchResults),frenchResults);
+ await page.locator('#profUtilityToggle').click();
  check('language switch clearly offers Arabic from French mode',(await page.locator('#profLang').innerText()).trim()==='العربية');
 
  if(failures.length)throw new Error(failures.join('\n'));

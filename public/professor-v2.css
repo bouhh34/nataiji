@@ -445,3 +445,393 @@ html.nataiji-professor-mode body{background:#f4f7f6;min-height:100vh;overflow-x:
  .prof-report-class-card{grid-template-columns:auto 1fr}
  .prof-report-class-card>button{grid-column:1/-1;width:100%}
 }
+
+/* Professor home aligned with the approved teacher/director dashboard.
+   Scoped to professor mode only. */
+.nataiji-professor-mode .prof-home-shell{max-width:1180px}
+.nataiji-professor-mode .professor-reference-topbar{
+  display:grid;
+  grid-template-columns:1fr;
+  gap:12px;
+  padding:14px 16px;
+  margin:0 0 14px;
+  border:1px solid #dfeaec;
+  border-radius:24px;
+  background:rgba(255,255,255,.97);
+  box-shadow:0 10px 26px rgba(8,43,75,.045)
+}
+.nataiji-professor-mode .professor-reference-main{
+  position:relative;
+  display:grid;
+  grid-template-columns:minmax(0,1fr) minmax(0,1fr);
+  align-items:center;
+  gap:12px
+}
+.nataiji-professor-mode .professor-account{
+  display:flex;
+  align-items:center;
+  justify-self:start;
+  gap:10px;
+  min-width:0
+}
+.nataiji-professor-mode .prof-account-avatar{
+  width:50px;height:50px;border-radius:15px;
+  display:grid;place-items:center;
+  background:linear-gradient(145deg,#eefaf6,#d8f2ea);
+  border:1px solid #cfe9e0;
+  color:#07866b;
+  font-size:22px
+}
+.nataiji-professor-mode .professor-account>span:last-child{display:grid;min-width:0}
+.nataiji-professor-mode .professor-account b{
+  color:#153d51;font-size:17px;
+  white-space:nowrap;overflow:hidden;text-overflow:ellipsis
+}
+.nataiji-professor-mode .professor-account small{color:#7b8b91;font-size:9.5px;margin-top:2px}
+.nataiji-professor-mode .professor-reference-topbar .professor-brand{
+  justify-self:end;
+  direction:ltr;
+  flex-direction:row-reverse;
+  gap:8px;
+  min-width:0
+}
+.nataiji-professor-mode .professor-reference-topbar .professor-brand img{
+  width:48px;height:48px;border-radius:13px;box-shadow:none;padding:2px;background:#fff
+}
+.nataiji-professor-mode .professor-reference-topbar .professor-brand span{
+  display:grid;text-align:right;direction:rtl
+}
+.nataiji-professor-mode .professor-reference-topbar .professor-brand b{
+  font-size:20px;color:#17384f;overflow:visible
+}
+.nataiji-professor-mode .professor-reference-topbar .professor-brand small{
+  font-size:9px;color:#738892
+}
+.nataiji-professor-mode .prof-utility{position:absolute;inset-inline-start:55px;top:0;z-index:5}
+.nataiji-professor-mode .prof-utility-toggle{
+  width:32px;height:32px;padding:0!important;
+  display:grid;place-items:center;
+  border:0!important;background:transparent!important;
+  color:#7b8d88!important;font-size:21px;line-height:1
+}
+.nataiji-professor-mode .professor-reference-topbar .professor-top-actions{
+  position:absolute;
+  top:35px;
+  inset-inline-start:0;
+  display:none;
+  min-width:205px;
+  padding:7px;
+  gap:5px;
+  border:1px solid #dce7e3;
+  border-radius:15px;
+  background:#fff;
+  box-shadow:0 15px 34px rgba(22,64,53,.16)
+}
+.nataiji-professor-mode .professor-reference-topbar .professor-top-actions.open{display:grid}
+.nataiji-professor-mode .professor-reference-topbar .professor-top-actions button{
+  width:100%;text-align:start;min-height:37px;box-shadow:none
+}
+.nataiji-professor-mode .prof-home-context{
+  display:grid;
+  grid-template-columns:1fr 1fr;
+  gap:10px
+}
+.nataiji-professor-mode .prof-home-context-item{
+  min-height:58px!important;
+  width:100%;
+  display:grid!important;
+  grid-template-columns:auto minmax(0,1fr)!important;
+  align-items:center!important;
+  gap:10px!important;
+  padding:9px 13px!important;
+  border-radius:14px!important;
+  border:1px solid #dce7ea!important;
+  background:#fff!important;
+  color:#17384f!important;
+  box-shadow:0 4px 10px rgba(8,43,75,.025)!important;
+  text-align:start!important
+}
+.nataiji-professor-mode .prof-home-context-item>span{
+  width:31px;height:31px;border-radius:10px;display:grid;place-items:center;
+  color:#07866b;background:#eff9f6;font-size:15px
+}
+.nataiji-professor-mode .prof-home-context-item>div{display:grid;min-width:0}
+.nataiji-professor-mode .prof-home-context-item small{font-size:9px;color:#7d8e93;font-weight:600}
+.nataiji-professor-mode .prof-home-context-item b{font-size:13px;color:#17384f;margin-top:2px}
+.nataiji-professor-mode .prof-home-class-select{cursor:default}
+.nataiji-professor-mode .prof-home-class-select select{
+  width:100%;
+  min-width:0;
+  border:0;
+  outline:0;
+  padding:0;
+  background:transparent;
+  color:#17384f;
+  font:inherit;
+  font-weight:800;
+  font-size:13px
+}
+
+.nataiji-professor-mode .prof-reference-hero{
+  min-height:165px;
+  display:grid!important;
+  grid-template-columns:105px minmax(0,1fr)!important;
+  grid-template-areas:"art copy"!important;
+  align-items:center!important;
+  gap:10px!important;
+  padding:19px 20px!important;
+  border-radius:22px!important;
+  background:
+    radial-gradient(circle at 9% 75%,rgba(41,211,167,.13),transparent 26%),
+    radial-gradient(circle at 92% 10%,rgba(26,194,151,.24),transparent 34%),
+    linear-gradient(125deg,#07314e 0%,#0a4a67 55%,#07866b 120%)!important;
+  box-shadow:0 12px 28px rgba(8,43,75,.12)!important
+}
+.nataiji-professor-mode .prof-reference-hero:before,
+.nataiji-professor-mode .prof-reference-hero:after{display:none}
+.nataiji-professor-mode .prof-reference-hero .prof-home-hero-art{
+  grid-area:art;
+  position:relative!important;
+  width:94px;height:94px;
+  border:2px solid rgba(78,210,178,.55);
+  border-radius:20px;
+  display:grid;place-items:center;
+  color:#79d9c2;
+  background:rgba(255,255,255,.035)
+}
+.nataiji-professor-mode .prof-reference-hero .prof-home-hero-art b{font-size:45px;font-weight:400;line-height:1}
+.nataiji-professor-mode .prof-reference-hero .prof-home-hero-art span{
+  position:absolute;top:7px;inset-inline-end:8px;
+  font-size:25px;color:#e1c55d
+}
+.nataiji-professor-mode .prof-reference-hero .prof-hero-copy{
+  grid-area:copy;
+  display:grid;
+  justify-items:start;
+  align-content:center;
+  text-align:start;
+  max-width:none
+}
+.nataiji-professor-mode .prof-reference-hero .prof-home-kicker{
+  color:#bfe0d8;font-size:10px;font-weight:700
+}
+.nataiji-professor-mode .prof-reference-hero h1{
+  margin:5px 0 3px;
+  font-size:clamp(25px,4vw,34px);
+  color:#fff;
+  letter-spacing:-.3px
+}
+.nataiji-professor-mode .prof-reference-hero p{
+  margin:0 0 10px;
+  color:#d9ece8;
+  font-size:11px
+}
+.nataiji-professor-mode .prof-reference-hero .primary{
+  min-height:42px!important;
+  background:#fff!important;
+  color:#08745f!important;
+  border-color:#fff!important;
+  border-radius:12px!important;
+  box-shadow:0 7px 17px rgba(1,35,42,.13)!important;
+  padding:9px 15px!important
+}
+
+.nataiji-professor-mode .prof-reference-stats{
+  grid-template-columns:1fr 1fr!important;
+  gap:10px!important;
+  margin:13px 0!important
+}
+.nataiji-professor-mode .prof-reference-stats article{
+  min-height:112px;
+  position:relative;
+  display:grid!important;
+  grid-template-columns:1fr auto!important;
+  align-items:start!important;
+  padding:15px 16px!important;
+  border-radius:19px!important;
+  border:1px solid #e0e9e8!important;
+  box-shadow:0 7px 20px rgba(8,43,75,.035)!important
+}
+.nataiji-professor-mode .prof-reference-stats article>span{
+  grid-column:2!important;
+  grid-row:1/3!important;
+  width:38px!important;height:38px!important;
+  border-radius:12px!important;
+  margin:0!important
+}
+.nataiji-professor-mode .prof-reference-stats article>div{
+  grid-column:1!important;grid-row:1/4!important;
+  display:grid;align-content:start;text-align:start
+}
+.nataiji-professor-mode .prof-reference-stats strong{
+  font-size:31px!important;
+  line-height:1!important;
+  color:#103b56!important;
+  margin:9px 0 7px
+}
+.nataiji-professor-mode .prof-reference-stats small{
+  color:#74858b!important;
+  font-size:10px!important
+}
+.nataiji-professor-mode .prof-reference-stats em{
+  display:block;
+  font-style:normal;
+  color:#9aa6aa;
+  font-size:8.5px;
+  margin-top:7px
+}
+.nataiji-professor-mode .prof-reference-stats .students .prof-stat-icon{background:#eef8ff!important;color:#2778ad!important}
+.nataiji-professor-mode .prof-reference-stats .average .prof-stat-icon{background:#edf9f5!important;color:#0a8b73!important}
+.nataiji-professor-mode .prof-reference-stats .complete .prof-stat-icon{background:#fff8e8!important;color:#c09325!important}
+.nataiji-professor-mode .prof-reference-stats .needs .prof-stat-icon{background:#fff0f0!important;color:#b84c4c!important}
+.nataiji-professor-mode .prof-reference-stats .needs strong{color:#163c56!important}
+
+.nataiji-professor-mode .prof-grade-outof{
+  direction:ltr!important;
+  unicode-bidi:isolate!important;
+  display:inline-flex!important;
+  align-items:baseline;
+  gap:0;
+  white-space:nowrap
+}
+.nataiji-professor-mode .prof-grade-outof span:last-child{font-size:.55em;margin-inline-start:1px}
+
+.nataiji-professor-mode .prof-home-status{
+  margin-top:0!important;
+  padding:16px!important;
+  border-radius:20px!important;
+  border-color:#e0e9e8!important;
+  box-shadow:0 7px 20px rgba(8,43,75,.04)!important
+}
+.nataiji-professor-mode .prof-home-status-head{
+  display:flex;justify-content:space-between;align-items:flex-start;gap:12px;margin-bottom:7px
+}
+.nataiji-professor-mode .prof-home-status-head>div{
+  display:flex;align-items:flex-start;gap:10px
+}
+.nataiji-professor-mode .prof-home-status-icon{
+  width:38px;height:38px;border-radius:12px;
+  display:grid;place-items:center;
+  background:#edf9f5;color:#0a8b73;font-size:18px
+}
+.nataiji-professor-mode .prof-home-status-head h2{
+  margin:0 0 2px;font-size:22px;color:#173d51
+}
+.nataiji-professor-mode .prof-home-status-head p{
+  margin:0;font-size:9.5px;color:#869499
+}
+.nataiji-professor-mode .prof-home-status-head>button{
+  padding:8px 10px!important;
+  background:#eef9f5!important;
+  color:#08745f!important;
+  border-color:#d7ebe4!important;
+  font-size:10px!important
+}
+.nataiji-professor-mode .prof-home-subject-list{display:grid}
+.nataiji-professor-mode .prof-home-subject-row{
+  width:100%;
+  display:grid!important;
+  grid-template-columns:minmax(0,1fr) minmax(150px,45%);
+  align-items:center!important;
+  gap:13px!important;
+  padding:12px 2px!important;
+  border:0!important;
+  border-bottom:1px solid #edf1f0!important;
+  border-radius:0!important;
+  background:transparent!important;
+  box-shadow:none!important;
+  text-align:start!important
+}
+.nataiji-professor-mode .prof-home-subject-row:last-child{border-bottom:0!important}
+.nataiji-professor-mode .prof-home-subject-main{
+  display:flex;align-items:center;gap:9px;min-width:0
+}
+.nataiji-professor-mode .prof-home-subject-icon{
+  width:36px;height:36px;flex:0 0 auto;border-radius:11px;
+  display:grid;place-items:center;
+  background:#eef8f5;color:#0b876f;font-weight:900
+}
+.nataiji-professor-mode .prof-home-subject-main>div{display:grid;min-width:0}
+.nataiji-professor-mode .prof-home-subject-main b{
+  font-size:12px;color:#183e4e;
+  white-space:nowrap;overflow:hidden;text-overflow:ellipsis
+}
+.nataiji-professor-mode .prof-home-subject-main small{font-size:9px;color:#85938f;margin-top:3px}
+.nataiji-professor-mode .prof-home-subject-progress{
+  display:grid;grid-template-columns:42px 1fr;gap:8px;align-items:center
+}
+.nataiji-professor-mode .prof-home-subject-progress>span{
+  direction:ltr;text-align:end;font-size:10px;color:#314f5c;font-weight:800
+}
+.nataiji-professor-mode .prof-home-subject-progress>div{
+  height:7px;background:#edf2f1;border-radius:999px;overflow:hidden
+}
+.nataiji-professor-mode .prof-home-subject-progress i{
+  display:block;height:100%;border-radius:999px;background:#0b8b73
+}
+
+/* Interface cleanup for professor subject cards outside the home page. */
+.nataiji-professor-mode .prof-card-eyebrow>span:first-child{
+  max-width:150px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis
+}
+.nataiji-professor-mode .prof-card-eyebrow em{
+  white-space:nowrap
+}
+.nataiji-professor-mode .prof-v2-assignment .prof-grade-outof{
+  font-size:11px;color:#173d4d
+}
+
+@media(max-width:700px){
+ .nataiji-professor-mode .professor-reference-topbar{padding:12px 13px;border-radius:22px;gap:10px}
+ .nataiji-professor-mode .professor-reference-main{gap:8px}
+ .nataiji-professor-mode .prof-account-avatar{width:46px;height:46px}
+ .nataiji-professor-mode .professor-account b{font-size:15px}
+ .nataiji-professor-mode .professor-account small{font-size:8.5px;max-width:155px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+ .nataiji-professor-mode .professor-reference-topbar .professor-brand img{width:45px;height:45px}
+ .nataiji-professor-mode .professor-reference-topbar .professor-brand b{font-size:19px}
+ .nataiji-professor-mode .professor-reference-topbar .professor-brand small{font-size:8px}
+ .nataiji-professor-mode .prof-utility{inset-inline-start:49px}
+ .nataiji-professor-mode .prof-home-context{gap:8px}
+ .nataiji-professor-mode .prof-home-context-item{min-height:55px!important;padding:8px 10px!important}
+ .nataiji-professor-mode .prof-home-context-item>span{width:29px;height:29px}
+ .nataiji-professor-mode .prof-home-context-item small{font-size:8px}
+ .nataiji-professor-mode .prof-home-context-item b,.nataiji-professor-mode .prof-home-class-select select{font-size:11px}
+ .nataiji-professor-mode .prof-reference-hero{min-height:165px!important;padding:18px!important;grid-template-columns:88px minmax(0,1fr)!important}
+ .nataiji-professor-mode .prof-reference-hero .prof-home-hero-art{width:78px;height:78px;border-radius:18px}
+ .nataiji-professor-mode .prof-reference-hero .prof-home-hero-art b{font-size:39px}
+ .nataiji-professor-mode .prof-reference-hero h1{font-size:28px!important}
+ .nataiji-professor-mode .prof-reference-hero p{font-size:10px!important}
+ .nataiji-professor-mode .prof-reference-stats{gap:8px!important;margin:10px 0!important}
+ .nataiji-professor-mode .prof-reference-stats article{min-height:104px;padding:13px 14px!important}
+ .nataiji-professor-mode .prof-reference-stats strong{font-size:29px!important}
+ .nataiji-professor-mode .prof-home-status{padding:14px!important}
+ .nataiji-professor-mode .prof-home-status-head h2{font-size:20px}
+ .nataiji-professor-mode .prof-home-subject-row{grid-template-columns:minmax(0,1fr) minmax(120px,42%);gap:9px!important;padding:11px 0!important}
+ .nataiji-professor-mode .prof-home-subject-main b{font-size:11px}
+ .nataiji-professor-mode .prof-home-subject-progress{grid-template-columns:35px 1fr;gap:6px}
+}
+
+@media(max-width:430px){
+ .nataiji-professor-mode .prof-home-shell{padding-inline:10px!important}
+ .nataiji-professor-mode .professor-reference-topbar{padding:11px}
+ .nataiji-professor-mode .professor-reference-main{grid-template-columns:minmax(0,1.05fr) minmax(0,.95fr)}
+ .nataiji-professor-mode .prof-account-avatar{width:42px;height:42px;border-radius:13px;font-size:19px}
+ .nataiji-professor-mode .professor-account{gap:7px}
+ .nataiji-professor-mode .professor-account b{font-size:14px}
+ .nataiji-professor-mode .professor-reference-topbar .professor-brand img{width:42px;height:42px}
+ .nataiji-professor-mode .professor-reference-topbar .professor-brand b{font-size:18px}
+ .nataiji-professor-mode .prof-utility{inset-inline-start:43px}
+ .nataiji-professor-mode .prof-home-context-item{padding:7px 8px!important;gap:6px!important}
+ .nataiji-professor-mode .prof-home-context-item>span{width:27px;height:27px}
+ .nataiji-professor-mode .prof-reference-hero{grid-template-columns:76px minmax(0,1fr)!important;gap:8px!important;padding:17px!important}
+ .nataiji-professor-mode .prof-reference-hero .prof-home-hero-art{width:68px;height:68px}
+ .nataiji-professor-mode .prof-reference-hero .prof-home-hero-art b{font-size:34px}
+ .nataiji-professor-mode .prof-reference-hero h1{font-size:25px!important}
+ .nataiji-professor-mode .prof-reference-stats article{min-height:98px;padding:12px!important}
+ .nataiji-professor-mode .prof-reference-stats strong{font-size:27px!important}
+ .nataiji-professor-mode .prof-reference-stats em{font-size:7.5px}
+ .nataiji-professor-mode .prof-home-status-head p{font-size:8.5px}
+ .nataiji-professor-mode .prof-home-subject-row{grid-template-columns:1fr;gap:7px!important}
+ .nataiji-professor-mode .prof-home-subject-progress{grid-template-columns:38px 1fr}
+}
+
