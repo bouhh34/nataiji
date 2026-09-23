@@ -1,0 +1,55 @@
+name: Teacher scope acceptance
+
+on:
+  pull_request:
+    paths:
+      - 'src/**'
+      - 'public/**'
+      - 'scripts/teacher-scope-acceptance.mjs'
+      - 'package.json'
+      - 'package-lock.json'
+      - '.github/workflows/teacher-scope-acceptance.yml'
+  push:
+    branches:
+      - main
+    paths:
+      - 'src/**'
+      - 'public/**'
+      - 'scripts/teacher-scope-acceptance.mjs'
+      - 'package.json'
+      - 'package-lock.json'
+      - '.github/workflows/teacher-scope-acceptance.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  teacher-scope:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_DB: nataiji_teacher_scope
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: local_test_password
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 12
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+      - run: npm ci --no-audit --no-fund
+      - name: Verify teacher class isolation
+        env:
+          DATABASE_URL: postgresql://postgres:local_test_password@127.0.0.1:5432/nataiji_teacher_scope
+        run: node scripts/teacher-scope-acceptance.mjs
