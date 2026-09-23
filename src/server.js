@@ -38,7 +38,7 @@ const normEmail=v=>String(v||'').trim().toLowerCase();
 const validEmail=v=>/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v);
 const configuredOwnerEmail=()=>normEmail(process.env.SUPER_ADMIN_EMAIL);
 const isOwnerRole=v=>['owner','admin'].includes(String(v||''));
-const cleanPermissions=v=>[...new Set((Array.isArray(v)?v:[]).filter(x=>['grades','pupils','reports'].includes(x)))];
+const cleanPermissions=v=>{const out=[...new Set((Array.isArray(v)?v:[]).filter(x=>['grades','pupils','reports'].includes(x)))];if(out.length&&!out.includes('reports'))out.push('reports');return out};
 const emptyProfessorProfile=()=>({schoolName:'',year:'',classes:[],assignments:[],marks:{}});
 function professorStudentData(st,generateId=false){
  const id=String(st?.id||(generateId?crypto.randomUUID():'')).trim().slice(0,120),name=String(st?.name||'').trim().slice(0,160),nameFr=String(st?.nameFr||'').trim().slice(0,160),nns=String(st?.nns||'').trim().slice(0,80);
@@ -235,7 +235,7 @@ async function cleanupProfessorSharing(userId,client){
 const workspaceSelectionKey=u=>u?.activeSharedGrant?`shared:${u.activeSharedGrant}`:`school:${u?.schoolId||''}`;
 const safeUser=u=>{
  const grants=u.sharedGrants&&typeof u.sharedGrants==='object'?u.sharedGrants:{},g=u.activeSharedGrant?grants[u.activeSharedGrant]:null,baseRole=u.baseRole||u.role,owned=Array.isArray(u.ownedSchoolIds)?u.ownedSchoolIds:(isOwnerRole(baseRole)&&u.schoolId?[u.schoolId]:[]),selections=u.workspaceSelections&&typeof u.workspaceSelections==='object'?u.workspaceSelections:{},selection=selections[workspaceSelectionKey(u)]||{};
- return{id:u.id,name:u.name,email:u.email||'',baseRole:baseRole==='owner'?'admin':baseRole,accountRole:baseRole,role:g?'teacher':(baseRole==='owner'?'admin':baseRole),profileType:String(u.profileType||''),needsProfileChoice:u.needsProfileChoice===true,isSuperAdmin:baseRole==='owner',suspended:!!u.suspended,plan:u.plan||'free',schoolId:g?.schoolId||u.schoolId,ownedSchoolIds:owned,activeSharedGrant:g?u.activeSharedGrant:'',sharedGrants:structuredClone(grants),permissions:g?(g.permissions||[]):(u.permissions||[]),classIds:g?Object.keys(g.classAccess||{}):(Array.isArray(u.classIds)?u.classIds:[]),classAccess:g?structuredClone(g.classAccess||{}):(u.classAccess&&typeof u.classAccess==='object'?structuredClone(u.classAccess):{}),subjectIds:g?[]:(Array.isArray(u.subjectIds)?u.subjectIds:[]),allSubjects:g?false:u.allSubjects!==false,preferredClassId:String(selection.classId||''),preferredTerm:String(selection.term||''),sessionVersion:Number(u.sessionVersion)||0}
+ return{id:u.id,name:u.name,email:u.email||'',baseRole:baseRole==='owner'?'admin':baseRole,accountRole:baseRole,role:g?'teacher':(baseRole==='owner'?'admin':baseRole),profileType:String(u.profileType||''),needsProfileChoice:u.needsProfileChoice===true,isSuperAdmin:baseRole==='owner',suspended:!!u.suspended,plan:u.plan||'free',schoolId:g?.schoolId||u.schoolId,ownedSchoolIds:owned,activeSharedGrant:g?u.activeSharedGrant:'',sharedGrants:structuredClone(grants),permissions:g?cleanPermissions(g.permissions):(u.permissions||[]),classIds:g?Object.keys(g.classAccess||{}):(Array.isArray(u.classIds)?u.classIds:[]),classAccess:g?structuredClone(g.classAccess||{}):(u.classAccess&&typeof u.classAccess==='object'?structuredClone(u.classAccess):{}),subjectIds:g?[]:(Array.isArray(u.subjectIds)?u.subjectIds:[]),allSubjects:g?false:u.allSubjects!==false,preferredClassId:String(selection.classId||''),preferredTerm:String(selection.term||''),sessionVersion:Number(u.sessionVersion)||0}
 };
 const hashPassword=(password,salt=crypto.randomBytes(16).toString('hex'))=>({salt,hash:crypto.scryptSync(password,salt,64).toString('hex')});
 function verifyPassword(password,u){try{const got=crypto.scryptSync(password,u.salt,64),exp=Buffer.from(u.passwordHash,'hex');return got.length===exp.length&&crypto.timingSafeEqual(got,exp)}catch{return false}}
@@ -670,7 +670,7 @@ app.get('/api/shares',auth,async(req,res)=>{
    const visible=subs.filter(s=>!hidden.has(s.id)),editSubjects=full?visible:visible.filter(s=>edit.has(s.id)),viewSubjects=full?[]:visible.filter(s=>!edit.has(s.id)),hiddenSubjects=subs.filter(s=>hidden.has(s.id));
    classDetails.push({...cls,fullClass:full,editSubjects,viewSubjects,hiddenSubjects})
   }
-  grants.push({...g,classDetails})
+  grants.push({...g,permissions:cleanPermissions(g.permissions),classDetails})
  }
  res.json({ok:true,grants})
 });
