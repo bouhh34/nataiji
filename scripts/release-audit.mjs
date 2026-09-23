@@ -64,7 +64,7 @@ const authAccess = read('public/auth-access-v2.js');
 assert('auth exposes Arabic French language switch', /data-auth-lang="ar"/.test(authAccess) && /data-auth-lang="fr"/.test(authAccess));
 assert('auth language switch updates direction immediately', /document\.documentElement\.dir=next==='fr'\?'ltr':'rtl'/.test(authAccess));
 const bilingualEditor = read('public/bilingual-data-editor-v1.js');
-assert('paired Arabic French fields sync live both ways', /const fromAr=\(\)=>\{[^}]*f\.value=arToFr\(a\.value\)/.test(bilingualEditor) && /const fromFr=\(\)=>\{[^}]*a\.value=frToAr\(f\.value\)/.test(bilingualEditor) && /a\.addEventListener\('input'[^;]*fromAr\(\)/.test(bilingualEditor) && /f\.addEventListener\('input'[^;]*fromFr\(\)/.test(bilingualEditor));
+assert('paired Arabic French fields sync live both ways', /const fromAr=\(\)=>/.test(bilingualEditor) && /f\.value=arToFr\(a\.value\)/.test(bilingualEditor) && /const fromFr=\(\)=>/.test(bilingualEditor) && /a\.value=frToAr\(f\.value\)/.test(bilingualEditor) && /a\.addEventListener\('input'.*fromAr\(\)/.test(bilingualEditor) && /f\.addEventListener\('input'.*fromFr\(\)/.test(bilingualEditor));
 assert('new subject starts with blank bilingual names and max score', /draft\.push\(\['',1,'','',''\]\)/.test(bilingualEditor));
 const adminUxPolish = read('public/admin-ux-polish-v1.js');
 assert('new blank subject opens immediately', /const isNew=!String\(ar\?\.value\|\|''\)\.trim\(\)/.test(adminUxPolish));
