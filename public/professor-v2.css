@@ -29,3 +29,5 @@ html.nataiji-professor-mode body{background:#f4f7f6;min-height:100vh;overflow-x:
 .prof-more-grid>button>span{grid-row:1/3;width:38px;height:38px;border-radius:12px;background:#edf7f3;color:#126b4d;display:grid;place-items:center;font-size:18px}
 .prof-more-grid>button>b{font-size:14px}.prof-more-grid>button>small{font-size:10px;color:#74877f;font-weight:500;line-height:1.45}
 .prof-more-grid .prof-more-danger{border-color:#efd8d8;color:#8e3535}.prof-more-grid .prof-more-danger>span{background:#fff0f0;color:#9a3939}
+
+.prof-official-coefficient{display:grid;place-items:center;min-height:92px;margin:10px 0 14px;border:1px solid #cfe4db;border-radius:16px;background:#eff8f4;color:#137956;font-size:34px;font-weight:900}.professor-modal input[readonly]{background:#eef7f3;color:#176b51;font-weight:800}.professor-modal label>small{display:block;margin-top:5px;color:#71847d;font-size:10px;line-height:1.45}

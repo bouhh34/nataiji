@@ -5,6 +5,8 @@ on:
     paths:
       - 'public/professor-v2.js'
       - 'scripts/professor-term-formula-check.mjs'
+      - 'scripts/professor-academic-catalog-check.mjs'
+      - 'src/professor-academic-catalog.js'
       - '.github/workflows/professor-formula.yml'
   workflow_dispatch:
 
@@ -21,3 +23,5 @@ jobs:
           node-version: '22'
       - name: Verify three-term professor formulas
         run: node scripts/professor-term-formula-check.mjs
+      - name: Verify academic levels and coefficients
+        run: node scripts/professor-academic-catalog-check.mjs
