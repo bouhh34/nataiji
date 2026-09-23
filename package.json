@@ -17,7 +17,7 @@
     "mobile:assets:ios": "capacitor-assets generate --ios --iconBackgroundColor '#fbfaf6' --iconBackgroundColorDark '#082b4b' --splashBackgroundColor '#fbfaf6' --splashBackgroundColorDark '#082b4b'",
     "release:audit": "node scripts/release-audit.mjs",
     "release:check": "npm run check && npm run test:regression && npm run release:audit",
-    "test:regression": "node --test scripts/grade-save-regression.mjs scripts/service-worker-regression.mjs"
+    "test:regression": "node --test scripts/grade-save-regression.mjs scripts/service-worker-regression.mjs && node scripts/account-deletion-safety.mjs"
   },
   "engines": {
     "node": "22.x"
