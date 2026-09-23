@@ -648,9 +648,27 @@ async function logDataInventory(){
     pool.query('SELECT count(*)::int AS n FROM kv_store WHERE key=$1',['nataiji:school:'+schoolId+':state'])
    ]);
    const data=st.rows[0]?.data||{};
-   schools.push({schoolId,classes:Array.isArray(data.classes)?data.classes.length:0,terms:Array.isArray(data.terms)?data.terms.length:0,pupils:Number(pu.rows[0]?.n||0),subjects:Number(su.rows[0]?.n||0),marks:Number(ma.rows[0]?.n||0),settings:Number(se.rows[0]?.n||0),legacyState:Number(lg.rows[0]?.n||0)>0,referencedBy:Number(refs.get(schoolId)||0)});
+   let redisSnapshot=null;
+   if(redis){
+    try{
+     const rr=await redis.get(schoolKey(schoolId));
+     if(rr){
+      const x=JSON.parse(rr),classData=x?.classData&&typeof x.classData==='object'?x.classData:{},values=Object.values(classData);
+      redisSnapshot={classes:Array.isArray(x?.classes)?x.classes.length:0,terms:Array.isArray(x?.terms)?x.terms.length:0,pupils:values.reduce((n,d)=>n+(Array.isArray(d?.pupils)?d.pupils.length:0),0),subjects:values.reduce((n,d)=>n+(Array.isArray(d?.subjects)?d.subjects.length:0),0),markTerms:values.reduce((n,d)=>n+(d?.marksByTerm&&typeof d.marksByTerm==='object'?Object.keys(d.marksByTerm).length:0),0)};
+     }
+    }catch{}
+   }
+   schools.push({schoolId,classes:Array.isArray(data.classes)?data.classes.length:0,terms:Array.isArray(data.terms)?data.terms.length:0,pupils:Number(pu.rows[0]?.n||0),subjects:Number(su.rows[0]?.n||0),marks:Number(ma.rows[0]?.n||0),settings:Number(se.rows[0]?.n||0),legacyState:Number(lg.rows[0]?.n||0)>0,referencedBy:Number(refs.get(schoolId)||0),redisSnapshot});
   }
-  console.log('NATAIJI_DATA_AUDIT',JSON.stringify({users:userRows.length,superAdmin,schools}));
+  let redisSuperAdmin=null;
+  if(redis){
+   try{
+    const idxRaw=await redis.get(usersIndexKey),idx=idxRaw?JSON.parse(idxRaw):{};
+    const id=idx[configuredOwnerEmail()];
+    if(id){const raw=await redis.get(userKey(id));if(raw){const u=JSON.parse(raw);redisSuperAdmin={currentSchoolId:String(u.schoolId||''),ownedSchoolIds:[...new Set([...(Array.isArray(u.ownedSchoolIds)?u.ownedSchoolIds:[]),...(u.schoolId?[u.schoolId]:[])].map(String).filter(Boolean))]}}}
+   }catch{}
+  }
+  console.log('NATAIJI_DATA_AUDIT',JSON.stringify({users:userRows.length,superAdmin,redisSuperAdmin,schools}));
  }catch(e){console.error('NATAIJI_DATA_AUDIT_FAILED',e?.message||String(e))}
 }
 
