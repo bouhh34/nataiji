@@ -14,14 +14,28 @@ function head(){let m=meta();return `<div class="doc-head"><div class="doc-right
 function heads(){$$('.paperhead').forEach(x=>{x.className='paperhead official-document-head';x.innerHTML=head()});let h=$('#officialSheet .official-head');if(h){h.innerHTML=head();h.className='official-head enhanced-head';h.dataset.official='1'}setTimeout(()=>window.nataijiI18n?.refresh(),0)}
 function settings(){let g=$('.settings-grid');if(!g||$('#printHeaderBtn'))return;let b=document.createElement('button');b.id='printHeaderBtn';b.className='menu-card';b.innerHTML='<b>▤ رأسية الوثائق الرسمية</b><span>بيانات الرأسية الرسمية لجميع التقارير</span>';g.insertBefore(b,$('#logoutBtn'));b.onclick=()=>{let p=document.createElement('div');p.className='modal';p.innerHTML=`<div class="modal-card"><div class="modal-head"><h2>رأسية الوثائق الرسمية</h2><button class="x">×</button></div><label>البسملة<input id="hb" value="${esc(C.basmala)}"></label><label>الجمهورية<input id="hr" value="${esc(C.republic)}"></label><label>الوزارة<input id="hm" value="${esc(C.ministry)}"></label><label>الإدارة الجهوية<input id="hg" value="${esc(C.region)}"></label><label>المفتشية<input id="hi" value="${esc(C.inspection)}"></label><label>المدرسة<input id="hs" value="${esc(C.school)}"></label><label>الرقم المدرسي للمؤسسة<input id="hn" value="${esc(C.schoolNns)}"></label><label>الشعار الوطني النصي<input id="hmo" value="${esc(C.motto||D.motto)}"></label><label>اسم المدير<input id="hd" value="${esc(C.director)}"></label><button class="primary action">حفظ الرأسية</button><p class="message"></p></div>`;document.body.appendChild(p);p.querySelector('.x').onclick=()=>p.remove();p.querySelector('.action').onclick=async()=>{let n={basmala:$('#hb').value.trim()||D.basmala,republic:$('#hr').value.trim()||D.republic,ministry:$('#hm').value.trim()||D.ministry,region:$('#hg').value.trim(),inspection:$('#hi').value.trim(),school:$('#hs').value.trim(),schoolNns:$('#hn').value.trim(),motto:$('#hmo').value.trim()||D.motto,director:$('#hd').value.trim()},m=p.querySelector('.message');m.textContent='جارٍ الحفظ...';try{await putHeader(n);m.textContent='✓ تم الحفظ على الخادم';setTimeout(()=>p.remove(),400)}catch{m.textContent='تعذر الحفظ'}};window.nataijiI18n?.refresh()}}
 function refresh(){let b=$('#showResult');if(b)b.click();heads()}
-function one(){refresh();document.body.dataset.print='student';print();setTimeout(()=>delete document.body.dataset.print,400)}
+let activeStudentPrintMode='';
+function startStudentPrint(mode){
+ activeStudentPrintMode=mode;
+ document.body.dataset.print=mode;
+ requestAnimationFrame(()=>requestAnimationFrame(()=>window.print()))
+}
+function one(){refresh();startStudentPrint('student')}
 function host(){let h=$('#printBatch');if(!h){h=document.createElement('div');h.id='printBatch';document.body.appendChild(h)}return h}
+function optionIndex(option,allOptions){
+ const selectedIndex=allOptions.indexOf(option),raw=Number(option.value);
+ return Number.isInteger(raw)&&raw>=0&&raw<state.pupils.length?raw:selectedIndex
+}
+function batchRanks(){
+ const terms=Array.isArray(state?.terms)?state.terms:[],term=String(state?.term||''),third=term===String(terms[2]||'')||/الثالث|3e|3ème|3eme/i.test(term);
+ if(third&&typeof window.nataijiAnnualRanks==='function')return window.nataijiAnnualRanks()||[];
+ return typeof ranks==='function'?ranks():[]
+}
 async function all(two=true){
  let s=$('#student'),h=host();if(!s)return;h.innerHTML='';
  let old=s.value,allOptions=[...s.options];
  let opts=allOptions.filter(o=>{
-   const selectedIndex=allOptions.indexOf(o),raw=Number(o.value);
-   const idx=Number.isInteger(raw)&&raw>=0&&raw<state.pupils.length?raw:selectedIndex;
+   const idx=optionIndex(o,allOptions);
    const row=state.marks?.[idx]||[];
    const sum=(state.subjects||[]).reduce((total,_,j)=>{
      const v=row[j];
@@ -31,17 +45,31 @@ async function all(two=true){
    const c=calc(idx);
    return !(sum===0&&Number(c?.avg)===0)
  });
+ const rankValues=batchRanks();
+ opts.sort((a,b)=>{
+   const ia=optionIndex(a,allOptions),ib=optionIndex(b,allOptions),ra=Number(rankValues[ia]),rb=Number(rankValues[ib]),va=Number.isFinite(ra)&&ra>0,vb=Number.isFinite(rb)&&rb>0;
+   if(va&&vb&&ra!==rb)return ra-rb;
+   if(va!==vb)return va?-1:1;
+   return ia-ib
+ });
  for(let i=0;i<opts.length;i++){
    s.value=opts[i].value;s.dispatchEvent(new Event('change',{bubbles:true}));refresh();
    await new Promise(r=>setTimeout(r,60));
-   let c=$('#officialSheet').cloneNode(true);c.removeAttribute('id');c.classList.add('batch-sheet');c.lang=lang();c.dir=lang()==='fr'?'ltr':'rtl';
+   let c=$('#officialSheet').cloneNode(true);c.removeAttribute('id');c.classList.add('batch-sheet');c.dataset.pupilIndex=String(optionIndex(opts[i],allOptions));c.lang=lang();c.dir=lang()==='fr'?'ltr':'rtl';
    let p=h.lastElementChild;if(!p||!two||p.children.length===2){p=document.createElement('div');p.className='batch-page '+(two?'two':'one');h.appendChild(p)}p.appendChild(c)
  }
  s.value=old;s.dispatchEvent(new Event('change',{bubbles:true}));refresh();window.nataijiI18n?.refresh();
- document.body.dataset.print='batch';print();setTimeout(()=>{delete document.body.dataset.print;h.innerHTML=''},600)
+ startStudentPrint('batch')
+}
+function cleanupStudentPrint(){
+ const mode=activeStudentPrintMode;if(!mode)return;
+ activeStudentPrintMode='';
+ if(document.body.dataset.print===mode)delete document.body.dataset.print;
+ if(mode==='batch'){const h=$('#printBatch');if(h)h.innerHTML=''}
 }
 function chooser(){let p=document.createElement('div');p.className='modal';p.innerHTML='<div class="modal-card print-choice"><div class="modal-head"><h2>سحب كشوف الدرجات</h2><button class="x">×</button></div><button data-x="one">الطالب المحدد — كشف واحد في A4</button><button class="primary" data-x="all2">جميع التلاميذ — طالبان في كل A4</button><button data-x="all1">جميع التلاميذ — طالب واحد في كل A4</button></div>';document.body.appendChild(p);p.querySelector('.x').onclick=()=>p.remove();p.querySelector('[data-x=one]').onclick=()=>{p.remove();one()};p.querySelector('[data-x=all1]').onclick=()=>{p.remove();all(false)};p.querySelector('[data-x=all2]').onclick=()=>{p.remove();all(true)};window.nataijiI18n?.refresh()}
 function bind(){let b=$('#printResult');if(b&&!b.dataset.pro){b.dataset.pro='1';b.addEventListener('click',e=>{e.preventDefault();e.stopImmediatePropagation();chooser()},true)}$$('.report-print').forEach(x=>{if(!x.dataset.pro){x.dataset.pro='1';x.addEventListener('click',heads,true)}})}
 let css=document.createElement('style');css.textContent=`.doc-head{width:100%;display:grid;grid-template-columns:35% 30% 35%;align-items:start;font-size:9.4pt;line-height:1.55}.doc-right,.doc-left{padding-top:2mm}.doc-primary,.doc-motto{font-weight:700}.doc-line{display:flex;align-items:baseline;gap:3px}.doc-line b{font-weight:700}.doc-center{text-align:center}.doc-basmala{text-align:center;font-weight:700;font-size:9pt;margin:0 0 2mm}.doc-center img{display:block;width:25mm;height:25mm;object-fit:contain;margin:0 auto}.official-head.enhanced-head{display:block;width:100%}.lang-fr .doc-head{direction:ltr}.lang-fr .doc-right,.lang-fr .doc-left{text-align:left}.print-choice{display:grid;gap:10px}.print-choice>button:not(.x){min-height:50px;border:1px solid #d3e0e9;background:#fff;border-radius:9px;font-weight:700;color:#24465f}.print-choice>button.primary{background:#1288dd;color:#fff;border:0}#printBatch{display:none}@media print{body[data-print=batch]>.app-shell,body[data-print=batch]>.bottom-nav,body[data-print=batch]>.modal,body[data-print=batch]>.lang-switch{display:none!important}body[data-print=batch] #printBatch{display:block!important}.batch-page{width:190mm;height:277mm;margin:auto;display:flex;flex-direction:column;page-break-after:always}.batch-page:last-child{page-break-after:auto}.batch-page.two .batch-sheet{box-sizing:border-box;width:190mm!important;height:138.5mm!important;min-height:0!important;margin:0!important;padding:3mm 6mm!important;border:0!important;border-bottom:1px dashed #777!important;overflow:hidden!important}.batch-page.two .doc-head{font-size:6.7pt!important;line-height:1.22!important}.batch-page.two .doc-basmala{font-size:6.5pt!important;margin-bottom:.5mm!important}.batch-page.two .doc-center img{width:16mm!important;height:16mm!important}.batch-page.two h1{font-size:13pt!important;margin:1.5mm 0 .4mm!important}.batch-page.two h3{font-size:8pt!important;margin:0 0 .7mm!important}.batch-page.two .info{font-size:6.2pt!important}.batch-page.two .sheet{margin-top:.7mm!important;font-size:6.2pt!important}.batch-page.two .sheet th,.batch-page.two .sheet td{height:4mm!important;padding:.2mm!important}.batch-page.two footer{font-size:6.5pt!important;margin-top:1mm!important}}`;document.head.appendChild(css);
 window.addEventListener('DOMContentLoaded',async()=>{let d=await getState(),s=d.state||d||{};C={...D,...(s.reportHeader||{}),region:s.reportHeader?.region||s.region||'',inspection:s.reportHeader?.inspection||s.inspection||'',school:s.reportHeader?.school||s.school||''};heads();settings();bind();setTimeout(()=>{heads();settings();bind()},500)});document.addEventListener('click',e=>{if(e.target.closest?.('#langSwitch'))setTimeout(heads,20)},true);
+window.addEventListener('afterprint',cleanupStudentPrint);
 })();
