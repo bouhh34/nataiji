@@ -74,13 +74,22 @@ function marksFor(id){profile.marks[id]=profile.marks[id]&&typeof profile.marks[
 function linkFor(localId){return links?.[localId]||null}
 function coefficientOf(a){const cls=classById(a?.classId),spec=catalogSubject(cls?.levelCode||inferredLevelCode(cls?.name),a?.subjectKey||a?.subject);if(spec?.official&&Number(spec.coefficient)>0)return Number(spec.coefficient);const n=Number(a?.coefficient);return Number.isFinite(n)&&n>0?n:1}
 function markNumber(v){if(v===''||v==null)return null;const n=Number(v);return Number.isFinite(n)?n:null}
+function ensureProfessorTerm(m,term){
+ m.terms=m.terms&&typeof m.terms==='object'?m.terms:{};
+ const key=String(term),raw=m.terms[key]&&typeof m.terms[key]==='object'?m.terms[key]:{},tests=Array.isArray(raw.tests)?raw.tests:['','',''];
+ m.terms[key]={tests:[tests[0]??'',tests[1]??'',tests[2]??''],exam:raw.exam??''};return m.terms[key]
+}
+function termRecord(m,term){
+ const raw=m?.terms?.[String(term)]||m?.terms?.[term]||{},tests=Array.isArray(raw?.tests)?raw.tests:[];
+ return{tests:[0,1,2].map(i=>markNumber(tests[i])),exam:markNumber(raw?.exam)}
+}
 function termResult(m,term){
- const t1=markNumber(m?.test1),e1=markNumber(m?.exam1);if(t1==null||e1==null)return null;
- if(term===1)return(t1+e1)/2;
- const t2=markNumber(m?.test2),e2=markNumber(m?.exam2);if(t2==null||e2==null)return null;
- if(term===2){const testMean=(t1+t2)/2;return((testMean*2)+e1+(e2*2))/5}
- const t3=markNumber(m?.test3),e3=markNumber(m?.exam3);if(t3==null||e3==null)return null;
- const testMean=(t1+t2+t3)/3;return((testMean*3)+e1+(e2*2)+(e3*3))/9
+ const rec=termRecord(m,term);if(rec.exam==null||rec.tests.some(v=>v==null))return null;
+ const testMean=rec.tests.reduce((a,b)=>a+b,0)/3;return(testMean+rec.exam)/2
+}
+function annualSubjectResult(m){
+ const t1=termResult(m,1),t2=termResult(m,2),t3=termResult(m,3);if([t1,t2,t3].some(v=>v==null))return null;
+ return(t1+(t2*2)+(t3*3))/6
 }
 function latestTermResult(m){for(let term=3;term>=1;term--){const value=termResult(m,term);if(value!=null)return{term,value}}return{term:0,value:null}}
 function statsFor(a){const students=classById(a.classId)?.students||[],marks=marksFor(a.id),byTerm={1:[],2:[],3:[]};for(const s of students){const m=marks[s.id]||{};for(let term=1;term<=3;term++){const value=termResult(m,term);if(value!=null)byTerm[term].push(value)}}let term=0;for(let t=3;t>=1;t--)if(byTerm[t].length){term=t;break}const values=term?byTerm[term]:[],avg=values.length?values.reduce((x,y)=>x+y,0)/values.length:null,coefficient=coefficientOf(a);return{students:students.length,done:values.length,avg,term,coefficient,weighted:avg==null?null:avg*coefficient}}
@@ -290,10 +299,11 @@ function editCoefficient(id){
  q('#pv2SaveCoefficient',m.wrap).onclick=async()=>{const n=Number(q('#pv2EditCoefficient',m.wrap).value),msg=q('.professor-msg',m.wrap);if(!Number.isFinite(n)||n<=0||n>20){msg.textContent=tr('أدخل معاملًا صحيحًا أكبر من 0','Saisissez un coefficient valide supérieur à 0');return}a.coefficient=Math.round(n*100)/100;a.coefficientSource='manual';try{await saveProfile(tr('تم حفظ المعامل','Coefficient enregistré'));m.close();openGrades(id)}catch{msg.textContent=tr('تعذر الحفظ','Enregistrement impossible')}}
 }
 function termFormula(term){
- if(term===1)return tr('معدل الفصل 1 = (خ1 + ام1) ÷ 2','T1 = (Test 1 + Examen 1) ÷ 2');
- if(term===2)return tr('معدل الفصل 2 = [(متوسط خ1 وخ2 × 2) + ام1 + (ام2 × 2)] ÷ 5','T2 = [(moyenne Test 1/Test 2 × 2) + Examen 1 + (Examen 2 × 2)] ÷ 5');
- return tr('معدل الفصل 3 = [(متوسط خ1 وخ2 وخ3 × 3) + ام1 + (ام2 × 2) + (ام3 × 3)] ÷ 9','T3 = [(moyenne Tests 1/2/3 × 3) + Examen 1 + (Examen 2 × 2) + (Examen 3 × 3)] ÷ 9')
+ const label=term===1?tr('الفصل الأول','1er trimestre'):term===2?tr('الفصل الثاني','2e trimestre'):tr('الفصل الثالث','3e trimestre');
+ return tr('كل فصل مستقل: 3 اختبارات + امتحان الفصل. معدل الفصل = (متوسط الاختبارات الثلاثة + امتحان الفصل) ÷ 2.','Chaque trimestre est indépendant : 3 interrogations + composition. Moyenne du trimestre = (moyenne des 3 interrogations + composition) ÷ 2.')+' · '+label
 }
+function termAverageLabel(term){return term===1?tr('معدل الفصل الأول','Moyenne du 1er trimestre'):term===2?tr('معدل الفصل الثاني','Moyenne du 2e trimestre'):tr('معدل الفصل الثالث','Moyenne du 3e trimestre')}
+
 function openGrades(id,term=1){
  term=Math.max(1,Math.min(3,Number(term)||1));const a=profile.assignments.find(x=>x.id===id);if(!a)return;currentView='grade:'+id+':'+term;const cls=classById(a.classId),students=cls?.students||[],marks=marksFor(id),l=linkFor(a.classId),canManageRoster=!l||l.role==='owner',coefficient=coefficientOf(a),testKey='test'+term,examKey='exam'+term;
  const rows=students.map((s,i)=>{const m=marks[s.id]||{},testValue=markNumber(m[testKey]),examValue=markNumber(m[examKey]),pairTotal=testValue==null||examValue==null?null:testValue+examValue,avg=termResult(m,term),weighted=avg==null?null:avg*coefficient;return`<tr><td>${esc(s.callNumber||i+1)}</td><td class="professor-student-name"><b>${esc(profStudentName(s))}</b><small dir="ltr">${esc(s.nns||'')}</small></td><td><input inputmode="decimal" data-kind="${testKey}" data-sid="${esc(s.id)}" value="${esc(m[testKey]??'')}" placeholder="—"></td><td><input inputmode="decimal" data-kind="${examKey}" data-sid="${esc(s.id)}" value="${esc(m[examKey]??'')}" placeholder="—"></td><td data-total="${esc(s.id)}">${pairTotal==null?'—':pairTotal.toFixed(2)}</td><td data-avg="${esc(s.id)}">${avg==null?'—':avg.toFixed(2)}</td><td data-weighted="${esc(s.id)}">${weighted==null?'—':weighted.toFixed(2)}</td></tr>`}).join('');
