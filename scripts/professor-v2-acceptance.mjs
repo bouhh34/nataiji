@@ -44,11 +44,23 @@ try{
  await page.locator('#profAllClasses').click();
  await page.locator('[data-manage-class]').first().click();
  await page.locator('#pv2AddStudent').click();
+ check('professor add-student opens dedicated bilingual sheet',await page.locator('.prof-student-modal').count()===1&&(await page.locator('.prof-student-modal h2').innerText()).includes('Ajouter un élève')&&(await page.locator('.prof-student-modal h2').innerText()).includes('إضافة تلميذ'));
  await page.locator('#pv2StudentName').fill('محمد سالم');
+ check('French student name is suggested automatically',(await page.locator('#pv2StudentNameFr').inputValue()).trim()==='Mohamed Salem');
+ await page.locator('#pv2StudentNameFr').fill('Mohamed Salem Manuel');
+ await page.locator('#pv2StudentName').fill('محمد سالم ولد');
+ check('manual French student name is locked against later Arabic edits',(await page.locator('#pv2StudentNameFr').inputValue()).trim()==='Mohamed Salem Manuel');
+ await page.locator('#pv2StudentName').fill('محمد سالم');
+ await page.locator('#pv2StudentNameFr').fill('Mohamed Salem');
  await page.locator('#pv2StudentNns').fill('NNS-001');
+ check('student call number is assigned automatically',await page.locator('#pv2StudentCall').inputValue()==='1');
+ await page.locator('#pv2StudentSex').selectOption('female');
+ await page.locator('#pv2StudentBirthDate').fill('2010-05-03');
  await page.locator('#pv2StudentSave').click();
  await page.locator('.prof-student-row').waitFor({state:'visible',timeout:8000});
  check('class student is saved',await page.locator('.prof-student-row').count()===1);
+ const savedStudent=await page.evaluate(async()=>{const r=await fetch('/api/professor/profile');const j=await r.json();return j.profile?.classes?.[0]?.students?.[0]||null});
+ check('extended professor student fields persist on server',savedStudent?.nameFr==='Mohamed Salem'&&savedStudent?.nns==='NNS-001'&&savedStudent?.callNumber===1&&savedStudent?.sex==='female'&&savedStudent?.birthDate==='2010-05-03',JSON.stringify(savedStudent));
 
  // One professor can own multiple subjects in the same class without duplicating the roster.
  await page.locator('#pv2AddClassSubject').click();
@@ -121,6 +133,8 @@ try{
 
  await page.locator('[data-manage-class]').first().click();
  check('shared roster is visible to second professor',await page.locator('.prof-student-row').count()===1,await page.locator('.prof-student-row').first().innerText());
+ const joinedStudent=await page.evaluate(async()=>{const r=await fetch('/api/professor/profile');const j=await r.json();return j.profile?.classes?.[0]?.students?.[0]||null});
+ check('shared roster preserves French name and student metadata',joinedStudent?.nameFr==='Mohamed Salem'&&joinedStudent?.callNumber===1&&joinedStudent?.sex==='female'&&joinedStudent?.birthDate==='2010-05-03',JSON.stringify(joinedStudent));
 
  check('linked professor cannot edit the shared roster from UI',await page.locator('#pv2AddStudent').count()===0&&await page.locator('[data-remove-student]').count()===0);
  const rosterGuard=await page.evaluate(async()=>{

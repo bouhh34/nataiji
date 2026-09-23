@@ -40,13 +40,18 @@ const configuredOwnerEmail=()=>normEmail(process.env.SUPER_ADMIN_EMAIL);
 const isOwnerRole=v=>['owner','admin'].includes(String(v||''));
 const cleanPermissions=v=>[...new Set((Array.isArray(v)?v:[]).filter(x=>['grades','pupils','reports'].includes(x)))];
 const emptyProfessorProfile=()=>({schoolName:'',year:'',classes:[],assignments:[],marks:{}});
+function professorStudentData(st,generateId=false){
+ const id=String(st?.id||(generateId?crypto.randomUUID():'')).trim().slice(0,120),name=String(st?.name||'').trim().slice(0,160),nameFr=String(st?.nameFr||'').trim().slice(0,160),nns=String(st?.nns||'').trim().slice(0,80);
+ const rawCall=Number(st?.callNumber),callNumber=Number.isInteger(rawCall)&&rawCall>0&&rawCall<=9999?rawCall:null,sex=['male','female'].includes(String(st?.sex||''))?String(st.sex):'',rawBirth=String(st?.birthDate||'').trim(),birthDate=/^\d{4}-\d{2}-\d{2}$/.test(rawBirth)?rawBirth:'';
+ return{id,name,nameFr,nns,callNumber,sex,birthDate}
+}
 function cleanProfessorProfile(input){
  const src=input&&typeof input==='object'?input:{},classes=[],classIds=new Set();
  for(const raw of (Array.isArray(src.classes)?src.classes:[]).slice(0,80)){
   const id=String(raw?.id||crypto.randomUUID()).trim().slice(0,120),name=String(raw?.name||'').trim().slice(0,120),sharedClassId=String(raw?.sharedClassId||'').trim().slice(0,120);if(!id||!name||classIds.has(id))continue;
   const inferred=inferProfessorLevelCode(name),requestedLevel=String(raw?.levelCode||'').trim().toUpperCase(),levelCode=['1AS','2AS','3AS'].includes(requestedLevel)?requestedLevel:inferred,branchCode=String(raw?.branchCode||'').trim().slice(0,40);
   const students=[],studentIds=new Set();
-  for(const st of (Array.isArray(raw?.students)?raw.students:[]).slice(0,800)){const sid=String(st?.id||crypto.randomUUID()).trim().slice(0,120),studentName=String(st?.name||'').trim().slice(0,160),nns=String(st?.nns||'').trim().slice(0,80);if(!sid||!studentName||studentIds.has(sid))continue;studentIds.add(sid);students.push({id:sid,name:studentName,nns})}
+  for(const st of (Array.isArray(raw?.students)?raw.students:[]).slice(0,800)){const student=professorStudentData(st,true);if(!student.id||!student.name||studentIds.has(student.id))continue;studentIds.add(student.id);students.push(student)}
   classIds.add(id);classes.push({id,name,levelCode,branchCode,students,sharedClassId})
  }
  const classById=new Map(classes.map(x=>[x.id,x])),assignments=[],assignmentIds=new Set();
@@ -133,7 +138,7 @@ async function professorAggregatedResults(userId,localClassId,term){
  let className=String(local.name||''),students=Array.isArray(local.students)?structuredClone(local.students):[];
  if(sharedClassId){
   const membership=await pool.query('SELECT 1 FROM nataiji_professor_class_members WHERE class_id=$1 AND user_id=$2',[sharedClassId,userId]);if(!membership.rowCount)return null;
-  const room=await pool.query('SELECT data FROM nataiji_professor_classrooms WHERE class_id=$1',[sharedClassId]);if(room.rowCount){const d=room.rows[0].data||{};className=String(d.name||className);students=Array.isArray(d.students)?d.students.map(s=>({id:String(s?.id||''),name:String(s?.name||''),nns:String(s?.nns||'')})).filter(s=>s.id&&s.name):students}
+  const room=await pool.query('SELECT data FROM nataiji_professor_classrooms WHERE class_id=$1',[sharedClassId]);if(room.rowCount){const d=room.rows[0].data||{};className=String(d.name||className);students=Array.isArray(d.students)?d.students.map(s=>professorStudentData(s)).filter(s=>s.id&&s.name):students}
   const rows=(await pool.query('SELECT user_id FROM nataiji_professor_class_members WHERE class_id=$1 ORDER BY joined_at,user_id',[sharedClassId])).rows;for(const row of rows)members.push(String(row.user_id))
  }else members.push(String(userId));
  const subjects=[];
@@ -156,7 +161,7 @@ async function professorAggregatedResults(userId,localClassId,term){
   let weightedSum=0,coefficientSum=0,complete=true,completedSubjects=0;
   const subjectResults=subjects.map(subject=>{const markRow=subject.marks?.[student.id]||{},average=professorTermAverage(markRow,term),weighted=average==null?null:average*subject.coefficient,tests=[1,2,3].map(i=>professorResultNumber(markRow?.['test'+i])),exams=[1,2,3].map(i=>professorResultNumber(markRow?.['exam'+i])),activeTests=tests.slice(0,term).filter(v=>v!=null),testMean=activeTests.length===term?activeTests.reduce((a,b)=>a+b,0)/activeTests.length:null;if(average==null)complete=false;else{completedSubjects++;weightedSum+=weighted;coefficientSum+=subject.coefficient}return{key:subject.key,average,weighted,tests,exams,testMean}});
   const general=subjects.length&&complete&&coefficientSum>0?weightedSum/coefficientSum:null,officialReady=general!=null&&curriculumComplete;
-  return{student:{id:String(student.id),name:String(student.name||''),nns:String(student.nns||'')},position:index+1,subjectResults,general,complete:subjects.length>0&&complete,officialReady,completedSubjects,totalSubjects:subjects.length}
+  return{student:professorStudentData(student),position:index+1,subjectResults,general,complete:subjects.length>0&&complete,officialReady,completedSubjects,totalSubjects:subjects.length}
  });
  const ranked=rows.filter(x=>x.general!=null).sort((a,b)=>b.general-a.general);
  for(const row of rows)if(row.general!=null)row.rank=1+ranked.filter(x=>x.general>row.general).length;else row.rank=null;
@@ -170,14 +175,14 @@ async function professorClassLinks(profile,userId){
   const q=await pool.query(`SELECT c.class_id,c.owner_user_id,c.join_code,c.data,m.role,(SELECT count(*)::int FROM nataiji_professor_class_members mm WHERE mm.class_id=c.class_id) AS member_count FROM nataiji_professor_classrooms c JOIN nataiji_professor_class_members m ON m.class_id=c.class_id AND m.user_id=$2 WHERE c.class_id=$1`,[sharedClassId,userId]);
   if(!q.rowCount){cls.sharedClassId='';continue}
   const row=q.rows[0],data=row.data&&typeof row.data==='object'?row.data:{},students=Array.isArray(data.students)?data.students:[];
-  cls.name=String(data.name||cls.name||'').trim().slice(0,120)||cls.name;cls.levelCode=['1AS','2AS','3AS'].includes(String(data.levelCode||'').toUpperCase())?String(data.levelCode).toUpperCase():(cls.levelCode||inferProfessorLevelCode(cls.name));cls.branchCode=String(data.branchCode||cls.branchCode||'').trim().slice(0,40);cls.students=students.map(s=>({id:String(s?.id||''),name:String(s?.name||''),nns:String(s?.nns||'')})).filter(s=>s.id&&s.name);
+  cls.name=String(data.name||cls.name||'').trim().slice(0,120)||cls.name;cls.levelCode=['1AS','2AS','3AS'].includes(String(data.levelCode||'').toUpperCase())?String(data.levelCode).toUpperCase():(cls.levelCode||inferProfessorLevelCode(cls.name));cls.branchCode=String(data.branchCode||cls.branchCode||'').trim().slice(0,40);cls.students=students.map(s=>professorStudentData(s)).filter(s=>s.id&&s.name);
   links[cls.id]={sharedClassId:row.class_id,role:row.role||'member',memberCount:Number(row.member_count)||1,joinCode:row.join_code||'',ownerUserId:row.owner_user_id||''}
  }
  return links
 }
 function professorSharedClassData(cls){
  const name=String(cls?.name||'').trim().slice(0,120),levelCode=['1AS','2AS','3AS'].includes(String(cls?.levelCode||'').toUpperCase())?String(cls.levelCode).toUpperCase():inferProfessorLevelCode(name),branchCode=String(cls?.branchCode||'').trim().slice(0,40);
- const students=(Array.isArray(cls?.students)?cls.students:[]).map(s=>({id:String(s?.id||''),name:String(s?.name||'').trim().slice(0,160),nns:String(s?.nns||'').trim().slice(0,80)})).filter(s=>s.id&&s.name);
+ const students=(Array.isArray(cls?.students)?cls.students:[]).map(s=>professorStudentData(s)).filter(s=>s.id&&s.name);
  return{name,levelCode,branchCode,students}
 }
 function professorSharedClassSame(a,b){return JSON.stringify(professorSharedClassData(a))===JSON.stringify(professorSharedClassData(b))}
@@ -428,7 +433,7 @@ app.post('/api/professor/classes/join',auth,async(req,res)=>{
  const existing=profile.classes.find(x=>x.sharedClassId===shared.class_id);if(existing)cls=existing;
  if(cls?.sharedClassId&&cls.sharedClassId!==shared.class_id)return res.status(409).json({error:'professor_class_already_linked'});
  if(!cls){const joinedName=String(data.name||'قسم').trim().slice(0,120)||'قسم';cls={id:crypto.randomUUID(),name:joinedName,levelCode:['1AS','2AS','3AS'].includes(String(data.levelCode||'').toUpperCase())?String(data.levelCode).toUpperCase():inferProfessorLevelCode(joinedName),branchCode:String(data.branchCode||'').trim().slice(0,40),students:[],sharedClassId:shared.class_id};profile.classes.push(cls)}
- cls.sharedClassId=shared.class_id;cls.name=String(data.name||cls.name||'قسم').trim().slice(0,120)||cls.name;cls.levelCode=['1AS','2AS','3AS'].includes(String(data.levelCode||'').toUpperCase())?String(data.levelCode).toUpperCase():(cls.levelCode||inferProfessorLevelCode(cls.name));cls.branchCode=String(data.branchCode||cls.branchCode||'').trim().slice(0,40);cls.students=Array.isArray(data.students)?data.students.map(s=>({id:String(s?.id||''),name:String(s?.name||''),nns:String(s?.nns||'')})).filter(s=>s.id&&s.name):[];
+ cls.sharedClassId=shared.class_id;cls.name=String(data.name||cls.name||'قسم').trim().slice(0,120)||cls.name;cls.levelCode=['1AS','2AS','3AS'].includes(String(data.levelCode||'').toUpperCase())?String(data.levelCode).toUpperCase():(cls.levelCode||inferProfessorLevelCode(cls.name));cls.branchCode=String(data.branchCode||cls.branchCode||'').trim().slice(0,40);cls.students=Array.isArray(data.students)?data.students.map(s=>professorStudentData(s)).filter(s=>s.id&&s.name):[];
  const client=await pool.connect();
  try{await client.query('BEGIN');await client.query('INSERT INTO nataiji_professor_class_members(class_id,user_id,role) VALUES($1,$2,$3) ON CONFLICT DO NOTHING',[shared.class_id,req.user.id,shared.owner_user_id===req.user.id?'owner':'member']);await client.query('INSERT INTO nataiji_professor_profiles(user_id,data,updated_at) VALUES($1,$2::jsonb,now()) ON CONFLICT(user_id) DO UPDATE SET data=EXCLUDED.data,updated_at=now()',[req.user.id,JSON.stringify(cleanProfessorProfile(profile))]);await client.query('COMMIT')}catch(e){await client.query('ROLLBACK');throw e}finally{client.release()}
  const clean=cleanProfessorProfile(profile),links=await professorClassLinks(clean,req.user.id);res.json({ok:true,profile:clean,classLinks:links,localClassId:cls.id,sharedClassId:shared.class_id})
