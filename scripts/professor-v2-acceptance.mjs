@@ -89,6 +89,14 @@ try{
  await page.locator('#pv2OwnSubjectList').click();
  check('individual professor has bilingual one-test subject list',await page.locator('.professor-own-list-table').count()===1&&(await page.locator('.prof-own-list-preview').innerText()).includes('Interrogation /20'));
  check('trimester 3 subject list uses final-subject-average wording',(await page.locator('.prof-own-list-preview').innerText()).includes('Moyenne finale de la matière')&&(await page.locator('.prof-own-list-preview').innerText()).includes('المعدل النهائي للمادة'));
+ const ownSubjectsPopupPromise=page.waitForEvent('popup');
+ await page.locator('#pv2PrintOwnSubject').click();
+ const ownSubjectsPrint=await ownSubjectsPopupPromise;
+ await ownSubjectsPrint.waitForLoadState('domcontentloaded');
+ const ownSubjectsPrintText=await ownSubjectsPrint.locator('body').innerText();
+ check('own-subject PDF combines all professor subjects in the class',ownSubjectsPrintText.includes('الرياضيات')&&ownSubjectsPrintText.includes('Mathématiques')&&ownSubjectsPrintText.includes('اللغة الفرنسية')&&ownSubjectsPrintText.includes('Français'),ownSubjectsPrintText);
+ check('combined own-subject PDF uses one-test and final-average columns',ownSubjectsPrintText.includes('Test /20')&&ownSubjectsPrintText.includes('Moy. finale')&&ownSubjectsPrintText.includes('المعدل النهائي'),ownSubjectsPrintText);
+ await ownSubjectsPrint.close();
  await page.locator('.professor-x').click();
  const unsharedCollective=await page.evaluate(async()=>{const p=await fetch('/api/professor/profile');const j=await p.json();const id=j.profile.classes[0].id;const r=await fetch('/api/professor/classes/'+encodeURIComponent(id)+'/results?term=1');return{status:r.status,body:await r.json()}});
  check('individual professor cannot open collective student bulletins before sharing',unsharedCollective.status===409&&unsharedCollective.body?.error==='collective_mode_required',JSON.stringify(unsharedCollective));
@@ -175,6 +183,11 @@ try{
  await page.locator('#pv2SaveAssignment').click();
  await page.locator('[data-class-grade]').waitFor({state:'visible',timeout:8000});
  check('second professor can add private subject to shared class',(await page.locator('[data-class-grade]').innerText()).includes('العلوم الفيزيائية'));
+ const zeroCollective=await page.evaluate(async()=>{const p=await fetch('/api/professor/profile');const j=await p.json();const id=j.profile.classes.find(c=>c.sharedClassId)?.id;const r=await fetch('/api/professor/classes/'+encodeURIComponent(id)+'/results?term=1');return{status:r.status,body:await r.json()}});
+ const zeroPhysicsIndex=zeroCollective.body?.subjects?.findIndex(s=>s.subjectKey==='physical_sciences'||String(s.subject||'').includes('العلوم الفيزيائية'));
+ const zeroPhysicsResult=zeroPhysicsIndex>=0?zeroCollective.body?.students?.[0]?.subjectResults?.[zeroPhysicsIndex]:null;
+ check('linked subject with no grades remains in collective results as zero',zeroCollective.status===200&&zeroPhysicsIndex>=0&&zeroPhysicsResult?.average===0&&zeroPhysicsResult?.weighted===0,JSON.stringify(zeroCollective.body));
+ check('collective average includes the zero-valued linked subject',Math.abs(Number(zeroCollective.body?.students?.[0]?.general)-129/11)<0.001,String(zeroCollective.body?.students?.[0]?.general));
 
  await page.locator('[data-class-grade]').click();
  let physicsTests=page.locator('[data-test-index]');
@@ -238,13 +251,21 @@ try{
  const studentPrintText=await studentPrint.locator('body').innerText();
  check('printed student bulletin has bilingual Mauritanian official header',studentPrintText.includes('الجمهورية الإسلامية الموريتانية')&&studentPrintText.includes('République Islamique de Mauritanie')&&studentPrintText.includes('وزارة التربية وإصلاح النظام التعليمي')&&studentPrintText.includes('Ministère de l’Éducation et de la Réforme du Système Éducatif'),studentPrintText);
  check('printed student bulletin keeps Arabic and French subject/name labels together',studentPrintText.includes('الرياضيات')&&studentPrintText.includes('Mathématiques')&&studentPrintText.includes('محمد سالم')&&studentPrintText.includes('Mohamed Salem'),studentPrintText);
- check('printed student bulletin uses two copies on one A4 page',await studentPrint.locator('.student-copy').count()===2&&await studentPrint.locator('.official-head').count()===2&&await studentPrint.locator('.cut-line').count()===1);
- check('both printed student copies are the same student',await studentPrint.locator('.student-copy').nth(0).innerText()===await studentPrint.locator('.student-copy').nth(1).innerText());
- check('school-style footer has date, signatures and stamp zones in both copies',await studentPrint.locator('.school-signatures').count()===2&&await studentPrint.locator('.official-date-line').count()===2&&await studentPrint.locator('.stamp-zone').count()===2);
+ check('single student bulletin prints one official copy',await studentPrint.locator('.official-head').count()===1&&await studentPrint.locator('.cut-line').count()===0);
+ check('single student bulletin keeps formal date, signature and stamp footer',await studentPrint.locator('.school-signatures').count()===1&&await studentPrint.locator('.official-date-line').count()===1&&await studentPrint.locator('.stamp-zone').count()===1);
  const schoolGridStyle=await studentPrint.locator('.secondary-summary').first().evaluate(el=>({left:getComputedStyle(el).borderLeftStyle,bottom:getComputedStyle(el).borderBottomStyle,color:getComputedStyle(el).color}));
  check('student bulletin uses formal bordered school-record blocks',schoolGridStyle.left==='solid'&&schoolGridStyle.bottom==='solid',JSON.stringify(schoolGridStyle));
  await studentPrint.close();
  await page.locator('.professor-x').click();
+
+ check('collective results expose bulk two-students-per-A4 printing',await page.locator('#pv2PrintAllStudents').count()===1);
+ const bulkPopupPromise=page.waitForEvent('popup');
+ await page.locator('#pv2PrintAllStudents').click();
+ const bulkPrint=await bulkPopupPromise;
+ await bulkPrint.waitForLoadState('domcontentloaded');
+ check('bulk bulletin output uses student-pair pages',await bulkPrint.locator('.student-pair').count()===1&&await bulkPrint.locator('.student-copy').count()===1);
+ check('bulk bulletin pulls the same collective subjects',((await bulkPrint.locator('body').innerText()).includes('الرياضيات'))&&((await bulkPrint.locator('body').innerText()).includes('اللغة الفرنسية'))&&((await bulkPrint.locator('body').innerText()).includes('العلوم الفيزيائية')));
+ await bulkPrint.close();
 
  const classPopupPromise=page.waitForEvent('popup');
  await page.locator('#pv2PrintClass').click();
