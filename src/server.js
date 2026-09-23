@@ -116,6 +116,7 @@ const safeUser=u=>{
 };
 const hashPassword=(password,salt=crypto.randomBytes(16).toString('hex'))=>({salt,hash:crypto.scryptSync(password,salt,64).toString('hex')});
 function verifyPassword(password,u){try{const got=crypto.scryptSync(password,u.salt,64),exp=Buffer.from(u.passwordHash,'hex');return got.length===exp.length&&crypto.timingSafeEqual(got,exp)}catch{return false}}
+const normalizeDeleteConfirmation=v=>String(v??'').normalize('NFKC').replace(/[\u064B-\u065F\u0670\u0640]/g,'').replace(/[إأآ]/g,'ا').replace(/ى/g,'ي').replace(/\s+/g,' ').trim();
 async function getIndex(){try{return JSON.parse(await storeGet(usersIndexKey)||'{}')}catch{return {}}}
 async function setIndex(x){await storeSet(usersIndexKey,JSON.stringify(x))}
 async function ensureConfiguredOwner(user){
@@ -318,8 +319,8 @@ app.delete('/api/account',auth,async(req,res)=>{
  const password=String(req.body?.password||''),confirm=String(req.body?.confirm||'').trim();
  if(!password)return res.status(400).json({error:'delete_confirmation_required'});
  const raw=await storeGet(userKey(req.user.id));if(!raw)return res.status(404).json({error:'account_not_found'});const user=JSON.parse(raw),owner=isOwnerRole(user.baseRole||user.role);
- if(owner){if(confirm!=='حذف الحساب نهائيًا')return res.status(400).json({error:'delete_confirmation_required'})}
- else if(!['حذف','DELETE'].includes(confirm.toUpperCase()==='DELETE'?'DELETE':confirm))return res.status(400).json({error:'delete_confirmation_required'});
+ if(owner){if(normalizeDeleteConfirmation(confirm)!==normalizeDeleteConfirmation('حذف الحساب نهائيا'))return res.status(400).json({error:'delete_confirmation_required'})}
+ else if(!['حذف','DELETE'].includes(confirm.toUpperCase()==='DELETE'?'DELETE':normalizeDeleteConfirmation(confirm)))return res.status(400).json({error:'delete_confirmation_required'});
  if(!verifyPassword(password,user))return res.status(401).json({error:'bad_password'});if(!pool)return res.status(503).json({error:'durable_storage_required'});
  const owned=[...new Set(Array.isArray(user.ownedSchoolIds)?user.ownedSchoolIds:(user.schoolId?[user.schoolId]:[]))],idx=await getIndex(),currentToken=parseCookies(req).nataiji_session;
  try{const client=await pool.connect();try{await client.query('BEGIN');for(const schoolId of owned)for(const table of ['nataiji_marks','nataiji_pupils','nataiji_subjects','nataiji_class_settings','nataiji_migrations','nataiji_school_settings','nataiji_structure'])await client.query('DELETE FROM '+table+' WHERE school_id=$1',[schoolId]);await cleanupProfessorSharing(user.id,client);await client.query('COMMIT')}catch(e){await client.query('ROLLBACK');throw e}finally{client.release()}}catch(e){console.error('account cleanup failed',user.id,e);return res.status(500).json({error:'account_delete_failed'})}
