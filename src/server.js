@@ -51,7 +51,22 @@ function professorLevel(value,name=''){
  if(/(?:السنة\s*)?الثالثة/.test(ar))return'3AS';
  return''
 }
+const PROFESSOR_SUBJECT_CODE_BY_NAME=new Map([
+ ['الرياضيات','math'],['mathématiques','math'],['mathematiques','math'],['math','math'],
+ ['اللغة العربية','arabic'],['العربية','arabic'],['arabe','arabic'],
+ ['اللغة الفرنسية','french'],['الفرنسية','french'],['français','french'],['francais','french'],
+ ['التاريخ والجغرافيا','history-geography'],['histoire et géographie','history-geography'],['histoire et geographie','history-geography'],
+ ['التربية البدنية','eps'],['الرياضة','eps'],['éducation physique','eps'],['education physique','eps'],
+ ['التربية الإسلامية','islamic'],['éducation islamique','islamic'],['education islamique','islamic'],
+ ['التربية المدنية','civic'],['éducation civique','civic'],['education civique','civic'],
+ ['العلوم الطبيعية','natural-sciences'],['sciences naturelles','natural-sciences'],
+ ['اللغة الإنجليزية','english'],['الإنجليزية','english'],['anglais','english'],['english','english'],
+ ['التكنولوجيا','technology'],['technologie','technology'],
+ ['المعلوماتية','informatics'],['الإعلام الآلي','informatics'],['informatique','informatics'],
+ ['الفيزياء','physics'],['العلوم الفيزيائية','physics'],['physique','physics'],['sciences physiques','physics']
+]);
 function professorSubjectCode(v){const s=String(v||'').trim().toLowerCase();return /^[a-z0-9-]{1,60}$/.test(s)?s:''}
+function professorSubjectCodeFromName(v){return PROFESSOR_SUBJECT_CODE_BY_NAME.get(String(v||'').trim().toLowerCase())||''}
 function professorOfficialCoefficient(level,subjectCode){
  const verified={
   '1AS':{math:6,arabic:5,french:4,'history-geography':2,eps:1},
@@ -70,7 +85,7 @@ function cleanProfessorProfile(input){
  }
  const classMeta=new Map(classes.map(x=>[x.id,x])),assignments=[],assignmentIds=new Set();
  for(const raw of (Array.isArray(src.assignments)?src.assignments:[]).slice(0,160)){
-  const id=String(raw?.id||crypto.randomUUID()).trim().slice(0,120),subject=String(raw?.subject||'').trim().slice(0,120),classId=String(raw?.classId||'').trim().slice(0,120),subjectCode=professorSubjectCode(raw?.subjectCode),rawCoefficient=Number(raw?.coefficient),fallbackCoefficient=Number.isFinite(rawCoefficient)&&rawCoefficient>0&&rawCoefficient<=20?Math.round(rawCoefficient*100)/100:1,official=professorOfficialCoefficient(classMeta.get(classId)?.level||'',subjectCode),coefficientSource=raw?.coefficientSource==='official'&&official!=null?'official':'manual',coefficient=coefficientSource==='official'?official:fallbackCoefficient;
+  const id=String(raw?.id||crypto.randomUUID()).trim().slice(0,120),subject=String(raw?.subject||'').trim().slice(0,120),classId=String(raw?.classId||'').trim().slice(0,120),subjectCode=professorSubjectCode(raw?.subjectCode)||professorSubjectCodeFromName(subject),rawCoefficient=Number(raw?.coefficient),fallbackCoefficient=Number.isFinite(rawCoefficient)&&rawCoefficient>0&&rawCoefficient<=20?Math.round(rawCoefficient*100)/100:1,official=professorOfficialCoefficient(classMeta.get(classId)?.level||'',subjectCode),coefficientSource=official!=null?'official':'manual',coefficient=official!=null?official:fallbackCoefficient;
   if(!id||!subject||!classIds.has(classId)||assignmentIds.has(id))continue;assignmentIds.add(id);assignments.push({id,subject,subjectCode,classId,coefficient,coefficientSource})
  }
  const marks={},srcMarks=src.marks&&typeof src.marks==='object'?src.marks:{},classMap=new Map(classes.map(x=>[x.id,new Set(x.students.map(s=>s.id))]));
