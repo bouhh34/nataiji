@@ -16,8 +16,11 @@
     <script>
       (() => {
         const language = localStorage.getItem("nataiji-lang") || "ar";
+        const isFrench = language === "fr";
         document.documentElement.lang = language;
-        document.documentElement.dir = language === "fr" ? "ltr" : "rtl";
+        document.documentElement.dir = isFrench ? "ltr" : "rtl";
+        document.documentElement.classList.toggle("lang-fr", isFrench);
+        document.documentElement.classList.toggle("lang-ar", !isFrench);
       })();
     </script>
     <link rel="icon" type="image/png" href="/nataiji-brand-mark.png" />
@@ -60,7 +63,8 @@
         if (!gate && document.body) {
           gate = document.createElement('div');
           gate.className = 'auth-gate';
-          gate.innerHTML = '<div class="auth-box"><div class="auth-brand"><img src="/nataiji-brand-mark.png" alt="" width="82" height="82"><h1>نتائجي</h1><p>الاتصال بطيء، أعد المحاولة.</p></div><button class="auth-submit" onclick="location.reload()">إعادة المحاولة</button></div>';
+          const fr = (localStorage.getItem("nataiji-lang") || "ar") === "fr";
+          gate.innerHTML = '<div class="auth-box"><div class="auth-brand"><img src="/nataiji-brand-mark.png" alt="" width="82" height="82"><h1>نتائجي</h1><p>' + (fr ? 'La connexion est lente. Réessayez.' : 'الاتصال بطيء، أعد المحاولة.') + '</p></div><button class="auth-submit" onclick="location.reload()">' + (fr ? 'Réessayer' : 'إعادة المحاولة') + '</button></div>';
           document.body.appendChild(gate);
         }
         root.classList.add('nataiji-auth-ready');
@@ -275,7 +279,7 @@
     <script src="/structure-manager.js?v=23"></script>
     <script src="/onboarding-v1.js?v=7"></script>
     <script src="/professor-v1.js?v=1"></script>
-    <script src="/professor-v2.js?v=12"></script>
+    <script src="/professor-v2.js?v=13"></script>
     <script src="/auth-access-v2.js?v=41"></script>
     <script src="/owner-staff-v1.js?v=1"></script>
     <script src="/account-isolation.js?v=4"></script>
@@ -293,7 +297,7 @@
     <script src="/report-final-polish-v1.js?v=11"></script>
     <script src="/student-pdf-number-direction-v1.js?v=1"></script>
     <script src="/admin-ux-polish-v1.js?v=8"></script>
-    <script src="/interface-language-fix.js?v=10"></script>
+    <script src="/interface-language-fix.js?v=11"></script>
     <script src="/premium-subject-locale-v1.js?v=5"></script>
     <script src="/commercial-foundation-v1.js?v=2"></script>
     <script src="/workflow-polish.js?v=2"></script>

@@ -190,6 +190,8 @@ try{
  await page.locator('#pv2ResultsBody .prof-results-table').waitFor({state:'visible',timeout:10000});
  const resultsText=await page.locator('#pv2ResultsBody').innerText();
  check('shared results include subjects from both professors',resultsText.includes('الرياضيات')&&resultsText.includes('اللغة الفرنسية')&&resultsText.includes('العلوم الفيزيائية'),resultsText);
+ const orderedSubjects=await page.locator('#pv2ResultsBody .prof-result-subject').allTextContents();
+ check('collective report subjects follow curriculum order',JSON.stringify(orderedSubjects.slice(0,3))===JSON.stringify(['الرياضيات','اللغة الفرنسية','العلوم الفيزيائية']),JSON.stringify(orderedSubjects));
  check('shared general average uses subject coefficients',resultsText.includes('12.91'),resultsText);
  check('report exposes official coefficient coverage',resultsText.includes('11 / 28'),resultsText);
  check('shared results expose one student bulletin button',await page.locator('[data-bulletin]').count()===1);
@@ -202,6 +204,10 @@ try{
  const frenchResults=await page.locator('#pv2ResultsBody').innerText();
  check('French mode translates Arabic professor subject automatically',frenchResults.includes('Mathématiques'),frenchResults);
  check('French mode transliterates student names automatically',frenchResults.includes('Mohamed Salem'),frenchResults);
+ const frenchMeta=await page.evaluate(()=>({lang:document.documentElement.lang,dir:document.documentElement.dir,htmlFr:document.documentElement.classList.contains('lang-fr')}));
+ check('professor French mode applies LTR metadata consistently',frenchMeta.lang==='fr'&&frenchMeta.dir==='ltr'&&frenchMeta.htmlFr,JSON.stringify(frenchMeta));
+ check('collective results body is fully localized in French',!/[\u0600-\u06ff]/u.test(frenchResults),frenchResults);
+ check('language switch clearly offers Arabic from French mode',(await page.locator('#profLang').innerText()).trim()==='العربية');
 
  if(failures.length)throw new Error(failures.join('\n'));
  console.log('Professor v2 acceptance passed');
