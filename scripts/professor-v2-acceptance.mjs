@@ -81,7 +81,7 @@ try{
  check('shared class code has expected format',/^CL-[A-F0-9]{8}$/.test(code),code);
  await page.locator('.professor-x').click();
 
- await page.locator('[data-class-grade]').click();
+ await page.locator('[data-class-grade]').filter({hasText:'الرياضيات'}).click();
  let gradeInputs=page.locator('[data-kind]');
  await gradeInputs.nth(0).fill('10');
  await gradeInputs.nth(1).fill('12');
