@@ -167,11 +167,49 @@ function openSettings(){
  q('#pv2SaveSettings',m.wrap).onclick=async()=>{const b=q('#pv2SaveSettings',m.wrap),msg=q('.professor-msg',m.wrap);b.disabled=true;profile.schoolName=q('#pv2School',m.wrap).value.trim();profile.schoolNameFr=q('#pv2SchoolFr',m.wrap).value.trim();profile.region=q('#pv2Region',m.wrap).value.trim();profile.regionFr=q('#pv2RegionFr',m.wrap).value.trim();profile.inspection=q('#pv2Inspection',m.wrap).value.trim();profile.inspectionFr=q('#pv2InspectionFr',m.wrap).value.trim();profile.schoolNns=q('#pv2SchoolNns',m.wrap).value.trim();profile.year=q('#pv2Year',m.wrap).value.trim();try{await saveProfile(tr('تم حفظ الإعدادات','Paramètres enregistrés'));m.close();renderCurrent()}catch{msg.textContent=tr('تعذر الحفظ','Enregistrement impossible')}finally{b.disabled=false}}
 }
 function openAssignment(preselectClass=''){
- if(typeof preselectClass!=='string')preselectClass='';const returnView=currentView;
- const opts=profile.classes.map(c=>`<option value="${esc(c.id)}" ${preselectClass===c.id?'selected':''}>${esc(profClass(c.name))}${linkFor(c.id)?' 🔗':''}</option>`).join(''),newSelected=!preselectClass;
- const m=modal(tr('إضافة مادة وقسم','Ajouter matière + classe'),`<label>${tr('اسم المادة','Nom de la matière')}<input id="pv2Subject" maxlength="100" placeholder="${tr('مثال: الرياضيات','Ex. Mathématiques')}"></label><label>${tr('المعامل','Coefficient')}<input id="pv2Coefficient" type="number" inputmode="decimal" min="0.25" max="20" step="0.25" value="1"></label><label>${tr('القسم','Classe')}<select id="pv2Class"><option value="" ${newSelected?'selected':''}>${tr('إنشاء قسم جديد','Créer une nouvelle classe')}</option>${opts}</select></label><label id="pv2NewClassLabel">${tr('اسم القسم الجديد','Nom de la nouvelle classe')}<input id="pv2NewClass" maxlength="100" placeholder="${tr('مثال: 2AS-B','Ex. 2AS-B')}"></label><button class="primary" id="pv2SaveAssignment">${tr('إضافة المادة','Ajouter la matière')}</button><p class="professor-msg"></p>`);
- const sel=q('#pv2Class',m.wrap),newLabel=q('#pv2NewClassLabel',m.wrap),sync=()=>newLabel.style.display=sel.value?'none':'grid';sel.onchange=sync;sync();
- q('#pv2SaveAssignment',m.wrap).onclick=async()=>{const subject=q('#pv2Subject',m.wrap).value.trim(),className=q('#pv2NewClass',m.wrap).value.trim(),coefficient=Number(q('#pv2Coefficient',m.wrap).value),msg=q('.professor-msg',m.wrap);if(!subject||(!sel.value&&!className)){msg.textContent=tr('اكتب المادة وحدد القسم','Saisissez la matière et choisissez la classe');return}if(!Number.isFinite(coefficient)||coefficient<=0||coefficient>20){msg.textContent=tr('أدخل معاملًا صحيحًا أكبر من 0','Saisissez un coefficient valide supérieur à 0');return}let classId=sel.value;if(!classId){const existing=profile.classes.find(c=>c.name.trim().toLowerCase()===className.toLowerCase());if(existing)classId=existing.id;else{classId=uid();profile.classes.push({id:classId,name:className,students:[],sharedClassId:''})}}if(profile.assignments.some(a=>a.classId===classId&&a.subject.trim().toLowerCase()===subject.toLowerCase())){msg.textContent=tr('هذه المادة موجودة في هذا القسم بالفعل','Cette matière existe déjà pour cette classe');return}profile.assignments.push({id:uid(),subject,classId,coefficient:Math.round(coefficient*100)/100});try{await saveProfile(tr('تمت إضافة المادة','Matière ajoutée'));m.close();if(preselectClass)return openClass(classId);if(returnView==='grades')return renderGrades();if(returnView==='students'||returnView==='classes')return renderClasses();if(returnView==='more')return renderMore();renderHome()}catch{msg.textContent=tr('تعذر الحفظ','Enregistrement impossible')}}
+ if(typeof preselectClass!=='string')preselectClass='';const returnView=currentView,levels=academicCatalog.levels||[];
+ const opts=profile.classes.map(c=>`<option value="${esc(c.id)}" ${preselectClass===c.id?'selected':''}>${esc(profClass(c.name))}${c.levelCode?' · '+esc(c.levelCode):''}${linkFor(c.id)?' 🔗':''}</option>`).join('');
+ const levelOpts=levels.map(l=>`<option value="${esc(l.code)}">${esc(l.code)} — ${esc(fr()?l.fr:l.ar)}</option>`).join('');
+ const m=modal(tr('إضافة مادة وقسم','Ajouter matière + classe'),`
+ <div class="prof-link-explain"><b>${tr('المستوى والمادة والمعامل','Niveau, matière et coefficient')}</b><p>${tr('اختر المستوى ثم المادة. إذا كان المعامل مثبتًا في الكتالوج الحالي سيُطبق تلقائيًا ولا تحتاج إلى كتابته.','Choisissez le niveau puis la matière. Si le coefficient est confirmé dans le catalogue actuel, il sera appliqué automatiquement.')}</p></div>
+ <label>${tr('القسم','Classe')}<select id="pv2Class"><option value="">${tr('إنشاء قسم جديد','Créer une nouvelle classe')}</option>${opts}</select></label>
+ <label id="pv2NewClassLabel">${tr('اسم القسم','Nom de la classe')}<input id="pv2NewClass" maxlength="100" placeholder="${tr('مثال: 2AS-A','Ex. 2AS-A')}"></label>
+ <label id="pv2LevelLabel">${tr('المستوى','Niveau')}<select id="pv2Level"><option value="">${tr('اختر المستوى','Choisir le niveau')}</option>${levelOpts}</select><small>${tr('المستويات الحالية فقط: 1AS، 2AS، 3AS. لا تظهر السنوات القديمة الملغاة.','Niveaux actuels uniquement : 1AS, 2AS, 3AS. Les anciens niveaux supprimés ne sont pas proposés.')}</small></label>
+ <label id="pv2BranchLabel" style="display:none">${tr('الشعبة','Filière')}<select id="pv2Branch"></select></label>
+ <label>${tr('المادة','Matière')}<select id="pv2Subject"><option value="">${tr('اختر المادة','Choisir la matière')}</option></select></label>
+ <label id="pv2CustomSubjectLabel" style="display:none">${tr('مادة أخرى','Autre matière')}<input id="pv2CustomSubject" maxlength="100"></label>
+ <label>${tr('المعامل','Coefficient')}<input id="pv2Coefficient" type="number" inputmode="decimal" min="0.25" max="20" step="0.25" value="1"><small id="pv2CoefficientHint"></small></label>
+ <button class="primary" id="pv2SaveAssignment">${tr('إضافة المادة','Ajouter la matière')}</button><p class="professor-msg"></p>`);
+ const sel=q('#pv2Class',m.wrap),newLabel=q('#pv2NewClassLabel',m.wrap),levelSel=q('#pv2Level',m.wrap),levelLabel=q('#pv2LevelLabel',m.wrap),branchLabel=q('#pv2BranchLabel',m.wrap),branchSel=q('#pv2Branch',m.wrap),subjectSel=q('#pv2Subject',m.wrap),customLabel=q('#pv2CustomSubjectLabel',m.wrap),customInput=q('#pv2CustomSubject',m.wrap),coef=q('#pv2Coefficient',m.wrap),coefHint=q('#pv2CoefficientHint',m.wrap);
+ if(preselectClass)sel.value=preselectClass;
+ const syncSubjects=()=>{
+  const cls=sel.value?classById(sel.value):null,knownLevel=cls?.levelCode||inferredLevelCode(cls?.name),levelCode=knownLevel||levelSel.value,level=catalogLevel(levelCode);
+  newLabel.style.display=sel.value?'none':'grid';levelLabel.style.display='grid';levelSel.disabled=!!knownLevel;if(knownLevel)levelSel.value=knownLevel;
+  const previous=subjectSel.value;subjectSel.innerHTML=`<option value="">${tr('اختر المادة','Choisir la matière')}</option>`+(level?.subjects||[]).map(s=>`<option value="${esc(s.key)}">${esc(fr()?s.fr:s.ar)}${s.official?' · ×'+s.coefficient:''}</option>`).join('')+`<option value="__other__">${tr('مادة أخرى…','Autre matière…')}</option>`;
+  if([...subjectSel.options].some(o=>o.value===previous))subjectSel.value=previous;
+  const branches=Array.isArray(level?.branches)?level.branches:[];branchLabel.style.display=branches.length?'grid':'none';branchSel.innerHTML=branches.map(b=>`<option value="${esc(b.code)}">${esc(fr()?b.fr:b.ar)}</option>`).join('');
+  syncCoefficient()
+ };
+ const syncCoefficient=()=>{
+  customLabel.style.display=subjectSel.value==='__other__'?'grid':'none';
+  const cls=sel.value?classById(sel.value):null,levelCode=cls?.levelCode||inferredLevelCode(cls?.name)||levelSel.value,spec=catalogSubject(levelCode,subjectSel.value);
+  if(spec?.official){coef.value=spec.coefficient;coef.readOnly=true;coefHint.textContent=tr('معامل رسمي يُطبق تلقائيًا.','Coefficient officiel appliqué automatiquement.')}
+  else{coef.readOnly=false;if(!Number(coef.value)||Number(coef.value)<=0)coef.value='1';coefHint.textContent=subjectSel.value?tr('هذا المعامل غير مثبت بعد في الكتالوج الحالي؛ أدخله يدويًا ويمكن تعديله لاحقًا.','Coefficient non encore confirmé dans le catalogue actuel : saisissez-le manuellement; il pourra être modifié plus tard.') : ''}
+ };
+ sel.onchange=()=>{const cls=sel.value?classById(sel.value):null;if(!cls)levelSel.disabled=false;syncSubjects()};levelSel.onchange=syncSubjects;subjectSel.onchange=syncCoefficient;syncSubjects();
+ q('#pv2SaveAssignment',m.wrap).onclick=async()=>{
+  const msg=q('.professor-msg',m.wrap),className=q('#pv2NewClass',m.wrap).value.trim(),existing=sel.value?classById(sel.value):null,levelCode=existing?.levelCode||inferredLevelCode(existing?.name)||levelSel.value,level=catalogLevel(levelCode),spec=catalogSubject(levelCode,subjectSel.value),custom=customInput.value.trim(),subjectKey=spec?.key||'',subject=spec?.ar||(subjectSel.value==='__other__'?custom:''),official=spec?.official?Number(spec.coefficient):null,coefficient=official??Number(coef.value);
+  if(!levelCode||!level){msg.textContent=tr('اختر المستوى أولًا','Choisissez d’abord le niveau');return}
+  if(!subject){msg.textContent=tr('اختر المادة أو اكتب مادة أخرى','Choisissez une matière ou saisissez une autre matière');return}
+  if(!existing&&!className){msg.textContent=tr('اكتب اسم القسم','Saisissez le nom de la classe');return}
+  if(!Number.isFinite(coefficient)||coefficient<=0||coefficient>20){msg.textContent=tr('أدخل معاملًا صحيحًا أكبر من 0','Saisissez un coefficient valide supérieur à 0');return}
+  let cls=existing,classId=existing?.id||'';
+  if(!cls){const same=profile.classes.find(x=>x.name.trim().toLowerCase()===className.toLowerCase());if(same){cls=same;classId=same.id}else{classId=uid();cls={id:classId,name:className,levelCode,branchCode:branchSel.value||'',students:[],sharedClassId:''};profile.classes.push(cls)}}
+  cls.levelCode=levelCode;cls.branchCode=branchSel.value||cls.branchCode||'';
+  if(profile.assignments.some(a=>a.classId===classId&&((subjectKey&&a.subjectKey===subjectKey)||(!subjectKey&&a.subject.trim().toLowerCase()===subject.toLowerCase())))){msg.textContent=tr('هذه المادة موجودة في هذا القسم بالفعل','Cette matière existe déjà pour cette classe');return}
+  profile.assignments.push({id:uid(),subject,classId,subjectKey,coefficient:Math.round(coefficient*100)/100,coefficientSource:official!=null?'official':'manual'});
+  try{await saveProfile(tr('تمت إضافة المادة والمعامل','Matière et coefficient ajoutés'));m.close();if(preselectClass)return openClass(classId);if(returnView==='grades')return renderGrades();if(returnView==='students'||returnView==='classes')return renderClasses();if(returnView==='more')return renderMore();renderHome()}catch{msg.textContent=tr('تعذر الحفظ','Enregistrement impossible')}
+ }
 }
 function openJoinClass(){
  const opts=profile.classes.filter(c=>!linkFor(c.id)).map(c=>`<option value="${esc(c.id)}">${esc(profClass(c.name))}</option>`).join('');
