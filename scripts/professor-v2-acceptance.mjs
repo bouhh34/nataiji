@@ -194,6 +194,10 @@ try{
  check('second professor trimester 3 is independent',(await page.locator('[data-avg]').first().innerText()).trim()==='15.00');
  check('second professor annual subject average is available only in trimester 3',(await page.locator('[data-annual]').first().innerText()).trim()==='14.83');
  await page.locator('[data-prof-nav="reports"]').click();
+ await page.locator('.prof-report-switcher').waitFor({state:'visible',timeout:10000});
+ check('reports opens with my subject lists separated from collective results',await page.locator('[data-report-section="own"].on').count()===1&&await page.locator('[data-open-own-report]').count()>=1);
+ check('collective reports explicitly expose bulletin and list',((await page.locator('.prof-collective-entry').innerText()).includes('كشف جماعي'))&&((await page.locator('.prof-collective-entry').innerText()).includes('اللائحة')));
+ await page.locator('[data-report-section="collective"]').first().click();
  await page.locator('#pv2ResultsBody .prof-results-table').waitFor({state:'visible',timeout:10000});
  const autosavedResults=await page.locator('#pv2ResultsBody').innerText();
  check('leaving grade page auto-saves professor grades',autosavedResults.includes('13.45'),autosavedResults);
@@ -215,6 +219,8 @@ try{
  check('term 3 professor grades persist after reload',(await page.locator('[data-avg]').first().innerText()).trim()==='15.00');
 
  await page.locator('[data-prof-nav="reports"]').click();
+ await page.locator('.prof-report-switcher').waitFor({state:'visible',timeout:10000});
+ await page.locator('[data-report-section="collective"]').first().click();
  await page.locator('#pv2ResultsBody .prof-results-table').waitFor({state:'visible',timeout:10000});
  const resultsText=await page.locator('#pv2ResultsBody').innerText();
  check('shared results include subjects from both professors',resultsText.includes('الرياضيات')&&resultsText.includes('اللغة الفرنسية')&&resultsText.includes('العلوم الفيزيائية'),resultsText);
