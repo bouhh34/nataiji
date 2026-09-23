@@ -102,6 +102,31 @@ function professorTermAverage(row,term){
  const t3=professorResultNumber(row?.test3),e3=professorResultNumber(row?.exam3);if(t3==null||e3==null)return null;
  return((((t1+t2+t3)/3)*3)+e1+(e2*2)+(e3*3))/9
 }
+function professorSubjectIdentity(a){const key=normalizeProfessorSubjectKey(a?.subjectKey||a?.subject);return key?'key:'+key:'name:'+String(a?.subject||'').trim().toLowerCase()}
+async function professorSharedSubjectConflict(userId,beforeInput,nextInput){
+ if(!pool)return null;
+ const before=cleanProfessorProfile(beforeInput),next=cleanProfessorProfile(nextInput),beforeById=new Map((before.assignments||[]).map(a=>[String(a.id),a]));
+ const candidateByShared=new Map();
+ for(const cls of next.classes||[]){
+  const sharedClassId=String(cls.sharedClassId||'');if(!sharedClassId)continue;
+  for(const a of (next.assignments||[]).filter(x=>String(x.classId)===String(cls.id))){
+   const old=beforeById.get(String(a.id)),oldClass=old?before.classes.find(x=>String(x.id)===String(old.classId)):null;
+   const unchanged=old&&String(old.classId)===String(a.classId)&&String(oldClass?.sharedClassId||'')===sharedClassId&&professorSubjectIdentity(old)===professorSubjectIdentity(a);
+   if(unchanged)continue;
+   if(!candidateByShared.has(sharedClassId))candidateByShared.set(sharedClassId,[]);
+   candidateByShared.get(sharedClassId).push({classId:cls.id,assignment:a,identity:professorSubjectIdentity(a)})
+  }
+ }
+ for(const [sharedClassId,candidates] of candidateByShared){
+  const memberRows=(await pool.query(`SELECT p.user_id,p.data FROM nataiji_professor_class_members m JOIN nataiji_professor_profiles p ON p.user_id=m.user_id WHERE m.class_id=$1 AND m.user_id<>$2`,[sharedClassId,userId])).rows;
+  for(const member of memberRows){
+   const other=cleanProfessorProfile(member.data||{}),otherClassIds=new Set((other.classes||[]).filter(x=>String(x.sharedClassId||'')===sharedClassId).map(x=>String(x.id)));
+   const taken=new Set((other.assignments||[]).filter(a=>otherClassIds.has(String(a.classId))).map(professorSubjectIdentity));
+   for(const candidate of candidates)if(taken.has(candidate.identity))return{sharedClassId,classId:String(candidate.classId),subject:String(candidate.assignment.subject||''),subjectKey:String(candidate.assignment.subjectKey||''),ownerUserId:String(member.user_id)}
+  }
+ }
+ return null
+}
 async function professorAggregatedResults(userId,localClassId,term){
  const requester=await loadProfessorProfile(userId),local=requester.classes.find(x=>String(x.id)===String(localClassId));if(!local)return null;
  const sharedClassId=String(local.sharedClassId||''),members=[];
@@ -360,7 +385,9 @@ app.get('/api/professor/profile',auth,async(req,res)=>{
 });
 app.put('/api/professor/profile',auth,async(req,res)=>{
  if(req.user.role!=='professor')return res.status(403).json({error:'forbidden'});if(!pool)return res.status(503).json({error:'durable_storage_required'});
- let profile=await saveProfessorProfile(req.user.id,req.body?.profile),classLinks=await professorClassLinks(profile,req.user.id);profile=cleanProfessorProfile(profile);await saveProfessorProfile(req.user.id,profile,{syncShared:false});res.json({ok:true,profile,classLinks})
+ const before=await loadProfessorProfile(req.user.id),candidate=cleanProfessorProfile(req.body?.profile),conflict=await professorSharedSubjectConflict(req.user.id,before,candidate);
+ if(conflict)return res.status(409).json({error:'shared_subject_taken',subject:conflict.subject,subjectKey:conflict.subjectKey,sharedClassId:conflict.sharedClassId});
+ let profile=await saveProfessorProfile(req.user.id,candidate),classLinks=await professorClassLinks(profile,req.user.id);profile=cleanProfessorProfile(profile);await saveProfessorProfile(req.user.id,profile,{syncShared:false});res.json({ok:true,profile,classLinks})
 });
 app.get('/api/professor/classes/:localClassId/results',auth,async(req,res)=>{
  if(req.user.role!=='professor')return res.status(403).json({error:'forbidden'});if(!pool)return res.status(503).json({error:'durable_storage_required'});

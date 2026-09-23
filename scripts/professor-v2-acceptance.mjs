@@ -50,13 +50,38 @@ try{
  await page.locator('.prof-student-row').waitFor({state:'visible',timeout:8000});
  check('class student is saved',await page.locator('.prof-student-row').count()===1);
 
+ // One professor can own multiple subjects in the same class without duplicating the roster.
+ await page.locator('#pv2AddClassSubject').click();
+ await page.locator('#pv2Subject').selectOption('french');
+ check('second subject in same class gets official coefficient',await page.locator('#pv2Coefficient').inputValue()==='4'&&await page.locator('#pv2Coefficient').getAttribute('readonly')!==null);
+ await page.locator('#pv2SaveAssignment').click();
+ await page.locator('[data-class-grade]').nth(1).waitFor({state:'visible',timeout:8000});
+ check('same professor can own two subjects in one class',await page.locator('[data-class-grade]').count()===2);
+ check('same class keeps one shared roster for both own subjects',await page.locator('.prof-student-row').count()===1);
+ await page.locator('[data-class-grade]').filter({hasText:'اللغة الفرنسية'}).click();
+ check('grade screen exposes direct switch between same-class subjects',await page.locator('[data-switch-subject]').count()===2);
+ let frenchInputs=page.locator('[data-kind]');
+ await frenchInputs.nth(0).fill('15');
+ await frenchInputs.nth(1).fill('15');
+ await page.locator('#pv2SaveGrades').click();
+ await page.locator('[data-prof-term="2"]').click();
+ await page.locator('[data-kind="test2"]').fill('15');
+ await page.locator('[data-kind="exam2"]').fill('15');
+ await page.locator('#pv2SaveGrades').click();
+ await page.locator('[data-prof-term="3"]').click();
+ await page.locator('[data-kind="test3"]').fill('15');
+ await page.locator('[data-kind="exam3"]').fill('15');
+ await page.locator('#pv2SaveGrades').click();
+ check('second own subject keeps independent marks',(await page.locator('[data-avg]').first().innerText()).trim()==='15.00');
+ await page.locator('#pv2BackGrade').click();
+
  await page.locator('#pv2ShareClass').click();
  await page.locator('.prof-class-code').waitFor({state:'visible',timeout:8000});
  const code=(await page.locator('.prof-class-code').innerText()).trim();
  check('shared class code has expected format',/^CL-[A-F0-9]{8}$/.test(code),code);
  await page.locator('.professor-x').click();
 
- await page.locator('[data-class-grade]').click();
+ await page.locator('[data-class-grade]').filter({hasText:'الرياضيات'}).click();
  let gradeInputs=page.locator('[data-kind]');
  await gradeInputs.nth(0).fill('10');
  await gradeInputs.nth(1).fill('12');
@@ -109,6 +134,10 @@ try{
  check('server keeps shared roster under code creator control',rosterGuard.status===200&&rosterGuard.count===1&&rosterGuard.blocked,JSON.stringify(rosterGuard));
 
  await page.locator('#pv2AddClassSubject').click();
+ await page.locator('#pv2Subject').selectOption('math');
+ await page.locator('#pv2SaveAssignment').click();
+ await page.waitForTimeout(250);
+ check('second professor cannot claim a subject already owned in shared class',(await page.locator('.professor-msg').innerText()).includes('مسجلة بالفعل')||(await page.locator('.professor-msg').innerText()).includes('appartient déjà'));
  await page.locator('#pv2Subject').selectOption('physical_sciences');
  check('physical sciences coefficient is official and automatic',await page.locator('#pv2Coefficient').inputValue()==='1'&&await page.locator('#pv2Coefficient').getAttribute('readonly')!==null);
  await page.locator('#pv2SaveAssignment').click();
@@ -139,12 +168,12 @@ try{
  await page.locator('[data-prof-nav="reports"]').click();
  await page.locator('#pv2ResultsBody .prof-results-table').waitFor({state:'visible',timeout:10000});
  const autosavedResults=await page.locator('#pv2ResultsBody').innerText();
- check('leaving grade page auto-saves professor grades',autosavedResults.includes('11.71'),autosavedResults);
- check('partial curriculum is clearly marked provisional',autosavedResults.includes('7 / 28')&&/مؤقت|provisoire/i.test(autosavedResults),autosavedResults);
+ check('leaving grade page auto-saves professor grades',autosavedResults.includes('12.91'),autosavedResults);
+ check('partial curriculum is clearly marked provisional',autosavedResults.includes('11 / 28')&&/مؤقت|provisoire/i.test(autosavedResults),autosavedResults);
  await page.locator('[data-results-term="3"]').click();
  await page.locator('#pv2ResultsBody .prof-results-table').waitFor({state:'visible',timeout:10000});
  const term3Results=await page.locator('#pv2ResultsBody').innerText();
- check('shared term 3 result combines both professors',term3Results.includes('13.94'),term3Results);
+ check('shared term 3 result combines both professors',term3Results.includes('14.32'),term3Results);
 
  await page.reload({waitUntil:'domcontentloaded'});
  await page.locator('#profAddSubject').waitFor({state:'visible',timeout:12000});
@@ -160,12 +189,12 @@ try{
  await page.locator('[data-prof-nav="reports"]').click();
  await page.locator('#pv2ResultsBody .prof-results-table').waitFor({state:'visible',timeout:10000});
  const resultsText=await page.locator('#pv2ResultsBody').innerText();
- check('shared results include subjects from both professors',resultsText.includes('الرياضيات')&&resultsText.includes('العلوم الفيزيائية'),resultsText);
- check('shared general average uses subject coefficients',resultsText.includes('11.71'),resultsText);
- check('report exposes official coefficient coverage',resultsText.includes('7 / 28'),resultsText);
+ check('shared results include subjects from both professors',resultsText.includes('الرياضيات')&&resultsText.includes('اللغة الفرنسية')&&resultsText.includes('العلوم الفيزيائية'),resultsText);
+ check('shared general average uses subject coefficients',resultsText.includes('12.91'),resultsText);
+ check('report exposes official coefficient coverage',resultsText.includes('11 / 28'),resultsText);
  check('shared results expose one student bulletin button',await page.locator('[data-bulletin]').count()===1);
  await page.locator('[data-bulletin]').click();
- check('student bulletin contains all shared subjects',(await page.locator('.prof-bulletin-preview').innerText()).includes('الرياضيات')&&(await page.locator('.prof-bulletin-preview').innerText()).includes('العلوم الفيزيائية'));
+ check('student bulletin contains all shared subjects',(await page.locator('.prof-bulletin-preview').innerText()).includes('الرياضيات')&&(await page.locator('.prof-bulletin-preview').innerText()).includes('اللغة الفرنسية')&&(await page.locator('.prof-bulletin-preview').innerText()).includes('العلوم الفيزيائية'));
  await page.locator('.professor-x').click();
 
  await page.locator('#profLang').click();
