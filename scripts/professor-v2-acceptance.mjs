@@ -122,7 +122,7 @@ try{
  check('shared general average uses subject coefficients',resultsText.includes('12.67'),resultsText);
  check('shared results expose one student bulletin button',await page.locator('[data-bulletin]').count()===1);
  await page.locator('[data-bulletin]').click();
- check('student bulletin contains all shared subjects',(await page.locator('.prof-bulletin-preview').innerText()).includes('الرياضيات')&&(await page.locator('.prof-bulletin-preview').innerText()).includes('Physique'));
+ check('student bulletin contains all shared subjects',(await page.locator('.prof-bulletin-preview').innerText()).includes('الرياضيات')&&(await page.locator('.prof-bulletin-preview').innerText()).includes('العلوم الفيزيائية'));
  await page.locator('.professor-x').click();
 
  await page.locator('#profLang').click();
