@@ -34,3 +34,16 @@ html.nataiji-professor-mode body{background:#f4f7f6;min-height:100vh;overflow-x:
 
 .prof-curriculum-warning{display:grid;gap:4px;margin:0 0 12px;padding:10px 12px;border:1px solid #ecd99f;background:#fff9e8;border-radius:13px;color:#725b1d;font-size:11px;line-height:1.5}
 .prof-curriculum-warning b{font-size:12px}.prof-curriculum-warning span{color:#7b6938}
+
+/* Professor: one class can own several independent subjects */
+.prof-class-subject-group{display:grid;gap:14px;padding:16px;border:1px solid rgba(15,76,65,.12);border-radius:20px;background:rgba(255,255,255,.72);margin-bottom:16px}
+.prof-class-subject-head{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap}
+.prof-class-subject-head h2{margin:2px 0 0}
+.prof-class-subject-head p{margin:4px 0 0;opacity:.72}
+.prof-class-subject-head>button{border:1px solid rgba(15,76,65,.16);background:#fff;border-radius:12px;padding:10px 12px;font-weight:700}
+.prof-subject-switch{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:14px;padding:10px 12px;border-radius:14px;background:rgba(15,76,65,.06)}
+.prof-subject-switch>span{font-weight:800;white-space:nowrap}
+.prof-subject-switch>div{display:flex;gap:8px;flex-wrap:wrap}
+.prof-subject-switch button{border:1px solid rgba(15,76,65,.18);background:#fff;border-radius:999px;padding:8px 12px;font-weight:700}
+.prof-subject-switch button.on{background:#0f4c41;color:#fff;border-color:#0f4c41}
+@media(max-width:640px){.prof-class-subject-group{padding:12px;border-radius:16px}.prof-class-subject-head{align-items:stretch}.prof-class-subject-head>button{width:100%}.prof-subject-switch{align-items:stretch}.prof-subject-switch>span{width:100%}.prof-subject-switch>div{width:100%}.prof-subject-switch button{flex:1 1 auto}}
