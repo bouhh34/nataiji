@@ -5,7 +5,7 @@ import { fileURLToPath } from 'node:url';
 import { createClient } from 'redis';
 import pg from 'pg';
 import {ownedSchoolIdsForDeletion} from './account-ownership.js';
-import {professorCatalog, inferProfessorLevelCode, normalizeProfessorSubjectKey, officialProfessorCoefficient, professorSubjectFor} from './professor-academic-catalog.js';
+import {professorCatalog, inferProfessorLevelCode, normalizeProfessorSubjectKey, officialProfessorCoefficient, professorSubjectFor, expectedProfessorCoefficientTotal} from './professor-academic-catalog.js';
 
 const {Pool}=pg;
 const app=express();
@@ -112,6 +112,8 @@ async function professorAggregatedResults(userId,localClassId,term){
   const rows=(await pool.query('SELECT user_id FROM nataiji_professor_class_members WHERE class_id=$1 ORDER BY joined_at,user_id',[sharedClassId])).rows;for(const row of rows)members.push(String(row.user_id))
  }else members.push(String(userId));
  const subjects=[];
+ const levelCode=String(local.levelCode||inferProfessorLevelCode(local.name)||'').toUpperCase();
+ const expectedCoefficientTotal=expectedProfessorCoefficientTotal(levelCode);
  for(const memberId of members){
   const p=await loadProfessorProfile(memberId),classes=sharedClassId?p.classes.filter(x=>String(x.sharedClassId||'')===sharedClassId):p.classes.filter(x=>String(x.id)===String(localClassId));
   for(const cls of classes)for(const a of p.assignments.filter(x=>String(x.classId)===String(cls.id))){
@@ -119,16 +121,17 @@ async function professorAggregatedResults(userId,localClassId,term){
    subjects.push({key:memberId+':'+a.id,subject:String(a.subject||''),subjectKey:String(a.subjectKey||''),coefficient,coefficientSource:official!=null?'official':'manual',ownerUserId:memberId,own:memberId===String(userId),marks})
   }
  }
+ const assignedCoefficientTotal=subjects.reduce((sum,s)=>sum+(Number(s.coefficient)||0),0),curriculumComplete=expectedCoefficientTotal!=null?Math.abs(assignedCoefficientTotal-expectedCoefficientTotal)<0.001:false;
  const rows=students.map((student,index)=>{
   let weightedSum=0,coefficientSum=0,complete=true,completedSubjects=0;
   const subjectResults=subjects.map(subject=>{const average=professorTermAverage(subject.marks?.[student.id]||{},term),weighted=average==null?null:average*subject.coefficient;if(average==null)complete=false;else{completedSubjects++;weightedSum+=weighted;coefficientSum+=subject.coefficient}return{key:subject.key,average,weighted}});
-  const general=subjects.length&&complete&&coefficientSum>0?weightedSum/coefficientSum:null;
-  return{student:{id:String(student.id),name:String(student.name||''),nns:String(student.nns||'')},position:index+1,subjectResults,general,complete:subjects.length>0&&complete,completedSubjects,totalSubjects:subjects.length}
+  const general=subjects.length&&complete&&coefficientSum>0?weightedSum/coefficientSum:null,officialReady=general!=null&&curriculumComplete;
+  return{student:{id:String(student.id),name:String(student.name||''),nns:String(student.nns||'')},position:index+1,subjectResults,general,complete:subjects.length>0&&complete,officialReady,completedSubjects,totalSubjects:subjects.length}
  });
  const ranked=rows.filter(x=>x.general!=null).sort((a,b)=>b.general-a.general);
  for(const row of rows)if(row.general!=null)row.rank=1+ranked.filter(x=>x.general>row.general).length;else row.rank=null;
- const classValues=rows.map(x=>x.general).filter(x=>x!=null),classAverage=classValues.length?classValues.reduce((a,b)=>a+b,0)/classValues.length:null;
- return{classId:String(local.id),sharedClassId:sharedClassId||'',className,term,memberCount:members.length,students:rows,subjects:subjects.map(({marks,...s})=>s),classAverage,completeStudents:classValues.length,totalStudents:rows.length}
+ const classValues=rows.map(x=>x.general).filter(x=>x!=null),classAverage=classValues.length?classValues.reduce((a,b)=>a+b,0)/classValues.length:null,officialClassValues=rows.filter(x=>x.officialReady).map(x=>x.general),officialClassAverage=officialClassValues.length?officialClassValues.reduce((a,b)=>a+b,0)/officialClassValues.length:null;
+ return{classId:String(local.id),sharedClassId:sharedClassId||'',className,levelCode,term,memberCount:members.length,students:rows,subjects:subjects.map(({marks,...s})=>s),assignedCoefficientTotal,expectedCoefficientTotal,curriculumComplete,classAverage,officialClassAverage,completeStudents:classValues.length,officialCompleteStudents:officialClassValues.length,totalStudents:rows.length}
 }
 async function professorClassLinks(profile,userId){
  const links={};if(!pool)return links;
