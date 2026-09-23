@@ -120,3 +120,43 @@ html.nataiji-professor-mode body{background:#f4f7f6;min-height:100vh;overflow-x:
 .professor-own-list-doc .result-table th,.professor-own-list-doc .result-table td{padding:1.15mm .7mm}
 .professor-own-list-doc .own-list-annual-note{font-size:7pt;text-align:center;margin:2mm 0 0}
 @media(max-width:640px){.prof-card-actions{width:100%}.prof-card-actions>button{flex:1 1 auto}.prof-own-grade-table{min-width:820px}}
+
+.prof-reports-content{display:grid;gap:14px}
+.prof-report-switcher{display:grid;grid-template-columns:1fr 1fr;gap:5px;padding:5px;background:#eef5f2;border:1px solid #dce8e3;border-radius:17px}
+.prof-report-switcher button{display:grid;grid-template-columns:auto 1fr;grid-template-rows:auto auto;column-gap:9px;align-items:center;text-align:start;padding:11px 13px;border:0;border-radius:13px;background:transparent;color:#49665d}
+.prof-report-switcher button>span,.prof-report-switcher button:not(:has(>span))::before{grid-row:1/3}
+.prof-report-switcher button>b{font-size:13px;color:#163e35}
+.prof-report-switcher button>small{font-size:10px;color:#71867e}
+.prof-report-switcher button.on{background:#0f8a70;color:#fff;box-shadow:0 5px 15px rgba(15,138,112,.18)}
+.prof-report-switcher button.on>b,.prof-report-switcher button.on>small{color:#fff}
+.prof-report-section-title{display:flex;justify-content:space-between;gap:16px;align-items:end}
+.prof-report-section-title small{color:#188b70;font-weight:800}
+.prof-report-section-title h2{margin:3px 0;font-size:24px;color:#123d4d}
+.prof-report-section-title p{margin:0;color:#72837e;font-size:11px;line-height:1.6}
+.prof-report-subject-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}
+.prof-report-subject-card{display:grid;grid-template-columns:auto 1fr auto;align-items:center;gap:12px;padding:13px;border:1px solid #dce7e3;border-radius:16px;background:#fff}
+.prof-report-subject-icon{width:43px;height:43px;border-radius:13px;display:grid;place-items:center;background:#eaf7f2;color:#07886f;font-weight:900}
+.prof-report-subject-card small{color:#789088}
+.prof-report-subject-card h3{margin:2px 0;font-size:15px;color:#173d4d}
+.prof-report-subject-card p{margin:0;color:#748781;font-size:10px}
+.prof-report-subject-card button{white-space:nowrap;background:#f3f8f6;color:#0d725f;border-color:#d5e7e0}
+.prof-collective-entry{display:flex;justify-content:space-between;gap:14px;align-items:center;padding:14px 16px;border:1px solid #d9e7e1;border-radius:17px;background:linear-gradient(135deg,#f4faf7,#edf7f4)}
+.prof-collective-entry>div{display:grid;gap:5px}
+.prof-collective-entry b{color:#163f36}
+.prof-collective-entry small{color:#6f837b}
+.prof-collective-entry>button{background:#0f8a70;color:#fff;border-color:#0f8a70}
+.prof-collective-tags{display:flex;gap:6px;flex-wrap:wrap}
+.prof-collective-tags em{font-style:normal;font-size:10px;font-weight:800;padding:4px 8px;border-radius:999px;background:#e1f2ec;color:#0b775f}
+.prof-collective-head{margin:0;padding:2px 0 0}
+.prof-collective-head .prof-collective-tags{margin-top:9px}
+@media(max-width:700px){
+ .prof-report-switcher{grid-template-columns:1fr 1fr}
+ .prof-report-switcher button{padding:10px 9px;column-gap:6px}
+ .prof-report-switcher button>b{font-size:11px}
+ .prof-report-switcher button>small{font-size:9px}
+ .prof-report-subject-grid{grid-template-columns:1fr}
+ .prof-report-subject-card{grid-template-columns:auto 1fr}
+ .prof-report-subject-card button{grid-column:1/-1;width:100%}
+ .prof-collective-entry{align-items:stretch;display:grid}
+ .prof-collective-entry>button{width:100%}
+}
