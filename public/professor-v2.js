@@ -352,8 +352,8 @@ function studentEditor(classId,studentId,onDone){
  const ar=q('#pv2StudentName',m.wrap),frInput=q('#pv2StudentNameFr',m.wrap),arHint=q('#pv2StudentArHint',m.wrap),frHint=q('#pv2StudentFrHint',m.wrap);let arManual=false,frenchManual=false,syncing=false;
  const fromArabic=()=>{if(frenchManual)return;syncing=true;frInput.value=profNameFr(ar.value);syncing=false};
  const fromFrench=()=>{if(arManual)return;syncing=true;ar.value=profNameAr(frInput.value);syncing=false};
- ar.addEventListener('input',()=>{if(syncing)return;arManual=true;fromArabic();arHint.textContent='تم اعتماد الاسم العربي يدويًا / Nom arabe saisi manuellement';arHint.classList.add('locked')});
- frInput.addEventListener('input',()=>{if(syncing)return;frenchManual=true;fromFrench();frHint.textContent='Nom français saisi manuellement / تم اعتماد الاسم الفرنسي يدويًا';frHint.classList.add('locked')});
+ ar.addEventListener('input',()=>{if(syncing)return;arManual=!!ar.value.trim();fromArabic();arHint.textContent=arManual?'تم اعتماد الاسم العربي يدويًا / Nom arabe saisi manuellement':'يمكنك البدء بالعربية أو الفرنسية؛ سيقترح التطبيق اللغة الأخرى تلقائيًا.';arHint.classList.toggle('locked',arManual)});
+ frInput.addEventListener('input',()=>{if(syncing)return;frenchManual=!!frInput.value.trim();fromFrench();frHint.textContent=frenchManual?'Nom français saisi manuellement / تم اعتماد الاسم الفرنسي يدويًا':'Commencez en arabe ou en français : l’autre langue est proposée automatiquement.';frHint.classList.toggle('locked',frenchManual)});
  q('#pv2StudentSave',m.wrap).onclick=async()=>{
   let name=ar.value.trim(),nameFr=frInput.value.trim();if(!name&&nameFr)name=profNameAr(nameFr);if(!nameFr&&name)nameFr=profNameFr(name);const nns=q('#pv2StudentNns',m.wrap).value.trim(),callNumber=Number(q('#pv2StudentCall',m.wrap).value),sex=q('#pv2StudentSex',m.wrap).value,birthDate=q('#pv2StudentBirthDate',m.wrap).value.trim(),msg=q('.professor-msg',m.wrap);
   if(!name&&!nameFr){msg.textContent='اكتب الاسم الكامل بالعربية أو الفرنسية / Saisissez le nom complet en arabe ou en français';return}
