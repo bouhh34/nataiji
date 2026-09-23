@@ -1,0 +1,23 @@
+name: Professor formula check
+
+on:
+  pull_request:
+    paths:
+      - 'public/professor-v2.js'
+      - 'scripts/professor-term-formula-check.mjs'
+      - '.github/workflows/professor-formula.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  formulas:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Verify three-term professor formulas
+        run: node scripts/professor-term-formula-check.mjs
