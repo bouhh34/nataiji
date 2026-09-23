@@ -4,6 +4,7 @@ import crypto from 'node:crypto';
 import { fileURLToPath } from 'node:url';
 import { createClient } from 'redis';
 import pg from 'pg';
+import {ownedSchoolIdsForDeletion} from './account-ownership.js';
 
 const {Pool}=pg;
 const app=express();
@@ -322,7 +323,7 @@ app.delete('/api/account',auth,async(req,res)=>{
  if(owner){if(normalizeDeleteConfirmation(confirm)!==normalizeDeleteConfirmation('حذف الحساب نهائيا'))return res.status(400).json({error:'delete_confirmation_required'})}
  else if(!['حذف','DELETE'].includes(confirm.toUpperCase()==='DELETE'?'DELETE':normalizeDeleteConfirmation(confirm)))return res.status(400).json({error:'delete_confirmation_required'});
  if(!verifyPassword(password,user))return res.status(401).json({error:'bad_password'});if(!pool)return res.status(503).json({error:'durable_storage_required'});
- const owned=[...new Set(Array.isArray(user.ownedSchoolIds)?user.ownedSchoolIds:(user.schoolId?[user.schoolId]:[]))],idx=await getIndex(),currentToken=parseCookies(req).nataiji_session;
+ const owned=ownedSchoolIdsForDeletion(user),idx=await getIndex(),currentToken=parseCookies(req).nataiji_session;
  try{const client=await pool.connect();try{await client.query('BEGIN');for(const schoolId of owned)for(const table of ['nataiji_marks','nataiji_pupils','nataiji_subjects','nataiji_class_settings','nataiji_migrations','nataiji_school_settings','nataiji_structure'])await client.query('DELETE FROM '+table+' WHERE school_id=$1',[schoolId]);await cleanupProfessorSharing(user.id,client);await client.query('COMMIT')}catch(e){await client.query('ROLLBACK');throw e}finally{client.release()}}catch(e){console.error('account cleanup failed',user.id,e);return res.status(500).json({error:'account_delete_failed'})}
  let ownerIds=[];try{ownerIds=JSON.parse(await storeGet(ownerGrantsKey(user.id))||'[]')}catch{}for(const id of ownerIds){const gr=await storeGet(grantKey(id));if(!gr)continue;const g=JSON.parse(gr);g.revoked=true;g.revokedAt=new Date().toISOString();await storeSet(grantKey(id),JSON.stringify(g));const ur=await storeGet(userKey(g.recipientId));if(ur){const u=JSON.parse(ur);if(u.sharedGrants)delete u.sharedGrants[id];if(u.activeSharedGrant===id)u.activeSharedGrant='';await storeSet(userKey(u.id),JSON.stringify(u))}}
  for(const [email,id] of Object.entries(idx)){if(id!==user.id)continue;delete idx[email]}await setIndex(idx);for(const schoolId of owned)await storeDel(schoolKey(schoolId));await storeDel(ownerGrantsKey(user.id));await storeDel(userKey(user.id));if(currentToken)await storeDel(sessionKey(currentToken));res.clearCookie('nataiji_session',{path:'/'});res.json({ok:true,scope:'account',deletedSchools:owned.length})
@@ -332,7 +333,7 @@ app.post('/api/auth/forgot-password',forgotPasswordRate,async(req,res)=>{const e
 app.post('/api/auth/reset-password',resetPasswordRate,async(req,res)=>{const token=String(req.body?.token||''),password=String(req.body?.password||'');if(token.length<20||password.length<8)return res.status(400).json({error:'invalid_input'});const raw=await storeGet(resetKey(token));if(!raw)return res.status(400).json({error:'invalid_or_expired_reset'});const {userId}=JSON.parse(raw),uRaw=await storeGet(userKey(userId));if(!uRaw){await storeDel(resetKey(token));return res.status(400).json({error:'invalid_or_expired_reset'})}const user=JSON.parse(uRaw),hp=hashPassword(password);user.salt=hp.salt;user.passwordHash=hp.hash;user.sessionVersion=(Number(user.sessionVersion)||0)+1;await storeSet(userKey(user.id),JSON.stringify(user));await storeDel(resetKey(token));res.json({ok:true})});
 app.post('/api/auth/reset-with-code',resetPasswordRate,async(req,res)=>{const code=String(req.body?.code||'').trim().toUpperCase(),password=String(req.body?.password||'');if(!/^NT-[A-Z0-9]{8}$/.test(code)||password.length<8)return res.status(400).json({error:'invalid_input'});const key=resetCodeKey(code),raw=await storeGet(key);if(!raw)return res.status(400).json({error:'invalid_or_expired_reset'});const {userId}=JSON.parse(raw),uRaw=await storeGet(userKey(userId));if(!uRaw){await storeDel(key);return res.status(400).json({error:'invalid_or_expired_reset'})}const user=JSON.parse(uRaw),hp=hashPassword(password);user.salt=hp.salt;user.passwordHash=hp.hash;user.sessionVersion=(Number(user.sessionVersion)||0)+1;await storeSet(userKey(user.id),JSON.stringify(user));await storeDel(key);res.json({ok:true})});
 app.post('/api/owner/accounts/:id/action',auth,ownerOnly,async(req,res)=>{const id=String(req.params.id||''),action=String(req.body?.action||''),raw=await storeGet(userKey(id));if(!raw)return res.status(404).json({error:'account_not_found'});const user=JSON.parse(raw);if(String(user.baseRole||user.role)==='owner')return res.status(403).json({error:'owner_account_protected'});if(action==='suspend'||action==='activate'){user.suspended=action==='suspend';user.sessionVersion=(Number(user.sessionVersion)||0)+1;await storeSet(userKey(id),JSON.stringify(user));return res.json({ok:true,suspended:user.suspended})}if(action==='reset_code'){const code='NT-'+crypto.randomBytes(4).toString('hex').toUpperCase();await storeSet(resetCodeKey(code),JSON.stringify({userId:id,createdAt:Date.now()}),RESET_TTL);return res.json({ok:true,code,expiresInMinutes:30})}return res.status(400).json({error:'invalid_action'})});
-app.delete('/api/owner/accounts/:id',auth,ownerOnly,async(req,res)=>{const id=String(req.params.id||''),confirm=String(req.body?.confirm||'').trim();if(confirm!=='DELETE')return res.status(400).json({error:'delete_confirmation_required'});const raw=await storeGet(userKey(id));if(!raw)return res.status(404).json({error:'account_not_found'});const user=JSON.parse(raw);if(String(user.baseRole||user.role)==='owner')return res.status(403).json({error:'owner_account_protected'});const owned=[...new Set(Array.isArray(user.ownedSchoolIds)?user.ownedSchoolIds:(user.schoolId?[user.schoolId]:[]))];if(pool){const client=await pool.connect();try{await client.query('BEGIN');for(const schoolId of owned)for(const table of ['nataiji_marks','nataiji_pupils','nataiji_subjects','nataiji_class_settings','nataiji_migrations','nataiji_school_settings','nataiji_structure'])await client.query('DELETE FROM '+table+' WHERE school_id=$1',[schoolId]);await cleanupProfessorSharing(id,client);await client.query('COMMIT')}catch(e){await client.query('ROLLBACK');throw e}finally{client.release()}}const idx=await getIndex();for(const [email,userId] of Object.entries(idx))if(userId===id)delete idx[email];await setIndex(idx);for(const schoolId of owned)await storeDel(schoolKey(schoolId));await storeDel(ownerGrantsKey(id));await storeDel(userKey(id));res.json({ok:true,deletedSchools:owned.length})});
+app.delete('/api/owner/accounts/:id',auth,ownerOnly,async(req,res)=>{const id=String(req.params.id||''),confirm=String(req.body?.confirm||'').trim();if(confirm!=='DELETE')return res.status(400).json({error:'delete_confirmation_required'});const raw=await storeGet(userKey(id));if(!raw)return res.status(404).json({error:'account_not_found'});const user=JSON.parse(raw);if(String(user.baseRole||user.role)==='owner')return res.status(403).json({error:'owner_account_protected'});const owned=ownedSchoolIdsForDeletion(user);if(pool){const client=await pool.connect();try{await client.query('BEGIN');for(const schoolId of owned)for(const table of ['nataiji_marks','nataiji_pupils','nataiji_subjects','nataiji_class_settings','nataiji_migrations','nataiji_school_settings','nataiji_structure'])await client.query('DELETE FROM '+table+' WHERE school_id=$1',[schoolId]);await cleanupProfessorSharing(id,client);await client.query('COMMIT')}catch(e){await client.query('ROLLBACK');throw e}finally{client.release()}}const idx=await getIndex();for(const [email,userId] of Object.entries(idx))if(userId===id)delete idx[email];await setIndex(idx);for(const schoolId of owned)await storeDel(schoolKey(schoolId));await storeDel(ownerGrantsKey(id));await storeDel(userKey(id));res.json({ok:true,deletedSchools:owned.length})});
 app.post('/api/invites',auth,adminOnly,async(req,res)=>{
  const raw=await storeGet(schoolKey(req.user.schoolId)),school=ensureSchoolModel(raw?JSON.parse(raw):{}),permissions=cleanPermissions(req.body?.permissions);
  if(!permissions.length)return res.status(400).json({error:'invalid_permissions'});
@@ -620,56 +621,4 @@ app.put('/api/state',auth,async(req,res)=>{const incoming=req.body?.state;if(!in
 
 app.use((req,res,next)=>{if(req.method==='GET'&&(req.path==='/'||req.path.endsWith('.html')||req.path==='/sw.js'))res.setHeader('Cache-Control','no-store, no-cache, must-revalidate');next()});app.use(express.static(path.join(__dirname,'../public')));app.use((_req,res)=>{res.setHeader('Cache-Control','no-store, no-cache, must-revalidate');res.sendFile(path.join(__dirname,'../public/index.html'))});
 app.use((err,req,res,_next)=>{const requestId=crypto.randomUUID();console.error('Unhandled request error',{requestId,method:req.method,path:req.path,error:err?.message||String(err),code:err?.code});if(res.headersSent)return;res.status(500).json({error:'internal_server_error',requestId})});
-async function logDataInventory(){
- if(!pool)return;
- try{
-  const refs=new Map(),userRows=(await pool.query("SELECT key,value FROM kv_store WHERE key LIKE 'nataiji:user:%'")).rows;let superAdmin=null;
-  for(const row of userRows){
-   try{
-    const u=JSON.parse(row.value),ids=[...new Set([...(Array.isArray(u.ownedSchoolIds)?u.ownedSchoolIds:[]),...(u.schoolId?[u.schoolId]:[])].map(String).filter(Boolean))];
-    for(const id of ids)refs.set(id,(refs.get(id)||0)+1);
-    if(configuredOwnerEmail()&&normEmail(u.email)===configuredOwnerEmail())superAdmin={currentSchoolId:String(u.schoolId||''),ownedSchoolIds:ids};
-   }catch{}
-  }
-  const ids=new Set();
-  for(const table of ['nataiji_school_settings','nataiji_structure','nataiji_pupils','nataiji_subjects','nataiji_marks']){
-   const rows=(await pool.query('SELECT DISTINCT school_id FROM '+table)).rows;for(const row of rows)if(row.school_id)ids.add(String(row.school_id));
-  }
-  const legacyRows=(await pool.query("SELECT key FROM kv_store WHERE key LIKE 'nataiji:school:%:state'")).rows;
-  for(const row of legacyRows){const m=String(row.key||'').match(/^nataiji:school:(.+):state$/);if(m)ids.add(m[1])}
-  const schools=[];
-  for(const schoolId of ids){
-   const [st,pu,su,ma,se,lg]=await Promise.all([
-    pool.query('SELECT data FROM nataiji_structure WHERE school_id=$1',[schoolId]),
-    pool.query('SELECT count(*)::int AS n FROM nataiji_pupils WHERE school_id=$1',[schoolId]),
-    pool.query('SELECT count(*)::int AS n FROM nataiji_subjects WHERE school_id=$1',[schoolId]),
-    pool.query('SELECT count(*)::int AS n FROM nataiji_marks WHERE school_id=$1',[schoolId]),
-    pool.query('SELECT count(*)::int AS n FROM nataiji_school_settings WHERE school_id=$1',[schoolId]),
-    pool.query('SELECT count(*)::int AS n FROM kv_store WHERE key=$1',['nataiji:school:'+schoolId+':state'])
-   ]);
-   const data=st.rows[0]?.data||{};
-   let redisSnapshot=null;
-   if(redis){
-    try{
-     const rr=await redis.get(schoolKey(schoolId));
-     if(rr){
-      const x=JSON.parse(rr),classData=x?.classData&&typeof x.classData==='object'?x.classData:{},values=Object.values(classData);
-      redisSnapshot={classes:Array.isArray(x?.classes)?x.classes.length:0,terms:Array.isArray(x?.terms)?x.terms.length:0,pupils:values.reduce((n,d)=>n+(Array.isArray(d?.pupils)?d.pupils.length:0),0),subjects:values.reduce((n,d)=>n+(Array.isArray(d?.subjects)?d.subjects.length:0),0),markTerms:values.reduce((n,d)=>n+(d?.marksByTerm&&typeof d.marksByTerm==='object'?Object.keys(d.marksByTerm).length:0),0)};
-     }
-    }catch{}
-   }
-   schools.push({schoolId,classes:Array.isArray(data.classes)?data.classes.length:0,terms:Array.isArray(data.terms)?data.terms.length:0,pupils:Number(pu.rows[0]?.n||0),subjects:Number(su.rows[0]?.n||0),marks:Number(ma.rows[0]?.n||0),settings:Number(se.rows[0]?.n||0),legacyState:Number(lg.rows[0]?.n||0)>0,referencedBy:Number(refs.get(schoolId)||0),redisSnapshot});
-  }
-  let redisSuperAdmin=null;
-  if(redis){
-   try{
-    const idxRaw=await redis.get(usersIndexKey),idx=idxRaw?JSON.parse(idxRaw):{};
-    const id=idx[configuredOwnerEmail()];
-    if(id){const raw=await redis.get(userKey(id));if(raw){const u=JSON.parse(raw);redisSuperAdmin={currentSchoolId:String(u.schoolId||''),ownedSchoolIds:[...new Set([...(Array.isArray(u.ownedSchoolIds)?u.ownedSchoolIds:[]),...(u.schoolId?[u.schoolId]:[])].map(String).filter(Boolean))]}}}
-   }catch{}
-  }
-  console.log('NATAIJI_DATA_AUDIT',JSON.stringify({users:userRows.length,superAdmin,redisSuperAdmin,schools}));
- }catch(e){console.error('NATAIJI_DATA_AUDIT_FAILED',e?.message||String(e))}
-}
-
-const port=process.env.PORT||3000;await initStore();await reconcileConfiguredOwner();await logDataInventory();app.listen(port,()=>console.log(`Nataiji running on ${port} with ${storage}${pool&&redis?' (Redis migration fallback enabled)':''}`));
+const port=process.env.PORT||3000;await initStore();await reconcileConfiguredOwner();app.listen(port,()=>console.log(`Nataiji running on ${port} with ${storage}${pool&&redis?' (Redis migration fallback enabled)':''}`));
