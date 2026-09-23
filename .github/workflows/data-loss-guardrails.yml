@@ -1,0 +1,42 @@
+name: Data loss guardrails
+
+on:
+  pull_request:
+    paths:
+      - 'src/**'
+      - 'scripts/data-loss-guardrails.mjs'
+      - '.github/workflows/data-loss-guardrails.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  guardrails:
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_DB: nataiji_guardrails
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: guardrail_password
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 12
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+      - run: npm ci --no-audit --no-fund
+      - name: Run data-loss guardrails
+        env:
+          DATABASE_URL: postgresql://postgres:guardrail_password@127.0.0.1:5432/nataiji_guardrails
+        run: node scripts/data-loss-guardrails.mjs
