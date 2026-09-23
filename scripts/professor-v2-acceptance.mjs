@@ -223,8 +223,8 @@ try{
  check('printed student bulletin uses two copies on one A4 page',await studentPrint.locator('.student-copy').count()===2&&await studentPrint.locator('.official-head').count()===2&&await studentPrint.locator('.cut-line').count()===1);
  check('both printed student copies are the same student',await studentPrint.locator('.student-copy').nth(0).innerText()===await studentPrint.locator('.student-copy').nth(1).innerText());
  check('school-style footer has date, signatures and stamp zones in both copies',await studentPrint.locator('.school-signatures').count()===2&&await studentPrint.locator('.official-date-line').count()===2&&await studentPrint.locator('.stamp-zone').count()===2);
- const schoolGridStyle=await studentPrint.locator('.secondary-summary').first().evaluate(el=>({border:getComputedStyle(el).borderTopStyle,color:getComputedStyle(el).color}));
- check('student bulletin uses formal bordered school-record blocks',schoolGridStyle.border==='solid',JSON.stringify(schoolGridStyle));
+ const schoolGridStyle=await studentPrint.locator('.secondary-summary').first().evaluate(el=>({left:getComputedStyle(el).borderLeftStyle,bottom:getComputedStyle(el).borderBottomStyle,color:getComputedStyle(el).color}));
+ check('student bulletin uses formal bordered school-record blocks',schoolGridStyle.left==='solid'&&schoolGridStyle.bottom==='solid',JSON.stringify(schoolGridStyle));
  await studentPrint.close();
  await page.locator('.professor-x').click();
 
