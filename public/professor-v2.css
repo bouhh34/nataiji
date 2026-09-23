@@ -431,3 +431,17 @@ html.nataiji-professor-mode body{background:#f4f7f6;min-height:100vh;overflow-x:
   .nataiji-professor-mode .prof-v2-stats strong{font-size:21px}
 }
 
+.professor-my-subjects-table{min-width:980px}
+.professor-my-subjects-table th,.professor-my-subjects-table td{text-align:center;vertical-align:middle}
+.professor-my-subjects-table .own-subject-group{background:#f1f8f5;color:#155f50}
+.professor-my-subjects-table .own-subject-group small{display:block;margin-top:3px;color:#668078}
+.prof-report-class-subjects{display:flex;gap:6px;flex-wrap:wrap;margin-top:6px}
+.prof-report-class-subjects span{font-size:10px;background:#f1f8f5;color:#315e53;padding:4px 7px;border-radius:999px}
+.prof-report-class-subjects small{font-size:9px;color:#6c827b}
+.prof-results-print-actions{display:flex;gap:7px;flex-wrap:wrap}
+@media(max-width:640px){
+ .prof-results-print-actions{display:grid;grid-template-columns:1fr;min-width:100%}
+ .prof-results-print-actions button{width:100%}
+ .prof-report-class-card{grid-template-columns:auto 1fr}
+ .prof-report-class-card>button{grid-column:1/-1;width:100%}
+}

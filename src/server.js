@@ -64,7 +64,7 @@ function cleanProfessorProfile(input){
  const cleanMark=v=>{const s=String(v??'').trim().replace(',','.');if(s==='')return'';const n=Number(s);return Number.isFinite(n)?String(Math.max(0,Math.min(20,n))):''};
  const cleanProfessorTerm=(row,term)=>{
   const raw=row?.terms?.[String(term)]||row?.terms?.[term]||{},tests=Array.isArray(raw?.tests)?raw.tests:[],legacyTest=term===1?(row?.test1==null?row?.test:row?.test1):row?.['test'+term],legacyExam=term===1?(row?.exam1==null?row?.exam:row?.exam1):row?.['exam'+term];
-  return{tests:[cleanMark(tests[0]??legacyTest),cleanMark(tests[1]),cleanMark(tests[2])],exam:cleanMark(raw?.exam??legacyExam)}
+  return{tests:[cleanMark(tests[0]??legacyTest)],exam:cleanMark(raw?.exam??legacyExam)}
  };
  for(const a of assignments){
   const rows=srcMarks[a.id]&&typeof srcMarks[a.id]==='object'?srcMarks[a.id]:{},validStudents=classMap.get(a.classId)||new Set(),out={};
@@ -103,16 +103,17 @@ async function loadProfessorProfile(userId){
 }
 function professorResultNumber(v){if(v===''||v==null)return null;const n=Number(v);return Number.isFinite(n)?n:null}
 function professorTermRecord(row,term){
- const raw=row?.terms?.[String(term)]||row?.terms?.[term]||{},tests=Array.isArray(raw?.tests)?raw.tests:[];
- return{tests:[0,1,2].map(i=>professorResultNumber(tests[i])),exam:professorResultNumber(raw?.exam)}
+ const raw=row?.terms?.[String(term)]||row?.terms?.[term]||{},tests=Array.isArray(raw?.tests)?raw.tests:[],test=professorResultNumber(tests[0]);
+ return{test,tests:[test],exam:professorResultNumber(raw?.exam)}
 }
 function professorTermAverage(row,term){
- const rec=professorTermRecord(row,term);if(rec.exam==null||rec.tests.some(v=>v==null))return null;
- const testMean=rec.tests.reduce((a,b)=>a+b,0)/3;return(testMean+rec.exam)/2
+ const rec=professorTermRecord(row,term);if(rec.test==null||rec.exam==null)return null;
+ return(rec.test+rec.exam)/2
 }
 function professorAnnualAverage(row){
- const t1=professorTermAverage(row,1),t2=professorTermAverage(row,2),t3=professorTermAverage(row,3);if([t1,t2,t3].some(v=>v==null))return null;
- return(t1+(t2*2)+(t3*3))/6
+ const r1=professorTermRecord(row,1),r2=professorTermRecord(row,2),r3=professorTermRecord(row,3);
+ if([r1.test,r1.exam,r2.test,r2.exam,r3.test,r3.exam].some(v=>v==null))return null;
+ return(r1.test+r2.test+r3.test+r1.exam+(r2.exam*2)+(r3.exam*3))/9
 }
 function professorSubjectIdentity(a){const key=normalizeProfessorSubjectKey(a?.subjectKey||a?.subject);return key?'key:'+key:'name:'+String(a?.subject||'').trim().toLowerCase()}
 async function professorSharedSubjectConflict(userId,beforeInput,nextInput){
@@ -166,14 +167,14 @@ async function professorAggregatedResults(userId,localClassId,term){
  const assignedCoefficientTotal=subjects.reduce((sum,s)=>sum+(Number(s.coefficient)||0),0),curriculumComplete=expectedCoefficientTotal!=null?Math.abs(assignedCoefficientTotal-expectedCoefficientTotal)<0.001:false;
  const rows=students.map((student,index)=>{
   let weightedSum=0,coefficientSum=0,complete=true,completedSubjects=0;
-  const subjectResults=subjects.map(subject=>{const markRow=subject.marks?.[student.id]||{},rec=professorTermRecord(markRow,term),average=professorTermAverage(markRow,term),annualAverage=term===3?professorAnnualAverage(markRow):null,aggregateAverage=term===3?annualAverage:average,weighted=aggregateAverage==null?null:aggregateAverage*subject.coefficient,testMean=rec.tests.some(v=>v==null)?null:rec.tests.reduce((a,b)=>a+b,0)/3;if(aggregateAverage==null)complete=false;else{completedSubjects++;weightedSum+=weighted;coefficientSum+=subject.coefficient}return{key:subject.key,average,aggregateAverage,weighted,tests:rec.tests,exam:rec.exam,testMean,annualAverage}});
-  const general=subjects.length&&complete&&coefficientSum>0?weightedSum/coefficientSum:null,officialReady=general!=null&&curriculumComplete;
+  const subjectResults=subjects.map(subject=>{const markRow=subject.marks?.[student.id]||{},rec=professorTermRecord(markRow,term),rawAverage=professorTermAverage(markRow,term),rawAnnualAverage=term===3?professorAnnualAverage(markRow):null,hasResult=(term===3?rawAnnualAverage:rawAverage)!=null,aggregateAverage=hasResult?(term===3?rawAnnualAverage:rawAverage):0,weighted=aggregateAverage*subject.coefficient;if(!hasResult)complete=false;else completedSubjects++;weightedSum+=weighted;coefficientSum+=subject.coefficient;return{key:subject.key,average:rawAverage??0,aggregateAverage,weighted,tests:rec.tests,exam:rec.exam,testMean:rec.test,annualAverage:term===3?(rawAnnualAverage??0):null,entered:hasResult}});
+  const general=subjects.length&&coefficientSum>0?weightedSum/coefficientSum:null,officialReady=general!=null&&curriculumComplete&&complete;
   return{student:professorStudentData(student),position:index+1,subjectResults,general,complete:subjects.length>0&&complete,officialReady,completedSubjects,totalSubjects:subjects.length}
  });
  const ranked=rows.filter(x=>x.general!=null).sort((a,b)=>b.general-a.general);
  for(const row of rows)if(row.general!=null)row.rank=1+ranked.filter(x=>x.general>row.general).length;else row.rank=null;
  const classValues=rows.map(x=>x.general).filter(x=>x!=null),classAverage=classValues.length?classValues.reduce((a,b)=>a+b,0)/classValues.length:null,officialClassValues=rows.filter(x=>x.officialReady).map(x=>x.general),officialClassAverage=officialClassValues.length?officialClassValues.reduce((a,b)=>a+b,0)/officialClassValues.length:null;
- return{classId:String(local.id),sharedClassId:sharedClassId||'',className,levelCode,term,memberCount:members.length,students:rows,subjects:subjects.map(({marks,...s})=>s),assignedCoefficientTotal,expectedCoefficientTotal,curriculumComplete,classAverage,officialClassAverage,completeStudents:classValues.length,officialCompleteStudents:officialClassValues.length,totalStudents:rows.length}
+ return{classId:String(local.id),sharedClassId:sharedClassId||'',className,levelCode,term,memberCount:members.length,students:rows,subjects:subjects.map(({marks,...s})=>s),assignedCoefficientTotal,expectedCoefficientTotal,curriculumComplete,classAverage,officialClassAverage,completeStudents:rows.filter(x=>x.complete).length,officialCompleteStudents:officialClassValues.length,totalStudents:rows.length}
 }
 async function professorClassLinks(profile,userId){
  const links={};if(!pool)return links;
