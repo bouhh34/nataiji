@@ -25,6 +25,7 @@ for (const file of required) assert('required:'+file, exists(file));
 const index = read('public/index.html');
 const sw = read('public/sw.js');
 const server = read('src/server.js');
+const appJs = read('public/app.js');
 const capacitor = read('capacitor.config.ts');
 const pkg = JSON.parse(read('package.json'));
 const lockPkg = JSON.parse(read('package-lock.json'));
@@ -99,7 +100,6 @@ assert('account danger actions stay in account group', /termsPolicyBtn','logoutB
 assert('account management is the last More page section', /key:'academic'[\s\S]*key:'collaboration'[\s\S]*key:'account'/.test(morePageJs));
 assert('language card keeps a single globe icon', /card\.id==='langSwitch'/.test(morePageJs) && /icon\.dataset\.feather='globe'/.test(morePageJs));
 assert('More page leaves room above bottom navigation', /padding-bottom:84px/.test(morePageCss));
-const appJs = read('public/app.js');
 assert('dashboard shows provisional average before completion', /partialAvgs=state\.pupils\.map/.test(appJs) && /مؤقت حسب الدرجات المدخلة/.test(appJs));
 assert('dashboard below-ten count uses entered marks provisionally', /needsEl\.textContent=finalAvgs\.length\?finalAvgs\.filter\(x=>x<10\)\.length:'—'/.test(appJs));
 const appPowerJs = read('public/app-power-v1.js');
