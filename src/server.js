@@ -145,22 +145,39 @@ async function professorClassLinks(profile,userId){
  }
  return links
 }
+function professorSharedClassData(cls){
+ const name=String(cls?.name||'').trim().slice(0,120),levelCode=['1AS','2AS','3AS'].includes(String(cls?.levelCode||'').toUpperCase())?String(cls.levelCode).toUpperCase():inferProfessorLevelCode(name),branchCode=String(cls?.branchCode||'').trim().slice(0,40);
+ const students=(Array.isArray(cls?.students)?cls.students:[]).map(s=>({id:String(s?.id||''),name:String(s?.name||'').trim().slice(0,160),nns:String(s?.nns||'').trim().slice(0,80)})).filter(s=>s.id&&s.name);
+ return{name,levelCode,branchCode,students}
+}
+function professorSharedClassSame(a,b){return JSON.stringify(professorSharedClassData(a))===JSON.stringify(professorSharedClassData(b))}
+function applyProfessorSharedClassData(cls,data){
+ const shared=professorSharedClassData(data);cls.name=shared.name||cls.name;cls.levelCode=shared.levelCode||cls.levelCode||inferProfessorLevelCode(cls.name);cls.branchCode=shared.branchCode;cls.students=shared.students;return cls
+}
 async function saveProfessorProfile(userId,input,{syncShared=true}={}){
- const profile=cleanProfessorProfile(input);if(!pool)return profile;
+ let profile=cleanProfessorProfile(input);if(!pool)return profile;
  const client=await pool.connect();
  try{
   await client.query('BEGIN');
-  const previous=await client.query('SELECT data FROM nataiji_professor_profiles WHERE user_id=$1 FOR UPDATE',[userId]);
+  const previous=await client.query('SELECT data FROM nataiji_professor_profiles WHERE user_id=$1 FOR UPDATE',[userId]),before=previous.rowCount?cleanProfessorProfile(previous.rows[0].data||{}):emptyProfessorProfile();
   if(previous.rowCount){
-   const before=cleanProfessorProfile(previous.rows[0].data||{}),beforeJson=JSON.stringify(before),nextJson=JSON.stringify(profile);
+   const beforeJson=JSON.stringify(before),nextJson=JSON.stringify(profile);
    if(beforeJson!==nextJson)await archiveProfessorProfileVersion(userId,client,'before-save',before)
   }
   if(syncShared)for(const cls of profile.classes||[]){
    const sharedClassId=String(cls.sharedClassId||'');if(!sharedClassId)continue;
-   const member=await client.query('SELECT 1 FROM nataiji_professor_class_members WHERE class_id=$1 AND user_id=$2',[sharedClassId,userId]);
-   if(!member.rowCount){cls.sharedClassId='';continue}
-   await client.query('UPDATE nataiji_professor_classrooms SET data=$2::jsonb,updated_at=now() WHERE class_id=$1',[sharedClassId,JSON.stringify({name:cls.name,levelCode:cls.levelCode||inferProfessorLevelCode(cls.name),branchCode:cls.branchCode||'',students:cls.students})])
+   const membership=await client.query(`SELECT c.data,m.role FROM nataiji_professor_classrooms c JOIN nataiji_professor_class_members m ON m.class_id=c.class_id AND m.user_id=$2 WHERE c.class_id=$1 FOR UPDATE OF c`,[sharedClassId,userId]);
+   if(!membership.rowCount){cls.sharedClassId='';continue}
+   const row=membership.rows[0],roomData=row.data&&typeof row.data==='object'?row.data:{},beforeClass=(before.classes||[]).find(x=>String(x.id)===String(cls.id)&&String(x.sharedClassId||'')===sharedClassId),sharedChanged=beforeClass?!professorSharedClassSame(beforeClass,cls):false;
+   // The professor who created the code owns the canonical roster. Other linked
+   // professors keep independent subjects/marks and can never overwrite it,
+   // even when their device still has an older local copy of the class.
+   if(row.role==='owner'&&sharedChanged){
+    const sharedData=professorSharedClassData(cls);
+    await client.query('UPDATE nataiji_professor_classrooms SET data=$2::jsonb,updated_at=now() WHERE class_id=$1',[sharedClassId,JSON.stringify(sharedData)])
+   }else applyProfessorSharedClassData(cls,roomData)
   }
+  profile=cleanProfessorProfile(profile);
   await client.query('INSERT INTO nataiji_professor_profiles(user_id,data,updated_at) VALUES($1,$2::jsonb,now()) ON CONFLICT(user_id) DO UPDATE SET data=EXCLUDED.data,updated_at=now()',[userId,JSON.stringify(profile)]);
   await client.query('COMMIT')
  }catch(e){await client.query('ROLLBACK');throw e}finally{client.release()}
