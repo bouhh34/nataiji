@@ -25,7 +25,7 @@ async function storeGet(key){if(pool){let v=await pgGet(key);if(v!==null)return 
 async function storeSet(key,value,ttl){if(pool)return pgSet(key,value,ttl);if(redis){if(ttl)return redis.set(key,value,{EX:ttl});return redis.set(key,value)}memory.set(key,{value,exp:ttl?Date.now()+ttl*1000:0})}
 async function storeDel(key){if(pool)await pool.query('DELETE FROM kv_store WHERE key=$1',[key]);if(redis)await redis.del(key);else memory.delete(key)}
 async function initStore(){
- if(process.env.DATABASE_URL){try{const databaseUrl=String(process.env.DATABASE_URL),localDatabase=/^(?:postgres(?:ql)?:\/\/)?[^@]*@?(?:localhost|127\.0\.0\.1)(?::|\/)/i.test(databaseUrl);pool=new Pool({connectionString:databaseUrl,ssl:localDatabase?false:{rejectUnauthorized:false},max:5});await pool.query('SELECT 1');await pool.query('CREATE TABLE IF NOT EXISTS kv_store (key text PRIMARY KEY,value text NOT NULL,expires_at timestamptz,updated_at timestamptz NOT NULL DEFAULT now())');await pool.query(`CREATE TABLE IF NOT EXISTS nataiji_pupils (school_id text NOT NULL,class_id text NOT NULL,nns text NOT NULL,data jsonb NOT NULL,position integer NOT NULL DEFAULT 0,updated_at timestamptz NOT NULL DEFAULT now(),PRIMARY KEY(school_id,class_id,nns))`);await pool.query(`CREATE TABLE IF NOT EXISTS nataiji_school_settings (school_id text PRIMARY KEY,data jsonb NOT NULL,updated_at timestamptz NOT NULL DEFAULT now())`);await pool.query(`CREATE TABLE IF NOT EXISTS nataiji_class_settings (school_id text NOT NULL,class_id text NOT NULL,data jsonb NOT NULL,updated_at timestamptz NOT NULL DEFAULT now(),PRIMARY KEY(school_id,class_id))`);await pool.query(`CREATE TABLE IF NOT EXISTS nataiji_subjects (school_id text NOT NULL,class_id text NOT NULL,subject_id text NOT NULL,data jsonb NOT NULL,position integer NOT NULL DEFAULT 0,updated_at timestamptz NOT NULL DEFAULT now(),PRIMARY KEY(school_id,class_id,subject_id))`);await pool.query(`CREATE TABLE IF NOT EXISTS nataiji_structure (school_id text PRIMARY KEY,data jsonb NOT NULL,updated_at timestamptz NOT NULL DEFAULT now())`);await pool.query(`CREATE TABLE IF NOT EXISTS nataiji_migrations (school_id text NOT NULL,class_id text NOT NULL,resource text NOT NULL,migrated_at timestamptz NOT NULL DEFAULT now(),PRIMARY KEY(school_id,class_id,resource))`);await pool.query(`CREATE TABLE IF NOT EXISTS nataiji_marks (school_id text NOT NULL,class_id text NOT NULL,term text NOT NULL,pupil_key text NOT NULL,subject_id text NOT NULL,value text NOT NULL,updated_at timestamptz NOT NULL DEFAULT now(),PRIMARY KEY(school_id,class_id,term,pupil_key,subject_id))`);await pool.query(`CREATE TABLE IF NOT EXISTS nataiji_professor_profiles (user_id text PRIMARY KEY,data jsonb NOT NULL DEFAULT '{}'::jsonb,updated_at timestamptz NOT NULL DEFAULT now())`);storage='postgres'}catch(e){console.error('Postgres unavailable:',e.message);pool=null}}
+ if(process.env.DATABASE_URL){try{const databaseUrl=String(process.env.DATABASE_URL),localDatabase=/^(?:postgres(?:ql)?:\/\/)?[^@]*@?(?:localhost|127\.0\.0\.1)(?::|\/)/i.test(databaseUrl);pool=new Pool({connectionString:databaseUrl,ssl:localDatabase?false:{rejectUnauthorized:false},max:5});await pool.query('SELECT 1');await pool.query('CREATE TABLE IF NOT EXISTS kv_store (key text PRIMARY KEY,value text NOT NULL,expires_at timestamptz,updated_at timestamptz NOT NULL DEFAULT now())');await pool.query(`CREATE TABLE IF NOT EXISTS nataiji_pupils (school_id text NOT NULL,class_id text NOT NULL,nns text NOT NULL,data jsonb NOT NULL,position integer NOT NULL DEFAULT 0,updated_at timestamptz NOT NULL DEFAULT now(),PRIMARY KEY(school_id,class_id,nns))`);await pool.query(`CREATE TABLE IF NOT EXISTS nataiji_school_settings (school_id text PRIMARY KEY,data jsonb NOT NULL,updated_at timestamptz NOT NULL DEFAULT now())`);await pool.query(`CREATE TABLE IF NOT EXISTS nataiji_class_settings (school_id text NOT NULL,class_id text NOT NULL,data jsonb NOT NULL,updated_at timestamptz NOT NULL DEFAULT now(),PRIMARY KEY(school_id,class_id))`);await pool.query(`CREATE TABLE IF NOT EXISTS nataiji_subjects (school_id text NOT NULL,class_id text NOT NULL,subject_id text NOT NULL,data jsonb NOT NULL,position integer NOT NULL DEFAULT 0,updated_at timestamptz NOT NULL DEFAULT now(),PRIMARY KEY(school_id,class_id,subject_id))`);await pool.query(`CREATE TABLE IF NOT EXISTS nataiji_structure (school_id text PRIMARY KEY,data jsonb NOT NULL,updated_at timestamptz NOT NULL DEFAULT now())`);await pool.query(`CREATE TABLE IF NOT EXISTS nataiji_migrations (school_id text NOT NULL,class_id text NOT NULL,resource text NOT NULL,migrated_at timestamptz NOT NULL DEFAULT now(),PRIMARY KEY(school_id,class_id,resource))`);await pool.query(`CREATE TABLE IF NOT EXISTS nataiji_marks (school_id text NOT NULL,class_id text NOT NULL,term text NOT NULL,pupil_key text NOT NULL,subject_id text NOT NULL,value text NOT NULL,updated_at timestamptz NOT NULL DEFAULT now(),PRIMARY KEY(school_id,class_id,term,pupil_key,subject_id))`);await pool.query(`CREATE TABLE IF NOT EXISTS nataiji_professor_profiles (user_id text PRIMARY KEY,data jsonb NOT NULL DEFAULT '{}'::jsonb,updated_at timestamptz NOT NULL DEFAULT now())`);await pool.query(`CREATE TABLE IF NOT EXISTS nataiji_professor_classrooms (class_id text PRIMARY KEY,owner_user_id text NOT NULL,join_code text UNIQUE NOT NULL,data jsonb NOT NULL DEFAULT '{}'::jsonb,updated_at timestamptz NOT NULL DEFAULT now())`);await pool.query(`CREATE TABLE IF NOT EXISTS nataiji_professor_class_members (class_id text NOT NULL,user_id text NOT NULL,role text NOT NULL DEFAULT 'member',joined_at timestamptz NOT NULL DEFAULT now(),PRIMARY KEY(class_id,user_id))`);storage='postgres'}catch(e){console.error('Postgres unavailable:',e.message);pool=null}}
  if(process.env.REDIS_URL){try{const client=createClient({url:process.env.REDIS_URL,socket:{connectTimeout:5000,reconnectStrategy:false}});client.on('error',e=>console.error('Redis:',e.message));await client.connect();redis=client;if(!pool)storage='redis'}catch(e){console.error('Redis unavailable:',e.message)}}
 }
 
@@ -41,10 +41,10 @@ const emptyProfessorProfile=()=>({schoolName:'',year:'',classes:[],assignments:[
 function cleanProfessorProfile(input){
  const src=input&&typeof input==='object'?input:{},classes=[],classIds=new Set();
  for(const raw of (Array.isArray(src.classes)?src.classes:[]).slice(0,80)){
-  const id=String(raw?.id||crypto.randomUUID()).trim().slice(0,120),name=String(raw?.name||'').trim().slice(0,120);if(!id||!name||classIds.has(id))continue;
+  const id=String(raw?.id||crypto.randomUUID()).trim().slice(0,120),name=String(raw?.name||'').trim().slice(0,120),sharedClassId=String(raw?.sharedClassId||'').trim().slice(0,120);if(!id||!name||classIds.has(id))continue;
   const students=[],studentIds=new Set();
   for(const st of (Array.isArray(raw?.students)?raw.students:[]).slice(0,800)){const sid=String(st?.id||crypto.randomUUID()).trim().slice(0,120),studentName=String(st?.name||'').trim().slice(0,160),nns=String(st?.nns||'').trim().slice(0,80);if(!sid||!studentName||studentIds.has(sid))continue;studentIds.add(sid);students.push({id:sid,name:studentName,nns})}
-  classIds.add(id);classes.push({id,name,students})
+  classIds.add(id);classes.push({id,name,students,sharedClassId})
  }
  const assignments=[],assignmentIds=new Set();
  for(const raw of (Array.isArray(src.assignments)?src.assignments:[]).slice(0,160)){const id=String(raw?.id||crypto.randomUUID()).trim().slice(0,120),subject=String(raw?.subject||'').trim().slice(0,120),classId=String(raw?.classId||'').trim().slice(0,120);if(!id||!subject||!classIds.has(classId)||assignmentIds.has(id))continue;assignmentIds.add(id);assignments.push({id,subject,classId})}
@@ -52,6 +52,41 @@ function cleanProfessorProfile(input){
  const cleanMark=v=>{const s=String(v??'').trim().replace(',','.');if(s==='')return'';const n=Number(s);return Number.isFinite(n)?String(Math.max(0,Math.min(20,n))):''};
  for(const a of assignments){const rows=srcMarks[a.id]&&typeof srcMarks[a.id]==='object'?srcMarks[a.id]:{},validStudents=classMap.get(a.classId)||new Set(),out={};for(const [studentId,row] of Object.entries(rows)){if(!validStudents.has(String(studentId)))continue;out[String(studentId)]={test:cleanMark(row?.test),exam:cleanMark(row?.exam)}}marks[a.id]=out}
  return{schoolName:String(src.schoolName||'').trim().slice(0,160),year:String(src.year||'').trim().slice(0,40),classes,assignments,marks}
+}
+const professorJoinCode=()=>('CL-'+crypto.randomBytes(4).toString('hex').toUpperCase());
+async function loadProfessorProfile(userId){
+ if(!pool)return emptyProfessorProfile();
+ let q=await pool.query('SELECT data FROM nataiji_professor_profiles WHERE user_id=$1',[userId]);
+ if(!q.rowCount){const fresh=emptyProfessorProfile();await pool.query('INSERT INTO nataiji_professor_profiles(user_id,data,updated_at) VALUES($1,$2::jsonb,now()) ON CONFLICT(user_id) DO NOTHING',[userId,JSON.stringify(fresh)]);q=await pool.query('SELECT data FROM nataiji_professor_profiles WHERE user_id=$1',[userId])}
+ return cleanProfessorProfile(q.rows[0]?.data||{})
+}
+async function professorClassLinks(profile,userId){
+ const links={};if(!pool)return links;
+ for(const cls of profile.classes||[]){
+  const sharedClassId=String(cls.sharedClassId||'');if(!sharedClassId)continue;
+  const q=await pool.query(`SELECT c.class_id,c.owner_user_id,c.join_code,c.data,m.role,(SELECT count(*)::int FROM nataiji_professor_class_members mm WHERE mm.class_id=c.class_id) AS member_count FROM nataiji_professor_classrooms c JOIN nataiji_professor_class_members m ON m.class_id=c.class_id AND m.user_id=$2 WHERE c.class_id=$1`,[sharedClassId,userId]);
+  if(!q.rowCount){cls.sharedClassId='';continue}
+  const row=q.rows[0],data=row.data&&typeof row.data==='object'?row.data:{},students=Array.isArray(data.students)?data.students:[];
+  cls.name=String(data.name||cls.name||'').trim().slice(0,120)||cls.name;cls.students=students.map(s=>({id:String(s?.id||''),name:String(s?.name||''),nns:String(s?.nns||'')})).filter(s=>s.id&&s.name);
+  links[cls.id]={sharedClassId:row.class_id,role:row.role||'member',memberCount:Number(row.member_count)||1,joinCode:row.join_code||'',ownerUserId:row.owner_user_id||''}
+ }
+ return links
+}
+async function saveProfessorProfile(userId,input,{syncShared=true}={}){
+ const profile=cleanProfessorProfile(input);if(!pool)return profile;
+ const client=await pool.connect();
+ try{
+  await client.query('BEGIN');
+  if(syncShared)for(const cls of profile.classes||[]){
+   const sharedClassId=String(cls.sharedClassId||'');if(!sharedClassId)continue;
+   const member=await client.query('SELECT 1 FROM nataiji_professor_class_members WHERE class_id=$1 AND user_id=$2',[sharedClassId,userId]);
+   if(!member.rowCount){cls.sharedClassId='';continue}
+   await client.query('UPDATE nataiji_professor_classrooms SET data=$2::jsonb,updated_at=now() WHERE class_id=$1',[sharedClassId,JSON.stringify({name:cls.name,students:cls.students})])
+  }
+  await client.query('INSERT INTO nataiji_professor_profiles(user_id,data,updated_at) VALUES($1,$2::jsonb,now()) ON CONFLICT(user_id) DO UPDATE SET data=EXCLUDED.data,updated_at=now()',[userId,JSON.stringify(profile)]);
+  await client.query('COMMIT')
+ }catch(e){await client.query('ROLLBACK');throw e}finally{client.release()}
+ return profile
 }
 const workspaceSelectionKey=u=>u?.activeSharedGrant?`shared:${u.activeSharedGrant}`:`school:${u?.schoolId||''}`;
 const safeUser=u=>{
@@ -202,12 +237,45 @@ app.post('/api/account/profile-type',auth,async(req,res)=>{
 });
 app.get('/api/professor/profile',auth,async(req,res)=>{
  if(req.user.role!=='professor')return res.status(403).json({error:'forbidden'});if(!pool)return res.status(503).json({error:'durable_storage_required'});
- let q=await pool.query('SELECT data FROM nataiji_professor_profiles WHERE user_id=$1',[req.user.id]);if(!q.rowCount){const fresh=emptyProfessorProfile();await pool.query('INSERT INTO nataiji_professor_profiles(user_id,data,updated_at) VALUES($1,$2::jsonb,now()) ON CONFLICT(user_id) DO NOTHING',[req.user.id,JSON.stringify(fresh)]);q=await pool.query('SELECT data FROM nataiji_professor_profiles WHERE user_id=$1',[req.user.id])}
- res.json({ok:true,profile:cleanProfessorProfile(q.rows[0]?.data||{})})
+ let profile=await loadProfessorProfile(req.user.id),classLinks=await professorClassLinks(profile,req.user.id);profile=cleanProfessorProfile(profile);await saveProfessorProfile(req.user.id,profile,{syncShared:false});
+ res.json({ok:true,profile,classLinks})
 });
 app.put('/api/professor/profile',auth,async(req,res)=>{
  if(req.user.role!=='professor')return res.status(403).json({error:'forbidden'});if(!pool)return res.status(503).json({error:'durable_storage_required'});
- const profile=cleanProfessorProfile(req.body?.profile);await pool.query('INSERT INTO nataiji_professor_profiles(user_id,data,updated_at) VALUES($1,$2::jsonb,now()) ON CONFLICT(user_id) DO UPDATE SET data=EXCLUDED.data,updated_at=now()',[req.user.id,JSON.stringify(profile)]);res.json({ok:true,profile})
+ let profile=await saveProfessorProfile(req.user.id,req.body?.profile),classLinks=await professorClassLinks(profile,req.user.id);profile=cleanProfessorProfile(profile);await saveProfessorProfile(req.user.id,profile,{syncShared:false});res.json({ok:true,profile,classLinks})
+});
+app.post('/api/professor/classes/:localClassId/share',auth,async(req,res)=>{
+ if(req.user.role!=='professor')return res.status(403).json({error:'forbidden'});if(!pool)return res.status(503).json({error:'durable_storage_required'});
+ const localClassId=String(req.params.localClassId||''),profile=await loadProfessorProfile(req.user.id),cls=profile.classes.find(x=>x.id===localClassId);if(!cls)return res.status(404).json({error:'professor_class_not_found'});
+ if(cls.sharedClassId){
+  const q=await pool.query(`SELECT c.class_id,c.join_code,(SELECT count(*)::int FROM nataiji_professor_class_members mm WHERE mm.class_id=c.class_id) AS member_count FROM nataiji_professor_classrooms c JOIN nataiji_professor_class_members m ON m.class_id=c.class_id AND m.user_id=$2 WHERE c.class_id=$1`,[cls.sharedClassId,req.user.id]);
+  if(q.rowCount)return res.json({ok:true,localClassId,sharedClassId:q.rows[0].class_id,code:q.rows[0].join_code,memberCount:Number(q.rows[0].member_count)||1,profile})
+  cls.sharedClassId=''
+ }
+ const sharedClassId=crypto.randomUUID();let code='',tries=0;
+ while(tries++<8){code=professorJoinCode();const exists=await pool.query('SELECT 1 FROM nataiji_professor_classrooms WHERE join_code=$1',[code]);if(!exists.rowCount)break}
+ if(!code)return res.status(500).json({error:'class_code_generation_failed'});
+ const client=await pool.connect();
+ try{await client.query('BEGIN');await client.query('INSERT INTO nataiji_professor_classrooms(class_id,owner_user_id,join_code,data) VALUES($1,$2,$3,$4::jsonb)',[sharedClassId,req.user.id,code,JSON.stringify({name:cls.name,students:cls.students||[]})]);await client.query('INSERT INTO nataiji_professor_class_members(class_id,user_id,role) VALUES($1,$2,$3)',[sharedClassId,req.user.id,'owner']);cls.sharedClassId=sharedClassId;await client.query('INSERT INTO nataiji_professor_profiles(user_id,data,updated_at) VALUES($1,$2::jsonb,now()) ON CONFLICT(user_id) DO UPDATE SET data=EXCLUDED.data,updated_at=now()',[req.user.id,JSON.stringify(cleanProfessorProfile(profile))]);await client.query('COMMIT')}catch(e){await client.query('ROLLBACK');throw e}finally{client.release()}
+ res.status(201).json({ok:true,localClassId,sharedClassId,code,memberCount:1,profile:cleanProfessorProfile(profile)})
+});
+app.post('/api/professor/classes/join',auth,async(req,res)=>{
+ if(req.user.role!=='professor')return res.status(403).json({error:'forbidden'});if(!pool)return res.status(503).json({error:'durable_storage_required'});
+ const code=String(req.body?.code||'').trim().toUpperCase(),requestedLocalId=String(req.body?.localClassId||'').trim();if(!/^CL-[A-F0-9]{8}$/.test(code))return res.status(400).json({error:'invalid_class_code'});
+ const cq=await pool.query('SELECT class_id,owner_user_id,data FROM nataiji_professor_classrooms WHERE join_code=$1',[code]);if(!cq.rowCount)return res.status(404).json({error:'invalid_class_code'});
+ const shared=cq.rows[0],data=shared.data&&typeof shared.data==='object'?shared.data:{},profile=await loadProfessorProfile(req.user.id);let cls=requestedLocalId?profile.classes.find(x=>x.id===requestedLocalId):null;
+ const existing=profile.classes.find(x=>x.sharedClassId===shared.class_id);if(existing)cls=existing;
+ if(!cls){cls={id:crypto.randomUUID(),name:String(data.name||'قسم').trim().slice(0,120)||'قسم',students:[],sharedClassId:shared.class_id};profile.classes.push(cls)}
+ cls.sharedClassId=shared.class_id;cls.name=String(data.name||cls.name||'قسم').trim().slice(0,120)||cls.name;cls.students=Array.isArray(data.students)?data.students.map(s=>({id:String(s?.id||''),name:String(s?.name||''),nns:String(s?.nns||'')})).filter(s=>s.id&&s.name):[];
+ const client=await pool.connect();
+ try{await client.query('BEGIN');await client.query('INSERT INTO nataiji_professor_class_members(class_id,user_id,role) VALUES($1,$2,$3) ON CONFLICT DO NOTHING',[shared.class_id,req.user.id,shared.owner_user_id===req.user.id?'owner':'member']);await client.query('INSERT INTO nataiji_professor_profiles(user_id,data,updated_at) VALUES($1,$2::jsonb,now()) ON CONFLICT(user_id) DO UPDATE SET data=EXCLUDED.data,updated_at=now()',[req.user.id,JSON.stringify(cleanProfessorProfile(profile))]);await client.query('COMMIT')}catch(e){await client.query('ROLLBACK');throw e}finally{client.release()}
+ const clean=cleanProfessorProfile(profile),links=await professorClassLinks(clean,req.user.id);res.json({ok:true,profile:clean,classLinks:links,localClassId:cls.id,sharedClassId:shared.class_id})
+});
+app.delete('/api/professor/classes/:localClassId/link',auth,async(req,res)=>{
+ if(req.user.role!=='professor')return res.status(403).json({error:'forbidden'});if(!pool)return res.status(503).json({error:'durable_storage_required'});
+ const localClassId=String(req.params.localClassId||''),profile=await loadProfessorProfile(req.user.id),cls=profile.classes.find(x=>x.id===localClassId);if(!cls)return res.status(404).json({error:'professor_class_not_found'});const sharedClassId=String(cls.sharedClassId||'');if(!sharedClassId)return res.json({ok:true,profile,classLinks:await professorClassLinks(profile,req.user.id)});
+ const owner=await pool.query('SELECT owner_user_id FROM nataiji_professor_classrooms WHERE class_id=$1',[sharedClassId]),count=await pool.query('SELECT count(*)::int AS n FROM nataiji_professor_class_members WHERE class_id=$1',[sharedClassId]);if(owner.rows[0]?.owner_user_id===req.user.id&&Number(count.rows[0]?.n||0)>1)return res.status(409).json({error:'owner_cannot_leave_shared_class'});
+ await pool.query('DELETE FROM nataiji_professor_class_members WHERE class_id=$1 AND user_id=$2',[sharedClassId,req.user.id]);if(owner.rows[0]?.owner_user_id===req.user.id){await pool.query('DELETE FROM nataiji_professor_classrooms WHERE class_id=$1',[sharedClassId])}cls.sharedClassId='';await saveProfessorProfile(req.user.id,profile,{syncShared:false});res.json({ok:true,profile:cleanProfessorProfile(profile),classLinks:await professorClassLinks(profile,req.user.id)})
 });
 app.get('/api/owner/overview',auth,ownerOnly,async(_req,res)=>{
  const idx=await getIndex(),accounts=[];let schools=0;
