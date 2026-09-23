@@ -18,7 +18,66 @@ function showLegacy(){
  q('.app-shell')?.style.removeProperty('display');q('.bottom-nav')?.style.removeProperty('display');q('#nataijiProfessorRoot')?.remove()
 }
 function root(){let el=q('#nataijiProfessorRoot');if(!el){el=document.createElement('main');el.id='nataijiProfessorRoot';el.className='professor-app professor-v2';document.body.appendChild(el)}return el}
-function normalize(p){const x=p&&typeof p==='object'?structuredClone(p):{};x.schoolName=String(x.schoolName||'');x.schoolNameFr=String(x.schoolNameFr||'');x.region=String(x.region||'');x.regionFr=String(x.regionFr||'');x.inspection=String(x.inspection||'');x.inspectionFr=String(x.inspectionFr||'');x.schoolNns=String(x.schoolNns||'');x.year=String(x.year||'');x.classes=Array.isArray(x.classes)?x.classes:[];x.assignments=Array.isArray(x.assignments)?x.assignments:[];x.marks=x.marks&&typeof x.marks==='object'?x.marks:{};return x}
+function normalize(p){
+ const x=p&&typeof p==='object'?structuredClone(p):{};x.schoolName=String(x.schoolName||'');x.schoolNameFr=String(x.schoolNameFr||'');x.region=String(x.region||'');x.regionFr=String(x.regionFr||'');x.inspection=String(x.inspection||'');x.inspectionFr=String(x.inspectionFr||'');x.schoolNns=String(x.schoolNns||'');x.year=String(x.year||'');
+ x.classes=(Array.isArray(x.classes)?x.classes:[]).map(cls=>({...cls,level:currentProfessorLevel(cls?.level,cls?.name),branch:String(cls?.branch||'')}));
+ x.assignments=(Array.isArray(x.assignments)?x.assignments:[]).map(a=>{const cls=x.classes.find(c=>String(c.id)===String(a?.classId)),subject=String(a?.subject||''),subjectCode=professorSubjectCode(a?.subjectCode)||professorSubjectCodeFromName(subject),official=professorOfficialCoefficient(cls?.level||'',subjectCode),raw=Number(a?.coefficient),coefficient=official??(Number.isFinite(raw)&&raw>0?raw:1);return{...a,subject,subjectCode,coefficient,coefficientSource:official!=null?'official':'manual'}});
+ x.marks=x.marks&&typeof x.marks==='object'?x.marks:{};return x
+}
+
+const PROFESSOR_LEVELS=[
+ {id:'1AS',ar:'1AS - السنة الأولى إعدادي',fr:'1AS - 1re année secondaire'},
+ {id:'2AS',ar:'2AS - السنة الثانية إعدادي',fr:'2AS - 2e année secondaire'},
+ {id:'3AS',ar:'3AS - السنة الثالثة إعدادي',fr:'3AS - 3e année secondaire'}
+];
+const PROFESSOR_SUBJECTS={
+ '1AS':[
+  ['islamic','التربية الإسلامية','Éducation islamique'],['arabic','اللغة العربية','Langue arabe'],['civic','التربية المدنية','Éducation civique'],
+  ['math','الرياضيات','Mathématiques'],['natural-sciences','العلوم الطبيعية','Sciences naturelles'],['history-geography','التاريخ والجغرافيا','Histoire et géographie'],
+  ['french','اللغة الفرنسية','Français'],['english','اللغة الإنجليزية','Anglais'],['technology','التكنولوجيا','Technologie'],['informatics','المعلوماتية','Informatique'],['eps','التربية البدنية','Éducation physique']
+ ],
+ '2AS':[
+  ['islamic','التربية الإسلامية','Éducation islamique'],['arabic','اللغة العربية','Langue arabe'],['civic','التربية المدنية','Éducation civique'],
+  ['math','الرياضيات','Mathématiques'],['physics','الفيزياء','Sciences physiques'],['natural-sciences','العلوم الطبيعية','Sciences naturelles'],['history-geography','التاريخ والجغرافيا','Histoire et géographie'],
+  ['french','اللغة الفرنسية','Français'],['english','اللغة الإنجليزية','Anglais'],['technology','التكنولوجيا','Technologie'],['informatics','المعلوماتية','Informatique'],['eps','التربية البدنية','Éducation physique']
+ ],
+ '3AS':[
+  ['islamic','التربية الإسلامية','Éducation islamique'],['arabic','اللغة العربية','Langue arabe'],['civic','التربية المدنية','Éducation civique'],
+  ['math','الرياضيات','Mathématiques'],['physics','الفيزياء','Sciences physiques'],['natural-sciences','العلوم الطبيعية','Sciences naturelles'],['history-geography','التاريخ والجغرافيا','Histoire et géographie'],
+  ['french','اللغة الفرنسية','Français'],['english','اللغة الإنجليزية','Anglais'],['technology','التكنولوجيا','Technologie'],['informatics','المعلوماتية','Informatique'],['eps','التربية البدنية','Éducation physique']
+ ]
+};
+const PROFESSOR_VERIFIED_COEFFICIENTS={
+ '1AS':{math:6,arabic:5,french:4,'history-geography':2,eps:1},
+ '2AS':{math:6},
+ '3AS':{math:6}
+};
+const PROFESSOR_SUBJECT_ALIASES=new Map([
+ ['الرياضيات','math'],['mathématiques','math'],['mathematiques','math'],['math','math'],
+ ['اللغة العربية','arabic'],['العربية','arabic'],['arabe','arabic'],
+ ['اللغة الفرنسية','french'],['الفرنسية','french'],['français','french'],['francais','french'],
+ ['التاريخ والجغرافيا','history-geography'],['histoire et géographie','history-geography'],['histoire et geographie','history-geography'],
+ ['التربية البدنية','eps'],['الرياضة','eps'],['éducation physique','eps'],['education physique','eps'],
+ ['التربية الإسلامية','islamic'],['éducation islamique','islamic'],['education islamique','islamic'],
+ ['التربية المدنية','civic'],['éducation civique','civic'],['education civique','civic'],
+ ['العلوم الطبيعية','natural-sciences'],['sciences naturelles','natural-sciences'],
+ ['اللغة الإنجليزية','english'],['الإنجليزية','english'],['anglais','english'],['english','english'],
+ ['التكنولوجيا','technology'],['technologie','technology'],['المعلوماتية','informatics'],['الإعلام الآلي','informatics'],['informatique','informatics'],
+ ['الفيزياء','physics'],['العلوم الفيزيائية','physics'],['physique','physics'],['sciences physiques','physics']
+]);
+function currentProfessorLevel(value,name=''){
+ const raw=String(value||'').trim().toUpperCase().replace(/\s+/g,'');if(['1AS','2AS','3AS'].includes(raw))return raw;
+ const m=String(name||'').toUpperCase().match(/(?:^|[^0-9])([123])\s*AS(?:[^A-Z]|$)/);if(m)return m[1]+'AS';
+ const ar=String(name||'').replace(/[ًٌٍَُِّْـ]/g,'');if(/(?:السنة\s*)?(?:الأولى|الاولى)/.test(ar))return'1AS';if(/(?:السنة\s*)?الثانية/.test(ar))return'2AS';if(/(?:السنة\s*)?الثالثة/.test(ar))return'3AS';return''
+}
+function professorLevelLabel(level){const x=PROFESSOR_LEVELS.find(v=>v.id===level);return x?(fr()?x.fr:x.ar):tr('المستوى غير محدد','Niveau non défini')}
+function professorSubjectCode(v){const s=String(v||'').trim().toLowerCase();return /^[a-z0-9-]{1,60}$/.test(s)?s:''}
+function professorSubjectCodeFromName(v){return PROFESSOR_SUBJECT_ALIASES.get(String(v||'').trim().toLowerCase())||''}
+function professorSubjectEntry(level,code){return(PROFESSOR_SUBJECTS[level]||[]).find(x=>x[0]===code)||null}
+function professorSubjectName(level,code){const x=professorSubjectEntry(level,code);return x?(fr()?x[2]:x[1]):''}
+function professorOfficialCoefficient(level,code){return PROFESSOR_VERIFIED_COEFFICIENTS[level]?.[code]??null}
+function professorSubjectOptions(level,selected=''){return(PROFESSOR_SUBJECTS[level]||[]).map(x=>`<option value="${x[0]}" ${x[0]===selected?'selected':''}>${esc(fr()?x[2]:x[1])}${professorOfficialCoefficient(level,x[0])!=null?' · ×'+professorOfficialCoefficient(level,x[0]):''}</option>`).join('')}
+function professorLevelOptions(selected=''){return PROFESSOR_LEVELS.map(x=>`<option value="${x.id}" ${x.id===selected?'selected':''}>${esc(fr()?x.fr:x.ar)}</option>`).join('')}
 
 const PROF_SUBJECT_FR={
  'التربية الإسلامية':'Éducation islamique','اللغة العربية':'Langue arabe','العربية':'Langue arabe','الرياضيات':'Mathématiques',
@@ -26,7 +85,7 @@ const PROF_SUBJECT_FR={
  'الفيزياء':'Physique','الكيمياء':'Chimie','العلوم الطبيعية':'Sciences naturelles','علوم الحياة والأرض':'Sciences de la vie et de la Terre',
  'التاريخ والجغرافيا':'Histoire et géographie','التاريخ':'Histoire','الجغرافيا':'Géographie','التربية المدنية':'Éducation civique',
  'الفلسفة':'Philosophie','الإعلام الآلي':'Informatique','المعلوماتية':'Informatique','التربية البدنية':'Éducation physique',
- 'الرياضة':'Éducation physique','الرسم':'Arts plastiques'
+ 'الرياضة':'Éducation physique','التكنولوجيا':'Technologie','المعلوماتية':'Informatique','الرسم':'Arts plastiques'
 };
 const PROF_NAME_FR={'محمد':'Mohamed','أحمد':'Ahmed','احمد':'Ahmed','محمود':'Mahmoud','عبد الله':'Abdallahi','عبدالله':'Abdallahi','عبد الرحمن':'Abderrahmane','فاطمة':'Fatimetou','خديجة':'Khadijetou','عائشة':'Aïcha','مريم':'Mariam','سارة':'Sara','ياسين':'Yacine','إبراهيم':'Ibrahim','ابراهيم':'Ibrahim','علي':'Ali','سالم':'Salem','أمينة':'Amina','خالد':'Khaled'};
 const PROF_PLACE_FR={'الحوض الشرقي':'Hodh Ech Chargui','الحوض الغربي':'Hodh El Gharbi','العصابة':'Assaba','كوركول':'Gorgol','براكنة':'Brakna','البراكنة':'Brakna','لبراكنة':'Brakna','اترارزة':'Trarza','الترارزة':'Trarza','آدرار':'Adrar','داخلت نواذيبو':'Dakhlet Nouadhibou','تكانت':'Tagant','كيديماغا':'Guidimakha','تيرس زمور':'Tiris Zemmour','إنشيري':'Inchiri','انشيري':'Inchiri','نواكشوط الشمالية':'Nouakchott Nord','نواكشوط الغربية':'Nouakchott Ouest','نواكشوط الجنوبية':'Nouakchott Sud','نواكشوط':'Nouakchott','نواذيبو':'Nouadhibou','كرمسين':'Keur Macène','مال':'Mâl','بوتلميت':'Boutilimit','روصو':'Rosso','ألاك':'Aleg','كيهيدي':'Kaédi','كيفة':'Kiffa','النعمة':'Néma','لعيون':'Aioun','أطار':'Atar','ازويرات':'Zouerate','سيلبابي':'Sélibabi','تجكجة':'Tidjikja','بوكي':'Boghé'};
