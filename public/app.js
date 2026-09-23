@@ -5,6 +5,16 @@ let state=structuredClone(DEFAULT),currentUser=null,storageMode='memory',syncBus
 
 async function api(url,options={}){const method=String(options.method||'GET').toUpperCase();const r=await fetch(url,{credentials:'same-origin',cache:method==='GET'?'no-store':'no-cache',headers:{'Content-Type':'application/json','Cache-Control':'no-cache',...(options.headers||{})},...options});let data={};try{data=await r.json()}catch{}if(!r.ok){const e=new Error(data.error||'request_failed');e.code=data.error||'request_failed';e.status=r.status;throw e}return data}
 function localState(){try{return JSON.parse(localStorage.getItem('nataiji-data'))}catch{return null}}
+function localStateDataCount(s){
+ if(!s||typeof s!=='object')return 0;let n=0;
+ if(Array.isArray(s.classes))n+=s.classes.length*10;
+ if(Array.isArray(s.pupils))n+=s.pupils.length*5;
+ if(Array.isArray(s.subjects))n+=s.subjects.length*3;
+ const cd=s.classData&&typeof s.classData==='object'?s.classData:{};
+ for(const d of Object.values(cd)){n+=(Array.isArray(d?.pupils)?d.pupils.length:0)*5;n+=(Array.isArray(d?.subjects)?d.subjects.length:0)*3;for(const matrix of Object.values(d?.marksByTerm||{}))for(const row of Array.isArray(matrix)?matrix:[])for(const v of Array.isArray(row)?row:[])if(v!==''&&v!=null)n++}
+ return n
+}
+function recoveryStorageKey(id){return'nataiji-recovery-snapshot-v1:'+(id||'unknown')}
 function normalizeState(serverState){if(serverState&&typeof serverState==='object'){const incoming=structuredClone(serverState),merged={...structuredClone(DEFAULT),...incoming};merged.subjects=Array.isArray(incoming.subjects)?incoming.subjects:[];merged.pupils=Array.isArray(incoming.pupils)?incoming.pupils:[];merged.marks=Array.isArray(incoming.marks)?incoming.marks:[];return merged}const local=localState();return local&&typeof local==='object'?{...structuredClone(DEFAULT),...local}:structuredClone(DEFAULT)}
 let saveTail=Promise.resolve(),saveSerial=0;async function save(silent=false){if(!currentUser)throw new Error('not_authenticated');const serial=++saveSerial,snapshot=structuredClone(state);const run=async()=>{syncBusy=true;try{const r=await api('/api/state',{method:'PUT',body:JSON.stringify({state:snapshot})});const check=await api('/api/state');if(!r?.revision||!check?.state||check.state.saveRevision!==r.revision)throw Object.assign(new Error('save_not_verified'),{code:'save_not_verified'});if(serial===saveSerial){const fresh=normalizeState(check.state);for(const k of Object.keys(state))delete state[k];Object.assign(state,fresh);localStorage.setItem('nataiji-data',JSON.stringify(state));if($('#saveState')){$('#saveState').textContent='✓ محفوظ فعليًا على الخادم';$('#saveState').classList.remove('dirty')}}return true}catch(e){if($('#saveState')){$('#saveState').textContent='فشل الحفظ الحقيقي — أعد المحاولة';$('#saveState').classList.add('dirty')}if(e.status===401)await showAuth();throw e}finally{syncBusy=false;if(!silent)renderDashboard()}};const job=saveTail.then(run,run);saveTail=job.catch(()=>{});return job}
 
@@ -116,7 +126,26 @@ function showReport(type){$$('[data-report]').forEach(b=>b.classList.toggle('act
 function authError(code){return({bad_credentials:'البريد الإلكتروني أو كلمة المرور غير صحيحة',invalid_input:'تحقق من جميع الحقول. كلمة المرور 8 أحرف على الأقل',invalid_invite:'رمز الدعوة غير صحيح أو انتهت صلاحيته',email_exists:'هذا البريد مستخدم مسبقًا',already_initialized:'تم إنشاء الحساب الرئيسي مسبقًا'}[code]||'تعذر إتمام العملية. حاول مرة أخرى')}
 function authMarkup(initialized){const setup=!initialized;const form=setup?`<form class="auth-form" id="authForm"><label>اسم المعلم<input name="name" autocomplete="name" required></label><label>البريد الإلكتروني<input name="email" type="email" autocomplete="email" required></label><label>كلمة المرور<input name="password" type="password" minlength="8" autocomplete="new-password" required></label><button class="auth-submit">إنشاء الحساب وبدء الاستخدام</button><p class="auth-error"></p></form>`:`<form class="auth-form" id="authForm"><label>البريد الإلكتروني<input name="email" type="email" autocomplete="email" required></label><label>كلمة المرور<input name="password" type="password" autocomplete="current-password" required></label><button class="auth-submit">تسجيل الدخول</button><p class="auth-error"></p></form>`;return `<div class="auth-box"><div class="auth-brand"><div class="mark">◆</div><h1>نتائجي</h1><p>${setup?'إعداد الحساب لأول مرة':'نظام النتائج المدرسية'}</p></div>${form}<div class="auth-storage"><span class="server-badge ${storageMode==='redis'?'':'local'}">${storageMode==='redis'?'متصل بخادم البيانات':'تعذر الاتصال بخادم البيانات — أعد المحاولة'}</span></div></div>`}
 async function showAuth(forceMode='login'){let status;try{status=await api('/api/auth/status')}catch{status={initialized:true,user:null,storage:'memory'}}storageMode=status.storage||'memory';if(status.user&&(!forceMode||forceMode==='resume')){currentUser=status.user;return startApp()}currentUser=null;let gate=$('.auth-gate');if(!gate){gate=document.createElement('div');gate.className='auth-gate';document.body.appendChild(gate)}gate.innerHTML=authMarkup(status.initialized);const form=gate.querySelector('#authForm');form.onsubmit=async e=>{e.preventDefault();const btn=form.querySelector('.auth-submit'),err=form.querySelector('.auth-error'),fd=Object.fromEntries(new FormData(form));btn.disabled=true;err.textContent='';try{const endpoint=status.initialized?'/api/auth/login':'/api/auth/register',res=await api(endpoint,{method:'POST',body:JSON.stringify(fd)});currentUser=res.user;gate.remove();await startApp()}catch(ex){err.textContent=authError(ex.code)}finally{btn.disabled=false}}}
-async function startApp(){let remote=null;try{const r=await api('/api/state');currentUser=r.user||currentUser;remote=r.state}catch(e){if(e.status===401)return showAuth();throw e}state=normalizeState(remote);if(currentUser?.role==='admin'&&!remote?.subjects){state.teacher=currentUser.name||state.teacher}try{const sr=await api('/api/subjects?classId='+encodeURIComponent(state.activeClassId||''));if(sr?.ok){state.subjects=structuredClone(sr.subjects||[]);if(state.classData?.[state.activeClassId])state.classData[state.activeClassId].subjects=structuredClone(state.subjects)}}catch{}localStorage.setItem('nataiji-data',JSON.stringify(state));render();setView('home')}
+async function startApp(){
+ let remote=null,recoveredLocal=false,recoveryFailure=false;
+ const beforeRemote=localState(),beforeScore=localStateDataCount(beforeRemote),activeLocalUser=localStorage.getItem('nataiji-active-user');
+ try{const r=await api('/api/state');currentUser=r.user||currentUser;remote=r.state}catch(e){if(e.status===401)return showAuth();throw e}
+ const sameAccount=!activeLocalUser||activeLocalUser===currentUser?.id,recoveryKey=recoveryStorageKey(currentUser?.id),storedRecovery=(()=>{try{return JSON.parse(localStorage.getItem(recoveryKey))}catch{return null}})(),candidate=localStateDataCount(storedRecovery)>beforeScore?storedRecovery:beforeRemote,candidateScore=localStateDataCount(candidate),remoteScore=localStateDataCount(remote);
+ if(sameAccount&&candidateScore>0){
+  try{localStorage.setItem(recoveryKey,JSON.stringify(candidate))}catch{}
+  if(currentUser?.role==='admin'&&remoteScore===0){
+   try{
+    const rr=await api('/api/recovery/local-state',{method:'POST',body:JSON.stringify({state:candidate})});
+    if(rr?.ok){const fresh=await api('/api/state');remote=fresh.state;currentUser=fresh.user||currentUser;recoveredLocal=true}
+   }catch(e){if(!['recovery_target_not_empty','recovery_snapshot_empty'].includes(e.code))recoveryFailure=true}
+  }
+ }
+ state=normalizeState(remote);if(currentUser?.role==='admin'&&!remote?.subjects){state.teacher=currentUser.name||state.teacher}
+ try{const sr=await api('/api/subjects?classId='+encodeURIComponent(state.activeClassId||''));if(sr?.ok){state.subjects=structuredClone(sr.subjects||[]);if(state.classData?.[state.activeClassId])state.classData[state.activeClassId].subjects=structuredClone(state.subjects)}}catch{}
+ localStorage.setItem('nataiji-data',JSON.stringify(state));render();setView('home');
+ if(recoveredLocal)setTimeout(()=>modal('تم استرجاع البيانات',`<p><b>تم العثور على نسخة محلية محفوظة على هذا الجهاز واسترجاعها إلى الخادم بنجاح.</b></p><p>تحقق من الأقسام والتلاميذ والدرجات قبل إجراء أي تعديل جديد.</p>`),120);
+ else if(recoveryFailure)setTimeout(()=>modal('نسخة استرجاع محفوظة',`<p>وجدت نسخة محلية قديمة وحفظتها على الجهاز، لكن لم أستطع استعادتها تلقائيًا إلى الخادم.</p><p>لا تمسح بيانات التطبيق أو المتصفح.</p>`),120)
+}
 
 $$('[data-view]').forEach(b=>b.onclick=()=>setView(b.dataset.view));
 $$('[data-go]').forEach(b=>b.onclick=()=>setView(b.dataset.go));
