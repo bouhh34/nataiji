@@ -429,7 +429,10 @@ app.put('/api/professor/profile',auth,async(req,res)=>{
 });
 app.get('/api/professor/classes/:localClassId/results',auth,async(req,res)=>{
  if(req.user.role!=='professor')return res.status(403).json({error:'forbidden'});if(!pool)return res.status(503).json({error:'durable_storage_required'});
- const term=Math.max(1,Math.min(3,Number(req.query.term)||1)),result=await professorAggregatedResults(req.user.id,String(req.params.localClassId||''),term);
+ const localClassId=String(req.params.localClassId||''),profile=await loadProfessorProfile(req.user.id),local=profile.classes.find(x=>String(x.id)===localClassId);
+ if(!local)return res.status(404).json({error:'professor_class_not_found'});
+ if(!String(local.sharedClassId||''))return res.status(409).json({error:'collective_mode_required'});
+ const term=Math.max(1,Math.min(3,Number(req.query.term)||1)),result=await professorAggregatedResults(req.user.id,localClassId,term);
  if(!result)return res.status(404).json({error:'professor_class_not_found'});
  res.json({ok:true,...result})
 });
