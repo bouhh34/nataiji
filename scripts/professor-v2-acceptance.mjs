@@ -26,6 +26,7 @@ async function logout(){
 try{
  await registerProfessor('Professor One','professor.one@example.com');
  check('professor dashboard replaces legacy shell',await page.locator('#nataijiProfessorRoot .prof-v2-hero').count()===1 && await page.locator('.app-shell:visible').count()===0);
+ check('professor navigation matches teacher mental model',await page.locator('[data-prof-nav]').count()===5 && await page.locator('[data-prof-nav="grades"]').count()===1 && await page.locator('[data-prof-nav="students"]').count()===1 && await page.locator('[data-prof-nav="reports"]').count()===1 && await page.locator('[data-prof-nav="more"]').count()===1);
 
  await page.locator('#profAddSubject').click();
  await page.locator('#pv2Subject').fill('الرياضيات');
@@ -97,7 +98,7 @@ try{
  const weighted=(await page.locator('[data-weighted]').first().innerText()).trim();
  check('test and exam compute total and average',total==='32.00'&&avg==='16.00',JSON.stringify({total,avg}));
  check('coefficient computes weighted points',weighted==='48.00',JSON.stringify({weighted}));
- await page.locator('[data-prof-nav="results"]').click();
+ await page.locator('[data-prof-nav="reports"]').click();
  await page.locator('#pv2ResultsBody .prof-results-table').waitFor({state:'visible',timeout:10000});
  const autosavedResults=await page.locator('#pv2ResultsBody').innerText();
  check('leaving grade page auto-saves professor grades',autosavedResults.includes('12.88'),autosavedResults);
@@ -110,7 +111,7 @@ try{
  check('professor grades persist after reload',(await page.locator('[data-total]').first().innerText()).trim()==='32.00');
  check('coefficient persists after reload',(await page.locator('[data-weighted]').first().innerText()).trim()==='48.00');
 
- await page.locator('[data-prof-nav="results"]').click();
+ await page.locator('[data-prof-nav="reports"]').click();
  await page.locator('#pv2ResultsBody .prof-results-table').waitFor({state:'visible',timeout:10000});
  const resultsText=await page.locator('#pv2ResultsBody').innerText();
  check('shared results include subjects from both professors',resultsText.includes('الرياضيات')&&resultsText.includes('Physique'),resultsText);
