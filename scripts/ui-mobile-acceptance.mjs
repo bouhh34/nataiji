@@ -121,11 +121,11 @@ try{
   check('grade rows are compact without crowding',Boolean(firstRowBox&&firstRowBox.height<=64),JSON.stringify(firstRowBox));
   const controlLefts=await page.locator('.compact-score-row .score-controls').evaluateAll(nodes=>nodes.slice(0,4).map(n=>Math.round(n.getBoundingClientRect().left)));
   check('grade controls stay vertically aligned',controlLefts.length>0&&Math.max(...controlLefts)-Math.min(...controlLefts)<=2,JSON.stringify(controlLefts));
+  const saveResponse=page.waitForResponse(r=>r.url().includes('/api/mark')&&r.request().method()==='PUT'&&r.status()===200,{timeout:10000});
   await firstMark.fill('0');
   await firstMark.blur();
-  const saveResponse=page.waitForResponse(r=>r.url().includes('/api/marks')&&r.request().method()==='PUT'&&r.status()===200,{timeout:10000});
-  await page.locator('#saveGrades').click();
   await saveResponse;
+  await page.locator('#saveGrades').click();
   await page.reload({waitUntil:'domcontentloaded'});
   await page.locator('.app-shell').waitFor({state:'visible',timeout:12000});
   await page.locator('.bottom-nav button[data-view="grades"]').click();
@@ -139,15 +139,14 @@ try{
   let absentInput=firstRow.locator('.mobile-mark');
   const inactiveAbsentStyle=await absentButton.evaluate(el=>({pressed:el.getAttribute('aria-pressed'),background:getComputedStyle(el).backgroundColor,border:getComputedStyle(el).borderTopColor,color:getComputedStyle(el).color}));
   check('inactive absence control is visually neutral',inactiveAbsentStyle.pressed==='false'&&inactiveAbsentStyle.background==='rgb(255, 255, 255)',JSON.stringify(inactiveAbsentStyle));
+  const saveAbsentResponse=page.waitForResponse(r=>r.url().includes('/api/mark')&&r.request().method()==='PUT'&&r.status()===200,{timeout:10000});
   await absentButton.click();
+  await saveAbsentResponse;
   await page.waitForTimeout(80);
   let absentValue=await absentInput.inputValue();
   let absentPressed=await absentButton.getAttribute('aria-pressed');
   check('absence is an explicit selected state',/^(غائب|غائبة|Absent|Absente)$/u.test(absentValue)&&absentPressed==='true',JSON.stringify({absentValue,absentPressed}));
-
-  const saveAbsentResponse=page.waitForResponse(r=>r.url().includes('/api/marks')&&r.request().method()==='PUT'&&r.status()===200,{timeout:10000});
   await page.locator('#saveGrades').click();
-  await saveAbsentResponse;
   await page.reload({waitUntil:'domcontentloaded'});
   await page.locator('.app-shell').waitFor({state:'visible',timeout:12000});
   await page.locator('.bottom-nav button[data-view="grades"]').click();
@@ -160,15 +159,14 @@ try{
   absentPressed=await absentButton.getAttribute('aria-pressed');
   check('absence persists after reload',/^(غائب|غائبة|Absent|Absente)$/u.test(absentValue)&&absentPressed==='true',JSON.stringify({absentValue,absentPressed}));
 
+  const saveBlankResponse=page.waitForResponse(r=>r.url().includes('/api/mark')&&r.request().method()==='PUT'&&r.status()===200,{timeout:10000});
   await absentButton.click();
+  await saveBlankResponse;
   await page.waitForTimeout(80);
   let clearedValue=await absentInput.inputValue();
   let clearedPressed=await absentButton.getAttribute('aria-pressed');
   check('absence can be cleared back to not-entered',clearedValue===''&&clearedPressed==='false',JSON.stringify({clearedValue,clearedPressed}));
-
-  const saveBlankResponse=page.waitForResponse(r=>r.url().includes('/api/marks')&&r.request().method()==='PUT'&&r.status()===200,{timeout:10000});
   await page.locator('#saveGrades').click();
-  await saveBlankResponse;
   await page.reload({waitUntil:'domcontentloaded'});
   await page.locator('.app-shell').waitFor({state:'visible',timeout:12000});
   await page.locator('.bottom-nav button[data-view="grades"]').click();
