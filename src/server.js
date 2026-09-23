@@ -50,7 +50,15 @@ function cleanProfessorProfile(input){
  for(const raw of (Array.isArray(src.assignments)?src.assignments:[]).slice(0,160)){const id=String(raw?.id||crypto.randomUUID()).trim().slice(0,120),subject=String(raw?.subject||'').trim().slice(0,120),classId=String(raw?.classId||'').trim().slice(0,120),rawCoefficient=Number(raw?.coefficient),coefficient=Number.isFinite(rawCoefficient)&&rawCoefficient>0&&rawCoefficient<=20?Math.round(rawCoefficient*100)/100:1;if(!id||!subject||!classIds.has(classId)||assignmentIds.has(id))continue;assignmentIds.add(id);assignments.push({id,subject,classId,coefficient})}
  const marks={},srcMarks=src.marks&&typeof src.marks==='object'?src.marks:{},classMap=new Map(classes.map(x=>[x.id,new Set(x.students.map(s=>s.id))]));
  const cleanMark=v=>{const s=String(v??'').trim().replace(',','.');if(s==='')return'';const n=Number(s);return Number.isFinite(n)?String(Math.max(0,Math.min(20,n))):''};
- for(const a of assignments){const rows=srcMarks[a.id]&&typeof srcMarks[a.id]==='object'?srcMarks[a.id]:{},validStudents=classMap.get(a.classId)||new Set(),out={};for(const [studentId,row] of Object.entries(rows)){if(!validStudents.has(String(studentId)))continue;out[String(studentId)]={test:cleanMark(row?.test),exam:cleanMark(row?.exam)}}marks[a.id]=out}
+ for(const a of assignments){
+  const rows=srcMarks[a.id]&&typeof srcMarks[a.id]==='object'?srcMarks[a.id]:{},validStudents=classMap.get(a.classId)||new Set(),out={};
+  for(const [studentId,row] of Object.entries(rows)){
+   if(!validStudents.has(String(studentId)))continue;
+   const legacyTest=row?.test1==null?row?.test:row?.test1,legacyExam=row?.exam1==null?row?.exam:row?.exam1;
+   out[String(studentId)]={test1:cleanMark(legacyTest),exam1:cleanMark(legacyExam),test2:cleanMark(row?.test2),exam2:cleanMark(row?.exam2),test3:cleanMark(row?.test3),exam3:cleanMark(row?.exam3)}
+  }
+  marks[a.id]=out
+ }
  return{schoolName:String(src.schoolName||'').trim().slice(0,160),year:String(src.year||'').trim().slice(0,40),classes,assignments,marks}
 }
 const professorJoinCode=()=>('CL-'+crypto.randomBytes(4).toString('hex').toUpperCase());
