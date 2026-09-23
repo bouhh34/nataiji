@@ -62,12 +62,15 @@ function cleanProfessorProfile(input){
  }
  const marks={},srcMarks=src.marks&&typeof src.marks==='object'?src.marks:{},classMap=new Map(classes.map(x=>[x.id,new Set(x.students.map(s=>s.id))]));
  const cleanMark=v=>{const s=String(v??'').trim().replace(',','.');if(s==='')return'';const n=Number(s);return Number.isFinite(n)?String(Math.max(0,Math.min(20,n))):''};
+ const cleanProfessorTerm=(row,term)=>{
+  const raw=row?.terms?.[String(term)]||row?.terms?.[term]||{},tests=Array.isArray(raw?.tests)?raw.tests:[],legacyTest=term===1?(row?.test1==null?row?.test:row?.test1):row?.['test'+term],legacyExam=term===1?(row?.exam1==null?row?.exam:row?.exam1):row?.['exam'+term];
+  return{tests:[cleanMark(tests[0]??legacyTest),cleanMark(tests[1]),cleanMark(tests[2])],exam:cleanMark(raw?.exam??legacyExam)}
+ };
  for(const a of assignments){
   const rows=srcMarks[a.id]&&typeof srcMarks[a.id]==='object'?srcMarks[a.id]:{},validStudents=classMap.get(a.classId)||new Set(),out={};
   for(const [studentId,row] of Object.entries(rows)){
    if(!validStudents.has(String(studentId)))continue;
-   const legacyTest=row?.test1==null?row?.test:row?.test1,legacyExam=row?.exam1==null?row?.exam:row?.exam1;
-   out[String(studentId)]={test1:cleanMark(legacyTest),exam1:cleanMark(legacyExam),test2:cleanMark(row?.test2),exam2:cleanMark(row?.exam2),test3:cleanMark(row?.test3),exam3:cleanMark(row?.exam3)}
+   out[String(studentId)]={terms:{'1':cleanProfessorTerm(row,1),'2':cleanProfessorTerm(row,2),'3':cleanProfessorTerm(row,3)}}
   }
   marks[a.id]=out
  }
@@ -99,13 +102,17 @@ async function loadProfessorProfile(userId){
  return cleanProfessorProfile(q.rows[0]?.data||{})
 }
 function professorResultNumber(v){if(v===''||v==null)return null;const n=Number(v);return Number.isFinite(n)?n:null}
+function professorTermRecord(row,term){
+ const raw=row?.terms?.[String(term)]||row?.terms?.[term]||{},tests=Array.isArray(raw?.tests)?raw.tests:[];
+ return{tests:[0,1,2].map(i=>professorResultNumber(tests[i])),exam:professorResultNumber(raw?.exam)}
+}
 function professorTermAverage(row,term){
- const t1=professorResultNumber(row?.test1),e1=professorResultNumber(row?.exam1);if(t1==null||e1==null)return null;
- if(term===1)return(t1+e1)/2;
- const t2=professorResultNumber(row?.test2),e2=professorResultNumber(row?.exam2);if(t2==null||e2==null)return null;
- if(term===2)return((((t1+t2)/2)*2)+e1+(e2*2))/5;
- const t3=professorResultNumber(row?.test3),e3=professorResultNumber(row?.exam3);if(t3==null||e3==null)return null;
- return((((t1+t2+t3)/3)*3)+e1+(e2*2)+(e3*3))/9
+ const rec=professorTermRecord(row,term);if(rec.exam==null||rec.tests.some(v=>v==null))return null;
+ const testMean=rec.tests.reduce((a,b)=>a+b,0)/3;return(testMean+rec.exam)/2
+}
+function professorAnnualAverage(row){
+ const t1=professorTermAverage(row,1),t2=professorTermAverage(row,2),t3=professorTermAverage(row,3);if([t1,t2,t3].some(v=>v==null))return null;
+ return(t1+(t2*2)+(t3*3))/6
 }
 function professorSubjectIdentity(a){const key=normalizeProfessorSubjectKey(a?.subjectKey||a?.subject);return key?'key:'+key:'name:'+String(a?.subject||'').trim().toLowerCase()}
 async function professorSharedSubjectConflict(userId,beforeInput,nextInput){
@@ -159,7 +166,7 @@ async function professorAggregatedResults(userId,localClassId,term){
  const assignedCoefficientTotal=subjects.reduce((sum,s)=>sum+(Number(s.coefficient)||0),0),curriculumComplete=expectedCoefficientTotal!=null?Math.abs(assignedCoefficientTotal-expectedCoefficientTotal)<0.001:false;
  const rows=students.map((student,index)=>{
   let weightedSum=0,coefficientSum=0,complete=true,completedSubjects=0;
-  const subjectResults=subjects.map(subject=>{const markRow=subject.marks?.[student.id]||{},average=professorTermAverage(markRow,term),weighted=average==null?null:average*subject.coefficient,tests=[1,2,3].map(i=>professorResultNumber(markRow?.['test'+i])),exams=[1,2,3].map(i=>professorResultNumber(markRow?.['exam'+i])),activeTests=tests.slice(0,term).filter(v=>v!=null),testMean=activeTests.length===term?activeTests.reduce((a,b)=>a+b,0)/activeTests.length:null;if(average==null)complete=false;else{completedSubjects++;weightedSum+=weighted;coefficientSum+=subject.coefficient}return{key:subject.key,average,weighted,tests,exams,testMean}});
+  const subjectResults=subjects.map(subject=>{const markRow=subject.marks?.[student.id]||{},rec=professorTermRecord(markRow,term),average=professorTermAverage(markRow,term),annualAverage=term===3?professorAnnualAverage(markRow):null,aggregateAverage=term===3?annualAverage:average,weighted=aggregateAverage==null?null:aggregateAverage*subject.coefficient,testMean=rec.tests.some(v=>v==null)?null:rec.tests.reduce((a,b)=>a+b,0)/3;if(aggregateAverage==null)complete=false;else{completedSubjects++;weightedSum+=weighted;coefficientSum+=subject.coefficient}return{key:subject.key,average,aggregateAverage,weighted,tests:rec.tests,exam:rec.exam,testMean,annualAverage}});
   const general=subjects.length&&complete&&coefficientSum>0?weightedSum/coefficientSum:null,officialReady=general!=null&&curriculumComplete;
   return{student:professorStudentData(student),position:index+1,subjectResults,general,complete:subjects.length>0&&complete,officialReady,completedSubjects,totalSubjects:subjects.length}
  });
@@ -422,7 +429,10 @@ app.put('/api/professor/profile',auth,async(req,res)=>{
 });
 app.get('/api/professor/classes/:localClassId/results',auth,async(req,res)=>{
  if(req.user.role!=='professor')return res.status(403).json({error:'forbidden'});if(!pool)return res.status(503).json({error:'durable_storage_required'});
- const term=Math.max(1,Math.min(3,Number(req.query.term)||1)),result=await professorAggregatedResults(req.user.id,String(req.params.localClassId||''),term);
+ const localClassId=String(req.params.localClassId||''),profile=await loadProfessorProfile(req.user.id),local=profile.classes.find(x=>String(x.id)===localClassId);
+ if(!local)return res.status(404).json({error:'professor_class_not_found'});
+ if(!String(local.sharedClassId||''))return res.status(409).json({error:'collective_mode_required'});
+ const term=Math.max(1,Math.min(3,Number(req.query.term)||1)),result=await professorAggregatedResults(req.user.id,localClassId,term);
  if(!result)return res.status(404).json({error:'professor_class_not_found'});
  res.json({ok:true,...result})
 });
