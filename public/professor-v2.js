@@ -19,6 +19,30 @@ function showLegacy(){
 }
 function root(){let el=q('#nataijiProfessorRoot');if(!el){el=document.createElement('main');el.id='nataijiProfessorRoot';el.className='professor-app professor-v2';document.body.appendChild(el)}return el}
 function normalize(p){const x=p&&typeof p==='object'?structuredClone(p):{};x.schoolName=String(x.schoolName||'');x.schoolNameFr=String(x.schoolNameFr||'');x.region=String(x.region||'');x.regionFr=String(x.regionFr||'');x.inspection=String(x.inspection||'');x.inspectionFr=String(x.inspectionFr||'');x.schoolNns=String(x.schoolNns||'');x.year=String(x.year||'');x.classes=Array.isArray(x.classes)?x.classes:[];x.assignments=Array.isArray(x.assignments)?x.assignments:[];x.marks=x.marks&&typeof x.marks==='object'?x.marks:{};return x}
+
+const PROF_SUBJECT_FR={
+ 'التربية الإسلامية':'Éducation islamique','اللغة العربية':'Langue arabe','العربية':'Langue arabe','الرياضيات':'Mathématiques',
+ 'اللغة الفرنسية':'Langue française','الفرنسية':'Français','اللغة الإنجليزية':'Anglais','الإنجليزية':'Anglais',
+ 'الفيزياء':'Physique','الكيمياء':'Chimie','العلوم الطبيعية':'Sciences naturelles','علوم الحياة والأرض':'Sciences de la vie et de la Terre',
+ 'التاريخ والجغرافيا':'Histoire et géographie','التاريخ':'Histoire','الجغرافيا':'Géographie','التربية المدنية':'Éducation civique',
+ 'الفلسفة':'Philosophie','الإعلام الآلي':'Informatique','المعلوماتية':'Informatique','التربية البدنية':'Éducation physique',
+ 'الرياضة':'Éducation physique','الرسم':'Arts plastiques'
+};
+const PROF_NAME_FR={'محمد':'Mohamed','أحمد':'Ahmed','احمد':'Ahmed','محمود':'Mahmoud','عبد الله':'Abdallahi','عبدالله':'Abdallahi','عبد الرحمن':'Abderrahmane','فاطمة':'Fatimetou','خديجة':'Khadijetou','عائشة':'Aïcha','مريم':'Mariam','سارة':'Sara','ياسين':'Yacine','إبراهيم':'Ibrahim','ابراهيم':'Ibrahim','علي':'Ali','سالم':'Salem','أمينة':'Amina','خالد':'Khaled'};
+const PROF_PLACE_FR={'آدرار':'Adrar','ولاية آدرار':'Adrar','براكنة':'Brakna','ولاية براكنة':'Brakna','نواكشوط':'Nouakchott','نواذيبو':'Nouadhibou','داخلت نواذيبو':'Dakhlet Nouadhibou','كرمسين':'Keur Macène','مال':'Mâl','بوتلميت':'Boutilimit','روصو':'Rosso','ألاك':'Aleg','كيهيدي':'Kaédi','كيفة':'Kiffa','النعمة':'Néma','لعيون':'Aioun','أطار':'Atar','ازويرات':'Zouerate','سيلبابي':'Sélibabi','تجكجة':'Tidjikja','بوكي':'Boghé'};
+function profTranslit(v){
+ const raw=String(v||'').trim();if(!raw)return'';if(PROF_PLACE_FR[raw])return PROF_PLACE_FR[raw];if(PROF_NAME_FR[raw])return PROF_NAME_FR[raw];
+ const s=raw.replace(/^ولاية\s+/,'').replace(/^مقاطعة\s+/,'').replace(/[ًٌٍَُِّْـ]/g,'');if(PROF_PLACE_FR[s])return PROF_PLACE_FR[s];
+ const m={'ا':'a','أ':'a','إ':'i','آ':'a','ب':'b','ت':'t','ث':'th','ج':'j','ح':'h','خ':'kh','د':'d','ذ':'dh','ر':'r','ز':'z','س':'s','ش':'ch','ص':'s','ض':'d','ط':'t','ظ':'z','ع':'','غ':'gh','ف':'f','ق':'q','ك':'k','ل':'l','م':'m','ن':'n','ه':'h','ة':'a','و':'ou','ؤ':'ou','ي':'i','ى':'a','ئ':'i','ء':'',' ':' ','-':'-'};
+ let out='';for(const ch of s)out+=m[ch]??ch;return out.replace(/\s+/g,' ').trim().replace(/(^|\s)([a-zà-ÿ])/g,(x,a,b)=>a+b.toUpperCase())
+}
+function profName(v){if(!fr())return String(v||'');const raw=String(v||'').trim();return raw.split(/\s+/).map(x=>PROF_NAME_FR[x]||profTranslit(x)).join(' ')}
+function profSubject(v){const raw=String(v||'').trim();return fr()?(PROF_SUBJECT_FR[raw]||profTranslit(raw)):raw}
+function profClass(v){const raw=String(v||'').trim();if(!fr())return raw;const map={'السنة الأولى ابتدائية':'1re année primaire','السنة الثانية ابتدائية':'2e année primaire','السنة الثالثة ابتدائية':'3e année primaire','السنة الرابعة ابتدائية':'4e année primaire','السنة الخامسة ابتدائية':'5e année primaire','السنة السادسة ابتدائية':'6e année primaire'};return map[raw]||(/^[0-9A-Z-]+$/i.test(raw)?raw:profTranslit(raw))}
+function profSchool(){return fr()?(profile.schoolNameFr||profTranslit(profile.schoolName)):profile.schoolName}
+function profRegion(){return fr()?(profile.regionFr||PROF_PLACE_FR[profile.region]||profTranslit(profile.region)):profile.region}
+function profInspection(){return fr()?(profile.inspectionFr||profTranslit(profile.inspection)):profile.inspection}
+
 function classById(id){return profile.classes.find(c=>String(c.id)===String(id))}
 function assignmentsForClass(id){return profile.assignments.filter(a=>a.classId===id)}
 function marksFor(id){profile.marks[id]=profile.marks[id]&&typeof profile.marks[id]==='object'?profile.marks[id]:{};return profile.marks[id]}
