@@ -119,5 +119,5 @@ function chooseAccountType(user){
 }
 async function renderProfessor(user){professorUser=user;hideLegacy();const el=root();el.innerHTML=`<div class="professor-loading"><img src="/nataiji-brand-mark.png" width="64" height="64" alt=""><p>${tr('جاري تجهيز فضاء الأستاذ…','Préparation de l’espace professeur…')}</p></div>`;try{await refreshProfile();currentView='home';renderHome()}catch{el.innerHTML=`<div class="professor-loading"><h2>${tr('تعذر تحميل حساب الأستاذ','Impossible de charger le compte professeur')}</h2><button class="primary" onclick="location.reload()">${tr('إعادة المحاولة','Réessayer')}</button></div>`}}
 async function logout(){try{await api('/api/auth/logout',{method:'POST',body:'{}'})}catch{}currentUser=null;location.reload()}
-window.NataijiProfessor={activate(user){if(user?.needsProfileChoice===true)return chooseAccountType(user);if(user?.role==='professor'||user?.profileType==='professor')return renderProfessor(user);return false}};
+window.NataijiProfessor={activate(user){if(user?.needsProfileChoice===true)return chooseAccountType(user);if(user?.role==='professor'||user?.profileType==='professor')return renderProfessor(user);return false},_calculateTerm:termResult};
 })();
