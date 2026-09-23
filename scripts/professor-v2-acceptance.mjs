@@ -97,6 +97,17 @@ try{
  await page.locator('[data-manage-class]').first().click();
  check('shared roster is visible to second professor',await page.locator('.prof-student-row').count()===1,await page.locator('.prof-student-row').first().innerText());
 
+ check('linked professor cannot edit the shared roster from UI',await page.locator('#pv2AddStudent').count()===0&&await page.locator('[data-remove-student]').count()===0);
+ const rosterGuard=await page.evaluate(async()=>{
+  const get=await fetch('/api/professor/profile',{headers:{Accept:'application/json'}}),data=await get.json(),shared=data.profile.classes.find(c=>c.sharedClassId);
+  shared.students.push({id:'member-must-not-add',name:'Should Not Persist',nns:'BLOCKED'});
+  const put=await fetch('/api/professor/profile',{method:'PUT',headers:{'Content-Type':'application/json',Accept:'application/json'},body:JSON.stringify({profile:data.profile})});
+  const body=await put.json();
+  const saved=body.profile.classes.find(c=>c.sharedClassId);
+  return{status:put.status,count:saved.students.length,blocked:!saved.students.some(s=>s.id==='member-must-not-add')}
+ });
+ check('server keeps shared roster under code creator control',rosterGuard.status===200&&rosterGuard.count===1&&rosterGuard.blocked,JSON.stringify(rosterGuard));
+
  await page.locator('#pv2AddClassSubject').click();
  await page.locator('#pv2Subject').selectOption('physical_sciences');
  check('physical sciences coefficient is official and automatic',await page.locator('#pv2Coefficient').inputValue()==='1'&&await page.locator('#pv2Coefficient').getAttribute('readonly')!==null);
