@@ -1120,3 +1120,28 @@ html.nataiji-professor-mode body{background:#f4f7f6;min-height:100vh;overflow-x:
  }
  .nataiji-professor-mode .prof-student-save-row .primary{height:47px}
 }
+
+
+/* Professor student name emphasis follows UI language v23 */
+.nataiji-professor-mode .prof-student-names.is-ar{
+  direction:rtl!important;
+  text-align:right!important;
+  justify-items:start!important
+}
+.nataiji-professor-mode .prof-student-names.is-fr{
+  direction:ltr!important;
+  text-align:left!important;
+  justify-items:start!important
+}
+.nataiji-professor-mode .prof-student-names.is-ar b,
+.nataiji-professor-mode .prof-student-names.is-fr b{
+  font-size:16px!important;
+  font-weight:900!important;
+  color:#173d51!important
+}
+.nataiji-professor-mode .prof-student-names.is-ar small,
+.nataiji-professor-mode .prof-student-names.is-fr small{
+  font-size:10.5px!important;
+  font-weight:600!important;
+  color:#9aa6ab!important
+}
