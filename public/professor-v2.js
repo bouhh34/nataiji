@@ -12,6 +12,16 @@ let gradeSaveTimer=null,gradeEditRevision=0,gradeSavedRevision=0,gradeSaveInFlig
 let professorInstallPrompt=null;
 window.addEventListener('beforeinstallprompt',e=>{try{e.preventDefault();professorInstallPrompt=e}catch{}});
 window.addEventListener('appinstalled',()=>{professorInstallPrompt=null});
+function professorRunsAsInstalledApp(){
+ try{
+  if(window.Capacitor?.isNativePlatform?.())return true;
+  if(window.Capacitor?.getPlatform?.()&&window.Capacitor.getPlatform()!=='web')return true
+ }catch{}
+ if(window.matchMedia?.('(display-mode: standalone)')?.matches||navigator.standalone===true)return true;
+ return /;\s*wv\)|\bwv\b/i.test(String(navigator.userAgent||''))&&/Android/i.test(String(navigator.userAgent||''))
+}
+function professorIsWebsite(){return !professorRunsAsInstalledApp()}
+
 
 function hideLegacy(){
  document.documentElement.classList.add('nataiji-professor-mode');
@@ -258,6 +268,7 @@ function professorMoreIcon(name){
   shield:`<svg ${common}><path d="M12 3 19 6v5c0 4.8-2.7 8-7 10-4.3-2-7-5.2-7-10V6z"/><path d="m9.5 12 1.7 1.7 3.6-4"/></svg>`,
   chat:`<svg ${common}><path d="M4 5h16v11H9l-5 4z"/><path d="M8 10h.01M12 10h.01M16 10h.01"/></svg>`,
   install:`<svg ${common}><path d="M12 3v12"/><path d="m8 11 4 4 4-4"/><path d="M5 20h14"/></svg>`,
+  logout:`<svg ${common}><path d="M10 4H5v16h5"/><path d="M13 8l4 4-4 4"/><path d="M17 12H8"/></svg>`,
   trash:`<svg ${common}><path d="M4 7h16M9 7V4h6v3M7 7l1 13h8l1-13M10 11v5M14 11v5"/></svg>`
  };return icons[name]||''
 }
@@ -281,38 +292,41 @@ function openProfessorAccountSettings(){
 }
 
 function openProfessorPrivacy(){
- const m=modal(tr('سياسة الخصوصية','Politique de confidentialité'),`<div class="prof-info-sheet">
+ const m=modal(tr('سياسة البرنامج','Politique de l’application'),`<div class="prof-info-sheet prof-policy-sheet">
   <span class="prof-info-icon privacy">${professorMoreIcon('shield')}</span>
-  <h3>${tr('خصوصيتك وبياناتك','Votre confidentialité et vos données')}</h3>
-  <p>${tr('يستخدم نتائجي بيانات الحساب والمؤسسة والأقسام والتلاميذ والدرجات لتقديم وظائف التطبيق وحفظ النتائج ومزامنتها بين الحسابات المصرح لها.','Nataiji utilise les données du compte, de l’établissement, des classes, des élèves et des notes pour fournir les fonctions de l’application et synchroniser les résultats entre les comptes autorisés.')}</p>
-  <p>${tr('يمكن حذف الحساب وبياناته من خيار حذف الحساب في هذه الصفحة.','Vous pouvez supprimer votre compte et ses données depuis l’option Supprimer le compte sur cette page.')}</p>
+  <h3>${tr('سياسة برنامج نتائجي','Politique de Nataiji')}</h3>
+  <p><b>${tr('استخدام البرنامج:','Utilisation :')}</b> ${tr('نتائجي مخصص لإدارة الأقسام والتلاميذ والدرجات والتقارير المدرسية وفق صلاحيات الحساب.','Nataiji est destiné à la gestion des classes, élèves, notes et rapports scolaires selon les autorisations du compte.')}</p>
+  <p><b>${tr('البيانات:','Données :')}</b> ${tr('تُستخدم بيانات الحساب والمؤسسة والأقسام والتلاميذ والدرجات لتشغيل وظائف التطبيق وحفظها ومزامنتها مع الحسابات المصرح لها فقط.','Les données du compte, de l’établissement, des classes, des élèves et des notes servent au fonctionnement, à la sauvegarde et à la synchronisation avec les comptes autorisés.')}</p>
+  <p><b>${tr('المسؤولية:','Responsabilité :')}</b> ${tr('على المستخدم التأكد من صحة البيانات المدخلة والمحافظة على سرية كلمة المرور وعدم مشاركة صلاحياته مع غير المخولين.','L’utilisateur doit vérifier l’exactitude des données saisies, protéger son mot de passe et ne pas partager ses accès avec des personnes non autorisées.')}</p>
+  <p><b>${tr('الحذف:','Suppression :')}</b> ${tr('يمكن حذف الحساب وبياناته من خيار حذف الحساب. الحذف النهائي لا يمكن التراجع عنه.','Le compte et ses données peuvent être supprimés depuis l’option correspondante. La suppression définitive est irréversible.')}</p>
   <button class="primary professor-x-inline">${tr('حسنًا','Fermer')}</button>
  </div>`);q('.professor-x-inline',m.wrap).onclick=m.close
 }
 
 function openProfessorSupport(){
+ const wa='22234280062',email='bahmedou596@gmail.com',msg=encodeURIComponent('السلام عليكم، لدي ملاحظة أو أحتاج مساعدة في تطبيق نتائجي.');
  const m=modal(tr('الدعم والملاحظات','Support et commentaires'),`<div class="prof-support-sheet">
   <span class="prof-info-icon support">${professorMoreIcon('chat')}</span>
-  <h3>${tr('شارك ملاحظاتك','Partagez vos commentaires')}</h3>
-  <p>${tr('اكتب المشكلة أو الاقتراح، ثم استخدم زر المشاركة لإرساله عبر التطبيق الذي تختاره على هاتفك.','Décrivez le problème ou votre suggestion, puis utilisez Partager pour l’envoyer via l’application de votre choix sur votre téléphone.')}</p>
-  <textarea id="profSupportText" rows="5" maxlength="1200" placeholder="${tr('اكتب ملاحظتك هنا…','Écrivez votre commentaire ici…')}"></textarea>
-  <button class="primary" id="profShareFeedback">${tr('مشاركة الملاحظة','Partager le commentaire')}</button><p class="professor-msg"></p>
+  <h3>${tr('الدعم والملاحظات','Support et commentaires')}</h3>
+  <p>${tr('لأي مشكلة أو اقتراح أو ملاحظة، تواصل مباشرة مع إدارة تطبيق نتائجي.','Pour tout problème, suggestion ou commentaire, contactez directement l’administration de Nataiji.')}</p>
+  <div class="prof-support-contact"><b>WhatsApp</b><span dir="ltr">+222 34 28 00 62</span></div>
+  <a class="prof-support-link whatsapp" target="_blank" rel="noopener" href="https://wa.me/${wa}?text=${msg}">${tr('مراسلة الإدارة عبر WhatsApp','Contacter l’administration sur WhatsApp')}</a>
+  <div class="prof-support-contact"><b>Email</b><span dir="ltr">${email}</span></div>
+  <a class="prof-support-link email" href="mailto:${email}?subject=${encodeURIComponent('ملاحظة حول تطبيق نتائجي')}">${tr('إرسال بريد إلى الإدارة','Envoyer un e-mail à l’administration')}</a>
  </div>`);
- q('#profShareFeedback',m.wrap).onclick=async()=>{
-  const text=q('#profSupportText',m.wrap).value.trim(),msg=q('.professor-msg',m.wrap);if(!text){msg.textContent=tr('اكتب الملاحظة أولًا.','Écrivez d’abord votre commentaire.');return}
-  const payload={title:'Nataiji',text:'Nataiji — '+text};
-  try{if(navigator.share){await navigator.share(payload);return}await navigator.clipboard.writeText(payload.text);msg.textContent=tr('تم نسخ الملاحظة. يمكنك لصقها في وسيلة التواصل التي تستخدمها.','Commentaire copié. Vous pouvez le coller dans votre moyen de contact habituel.')}catch{msg.textContent=tr('تعذرت المشاركة. انسخ النص يدويًا.','Partage impossible. Copiez le texte manuellement.')}
- }
+ return m
 }
 
 async function openProfessorInstall(){
- if(window.matchMedia?.('(display-mode: standalone)').matches||navigator.standalone===true){toast(tr('التطبيق مثبت بالفعل','L’application est déjà installée'));return}
- if(professorInstallPrompt){try{professorInstallPrompt.prompt();await professorInstallPrompt.userChoice;professorInstallPrompt=null;return}catch{}}
+ if(!professorIsWebsite())return;
+ if(professorInstallPrompt){
+  try{professorInstallPrompt.prompt();const choice=await professorInstallPrompt.userChoice;if(choice?.outcome==='accepted')professorInstallPrompt=null;return}catch{}
+ }
  const ua=navigator.userAgent||'',ios=/iPad|iPhone|iPod/i.test(ua);
- const m=modal(tr('تثبيت التطبيق','Installer l’application'),`<div class="prof-info-sheet">
+ const m=modal(tr('تحميل التطبيق','Installer l’application'),`<div class="prof-info-sheet">
   <span class="prof-info-icon install">${professorMoreIcon('install')}</span>
-  <h3>${tr('إضافة نتائجي إلى الشاشة الرئيسية','Ajouter Nataiji à l’écran d’accueil')}</h3>
-  <p>${ios?tr('في Safari اضغط زر المشاركة ثم اختر «إضافة إلى الشاشة الرئيسية».','Dans Safari, touchez Partager puis « Sur l’écran d’accueil ».'):tr('من قائمة المتصفح اختر «تثبيت التطبيق» أو «إضافة إلى الشاشة الرئيسية».','Dans le menu du navigateur, choisissez « Installer l’application » ou « Ajouter à l’écran d’accueil ».')}</p>
+  <h3>${tr('تحميل تطبيق نتائجي','Installer Nataiji')}</h3>
+  <p>${ios?tr('في Safari اضغط زر المشاركة ثم اختر «إضافة إلى الشاشة الرئيسية».','Dans Safari, touchez Partager puis « Sur l’écran d’accueil ».'):tr('إذا ظهر خيار «تثبيت التطبيق» في المتصفح استخدمه، أو اختر «إضافة إلى الشاشة الرئيسية».','Utilisez « Installer l’application » si votre navigateur le propose, sinon choisissez « Ajouter à l’écran d’accueil ».')}</p>
   <button class="primary professor-x-inline">${tr('فهمت','Compris')}</button>
  </div>`);q('.professor-x-inline',m.wrap).onclick=m.close
 }
@@ -345,9 +359,10 @@ function renderMore(){
    ${row('profMoreJoin','link',tr('الانضمام برمز القسم','Rejoindre avec un code de classe'),tr('ربط أستاذ آخر بنفس القسم','Relier un autre professeur à la même classe'))}
    ${row('profMoreRefresh','refresh',tr('تحديث البيانات','Actualiser les données'),tr('تحميل أحدث نسخة محفوظة من الخادم','Charger la dernière version enregistrée sur le serveur'))}
    ${row('profMoreLang','language',tr('اللغة','Langue'),fr()?'العربية / Français':'العربية / Français')}
-   ${row('profMorePrivacy','shield',tr('سياسة الخصوصية','Politique de confidentialité'),tr('سياسة استخدام التطبيق وحماية البيانات','Utilisation de l’application et protection des données'))}
-   ${row('profMoreSupport','chat',tr('الدعم والملاحظات','Support et commentaires'),tr('تواصل معنا وشارك ملاحظاتك','Contactez-nous et partagez vos commentaires'))}
-   ${row('profMoreInstall','install',tr('تثبيت التطبيق','Installer l’application'),tr('إضافة التطبيق إلى الشاشة الرئيسية','Ajouter l’application à l’écran d’accueil'))}
+   ${row('profMorePrivacy','shield',tr('سياسة البرنامج','Politique de l’application'),tr('شروط الاستخدام وحماية البيانات','Conditions d’utilisation et protection des données'))}
+   ${row('profMoreSupport','chat',tr('الدعم والملاحظات','Support et commentaires'),tr('تواصل مع إدارة نتائجي عبر WhatsApp أو البريد','Contactez Nataiji par WhatsApp ou e-mail'))}
+   ${professorIsWebsite()?row('profMoreInstall','install',tr('تحميل التطبيق','Installer l’application'),tr('تحميل نتائجي أو إضافته إلى الشاشة الرئيسية','Installer Nataiji ou l’ajouter à l’écran d’accueil')):''}
+   ${row('profMoreLogout','logout',tr('تسجيل الخروج','Déconnexion'),tr('إنهاء الجلسة الحالية','Fermer la session actuelle'),'logout')}
    ${row('profMoreDelete','trash',tr('حذف الحساب','Supprimer le compte'),tr('حذف حسابك وجميع بياناته نهائيًا','Supprimer définitivement votre compte et ses données'),'danger')}
   </section>
   ${nav('more')}
@@ -361,7 +376,8 @@ function renderMore(){
  q('#profMoreLang',el).onclick=async()=>{await flushGradeAutosave();toggleLanguage()};
  q('#profMorePrivacy',el).onclick=openProfessorPrivacy;
  q('#profMoreSupport',el).onclick=openProfessorSupport;
- q('#profMoreInstall',el).onclick=openProfessorInstall;
+ q('#profMoreInstall',el)?.addEventListener('click',openProfessorInstall);
+ q('#profMoreLogout',el).onclick=async()=>{await flushGradeAutosave();logout()};
  q('#profMoreDelete',el).onclick=openProfessorDeleteAccount
 }
 
