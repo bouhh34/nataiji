@@ -162,12 +162,24 @@ async function professorAggregatedResults(userId,localClassId,term){
    subjects.push({key:memberId+':'+a.id,subject:String(a.subject||''),subjectKey:String(a.subjectKey||''),coefficient,coefficientSource:'official',ownerUserId:memberId,own:memberId===String(userId),marks})
   }
  }
- const levelCatalog=professorCatalog().levels.find(x=>String(x.code)===levelCode),branchCatalog=(levelCatalog?.branches||[]).find(x=>String(x.code)===String(local.branchCode||'').toUpperCase()),orderedSubjects=branchCatalog?.subjects?.length?branchCatalog.subjects:(levelCatalog?.subjects||[]),subjectOrder=new Map(orderedSubjects.map((s,i)=>[String(s.key),i]));
+ const levelCatalog=professorCatalog().levels.find(x=>String(x.code)===levelCode),branchCatalog=(levelCatalog?.branches||[]).find(x=>String(x.code)===normalizeProfessorBranchCode(local.branchCode)),orderedSubjects=branchCatalog?.subjects?.length?branchCatalog.subjects:(levelCatalog?.subjects||[]),subjectOrder=new Map(orderedSubjects.map((s,i)=>[String(s.key),i]));
+ const collectedByKey=new Map();
+ for(const subject of subjects){
+  const key=normalizeProfessorSubjectKey(subject.subjectKey||subject.subject);if(!key)continue;
+  const previous=collectedByKey.get(key),count=x=>Object.keys(x?.marks||{}).length;
+  if(!previous||count(subject)>count(previous))collectedByKey.set(key,subject)
+ }
+ const officialSubjects=orderedSubjects.map(spec=>{
+  const found=collectedByKey.get(String(spec.key));
+  if(found)return{...found,subject:String(spec.ar||found.subject||''),subjectKey:String(spec.key),coefficient:Number(spec.coefficient)||1,coefficientSource:'official',assigned:true};
+  return{key:'catalog:'+String(spec.key),subject:String(spec.ar||''),subjectKey:String(spec.key),coefficient:Number(spec.coefficient)||1,coefficientSource:'official',ownerUserId:'',own:false,assigned:false,marks:{}}
+ });
+ subjects.length=0;subjects.push(...officialSubjects);
  subjects.sort((a,b)=>{
   const ak=normalizeProfessorSubjectKey(a.subjectKey||a.subject),bk=normalizeProfessorSubjectKey(b.subjectKey||b.subject),ai=subjectOrder.has(ak)?subjectOrder.get(ak):999,bi=subjectOrder.has(bk)?subjectOrder.get(bk):999;
   return ai-bi||String(a.subject).localeCompare(String(b.subject),'fr',{sensitivity:'base'})
  });
- const assignedCoefficientTotal=subjects.reduce((sum,s)=>sum+(Number(s.coefficient)||0),0),curriculumComplete=expectedCoefficientTotal!=null?Math.abs(assignedCoefficientTotal-expectedCoefficientTotal)<0.001:false;
+ const assignedCoefficientTotal=subjects.filter(s=>s.assigned).reduce((sum,s)=>sum+(Number(s.coefficient)||0),0),curriculumComplete=expectedCoefficientTotal!=null?subjects.length>0&&subjects.every(s=>s.assigned)&&Math.abs(assignedCoefficientTotal-expectedCoefficientTotal)<0.001:false;
  const rows=students.map((student,index)=>{
   let weightedSum=0,coefficientSum=0,complete=true,completedSubjects=0;
   const subjectResults=subjects.map(subject=>{const markRow=subject.marks?.[student.id]||{},rec=professorTermRecord(markRow,term),rawAverage=professorTermAverage(markRow,term),rawAnnualAverage=term===3?professorAnnualAverage(markRow):null,hasResult=(term===3?rawAnnualAverage:rawAverage)!=null,aggregateAverage=hasResult?(term===3?rawAnnualAverage:rawAverage):0,weighted=aggregateAverage*subject.coefficient;if(!hasResult)complete=false;else completedSubjects++;weightedSum+=weighted;coefficientSum+=subject.coefficient;return{key:subject.key,average:rawAverage??0,aggregateAverage,weighted,tests:rec.tests,exam:rec.displayExam,testMean:rec.test,annualAverage:term===3?(rawAnnualAverage??0):null,entered:hasResult}});
