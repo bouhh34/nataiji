@@ -6713,3 +6713,162 @@ html.nataiji-professor-mode body{background:#f4f7f6;min-height:100vh;overflow-x:
     font-size:10.5px!important
   }
 }
+
+
+/* Professor grade readability + nav clearance v44 */
+/* Grade-entry page only: enlarge secondary text and keep the fixed nav away from the final student/save state. */
+.nataiji-professor-mode .prof-grade-reference{
+  width:min(100%,760px)!important;
+  max-width:760px!important;
+  margin-inline:auto!important;
+  padding-bottom:calc(148px + env(safe-area-inset-bottom,0px))!important;
+  box-sizing:border-box!important
+}
+.nataiji-professor-mode .prof-grade-reference .prof-page-head p{
+  font-size:12.2px!important;
+  line-height:1.55!important;
+  color:#6f8288!important
+}
+.nataiji-professor-mode .prof-grade-reference .professor-badge{
+  font-size:11.3px!important;
+  line-height:1.35!important
+}
+.nataiji-professor-mode .prof-grade-reference .prof-term-tabs button{
+  min-height:46px!important;
+  font-size:12.2px!important;
+  font-weight:850!important
+}
+.nataiji-professor-mode .prof-grade-reference .prof-term-formula{
+  gap:5px!important;
+  padding:12px 13px!important;
+  margin-bottom:13px!important
+}
+.nataiji-professor-mode .prof-grade-reference .prof-term-formula b{
+  font-size:13.2px!important;
+  line-height:1.3!important
+}
+.nataiji-professor-mode .prof-grade-reference .prof-term-formula span{
+  font-size:12.9px!important;
+  line-height:1.65!important;
+  font-weight:820!important
+}
+.nataiji-professor-mode .prof-grade-reference .prof-term-formula small{
+  font-size:11.2px!important;
+  line-height:1.55!important;
+  color:#647872!important
+}
+
+.nataiji-professor-mode .prof-grade-reference .prof-grade-student-copy small{
+  font-size:10.8px!important;
+  line-height:1.32!important;
+  color:#87979e!important
+}
+.nataiji-professor-mode .prof-grade-reference .prof-grade-student-copy em{
+  font-size:9.6px!important;
+  line-height:1.25!important
+}
+.nataiji-professor-mode .prof-grade-reference .prof-grade-assessment{
+  min-height:54px!important
+}
+.nataiji-professor-mode .prof-grade-reference .prof-grade-assessment-label b{
+  font-size:12px!important;
+  line-height:1.28!important
+}
+.nataiji-professor-mode .prof-grade-reference .prof-grade-assessment-label small{
+  font-size:9.8px!important;
+  line-height:1.2!important
+}
+.nataiji-professor-mode .prof-grade-reference .prof-grade-score-field em{
+  font-size:11.5px!important;
+  line-height:1.2!important
+}
+.nataiji-professor-mode .prof-grade-reference .prof-grade-absent{
+  font-size:10.7px!important
+}
+.nataiji-professor-mode .prof-grade-reference .prof-grade-student-results small{
+  font-size:10px!important;
+  line-height:1.28!important
+}
+.nataiji-professor-mode .prof-grade-reference .prof-grade-student-results b{
+  font-size:12.3px!important
+}
+.nataiji-professor-mode .prof-grade-reference .prof-save-bar{
+  padding-top:13px!important;
+  margin-bottom:12px!important;
+  font-size:11.8px!important;
+  line-height:1.45!important
+}
+.nataiji-professor-mode .prof-grade-reference .prof-save-bar small{
+  font-size:10.7px!important;
+  line-height:1.5!important;
+  color:#75878b!important
+}
+.nataiji-professor-mode .prof-grade-reference .prof-grade-teacher-style{
+  margin-bottom:18px!important
+}
+
+@media(max-width:760px){
+  .nataiji-professor-mode .prof-grade-reference{
+    padding-bottom:calc(154px + env(safe-area-inset-bottom,0px))!important
+  }
+  .nataiji-professor-mode .prof-grade-reference .prof-page-head p{
+    font-size:11.8px!important
+  }
+  .nataiji-professor-mode .prof-grade-reference .professor-badge{
+    font-size:11px!important
+  }
+  .nataiji-professor-mode .prof-grade-reference .prof-term-tabs button{
+    min-height:44px!important;
+    font-size:11.8px!important
+  }
+  .nataiji-professor-mode .prof-grade-reference .prof-term-formula b{
+    font-size:13px!important
+  }
+  .nataiji-professor-mode .prof-grade-reference .prof-term-formula span{
+    font-size:12.5px!important
+  }
+  .nataiji-professor-mode .prof-grade-reference .prof-term-formula small{
+    font-size:10.9px!important
+  }
+  .nataiji-professor-mode .prof-grade-reference .prof-grade-student-copy small{
+    font-size:10.5px!important
+  }
+  .nataiji-professor-mode .prof-grade-reference .prof-grade-assessment{
+    min-height:52px!important
+  }
+  .nataiji-professor-mode .prof-grade-reference .prof-grade-assessment-label b{
+    font-size:11.7px!important
+  }
+  .nataiji-professor-mode .prof-grade-reference .prof-grade-assessment-label small{
+    font-size:9.5px!important
+  }
+  .nataiji-professor-mode .prof-grade-reference .prof-grade-score-field em{
+    font-size:11.2px!important
+  }
+  .nataiji-professor-mode .prof-grade-reference .prof-grade-absent{
+    font-size:10.4px!important
+  }
+  .nataiji-professor-mode .prof-grade-reference .prof-grade-student-results small{
+    font-size:9.8px!important
+  }
+  .nataiji-professor-mode .prof-grade-reference .prof-grade-student-results b{
+    font-size:12px!important
+  }
+  .nataiji-professor-mode .prof-grade-reference .prof-save-bar{
+    font-size:11.4px!important
+  }
+  .nataiji-professor-mode .prof-grade-reference .prof-save-bar small{
+    font-size:10.4px!important
+  }
+}
+@media(max-width:380px){
+  .nataiji-professor-mode .prof-grade-reference .prof-grade-assessment-label b{
+    font-size:11.3px!important
+  }
+  .nataiji-professor-mode .prof-grade-reference .prof-term-formula span{
+    font-size:12.1px!important
+  }
+  .nataiji-professor-mode .prof-grade-reference .prof-term-formula small{
+    font-size:10.5px!important
+  }
+}
