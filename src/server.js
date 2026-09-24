@@ -49,7 +49,7 @@ function cleanProfessorProfile(input){
  const src=input&&typeof input==='object'?input:{},classes=[],classIds=new Set();
  for(const raw of (Array.isArray(src.classes)?src.classes:[]).slice(0,80)){
   const id=String(raw?.id||crypto.randomUUID()).trim().slice(0,120),name=String(raw?.name||'').trim().slice(0,120),sharedClassId=String(raw?.sharedClassId||'').trim().slice(0,120);if(!id||!name||classIds.has(id))continue;
-  const inferred=inferProfessorLevelCode(name),requestedLevel=String(raw?.levelCode||'').trim().toUpperCase(),levelCode=['1AS','2AS','3AS'].includes(requestedLevel)?requestedLevel:inferred,branchCode=String(raw?.branchCode||'').trim().slice(0,40);
+  const inferred=inferProfessorLevelCode(name),requestedLevel=String(raw?.levelCode||'').trim().toUpperCase(),levelCode=['1AS','2AS','3AS','5AS','6AS'].includes(requestedLevel)?requestedLevel:inferred,branchCode=String(raw?.branchCode||'').trim().slice(0,40);
   const students=[],studentIds=new Set();
   for(const st of (Array.isArray(raw?.students)?raw.students:[]).slice(0,800)){const student=professorStudentData(st,true);if(!student.id||!student.name||studentIds.has(student.id))continue;studentIds.add(student.id);students.push(student)}
   classIds.add(id);classes.push({id,name,levelCode,branchCode,students,sharedClassId})
@@ -57,7 +57,7 @@ function cleanProfessorProfile(input){
  const classById=new Map(classes.map(x=>[x.id,x])),assignments=[],assignmentIds=new Set();
  for(const raw of (Array.isArray(src.assignments)?src.assignments:[]).slice(0,160)){
   const id=String(raw?.id||crypto.randomUUID()).trim().slice(0,120),subject=String(raw?.subject||'').trim().slice(0,120),classId=String(raw?.classId||'').trim().slice(0,120),subjectKey=normalizeProfessorSubjectKey(raw?.subjectKey||subject),rawCoefficient=Number(raw?.coefficient),manualCoefficient=Number.isFinite(rawCoefficient)&&rawCoefficient>0&&rawCoefficient<=20?Math.round(rawCoefficient*100)/100:1;if(!id||!subject||!classIds.has(classId)||assignmentIds.has(id))continue;
-  const cls=classById.get(classId),official=officialProfessorCoefficient(cls?.levelCode,subjectKey||subject),coefficient=official??manualCoefficient,coefficientSource=official!=null?'official':String(raw?.coefficientSource||'manual')==='official'?'manual':'manual';
+  const cls=classById.get(classId),official=officialProfessorCoefficient(cls?.levelCode,subjectKey||subject,cls?.branchCode),coefficient=official??manualCoefficient,coefficientSource=official!=null?'official':String(raw?.coefficientSource||'manual')==='official'?'manual':'manual';
   assignmentIds.add(id);assignments.push({id,subject,classId,subjectKey,coefficient,coefficientSource})
  }
  const marks={},srcMarks=src.marks&&typeof src.marks==='object'?src.marks:{},classMap=new Map(classes.map(x=>[x.id,new Set(x.students.map(s=>s.id))]));
@@ -152,15 +152,15 @@ async function professorAggregatedResults(userId,localClassId,term){
  }else members.push(String(userId));
  const subjects=[];
  const levelCode=String(local.levelCode||inferProfessorLevelCode(local.name)||'').toUpperCase();
- const expectedCoefficientTotal=expectedProfessorCoefficientTotal(levelCode);
+ const expectedCoefficientTotal=expectedProfessorCoefficientTotal(levelCode,local.branchCode);
  for(const memberId of members){
   const p=await loadProfessorProfile(memberId),classes=sharedClassId?p.classes.filter(x=>String(x.sharedClassId||'')===sharedClassId):p.classes.filter(x=>String(x.id)===String(localClassId));
   for(const cls of classes)for(const a of p.assignments.filter(x=>String(x.classId)===String(cls.id))){
-   const official=officialProfessorCoefficient(cls.levelCode,a.subjectKey||a.subject),coefficient=official??(Number(a.coefficient)>0?Number(a.coefficient):1),marks=p.marks?.[a.id]&&typeof p.marks[a.id]==='object'?p.marks[a.id]:{};
+   const official=officialProfessorCoefficient(cls.levelCode,a.subjectKey||a.subject,cls.branchCode),coefficient=official??(Number(a.coefficient)>0?Number(a.coefficient):1),marks=p.marks?.[a.id]&&typeof p.marks[a.id]==='object'?p.marks[a.id]:{};
    subjects.push({key:memberId+':'+a.id,subject:String(a.subject||''),subjectKey:String(a.subjectKey||''),coefficient,coefficientSource:official!=null?'official':'manual',ownerUserId:memberId,own:memberId===String(userId),marks})
   }
  }
- const levelCatalog=professorCatalog().levels.find(x=>String(x.code)===levelCode),subjectOrder=new Map((levelCatalog?.subjects||[]).map((s,i)=>[String(s.key),i]));
+ const levelCatalog=professorCatalog().levels.find(x=>String(x.code)===levelCode),branchCatalog=(levelCatalog?.branches||[]).find(x=>String(x.code)===String(local.branchCode||'').toUpperCase()),orderedSubjects=branchCatalog?.subjects?.length?branchCatalog.subjects:(levelCatalog?.subjects||[]),subjectOrder=new Map(orderedSubjects.map((s,i)=>[String(s.key),i]));
  subjects.sort((a,b)=>{
   const ak=normalizeProfessorSubjectKey(a.subjectKey||a.subject),bk=normalizeProfessorSubjectKey(b.subjectKey||b.subject),ai=subjectOrder.has(ak)?subjectOrder.get(ak):999,bi=subjectOrder.has(bk)?subjectOrder.get(bk):999;
   return ai-bi||String(a.subject).localeCompare(String(b.subject),'fr',{sensitivity:'base'})
@@ -184,13 +184,13 @@ async function professorClassLinks(profile,userId){
   const q=await pool.query(`SELECT c.class_id,c.owner_user_id,c.join_code,c.data,m.role,(SELECT count(*)::int FROM nataiji_professor_class_members mm WHERE mm.class_id=c.class_id) AS member_count FROM nataiji_professor_classrooms c JOIN nataiji_professor_class_members m ON m.class_id=c.class_id AND m.user_id=$2 WHERE c.class_id=$1`,[sharedClassId,userId]);
   if(!q.rowCount){cls.sharedClassId='';continue}
   const row=q.rows[0],data=row.data&&typeof row.data==='object'?row.data:{},students=Array.isArray(data.students)?data.students:[];
-  cls.name=String(data.name||cls.name||'').trim().slice(0,120)||cls.name;cls.levelCode=['1AS','2AS','3AS'].includes(String(data.levelCode||'').toUpperCase())?String(data.levelCode).toUpperCase():(cls.levelCode||inferProfessorLevelCode(cls.name));cls.branchCode=String(data.branchCode||cls.branchCode||'').trim().slice(0,40);cls.students=students.map(s=>professorStudentData(s)).filter(s=>s.id&&s.name);
+  cls.name=String(data.name||cls.name||'').trim().slice(0,120)||cls.name;cls.levelCode=['1AS','2AS','3AS','5AS','6AS'].includes(String(data.levelCode||'').toUpperCase())?String(data.levelCode).toUpperCase():(cls.levelCode||inferProfessorLevelCode(cls.name));cls.branchCode=String(data.branchCode||cls.branchCode||'').trim().slice(0,40);cls.students=students.map(s=>professorStudentData(s)).filter(s=>s.id&&s.name);
   links[cls.id]={sharedClassId:row.class_id,role:row.role||'member',memberCount:Number(row.member_count)||1,joinCode:row.join_code||'',ownerUserId:row.owner_user_id||''}
  }
  return links
 }
 function professorSharedClassData(cls){
- const name=String(cls?.name||'').trim().slice(0,120),levelCode=['1AS','2AS','3AS'].includes(String(cls?.levelCode||'').toUpperCase())?String(cls.levelCode).toUpperCase():inferProfessorLevelCode(name),branchCode=String(cls?.branchCode||'').trim().slice(0,40);
+ const name=String(cls?.name||'').trim().slice(0,120),levelCode=['1AS','2AS','3AS','5AS','6AS'].includes(String(cls?.levelCode||'').toUpperCase())?String(cls.levelCode).toUpperCase():inferProfessorLevelCode(name),branchCode=String(cls?.branchCode||'').trim().slice(0,40);
  const students=(Array.isArray(cls?.students)?cls.students:[]).map(s=>professorStudentData(s)).filter(s=>s.id&&s.name);
  return{name,levelCode,branchCode,students}
 }
@@ -460,8 +460,8 @@ app.post('/api/professor/classes/join',auth,async(req,res)=>{
  const shared=cq.rows[0],data=shared.data&&typeof shared.data==='object'?shared.data:{},profile=await loadProfessorProfile(req.user.id);let cls=requestedLocalId?profile.classes.find(x=>x.id===requestedLocalId):null;
  const existing=profile.classes.find(x=>x.sharedClassId===shared.class_id);if(existing)cls=existing;
  if(cls?.sharedClassId&&cls.sharedClassId!==shared.class_id)return res.status(409).json({error:'professor_class_already_linked'});
- if(!cls){const joinedName=String(data.name||'قسم').trim().slice(0,120)||'قسم';cls={id:crypto.randomUUID(),name:joinedName,levelCode:['1AS','2AS','3AS'].includes(String(data.levelCode||'').toUpperCase())?String(data.levelCode).toUpperCase():inferProfessorLevelCode(joinedName),branchCode:String(data.branchCode||'').trim().slice(0,40),students:[],sharedClassId:shared.class_id};profile.classes.push(cls)}
- cls.sharedClassId=shared.class_id;cls.name=String(data.name||cls.name||'قسم').trim().slice(0,120)||cls.name;cls.levelCode=['1AS','2AS','3AS'].includes(String(data.levelCode||'').toUpperCase())?String(data.levelCode).toUpperCase():(cls.levelCode||inferProfessorLevelCode(cls.name));cls.branchCode=String(data.branchCode||cls.branchCode||'').trim().slice(0,40);cls.students=Array.isArray(data.students)?data.students.map(s=>professorStudentData(s)).filter(s=>s.id&&s.name):[];
+ if(!cls){const joinedName=String(data.name||'قسم').trim().slice(0,120)||'قسم';cls={id:crypto.randomUUID(),name:joinedName,levelCode:['1AS','2AS','3AS','5AS','6AS'].includes(String(data.levelCode||'').toUpperCase())?String(data.levelCode).toUpperCase():inferProfessorLevelCode(joinedName),branchCode:String(data.branchCode||'').trim().slice(0,40),students:[],sharedClassId:shared.class_id};profile.classes.push(cls)}
+ cls.sharedClassId=shared.class_id;cls.name=String(data.name||cls.name||'قسم').trim().slice(0,120)||cls.name;cls.levelCode=['1AS','2AS','3AS','5AS','6AS'].includes(String(data.levelCode||'').toUpperCase())?String(data.levelCode).toUpperCase():(cls.levelCode||inferProfessorLevelCode(cls.name));cls.branchCode=String(data.branchCode||cls.branchCode||'').trim().slice(0,40);cls.students=Array.isArray(data.students)?data.students.map(s=>professorStudentData(s)).filter(s=>s.id&&s.name):[];
  const client=await pool.connect();
  try{await client.query('BEGIN');await client.query('INSERT INTO nataiji_professor_class_members(class_id,user_id,role) VALUES($1,$2,$3) ON CONFLICT DO NOTHING',[shared.class_id,req.user.id,shared.owner_user_id===req.user.id?'owner':'member']);await client.query('INSERT INTO nataiji_professor_profiles(user_id,data,updated_at) VALUES($1,$2::jsonb,now()) ON CONFLICT(user_id) DO UPDATE SET data=EXCLUDED.data,updated_at=now()',[req.user.id,JSON.stringify(cleanProfessorProfile(profile))]);await client.query('COMMIT')}catch(e){await client.query('ROLLBACK');throw e}finally{client.release()}
  const clean=cleanProfessorProfile(profile),links=await professorClassLinks(clean,req.user.id);res.json({ok:true,profile:clean,classLinks:links,localClassId:cls.id,sharedClassId:shared.class_id})
@@ -560,7 +560,7 @@ app.get('/api/owner/professors/:id',auth,ownerOnly,async(req,res)=>{
 app.post('/api/owner/professors/:id/classes',auth,ownerOnly,async(req,res)=>{
  if(!pool)return res.status(503).json({error:'durable_storage_required'});const user=await ownerProfessorAccount(req.params.id);if(!user)return res.status(404).json({error:'professor_account_not_found'});
  const name=String(req.body?.name||'').trim().slice(0,120),levelCode=String(req.body?.levelCode||'').trim().toUpperCase(),branchCode=String(req.body?.branchCode||'').trim().slice(0,40);
- if(!name||!['1AS','2AS','3AS'].includes(levelCode))return res.status(400).json({error:'invalid_input'});
+ if(!name||!['1AS','2AS','3AS','5AS','6AS'].includes(levelCode))return res.status(400).json({error:'invalid_input'});
  const profile=await loadProfessorProfile(user.id);if(profile.classes.some(x=>String(x.name).trim().toLowerCase()===name.toLowerCase()))return res.status(409).json({error:'professor_class_exists'});
  profile.classes.push({id:crypto.randomUUID(),name,levelCode,branchCode,students:[],sharedClassId:''});await saveProfessorProfile(user.id,profile,{syncShared:false});
  res.status(201).json({ok:true,professor:await ownerProfessorView(user)})
