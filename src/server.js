@@ -5,7 +5,7 @@ import { fileURLToPath } from 'node:url';
 import { createClient } from 'redis';
 import pg from 'pg';
 import {ownedSchoolIdsForDeletion} from './account-ownership.js';
-import {professorCatalog, inferProfessorLevelCode, normalizeProfessorSubjectKey, officialProfessorCoefficient, professorSubjectFor, expectedProfessorCoefficientTotal} from './professor-academic-catalog.js';
+import {professorCatalog, inferProfessorLevelCode, normalizeProfessorBranchCode, normalizeProfessorSubjectKey, officialProfessorCoefficient, professorSubjectFor, expectedProfessorCoefficientTotal} from './professor-academic-catalog.js';
 
 const {Pool}=pg;
 const app=express();
@@ -49,7 +49,7 @@ function cleanProfessorProfile(input){
  const src=input&&typeof input==='object'?input:{},classes=[],classIds=new Set();
  for(const raw of (Array.isArray(src.classes)?src.classes:[]).slice(0,80)){
   const id=String(raw?.id||crypto.randomUUID()).trim().slice(0,120),name=String(raw?.name||'').trim().slice(0,120),sharedClassId=String(raw?.sharedClassId||'').trim().slice(0,120);if(!id||!name||classIds.has(id))continue;
-  const inferred=inferProfessorLevelCode(name),requestedLevel=String(raw?.levelCode||'').trim().toUpperCase(),levelCode=['1AS','2AS','3AS','5AS','6AS'].includes(requestedLevel)?requestedLevel:inferred,branchCode=String(raw?.branchCode||'').trim().slice(0,40);
+  const inferred=inferProfessorLevelCode(name),requestedLevel=String(raw?.levelCode||'').trim().toUpperCase(),levelCode=['1AS','2AS','3AS','5AS','6AS','7AS'].includes(requestedLevel)?requestedLevel:inferred,branchCode=normalizeProfessorBranchCode(String(raw?.branchCode||'').trim().slice(0,40));
   const students=[],studentIds=new Set();
   for(const st of (Array.isArray(raw?.students)?raw.students:[]).slice(0,800)){const student=professorStudentData(st,true);if(!student.id||!student.name||studentIds.has(student.id))continue;studentIds.add(student.id);students.push(student)}
   classIds.add(id);classes.push({id,name,levelCode,branchCode,students,sharedClassId})
@@ -184,13 +184,13 @@ async function professorClassLinks(profile,userId){
   const q=await pool.query(`SELECT c.class_id,c.owner_user_id,c.join_code,c.data,m.role,(SELECT count(*)::int FROM nataiji_professor_class_members mm WHERE mm.class_id=c.class_id) AS member_count FROM nataiji_professor_classrooms c JOIN nataiji_professor_class_members m ON m.class_id=c.class_id AND m.user_id=$2 WHERE c.class_id=$1`,[sharedClassId,userId]);
   if(!q.rowCount){cls.sharedClassId='';continue}
   const row=q.rows[0],data=row.data&&typeof row.data==='object'?row.data:{},students=Array.isArray(data.students)?data.students:[];
-  cls.name=String(data.name||cls.name||'').trim().slice(0,120)||cls.name;cls.levelCode=['1AS','2AS','3AS','5AS','6AS'].includes(String(data.levelCode||'').toUpperCase())?String(data.levelCode).toUpperCase():(cls.levelCode||inferProfessorLevelCode(cls.name));cls.branchCode=String(data.branchCode||cls.branchCode||'').trim().slice(0,40);cls.students=students.map(s=>professorStudentData(s)).filter(s=>s.id&&s.name);
+  cls.name=String(data.name||cls.name||'').trim().slice(0,120)||cls.name;cls.levelCode=['1AS','2AS','3AS','5AS','6AS','7AS'].includes(String(data.levelCode||'').toUpperCase())?String(data.levelCode).toUpperCase():(cls.levelCode||inferProfessorLevelCode(cls.name));cls.branchCode=normalizeProfessorBranchCode(String(data.branchCode||cls.branchCode||'').trim().slice(0,40));cls.students=students.map(s=>professorStudentData(s)).filter(s=>s.id&&s.name);
   links[cls.id]={sharedClassId:row.class_id,role:row.role||'member',memberCount:Number(row.member_count)||1,joinCode:row.join_code||'',ownerUserId:row.owner_user_id||''}
  }
  return links
 }
 function professorSharedClassData(cls){
- const name=String(cls?.name||'').trim().slice(0,120),levelCode=['1AS','2AS','3AS','5AS','6AS'].includes(String(cls?.levelCode||'').toUpperCase())?String(cls.levelCode).toUpperCase():inferProfessorLevelCode(name),branchCode=String(cls?.branchCode||'').trim().slice(0,40);
+ const name=String(cls?.name||'').trim().slice(0,120),levelCode=['1AS','2AS','3AS','5AS','6AS','7AS'].includes(String(cls?.levelCode||'').toUpperCase())?String(cls.levelCode).toUpperCase():inferProfessorLevelCode(name),branchCode=normalizeProfessorBranchCode(String(cls?.branchCode||'').trim().slice(0,40));
  const students=(Array.isArray(cls?.students)?cls.students:[]).map(s=>professorStudentData(s)).filter(s=>s.id&&s.name);
  return{name,levelCode,branchCode,students}
 }
@@ -535,8 +535,8 @@ app.post('/api/professor/classes/join',auth,async(req,res)=>{
  const shared=cq.rows[0],data=shared.data&&typeof shared.data==='object'?shared.data:{},profile=await loadProfessorProfile(req.user.id);let cls=requestedLocalId?profile.classes.find(x=>x.id===requestedLocalId):null;
  const existing=profile.classes.find(x=>x.sharedClassId===shared.class_id);if(existing)cls=existing;
  if(cls?.sharedClassId&&cls.sharedClassId!==shared.class_id)return res.status(409).json({error:'professor_class_already_linked'});
- if(!cls){const joinedName=String(data.name||'قسم').trim().slice(0,120)||'قسم';cls={id:crypto.randomUUID(),name:joinedName,levelCode:['1AS','2AS','3AS','5AS','6AS'].includes(String(data.levelCode||'').toUpperCase())?String(data.levelCode).toUpperCase():inferProfessorLevelCode(joinedName),branchCode:String(data.branchCode||'').trim().slice(0,40),students:[],sharedClassId:shared.class_id};profile.classes.push(cls)}
- cls.sharedClassId=shared.class_id;cls.name=String(data.name||cls.name||'قسم').trim().slice(0,120)||cls.name;cls.levelCode=['1AS','2AS','3AS','5AS','6AS'].includes(String(data.levelCode||'').toUpperCase())?String(data.levelCode).toUpperCase():(cls.levelCode||inferProfessorLevelCode(cls.name));cls.branchCode=String(data.branchCode||cls.branchCode||'').trim().slice(0,40);cls.students=Array.isArray(data.students)?data.students.map(s=>professorStudentData(s)).filter(s=>s.id&&s.name):[];
+ if(!cls){const joinedName=String(data.name||'قسم').trim().slice(0,120)||'قسم';cls={id:crypto.randomUUID(),name:joinedName,levelCode:['1AS','2AS','3AS','5AS','6AS','7AS'].includes(String(data.levelCode||'').toUpperCase())?String(data.levelCode).toUpperCase():inferProfessorLevelCode(joinedName),branchCode:normalizeProfessorBranchCode(String(data.branchCode||'').trim().slice(0,40)),students:[],sharedClassId:shared.class_id};profile.classes.push(cls)}
+ cls.sharedClassId=shared.class_id;cls.name=String(data.name||cls.name||'قسم').trim().slice(0,120)||cls.name;cls.levelCode=['1AS','2AS','3AS','5AS','6AS','7AS'].includes(String(data.levelCode||'').toUpperCase())?String(data.levelCode).toUpperCase():(cls.levelCode||inferProfessorLevelCode(cls.name));cls.branchCode=normalizeProfessorBranchCode(String(data.branchCode||cls.branchCode||'').trim().slice(0,40));cls.students=Array.isArray(data.students)?data.students.map(s=>professorStudentData(s)).filter(s=>s.id&&s.name):[];
  const client=await pool.connect();
  try{await client.query('BEGIN');await client.query('INSERT INTO nataiji_professor_class_members(class_id,user_id,role) VALUES($1,$2,$3) ON CONFLICT DO NOTHING',[shared.class_id,req.user.id,shared.owner_user_id===req.user.id?'owner':'member']);await client.query('INSERT INTO nataiji_professor_profiles(user_id,data,updated_at) VALUES($1,$2::jsonb,now()) ON CONFLICT(user_id) DO UPDATE SET data=EXCLUDED.data,updated_at=now()',[req.user.id,JSON.stringify(cleanProfessorProfile(profile))]);await client.query('COMMIT')}catch(e){await client.query('ROLLBACK');throw e}finally{client.release()}
  const clean=cleanProfessorProfile(profile),links=await professorClassLinks(clean,req.user.id);res.json({ok:true,profile:clean,classLinks:links,localClassId:cls.id,sharedClassId:shared.class_id})
@@ -634,8 +634,8 @@ app.get('/api/owner/professors/:id',auth,ownerOnly,async(req,res)=>{
 });
 app.post('/api/owner/professors/:id/classes',auth,ownerOnly,async(req,res)=>{
  if(!pool)return res.status(503).json({error:'durable_storage_required'});const user=await ownerProfessorAccount(req.params.id);if(!user)return res.status(404).json({error:'professor_account_not_found'});
- const name=String(req.body?.name||'').trim().slice(0,120),levelCode=String(req.body?.levelCode||'').trim().toUpperCase(),branchCode=String(req.body?.branchCode||'').trim().slice(0,40);
- if(!name||!['1AS','2AS','3AS','5AS','6AS'].includes(levelCode))return res.status(400).json({error:'invalid_input'});
+ const name=String(req.body?.name||'').trim().slice(0,120),levelCode=String(req.body?.levelCode||'').trim().toUpperCase(),branchCode=normalizeProfessorBranchCode(String(req.body?.branchCode||'').trim().slice(0,40));
+ if(!name||!['1AS','2AS','3AS','5AS','6AS','7AS'].includes(levelCode))return res.status(400).json({error:'invalid_input'});
  const profile=await loadProfessorProfile(user.id);if(profile.classes.some(x=>String(x.name).trim().toLowerCase()===name.toLowerCase()))return res.status(409).json({error:'professor_class_exists'});
  profile.classes.push({id:crypto.randomUUID(),name,levelCode,branchCode,students:[],sharedClassId:''});await saveProfessorProfile(user.id,profile,{syncShared:false});
  res.status(201).json({ok:true,professor:await ownerProfessorView(user)})
