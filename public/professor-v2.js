@@ -1075,7 +1075,7 @@ async function renderResults(classId='',term=1){
    ${warning}
    <div class="prof-collective-section-title"><span>${icon('group')}</span><b>${tr('الفصل','Classe')} – ${esc(profClass(data.className))}</b></div>
    <div class="prof-results-print-actions prof-collective-print-actions">
-    <button id="pv2PrintAllStudents">${icon('print')}<b>${tr('كشوف التلاميذ – طالبان A4','Bulletins élèves – 2 par A4')}</b></button>
+    <button id="pv2PrintAllStudents">${icon('print')}<b>${tr('كشوف التلاميذ الرسمية – طالب واحد لكل A4','Bulletins officiels – 1 élève par A4')}</b></button>
     <button class="primary" id="pv2PrintClass">${icon('file')}<b>${tr('اللائحة الجماعية / PDF','Liste collective / PDF')}</b></button>
    </div>
    <div class="prof-collective-roster"><table><thead><tr><th>#</th><th>${tr('اسم التلميذ','Nom de l’élève')}</th></tr></thead><tbody>${studentRows||`<tr><td colspan="2">${tr('لا يوجد تلاميذ في القسم.','Aucun élève dans cette classe.')}</td></tr>`}</tbody></table></div>
