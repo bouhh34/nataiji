@@ -2074,3 +2074,335 @@ html.nataiji-professor-mode body{background:#f4f7f6;min-height:100vh;overflow-x:
  .nataiji-professor-mode .prof-more-row-copy b{font-size:14px}
  .nataiji-professor-mode .prof-more-row-copy small{font-size:9.2px}
 }
+
+
+/* Professor compact mobile system v27 */
+/* Professor-only compact visual system. Teacher/director routes are untouched. */
+.nataiji-professor-mode .prof-support-contact{
+  display:flex;
+  justify-content:space-between;
+  align-items:center;
+  gap:10px;
+  padding:9px 11px;
+  border:1px solid #e2e8f0;
+  border-radius:10px;
+  background:#f8fafc;
+  color:#274656;
+  font-size:11px
+}
+.nataiji-professor-mode .prof-support-link{
+  display:block;
+  width:100%;
+  box-sizing:border-box;
+  padding:11px 12px;
+  border-radius:10px;
+  text-align:center;
+  text-decoration:none;
+  color:#fff;
+  font-size:11px;
+  font-weight:900
+}
+.nataiji-professor-mode .prof-support-link.whatsapp{background:#16a34a}
+.nataiji-professor-mode .prof-support-link.email{background:#2563eb}
+.nataiji-professor-mode .prof-more-list-row.logout{
+  border-color:#eadfda!important;
+  background:#fffdfb!important
+}
+.nataiji-professor-mode .prof-more-list-row.logout .prof-more-row-icon{
+  background:#fff1eb!important;
+  color:#b85b37!important
+}
+.nataiji-professor-mode .prof-more-list-row.logout .prof-more-row-copy b{
+  color:#8d4a32!important
+}
+.nataiji-professor-mode .prof-policy-sheet p b{
+  color:#173d4d
+}
+
+@media(max-width:700px){
+  /* Compact common top bar throughout the professor route. */
+  .nataiji-professor-mode .professor-reference-topbar{
+    min-height:72px!important;
+    padding:9px 11px!important;
+    border-radius:18px!important;
+    gap:7px!important
+  }
+  .nataiji-professor-mode .professor-reference-main{
+    width:100%!important;
+    display:grid!important;
+    grid-template-columns:minmax(0,1fr) auto!important;
+    align-items:center!important;
+    gap:8px!important
+  }
+  .nataiji-professor-mode .professor-account{
+    width:100%!important;
+    min-width:0!important;
+    max-width:none!important;
+    display:grid!important;
+    grid-template-columns:34px minmax(0,1fr)!important;
+    gap:7px!important;
+    align-items:center!important
+  }
+  .nataiji-professor-mode .prof-account-avatar{
+    width:34px!important;
+    height:34px!important;
+    min-width:34px!important;
+    flex:0 0 34px!important;
+    border-radius:10px!important;
+    font-size:15px!important
+  }
+  .nataiji-professor-mode .professor-account>span:last-child{
+    min-width:0!important;
+    overflow:hidden!important
+  }
+  .nataiji-professor-mode .professor-account b{
+    display:block!important;
+    max-width:100%!important;
+    font-size:12px!important;
+    line-height:1.2!important;
+    white-space:nowrap!important;
+    overflow:hidden!important;
+    text-overflow:ellipsis!important
+  }
+  .nataiji-professor-mode .professor-account small{
+    display:block!important;
+    max-width:100%!important;
+    margin-top:2px!important;
+    font-size:7.5px!important;
+    line-height:1.2!important;
+    white-space:nowrap!important;
+    overflow:hidden!important;
+    text-overflow:ellipsis!important
+  }
+  .nataiji-professor-mode .professor-brand{
+    justify-self:end!important;
+    min-width:max-content!important;
+    gap:5px!important
+  }
+  .nataiji-professor-mode .professor-brand img{
+    width:34px!important;
+    height:34px!important;
+    border-radius:9px!important
+  }
+  .nataiji-professor-mode .professor-brand b{
+    font-size:14px!important
+  }
+  .nataiji-professor-mode .professor-brand small{
+    font-size:6.5px!important;
+    margin-top:1px!important
+  }
+  .nataiji-professor-mode .prof-utility{
+    position:absolute!important;
+    inset-inline-start:7px!important;
+    top:7px!important;
+    transform:scale(.82)!important;
+    transform-origin:top left!important
+  }
+
+  /* Home becomes denser and its icons no longer dominate small screens. */
+  .nataiji-professor-mode .prof-home-shell .prof-reference-hero{
+    min-height:166px!important;
+    padding:17px 18px!important;
+    border-radius:20px!important
+  }
+  .nataiji-professor-mode .prof-home-shell .prof-home-hero-art{
+    width:76px!important;
+    height:76px!important;
+    inset-inline-end:17px!important
+  }
+  .nataiji-professor-mode .prof-home-shell .prof-home-hero-art b{
+    font-size:34px!important
+  }
+  .nataiji-professor-mode .prof-home-shell .prof-home-hero-art span{
+    font-size:16px!important
+  }
+  .nataiji-professor-mode .prof-home-shell .prof-hero-copy h1{
+    font-size:25px!important
+  }
+  .nataiji-professor-mode .prof-home-shell .prof-hero-copy p{
+    font-size:9.5px!important
+  }
+  .nataiji-professor-mode .prof-home-shell #profGoGrades{
+    min-height:42px!important;
+    padding:8px 14px!important;
+    font-size:11px!important
+  }
+  .nataiji-professor-mode .prof-v2-stats article{
+    min-height:91px!important;
+    padding:10px!important
+  }
+  .nataiji-professor-mode .prof-stat-icon{
+    width:34px!important;
+    height:34px!important;
+    min-width:34px!important;
+    border-radius:10px!important;
+    font-size:15px!important
+  }
+  .nataiji-professor-mode .prof-home-status-icon,
+  .nataiji-professor-mode .prof-home-subject-icon{
+    width:32px!important;
+    height:32px!important;
+    min-width:32px!important;
+    border-radius:9px!important;
+    font-size:14px!important
+  }
+
+  /* More page: compact like a phone settings list, not dashboard cards. */
+  .nataiji-professor-mode .prof-more-reference{
+    padding-inline:10px!important
+  }
+  .nataiji-professor-mode .prof-more-reference .professor-reference-topbar{
+    min-height:70px!important;
+    margin-bottom:9px!important
+  }
+  .nataiji-professor-mode .prof-more-reference-hero{
+    min-height:112px!important;
+    grid-template-columns:minmax(0,1fr) 60px!important;
+    gap:8px!important;
+    padding:15px 17px!important;
+    margin-bottom:9px!important;
+    border-radius:18px!important
+  }
+  .nataiji-professor-mode .prof-more-reference-hero small{
+    margin-bottom:4px!important;
+    font-size:9px!important
+  }
+  .nataiji-professor-mode .prof-more-reference-hero h1{
+    margin-bottom:4px!important;
+    font-size:22px!important;
+    line-height:1.15!important
+  }
+  .nataiji-professor-mode .prof-more-reference-hero p{
+    max-width:100%!important;
+    font-size:8.8px!important;
+    line-height:1.45!important
+  }
+  .nataiji-professor-mode .prof-more-hero-icon{
+    width:54px!important;
+    height:54px!important;
+    font-size:33px!important
+  }
+  .nataiji-professor-mode .prof-more-list{
+    gap:6px!important
+  }
+  .nataiji-professor-mode .prof-more-list-row{
+    min-height:59px!important;
+    grid-template-columns:38px minmax(0,1fr) 18px!important;
+    gap:8px!important;
+    padding:7px 10px!important;
+    border-radius:14px!important
+  }
+  .nataiji-professor-mode .prof-more-row-icon{
+    width:36px!important;
+    height:36px!important;
+    border-radius:10px!important
+  }
+  .nataiji-professor-mode .prof-more-row-icon svg{
+    width:19px!important;
+    height:19px!important
+  }
+  .nataiji-professor-mode .prof-more-row-copy{
+    gap:2px!important
+  }
+  .nataiji-professor-mode .prof-more-row-copy b{
+    font-size:12.5px!important;
+    line-height:1.18!important
+  }
+  .nataiji-professor-mode .prof-more-row-copy small{
+    font-size:8.2px!important;
+    line-height:1.25!important
+  }
+  .nataiji-professor-mode .prof-more-chevron{
+    font-size:21px!important
+  }
+
+  /* Compact icons across every professor page on phones. */
+  .nataiji-professor-mode .professor-nav button>span{
+    width:19px!important;
+    height:19px!important;
+    min-width:19px!important;
+    display:grid!important;
+    place-items:center!important;
+    font-size:14px!important;
+    line-height:1!important
+  }
+  .nataiji-professor-mode .professor-nav button{
+    font-size:8.5px!important;
+    gap:3px!important
+  }
+  .nataiji-professor-mode .prof-subject-icon,
+  .nataiji-professor-mode .prof-class-avatar{
+    width:34px!important;
+    height:34px!important;
+    min-width:34px!important;
+    border-radius:10px!important;
+    font-size:15px!important
+  }
+  .nataiji-professor-mode .prof-collective-summary article>span{
+    width:36px!important;
+    height:36px!important
+  }
+  .nataiji-professor-mode .prof-collective-summary article>span svg{
+    width:18px!important;
+    height:18px!important
+  }
+  .nataiji-professor-mode .prof-class-picker-icon{
+    width:31px!important;
+    height:31px!important
+  }
+  .nataiji-professor-mode .prof-class-picker-icon svg{
+    width:18px!important;
+    height:18px!important
+  }
+  .nataiji-professor-mode .prof-collective-section-title>span{
+    width:31px!important;
+    height:31px!important
+  }
+  .nataiji-professor-mode .prof-collective-section-title svg{
+    width:17px!important;
+    height:17px!important
+  }
+  .nataiji-professor-mode .prof-info-icon{
+    width:45px!important;
+    height:45px!important;
+    border-radius:13px!important
+  }
+  .nataiji-professor-mode .prof-info-icon svg{
+    width:23px!important;
+    height:23px!important
+  }
+  .nataiji-professor-mode .prof-grade-call,
+  .nataiji-professor-mode .prof-student-number{
+    width:34px!important;
+    height:34px!important;
+    min-width:34px!important;
+    font-size:14px!important
+  }
+}
+
+@media(max-width:380px){
+  .nataiji-professor-mode .prof-more-reference-hero{
+    min-height:104px!important;
+    grid-template-columns:minmax(0,1fr) 52px!important;
+    padding:13px 14px!important
+  }
+  .nataiji-professor-mode .prof-more-reference-hero h1{
+    font-size:20px!important
+  }
+  .nataiji-professor-mode .prof-more-hero-icon{
+    width:48px!important;height:48px!important;font-size:29px!important
+  }
+  .nataiji-professor-mode .prof-more-list-row{
+    min-height:56px!important;
+    grid-template-columns:35px minmax(0,1fr) 16px!important;
+    padding:6px 9px!important
+  }
+  .nataiji-professor-mode .prof-more-row-icon{
+    width:33px!important;height:33px!important
+  }
+  .nataiji-professor-mode .prof-more-row-icon svg{
+    width:18px!important;height:18px!important
+  }
+  .nataiji-professor-mode .prof-more-row-copy b{font-size:12px!important}
+  .nataiji-professor-mode .prof-more-row-copy small{font-size:7.8px!important}
+}
