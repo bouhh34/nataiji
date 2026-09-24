@@ -636,8 +636,10 @@ app.get('/api/owner/professors/:id',auth,ownerOnly,async(req,res)=>{
 });
 app.post('/api/owner/professors/:id/classes',auth,ownerOnly,async(req,res)=>{
  if(!pool)return res.status(503).json({error:'durable_storage_required'});const user=await ownerProfessorAccount(req.params.id);if(!user)return res.status(404).json({error:'professor_account_not_found'});
- const name=String(req.body?.name||'').trim().slice(0,120),levelCode=String(req.body?.levelCode||'').trim().toUpperCase(),branchCode=normalizeProfessorBranchCode(String(req.body?.branchCode||'').trim().slice(0,40));
+ const name=String(req.body?.name||'').trim().slice(0,120),levelCode=String(req.body?.levelCode||'').trim().toUpperCase();let branchCode=normalizeProfessorBranchCode(String(req.body?.branchCode||'').trim().slice(0,40));
  if(!name||!['1AS','2AS','3AS','5AS','6AS','7AS'].includes(levelCode))return res.status(400).json({error:'invalid_input'});
+ const levelCatalog=professorCatalog().levels.find(x=>String(x.code)===levelCode),branches=Array.isArray(levelCatalog?.branches)?levelCatalog.branches:[];
+ if(branches.length){if(!branches.some(x=>String(x.code)===branchCode))return res.status(400).json({error:'invalid_branch'})}else branchCode='';
  const profile=await loadProfessorProfile(user.id);if(profile.classes.some(x=>String(x.name).trim().toLowerCase()===name.toLowerCase()))return res.status(409).json({error:'professor_class_exists'});
  profile.classes.push({id:crypto.randomUUID(),name,levelCode,branchCode,students:[],sharedClassId:''});await saveProfessorProfile(user.id,profile,{syncShared:false});
  res.status(201).json({ok:true,professor:await ownerProfessorView(user)})
@@ -650,7 +652,7 @@ app.delete('/api/owner/professors/:id/classes/:classId',auth,ownerOnly,async(req
 });
 app.post('/api/owner/professors/:id/assignments',auth,ownerOnly,async(req,res)=>{
  if(!pool)return res.status(503).json({error:'durable_storage_required'});const user=await ownerProfessorAccount(req.params.id);if(!user)return res.status(404).json({error:'professor_account_not_found'});const profile=await loadProfessorProfile(user.id),classId=String(req.body?.classId||''),cls=profile.classes.find(x=>x.id===classId);if(!cls)return res.status(404).json({error:'professor_class_not_found'});
- const requestedKey=normalizeProfessorSubjectKey(req.body?.subjectKey||req.body?.subject),spec=requestedKey?professorSubjectFor(cls.levelCode,requestedKey):null,custom=String(req.body?.subject||'').trim().slice(0,120),subjectKey=spec?.key||'',subject=spec?.ar||custom,official=spec?.official?Number(spec.coefficient):null,rawCoefficient=Number(req.body?.coefficient),coefficient=official??(Number.isFinite(rawCoefficient)&&rawCoefficient>0&&rawCoefficient<=20?Math.round(rawCoefficient*100)/100:null);
+ const requestedKey=normalizeProfessorSubjectKey(req.body?.subjectKey||req.body?.subject),spec=requestedKey?professorSubjectFor(cls.levelCode,requestedKey,cls.branchCode):null,custom=String(req.body?.subject||'').trim().slice(0,120),subjectKey=spec?.key||'',subject=spec?.ar||custom,official=spec?.official?Number(spec.coefficient):null,rawCoefficient=Number(req.body?.coefficient),coefficient=official??(Number.isFinite(rawCoefficient)&&rawCoefficient>0&&rawCoefficient<=20?Math.round(rawCoefficient*100)/100:null);
  if(!subject||coefficient==null)return res.status(400).json({error:'invalid_input'});
  if(profile.assignments.some(a=>a.classId===classId&&((subjectKey&&a.subjectKey===subjectKey)||String(a.subject).trim().toLowerCase()===subject.toLowerCase())))return res.status(409).json({error:'professor_assignment_exists'});
  const assignment={id:crypto.randomUUID(),subject,classId,subjectKey,coefficient,coefficientSource:official!=null?'official':'manual'};profile.assignments.push(assignment);profile.marks[assignment.id]={};await saveProfessorProfile(user.id,profile,{syncShared:false});
