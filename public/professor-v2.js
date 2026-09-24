@@ -40,7 +40,7 @@ const PROF_SUBJECT_FR={
  'اللغة الفرنسية':'Français','الفرنسية':'Français','اللغة الإنجليزية':'Anglais','الإنجليزية':'Anglais',
  'الفيزياء':'Physique','العلوم الفيزيائية':'Sciences physiques','الكيمياء':'Chimie','العلوم الطبيعية':'Sciences naturelles','علوم الحياة والأرض':'Sciences de la vie et de la Terre',
  'التاريخ والجغرافيا':'Histoire et géographie','التاريخ':'Histoire','الجغرافيا':'Géographie','التربية المدنية':'Éducation civique',
- 'الفلسفة':'Philosophie','الإعلام الآلي':'Informatique','المعلوماتية':'Informatique','التربية البدنية':'Éducation physique',
+ 'الفلسفة':'Philosophie','الفكر الإسلامي':'Pensée islamique','التشريع والتفسير':'Législation et exégèse','الإعلام الآلي':'Informatique','المعلوماتية':'Informatique','التربية البدنية':'Éducation physique',
  'الرياضة':'Éducation physique','الرسم':'Arts plastiques'
 };
 const PROF_NAME_FR={'محمد':'Mohamed','أحمد':'Ahmed','احمد':'Ahmed','محمود':'Mahmoud','عبد الله':'Abdallahi','عبدالله':'Abdallahi','عبد الرحمن':'Abderrahmane','فاطمة':'Fatimetou','خديجة':'Khadijetou','عائشة':'Aïcha','مريم':'Mariam','سارة':'Sara','ياسين':'Yacine','إبراهيم':'Ibrahim','ابراهيم':'Ibrahim','علي':'Ali','سالم':'Salem','أمينة':'Amina','خالد':'Khaled'};
@@ -70,36 +70,57 @@ function profSubjectFr(v){const raw=String(v||'').trim();return PROF_SUBJECT_FR[
 function profSubject(v){const raw=String(v||'').trim();return fr()?profSubjectFr(raw):raw}
 function profClassFr(v){const raw=String(v||'').trim();const map={'السنة الأولى ابتدائية':'1re année primaire','السنة الثانية ابتدائية':'2e année primaire','السنة الثالثة ابتدائية':'3e année primaire','السنة الرابعة ابتدائية':'4e année primaire','السنة الخامسة ابتدائية':'5e année primaire','السنة السادسة ابتدائية':'6e année primaire'};return map[raw]||(/^[0-9A-Z-]+$/i.test(raw)?raw:profTranslit(raw))}
 function profClass(v){const raw=String(v||'').trim();return fr()?profClassFr(raw):raw}
-function profSchool(){return fr()?(profile.schoolNameFr||profTranslit(profile.schoolName)):profile.schoolName}
+function profSchoolFrAuto(v){
+ const raw=String(v||'').trim();if(!raw)return'';
+ const rules=[
+  [/^(?:الإعدادية|الاعدادية|إعدادية|اعدادية)\s*/u,'Collège'],
+  [/^(?:الثانوية|ثانوية)\s*/u,'Lycée'],
+  [/^(?:المدرسة|مدرسة)\s*/u,'École']
+ ];
+ for(const [re,prefix] of rules)if(re.test(raw)){const rest=raw.replace(re,'').trim();return prefix+(rest?' '+profTranslit(rest):'')}
+ return profTranslit(raw)
+}
+function profSchool(){return fr()?(profile.schoolNameFr||profSchoolFrAuto(profile.schoolName)):profile.schoolName}
 function profRegion(){return fr()?(profile.regionFr||PROF_PLACE_FR[profile.region]||profTranslit(profile.region)):profile.region}
 function profInspection(){return fr()?(profile.inspectionFr||profTranslit(profile.inspection)):profile.inspection}
 function profNamePair(v){const raw=String(v||'').trim(),hasArabic=/[\u0600-\u06ff]/u.test(raw);return{ar:hasArabic?raw:'',fr:hasArabic?profNameFr(raw):raw}}
 function profStudentName(student){const ar=String(student?.name||'').trim(),manual=String(student?.nameFr||'').trim();return fr()?(manual||profNameFr(ar)):(ar||profNameAr(manual))}
 function profStudentNamePair(student){const rawAr=String(student?.name||'').trim(),manual=String(student?.nameFr||'').trim(),ar=rawAr||profNameAr(manual);return{ar,fr:manual||profNameFr(ar)}}
 function profClassPair(v){const raw=String(v||'').trim();return{ar:raw,fr:profClassFr(raw)}}
-function profSchoolPair(){const ar=String(profile.schoolName||'').trim(),frName=String(profile.schoolNameFr||'').trim()||profTranslit(ar);return{ar,fr:frName}}
+function profSchoolPair(){const ar=String(profile.schoolName||'').trim(),frName=String(profile.schoolNameFr||'').trim()||profSchoolFrAuto(ar);return{ar,fr:frName}}
 function profRegionPair(){const ar=String(profile.region||'').trim(),frName=String(profile.regionFr||'').trim()||PROF_PLACE_FR[ar]||profTranslit(ar);return{ar,fr:frName}}
 function profInspectionPair(){const ar=String(profile.inspection||'').trim(),frName=String(profile.inspectionFr||'').trim()||profTranslit(ar);return{ar,fr:frName}}
-function profSubjectPair(subject,subjectKey='',levelCode=''){const spec=catalogSubject(levelCode,subjectKey||subject),raw=String(subject||'').trim();return{ar:String(spec?.ar||raw),fr:String(spec?.fr||profSubjectFr(raw))}}
+function profSubjectPair(subject,subjectKey='',levelCode='',branchCode=''){const spec=catalogSubject(levelCode,subjectKey||subject,branchCode),raw=String(subject||'').trim();return{ar:String(spec?.ar||raw),fr:String(spec?.fr||profSubjectFr(raw))}}
 
 function catalogLevel(code){return (academicCatalog.levels||[]).find(x=>x.code===String(code||'').toUpperCase())||null}
-function inferredLevelCode(name){const m=String(name||'').toUpperCase().replace(/\s+/g,'').match(/^([123])AS/);return m?m[1]+'AS':''}
+function inferredLevelCode(name){const m=String(name||'').toUpperCase().replace(/\s+/g,'').match(/^([12356])AS/);return m?m[1]+'AS':''}
 function classLevel(cls){return catalogLevel(cls?.levelCode||inferredLevelCode(cls?.name))}
-function normalizedSubjectKey(value){const raw=String(value||'').trim().toLowerCase();for(const level of academicCatalog.levels||[])for(const s of level.subjects||[]){if(raw===String(s.key||'').toLowerCase()||raw===String(s.ar||'').toLowerCase()||raw===String(s.fr||'').toLowerCase())return s.key}return''}
-function catalogSubject(levelCode,keyOrName){const level=catalogLevel(levelCode),key=normalizedSubjectKey(keyOrName)||String(keyOrName||'');return level?.subjects?.find(s=>s.key===key)||null}
-function levelLabel(cls){const l=classLevel(cls);return l?(fr()?l.fr:l.ar):''}
+function catalogBranch(levelCode,branchCode=''){const level=catalogLevel(levelCode),code=String(branchCode||'').toUpperCase();return (level?.branches||[]).find(b=>String(b.code||'').toUpperCase()===code)||null}
+function catalogSubjects(levelCode,branchCode=''){const level=catalogLevel(levelCode);if(!level)return[];const branch=catalogBranch(levelCode,branchCode);return branch?.subjects?.length?branch.subjects:(level.subjects||[])}
+function normalizedSubjectKey(value){
+ const raw=String(value||'').trim().toLowerCase();if(!raw)return'';
+ for(const level of academicCatalog.levels||[]){
+  const all=[...(level.subjects||[]),...(level.branches||[]).flatMap(b=>b.subjects||[])];
+  for(const s of all)if(raw===String(s.key||'').toLowerCase()||raw===String(s.ar||'').toLowerCase()||raw===String(s.fr||'').toLowerCase())return s.key
+ }
+ return''
+}
+function catalogSubject(levelCode,keyOrName,branchCode=''){const key=normalizedSubjectKey(keyOrName)||String(keyOrName||'');return catalogSubjects(levelCode,branchCode).find(s=>s.key===key)||null}
+function levelLabel(cls){const l=classLevel(cls),b=catalogBranch(cls?.levelCode||inferredLevelCode(cls?.name),cls?.branchCode);if(!l)return'';const base=fr()?l.fr:l.ar;return b?base+' · '+(fr()?b.fr:b.ar):base}
 function classById(id){return profile.classes.find(c=>String(c.id)===String(id))}
 function displayClasses(){return [...(profile.classes||[])].sort((a,b)=>String(a?.name||'').localeCompare(String(b?.name||''),fr()?'fr':'ar',{numeric:true,sensitivity:'base'}))}
 function assignmentsForClass(id){
- const cls=classById(id),level=classLevel(cls),order=new Map((level?.subjects||[]).map((s,i)=>[String(s.key),i]));
+ const cls=classById(id),order=new Map(catalogSubjects(cls?.levelCode||inferredLevelCode(cls?.name),cls?.branchCode).map((s,i)=>[String(s.key),i]));
  return profile.assignments.filter(a=>String(a.classId)===String(id)).sort((a,b)=>{
   const ak=normalizedSubjectKey(a.subjectKey||a.subject),bk=normalizedSubjectKey(b.subjectKey||b.subject),ai=order.has(ak)?order.get(ak):999,bi=order.has(bk)?order.get(bk):999;
   return ai-bi||profSubject(a.subject).localeCompare(profSubject(b.subject),fr()?'fr':'ar',{sensitivity:'base'})
  })
 }
 function classDisplayName(cls){
- const name=profClass(cls?.name||''),code=String(cls?.levelCode||'').trim(),norm=v=>String(v||'').toLowerCase().replace(/[\s._-]+/g,'');
- return code&&name&&!norm(name).includes(norm(code))?name+' · '+code:name||code
+ const name=profClass(cls?.name||''),code=String(cls?.levelCode||'').trim(),branch=String(cls?.branchCode||'').trim(),norm=v=>String(v||'').toLowerCase().replace(/[\s._-]+/g,'');
+ let out=code&&name&&!norm(name).includes(norm(code))?name+' · '+code:name||code;
+ if(branch&&out&&!norm(out).includes(norm(branch)))out+=' · '+branch;
+ return out||branch
 }
 function subjectStatsForTerm(a,term){
  const students=classById(a.classId)?.students||[],marks=marksFor(a.id),values=[];
@@ -123,7 +144,7 @@ function homeMetrics(classId){
 }
 function marksFor(id){profile.marks[id]=profile.marks[id]&&typeof profile.marks[id]==='object'?profile.marks[id]:{};return profile.marks[id]}
 function linkFor(localId){return links?.[localId]||null}
-function coefficientOf(a){const cls=classById(a?.classId),spec=catalogSubject(cls?.levelCode||inferredLevelCode(cls?.name),a?.subjectKey||a?.subject);if(spec?.official&&Number(spec.coefficient)>0)return Number(spec.coefficient);const n=Number(a?.coefficient);return Number.isFinite(n)&&n>0?n:1}
+function coefficientOf(a){const cls=classById(a?.classId),spec=catalogSubject(cls?.levelCode||inferredLevelCode(cls?.name),a?.subjectKey||a?.subject,cls?.branchCode);if(spec?.official&&Number(spec.coefficient)>0)return Number(spec.coefficient);const n=Number(a?.coefficient);return Number.isFinite(n)&&n>0?n:1}
 function professorIsAbsent(v){return /^(ABSENT|غائب|غائبة|absent|absente|a)$/i.test(String(v??'').trim())}
 function professorAbsentLabel(student){const female=String(student?.sex||'').toLowerCase()==='female';return fr()?(female?'Absente':'Absent'):(female?'غائبة':'غائب')}
 function professorGradeDisplay(v,student){return professorIsAbsent(v)?professorAbsentLabel(student):String(v??'')}
@@ -507,7 +528,7 @@ function studentEditor(classId,studentId,onDone){
 
 function cleanGrade(v){const s=String(v??'').replace(',','.').trim();if(s==='')return'';if(professorIsAbsent(s))return'ABSENT';const n=Number(s);if(!Number.isFinite(n))return'';return String(Math.max(0,Math.min(20,n)))}
 function editCoefficient(id){
- const a=profile.assignments.find(x=>x.id===id);if(!a)return;const cls=classById(a.classId),levelCode=cls?.levelCode||inferredLevelCode(cls?.name),spec=catalogSubject(levelCode,a.subjectKey||a.subject),official=spec?.official?Number(spec.coefficient):null;
+ const a=profile.assignments.find(x=>x.id===id);if(!a)return;const cls=classById(a.classId),levelCode=cls?.levelCode||inferredLevelCode(cls?.name),spec=catalogSubject(levelCode,a.subjectKey||a.subject,cls?.branchCode),official=spec?.official?Number(spec.coefficient):null;
  if(official!=null){const m=modal(tr('معامل المادة','Coefficient de la matière'),`<div class="prof-link-explain"><b>${esc(profSubject(a.subject))} · ${esc(levelCode)}</b><p>${tr('المعامل الرسمي لهذه المادة يُطبق تلقائيًا في الدرجات والكشف والترتيب ولا يحتاج إلى تعديل يدوي.','Le coefficient officiel de cette matière est appliqué automatiquement aux notes, bulletins et classement.')}</p></div><div class="prof-official-coefficient">×${official}</div><button class="primary professor-x-inline">${tr('حسنًا','Fermer')}</button>`);q('.professor-x-inline',m.wrap).onclick=m.close;return}
  const m=modal(tr('تعديل معامل المادة','Modifier le coefficient'),`<label>${tr('المادة','Matière')}<input value="${esc(profSubject(a.subject))}" disabled></label><label>${tr('المعامل','Coefficient')}<input id="pv2EditCoefficient" type="number" inputmode="decimal" min="0.25" max="20" step="0.25" value="${coefficientOf(a)}"></label><small>${tr('هذا المعامل يدوي لأن الكتالوج الحالي لا يحتوي معاملًا رسميًا مثبتًا لهذه المادة/المستوى.','Coefficient manuel : le catalogue actuel ne contient pas encore de coefficient officiel confirmé pour cette matière/niveau.')}</small><button class="primary" id="pv2SaveCoefficient">${tr('حفظ المعامل','Enregistrer le coefficient')}</button><p class="professor-msg"></p>`);
  q('#pv2SaveCoefficient',m.wrap).onclick=async()=>{const n=Number(q('#pv2EditCoefficient',m.wrap).value),msg=q('.professor-msg',m.wrap);if(!Number.isFinite(n)||n<=0||n>20){msg.textContent=tr('أدخل معاملًا صحيحًا أكبر من 0','Saisissez un coefficient valide supérieur à 0');return}a.coefficient=Math.round(n*100)/100;a.coefficientSource='manual';try{await saveProfile(tr('تم حفظ المعامل','Coefficient enregistré'));m.close();openGrades(id)}catch{msg.textContent=tr('تعذر الحفظ','Enregistrement impossible')}}
