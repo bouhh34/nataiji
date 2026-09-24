@@ -429,6 +429,48 @@ app.put('/api/professor/profile',auth,async(req,res)=>{
  if(conflict)return res.status(409).json({error:'shared_subject_taken',subject:conflict.subject,subjectKey:conflict.subjectKey,sharedClassId:conflict.sharedClassId});
  let profile=await saveProfessorProfile(req.user.id,candidate),classLinks=await professorClassLinks(profile,req.user.id);profile=cleanProfessorProfile(profile);await saveProfessorProfile(req.user.id,profile,{syncShared:false});res.json({ok:true,profile,classLinks})
 });
+app.put('/api/professor/assignments/:assignmentId/grades',auth,async(req,res)=>{
+ if(req.user.role!=='professor')return res.status(403).json({error:'forbidden'});if(!pool)return res.status(503).json({error:'durable_storage_required'});
+ const assignmentId=String(req.params.assignmentId||'').trim(),term=Number(req.body?.term),rows=Array.isArray(req.body?.rows)?req.body.rows.slice(0,800):null;
+ if(!assignmentId||![1,2,3].includes(term)||!rows)return res.status(400).json({error:'invalid_professor_grades'});
+ const cleanGrade=v=>{const raw=String(v??'').trim(),n=Number(raw.replace(',','.'));if(raw==='')return'';if(professorResultAbsent(raw))return'ABSENT';return Number.isFinite(n)?String(Math.max(0,Math.min(20,n))):''};
+ const client=await pool.connect();
+ try{
+  await client.query('BEGIN');
+  const locked=await client.query('SELECT data FROM nataiji_professor_profiles WHERE user_id=$1 FOR UPDATE',[req.user.id]);
+  if(!locked.rowCount){await client.query('ROLLBACK');return res.status(404).json({error:'professor_profile_not_found'})}
+  const before=cleanProfessorProfile(locked.rows[0].data||{}),assignment=before.assignments.find(x=>String(x.id)===assignmentId);
+  if(!assignment){await client.query('ROLLBACK');return res.status(404).json({error:'professor_assignment_not_found'})}
+  const cls=before.classes.find(x=>String(x.id)===String(assignment.classId));
+  if(!cls){await client.query('ROLLBACK');return res.status(404).json({error:'professor_class_not_found'})}
+  if(String(cls.sharedClassId||'')){
+   const room=await client.query('SELECT data FROM nataiji_professor_classrooms WHERE class_id=$1',[String(cls.sharedClassId)]);
+   if(room.rowCount)applyProfessorSharedClassData(cls,room.rows[0].data||{})
+  }
+  const allowed=new Set((cls.students||[]).map(x=>String(x.id))),invalid=rows.find(x=>!allowed.has(String(x?.studentId||'')));
+  if(invalid){await client.query('ROLLBACK');return res.status(400).json({error:'professor_student_not_found'})}
+  const next=structuredClone(before);next.classes=before.classes;next.marks=next.marks&&typeof next.marks==='object'?next.marks:{};
+  const assignmentMarks=next.marks[assignmentId]&&typeof next.marks[assignmentId]==='object'?next.marks[assignmentId]:{};
+  for(const row of rows){
+   const studentId=String(row.studentId),current=assignmentMarks[studentId]&&typeof assignmentMarks[studentId]==='object'?assignmentMarks[studentId]:{};
+   current.terms=current.terms&&typeof current.terms==='object'?current.terms:{};
+   current.terms[String(term)]={tests:[cleanGrade(row.test)],exam:cleanGrade(row.exam)};
+   assignmentMarks[studentId]=current
+  }
+  next.marks[assignmentId]=assignmentMarks;
+  const saved=cleanProfessorProfile(next);
+  if(JSON.stringify(before)!==JSON.stringify(saved))await archiveProfessorProfileVersion(req.user.id,client,'before-grade-save',before);
+  await client.query('UPDATE nataiji_professor_profiles SET data=$2::jsonb,updated_at=now() WHERE user_id=$1',[req.user.id,JSON.stringify(saved)]);
+  await client.query('COMMIT');
+  const verify=await pool.query('SELECT data,updated_at FROM nataiji_professor_profiles WHERE user_id=$1',[req.user.id]),confirmed=cleanProfessorProfile(verify.rows[0]?.data||{});
+  const confirmedMarks=confirmed.marks?.[assignmentId]||{},verified=rows.every(row=>{
+   const rec=confirmedMarks?.[String(row.studentId)]?.terms?.[String(term)]||{},tests=Array.isArray(rec.tests)?rec.tests:[];
+   return String(tests[0]??'')===cleanGrade(row.test)&&String(rec.exam??'')===cleanGrade(row.exam)
+  });
+  if(!verified)return res.status(409).json({error:'professor_grade_verification_failed'});
+  res.json({ok:true,verified:true,assignmentId,term,marks:confirmedMarks,savedAt:verify.rows[0]?.updated_at||new Date().toISOString()})
+ }catch(e){try{await client.query('ROLLBACK')}catch{}throw e}finally{client.release()}
+});
 app.get('/api/professor/classes/:localClassId/results',auth,async(req,res)=>{
  if(req.user.role!=='professor')return res.status(403).json({error:'forbidden'});if(!pool)return res.status(503).json({error:'durable_storage_required'});
  const localClassId=String(req.params.localClassId||''),profile=await loadProfessorProfile(req.user.id),local=profile.classes.find(x=>String(x.id)===localClassId);
