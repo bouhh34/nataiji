@@ -1,7 +1,7 @@
 import fs from 'node:fs';
 import vm from 'node:vm';
 
-globalThis.window={};
+globalThis.window={addEventListener(){}};
 globalThis.document={};
 globalThis.localStorage={getItem:()=> 'ar',setItem:()=>{}};
 
