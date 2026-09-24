@@ -905,7 +905,7 @@ function professorSignatures(){
  </div>`
 }
 function printProfessorDocument(title,body,opts={}){
- const frame=document.createElement('iframe');frame.setAttribute('aria-hidden','true');frame.tabIndex=-1;frame.style.cssText='position:fixed;inset:0;width:1px;height:1px;border:0;opacity:0;pointer-events:none;z-index:-1';document.body.appendChild(frame);
+ const frame=document.createElement('iframe');frame.setAttribute('aria-hidden','true');frame.tabIndex=-1;frame.style.cssText='position:fixed;left:-12000px;top:0;width:297mm;height:420mm;border:0;pointer-events:none;z-index:-1';document.body.appendChild(frame);
  const className=opts.className||'',term=Number(opts.term)||1,compact=opts.compact?' compact':'',subjectCount=Math.max(0,Number(opts.subjectCount)||0),density=subjectCount&&subjectCount<=3?' few':subjectCount<=7?' medium':subjectCount?' dense':'',twoCopies=opts.twoCopies===true,copyBodies=Array.isArray(opts.copyBodies)?opts.copyBodies.filter(Boolean):[],twoUp=twoCopies||copyBodies.length>0,landscape=opts.landscape===true,layoutClass=String(opts.layoutClass||'').trim();
  const titleAr=String(opts.titleAr||(!fr()?title:'')),titleFr=String(opts.titleFr||(fr()?title:'')),windowTitle=[titleFr,titleAr].filter(Boolean).join(' | '),pageSize=landscape?'A4 landscape':'A4',paperWidth=landscape?'283mm':'196mm';
  const html=`<!doctype html><html lang="ar" dir="ltr"><head><meta charset="utf-8"><title>${esc(windowTitle||title)}</title><style>
