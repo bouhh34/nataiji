@@ -52,7 +52,7 @@ assert('premium v2 visual layer loaded', /nataiji-premium-v2\.css/.test(index) &
 assert('approved home reference layer loaded last', /nataiji-home-reference-v1\.css/.test(index) && /nataiji-home-reference-v1\.js/.test(index));
 assert('privacy page exists', exists('public/privacy.html'));
 assert('terms page exists', exists('public/terms.html'));
-assert('PWA cache version current', /nataiji-shell-v70/.test(sw));
+assert('PWA cache version current', /nataiji-shell-v71/.test(sw));
 assert('PWA caches final mobile css', /release-100-v1\.css/.test(sw));
 assert('PWA caches final visual polish', /nataiji-final-visual-v1\.css/.test(sw));
 assert('PWA caches premium v2 layer', /nataiji-premium-v2\.css/.test(sw) && /nataiji-premium-v2\.js/.test(sw));
@@ -132,9 +132,10 @@ assert('manual grade save flushes autosave queue', /await markCellSaveTail\.catc
 assert('manual grade save does not bulk-overwrite marks', !/\$\('#saveGrades'\)[\s\S]{0,2200}api\('\/api\/marks'/.test(appJs));
 const professorV2 = read('public/professor-v2.js');
 assert('professor grades use dedicated verified save endpoint', professorV2.includes("api('/api/professor/assignments/'+encodeURIComponent(ctx.assignmentId)+'/grades'") && /r\.verified!==true/.test(professorV2) && /professor_grade_verification_failed/.test(server));
+assert('manual professor save force-submits and verifies the full roster', /async function forceProfessorGradeSave\(\)/.test(professorV2) && /Number\(r\.rowCount\)!==rows\.length/.test(professorV2) && /rowCount:rows\.length/.test(server));
 assert('professor own lists refresh from server before display', /async function openMySubjectsList[\s\S]{0,240}await refreshProfile\(\)/.test(professorV2) && /async function openSubjectList[\s\S]{0,240}await refreshProfile\(\)/.test(professorV2));
 assert('professor PDF avoids visible about blank window', !/window\.open\('',\s*'_blank'\)/.test(professorV2) && /document\.createElement\('iframe'\)/.test(professorV2) && /contentWindow\?\.print/.test(professorV2));
-assert('professor v2 cache-busted asset is current', /professor-v2\.js\?v=45/.test(index));
+assert('professor v2 cache-busted asset is current', /professor-v2\.js\?v=46/.test(index));
 assert('secure cookie enabled', /httpOnly:true/.test(server) && /sameSite:'lax'/.test(server));
 assert('origin protection enabled', /cross_site_request_blocked/.test(server));
 assert('CSP enabled', /Content-Security-Policy/.test(server));
