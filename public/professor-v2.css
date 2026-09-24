@@ -5293,3 +5293,71 @@ html.nataiji-professor-mode body{background:#f4f7f6;min-height:100vh;overflow-x:
     font-size:7.8px!important
   }
 }
+
+
+/* Professor students micro-polish v36 */
+/* Final micro-adjustments requested from the latest phone screenshot.
+   Scoped strictly to professor > students. */
+.nataiji-professor-mode .prof-students-reference .professor-reference-topbar{
+  min-height:68px!important;
+  padding:8px 12px!important;
+  gap:6px!important
+}
+.nataiji-professor-mode .prof-students-reference .professor-reference-main{
+  min-height:44px!important
+}
+.nataiji-professor-mode .prof-students-reference .prof-account-avatar{
+  width:34px!important;
+  height:34px!important;
+  min-width:34px!important;
+  padding:7px!important
+}
+.nataiji-professor-mode .prof-students-reference .professor-brand img{
+  width:32px!important;
+  height:32px!important
+}
+.nataiji-professor-mode .prof-students-reference .professor-brand b{
+  font-size:13.5px!important
+}
+.nataiji-professor-mode .prof-students-reference .professor-account b{
+  font-size:12.5px!important
+}
+.nataiji-professor-mode .prof-students-reference .professor-account small,
+.nataiji-professor-mode .prof-students-reference .professor-brand small{
+  font-size:7.2px!important
+}
+
+.nataiji-professor-mode .prof-students-reference .prof-student-subject-chip b{
+  font-size:10.5px!important;
+  line-height:1.16!important
+}
+.nataiji-professor-mode .prof-students-reference .prof-student-subject-chip small{
+  font-size:8.4px!important;
+  line-height:1.12!important
+}
+
+.nataiji-professor-mode .prof-students-reference .prof-student-class-arrow{
+  position:relative!important;
+  left:-4px!important;
+  width:24px!important;
+  height:24px!important;
+  min-width:24px!important;
+  font-size:17px!important;
+  background:#f5f8f7!important
+}
+
+@media(max-width:640px){
+  .nataiji-professor-mode .prof-students-reference .professor-reference-topbar{
+    min-height:66px!important;
+    padding:8px 11px!important
+  }
+  .nataiji-professor-mode .prof-students-reference .prof-student-subject-chip b{
+    font-size:10.2px!important
+  }
+  .nataiji-professor-mode .prof-students-reference .prof-student-subject-chip small{
+    font-size:8.1px!important
+  }
+  .nataiji-professor-mode .prof-students-reference .prof-student-class-arrow{
+    left:-3px!important
+  }
+}
