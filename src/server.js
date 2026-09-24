@@ -179,17 +179,17 @@ async function professorAggregatedResults(userId,localClassId,term){
   const ak=normalizeProfessorSubjectKey(a.subjectKey||a.subject),bk=normalizeProfessorSubjectKey(b.subjectKey||b.subject),ai=subjectOrder.has(ak)?subjectOrder.get(ak):999,bi=subjectOrder.has(bk)?subjectOrder.get(bk):999;
   return ai-bi||String(a.subject).localeCompare(String(b.subject),'fr',{sensitivity:'base'})
  });
- const assignedCoefficientTotal=subjects.filter(s=>s.assigned).reduce((sum,s)=>sum+(Number(s.coefficient)||0),0),curriculumComplete=expectedCoefficientTotal!=null?subjects.length>0&&subjects.every(s=>s.assigned)&&Math.abs(assignedCoefficientTotal-expectedCoefficientTotal)<0.001:false;
+ const assignedCoefficientTotal=subjects.filter(s=>s.assigned).reduce((sum,s)=>sum+(Number(s.coefficient)||0),0),officialCoefficientTotal=subjects.reduce((sum,s)=>sum+(Number(s.coefficient)||0),0),curriculumComplete=expectedCoefficientTotal!=null?subjects.length>0&&Math.abs(officialCoefficientTotal-expectedCoefficientTotal)<0.001:false;
  const rows=students.map((student,index)=>{
   let weightedSum=0,coefficientSum=0,complete=true,completedSubjects=0;
   const subjectResults=subjects.map(subject=>{const markRow=subject.marks?.[student.id]||{},rec=professorTermRecord(markRow,term),rawAverage=professorTermAverage(markRow,term),rawAnnualAverage=term===3?professorAnnualAverage(markRow):null,hasResult=(term===3?rawAnnualAverage:rawAverage)!=null,aggregateAverage=hasResult?(term===3?rawAnnualAverage:rawAverage):0,weighted=aggregateAverage*subject.coefficient;if(!hasResult)complete=false;else completedSubjects++;weightedSum+=weighted;coefficientSum+=subject.coefficient;return{key:subject.key,average:rawAverage??0,aggregateAverage,weighted,tests:rec.tests,exam:rec.displayExam,testMean:rec.test,annualAverage:term===3?(rawAnnualAverage??0):null,entered:hasResult}});
-  const general=subjects.length&&coefficientSum>0?weightedSum/coefficientSum:null,officialReady=general!=null&&curriculumComplete&&complete;
+  const general=subjects.length&&coefficientSum>0?weightedSum/coefficientSum:null,officialReady=general!=null&&curriculumComplete;
   return{student:professorStudentData(student),position:index+1,subjectResults,general,complete:subjects.length>0&&complete,officialReady,completedSubjects,totalSubjects:subjects.length}
  });
  const ranked=rows.filter(x=>x.general!=null).sort((a,b)=>b.general-a.general);
  for(const row of rows)if(row.general!=null)row.rank=1+ranked.filter(x=>x.general>row.general).length;else row.rank=null;
  const classValues=rows.map(x=>x.general).filter(x=>x!=null),classAverage=classValues.length?classValues.reduce((a,b)=>a+b,0)/classValues.length:null,officialClassValues=rows.filter(x=>x.officialReady).map(x=>x.general),officialClassAverage=officialClassValues.length?officialClassValues.reduce((a,b)=>a+b,0)/officialClassValues.length:null;
- return{classId:String(local.id),sharedClassId:sharedClassId||'',className,levelCode,branchCode:String(local.branchCode||''),term,memberCount:members.length,students:rows,subjects:subjects.map(({marks,...s})=>s),assignedCoefficientTotal,expectedCoefficientTotal,curriculumComplete,classAverage,officialClassAverage,completeStudents:rows.filter(x=>x.complete).length,officialCompleteStudents:officialClassValues.length,totalStudents:rows.length}
+ return{classId:String(local.id),sharedClassId:sharedClassId||'',className,levelCode,branchCode:String(local.branchCode||''),term,memberCount:members.length,students:rows,subjects:subjects.map(({marks,...s})=>s),assignedCoefficientTotal,officialCoefficientTotal,expectedCoefficientTotal,curriculumComplete,classAverage,officialClassAverage,completeStudents:rows.filter(x=>x.complete).length,officialCompleteStudents:officialClassValues.length,totalStudents:rows.length}
 }
 async function professorClassLinks(profile,userId){
  const links={};if(!pool)return links;
