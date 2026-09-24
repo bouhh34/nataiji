@@ -6047,3 +6047,142 @@ html.nataiji-professor-mode body{background:#f4f7f6;min-height:100vh;overflow-x:
     width:36px!important;height:36px!important;min-width:36px!important;padding:8px!important
   }
 }
+
+
+/* Professor more final polish + share v39 */
+/* Scoped strictly to professor > more. */
+.nataiji-professor-mode .prof-more-reference .prof-more-reference-hero{
+  margin-bottom:6px!important
+}
+.nataiji-professor-mode .prof-more-reference .prof-more-hero-icon{
+  width:48px!important;
+  height:48px!important;
+  padding:11px!important;
+  box-sizing:border-box!important;
+  display:grid!important;
+  place-items:center!important;
+  border-radius:15px!important;
+  background:rgba(255,255,255,.10)!important;
+  color:#fff!important;
+  font-size:0!important
+}
+.nataiji-professor-mode .prof-more-reference .prof-more-hero-icon svg{
+  width:26px!important;
+  height:26px!important;
+  stroke-width:1.7!important
+}
+.nataiji-professor-mode .prof-more-reference .prof-more-list{
+  gap:5px!important
+}
+.nataiji-professor-mode .prof-more-reference .prof-more-row-copy small{
+  font-size:8.8px!important;
+  line-height:1.32!important;
+  color:#8a989c!important
+}
+
+/* Share is available in both website and installed app. */
+.nataiji-professor-mode .prof-more-reference .prof-more-list-row.share .prof-more-row-icon{
+  background:#e9f7f3!important;
+  color:#087f69!important
+}
+.nataiji-professor-mode .prof-more-reference .prof-more-list-row.share .prof-more-row-copy b{
+  color:#174a45!important
+}
+
+/* Logout stays visually secondary to destructive account deletion. */
+.nataiji-professor-mode .prof-more-reference .prof-more-list-row.logout{
+  border-color:#f0e7e3!important;
+  background:#fffefe!important
+}
+.nataiji-professor-mode .prof-more-reference .prof-more-list-row.logout .prof-more-row-icon{
+  background:#fff6f2!important;
+  color:#a8664e!important
+}
+.nataiji-professor-mode .prof-more-reference .prof-more-list-row.logout .prof-more-row-copy b,
+.nataiji-professor-mode .prof-more-reference .prof-more-list-row.logout .prof-more-chevron{
+  color:#8d604f!important
+}
+
+/* Share fallback sheet for browsers/WebViews without the native share sheet. */
+.nataiji-professor-mode .prof-share-sheet{
+  display:grid!important;
+  gap:11px!important;
+  text-align:start!important
+}
+.nataiji-professor-mode .prof-share-sheet .prof-info-icon.share{
+  background:#e7f8f2!important;
+  color:#07866d!important
+}
+.nataiji-professor-mode .prof-share-sheet h3{
+  margin:0!important;
+  color:#173d4d!important;
+  font-size:20px!important;
+  font-weight:950!important
+}
+.nataiji-professor-mode .prof-share-sheet p{
+  margin:0!important;
+  color:#718289!important;
+  font-size:11px!important;
+  line-height:1.65!important
+}
+.nataiji-professor-mode .prof-share-sheet label{
+  display:grid!important;
+  gap:6px!important;
+  color:#435e68!important;
+  font-size:10px!important;
+  font-weight:850!important
+}
+.nataiji-professor-mode .prof-share-sheet input{
+  width:100%!important;
+  min-height:43px!important;
+  box-sizing:border-box!important;
+  padding:9px 10px!important;
+  border:1px solid #dbe7e3!important;
+  border-radius:11px!important;
+  background:#f8fbfa!important;
+  color:#244853!important;
+  font-size:10px!important
+}
+.nataiji-professor-mode .prof-share-actions{
+  display:grid!important;
+  grid-template-columns:1fr 1fr!important;
+  gap:8px!important
+}
+.nataiji-professor-mode .prof-share-actions>a,
+.nataiji-professor-mode .prof-share-actions>button{
+  min-height:43px!important;
+  display:flex!important;
+  align-items:center!important;
+  justify-content:center!important;
+  box-sizing:border-box!important;
+  border-radius:11px!important;
+  font-size:10px!important;
+  font-weight:900!important
+}
+
+@media(max-width:700px){
+  .nataiji-professor-mode .prof-more-reference .prof-more-reference-hero{
+    margin-bottom:6px!important
+  }
+  .nataiji-professor-mode .prof-more-reference .prof-more-hero-icon{
+    width:46px!important;
+    height:46px!important;
+    padding:10px!important
+  }
+  .nataiji-professor-mode .prof-more-reference .prof-more-hero-icon svg{
+    width:25px!important;
+    height:25px!important
+  }
+  .nataiji-professor-mode .prof-more-reference .prof-more-row-copy small{
+    font-size:8.8px!important;
+    line-height:1.3!important
+  }
+}
+@media(max-width:380px){
+  .nataiji-professor-mode .prof-more-reference .prof-more-row-copy small{
+    font-size:8.5px!important
+  }
+  .nataiji-professor-mode .prof-share-actions{
+    grid-template-columns:1fr!important
+  }
+}
