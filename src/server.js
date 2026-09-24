@@ -175,7 +175,7 @@ async function professorAggregatedResults(userId,localClassId,term){
  const ranked=rows.filter(x=>x.general!=null).sort((a,b)=>b.general-a.general);
  for(const row of rows)if(row.general!=null)row.rank=1+ranked.filter(x=>x.general>row.general).length;else row.rank=null;
  const classValues=rows.map(x=>x.general).filter(x=>x!=null),classAverage=classValues.length?classValues.reduce((a,b)=>a+b,0)/classValues.length:null,officialClassValues=rows.filter(x=>x.officialReady).map(x=>x.general),officialClassAverage=officialClassValues.length?officialClassValues.reduce((a,b)=>a+b,0)/officialClassValues.length:null;
- return{classId:String(local.id),sharedClassId:sharedClassId||'',className,levelCode,term,memberCount:members.length,students:rows,subjects:subjects.map(({marks,...s})=>s),assignedCoefficientTotal,expectedCoefficientTotal,curriculumComplete,classAverage,officialClassAverage,completeStudents:rows.filter(x=>x.complete).length,officialCompleteStudents:officialClassValues.length,totalStudents:rows.length}
+ return{classId:String(local.id),sharedClassId:sharedClassId||'',className,levelCode,branchCode:String(local.branchCode||''),term,memberCount:members.length,students:rows,subjects:subjects.map(({marks,...s})=>s),assignedCoefficientTotal,expectedCoefficientTotal,curriculumComplete,classAverage,officialClassAverage,completeStudents:rows.filter(x=>x.complete).length,officialCompleteStudents:officialClassValues.length,totalStudents:rows.length}
 }
 async function professorClassLinks(profile,userId){
  const links={};if(!pool)return links;
