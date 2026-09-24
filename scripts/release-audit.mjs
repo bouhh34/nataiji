@@ -131,7 +131,7 @@ assert('bulk grade save persists validated values', /normalizedMarks/.test(serve
 assert('manual grade save flushes autosave queue', /await markCellSaveTail\.catch/.test(appJs) && /pendingGradeSaves\.get\(key\)/.test(appJs));
 assert('manual grade save does not bulk-overwrite marks', !/\$\('#saveGrades'\)[\s\S]{0,2200}api\('\/api\/marks'/.test(appJs));
 const professorV2 = read('public/professor-v2.js');
-assert('professor grades use dedicated verified save endpoint', professorV2.includes("api('/api/professor/assignments/'+encodeURIComponent(ctx.assignmentId)+'/grades'") && /r\.verified!==true/.test(professorV2) && /professor_grade_verification_failed/.test(server));
+assert('professor grades use dedicated verified save endpoint', professorV2.includes("'/students/'+encodeURIComponent(row.studentId)+'/grades'") && /r\.verified!==true/.test(professorV2) && /professor_grade_verification_failed/.test(server));
 assert('manual professor save verifies every student atomically', /async function forceProfessorGradeSave\(\)/.test(professorV2) && /students\/'\+encodeURIComponent\(row\.studentId\)\+'\/grades/.test(professorV2) && /before-student-grade-save/.test(server) && /professor_grade_reload_verification_failed/.test(professorV2));
 assert('professor own lists refresh from server before display', /async function openMySubjectsList[\s\S]{0,240}await refreshProfile\(\)/.test(professorV2) && /async function openSubjectList[\s\S]{0,240}await refreshProfile\(\)/.test(professorV2));
 assert('professor PDF avoids visible about blank window', !/window\.open\('',\s*'_blank'\)/.test(professorV2) && /document\.createElement\('iframe'\)/.test(professorV2) && /contentWindow\?\.print/.test(professorV2));
