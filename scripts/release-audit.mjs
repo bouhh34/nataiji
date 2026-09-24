@@ -52,7 +52,7 @@ assert('premium v2 visual layer loaded', /nataiji-premium-v2\.css/.test(index) &
 assert('approved home reference layer loaded last', /nataiji-home-reference-v1\.css/.test(index) && /nataiji-home-reference-v1\.js/.test(index));
 assert('privacy page exists', exists('public/privacy.html'));
 assert('terms page exists', exists('public/terms.html'));
-assert('PWA cache version current', /nataiji-shell-v72/.test(sw));
+assert('PWA cache version current', /nataiji-shell-v73/.test(sw));
 assert('PWA caches final mobile css', /release-100-v1\.css/.test(sw));
 assert('PWA caches final visual polish', /nataiji-final-visual-v1\.css/.test(sw));
 assert('PWA caches premium v2 layer', /nataiji-premium-v2\.css/.test(sw) && /nataiji-premium-v2\.js/.test(sw));
@@ -131,12 +131,15 @@ assert('bulk grade save persists validated values', /normalizedMarks/.test(serve
 assert('manual grade save flushes autosave queue', /await markCellSaveTail\.catch/.test(appJs) && /pendingGradeSaves\.get\(key\)/.test(appJs));
 assert('manual grade save does not bulk-overwrite marks', !/\$\('#saveGrades'\)[\s\S]{0,2200}api\('\/api\/marks'/.test(appJs));
 const professorV2 = read('public/professor-v2.js');
+const professorCatalogSrc = read('src/professor-academic-catalog.js');
+assert('official Mauritanian professor catalog is wired', /MR-SECONDARY-OFFICIAL-2026-V4/.test(professorCatalogSrc) && /code:'7AS'/.test(professorCatalogSrc) && /technology_informatics/.test(professorCatalogSrc) && /branch\('A',29/.test(professorCatalogSrc) && /branch\('C',30/.test(professorCatalogSrc));
+assert('collective professor list uses official subject abbreviations', /name\.abbr\|\|String\(s\.subjectKey/.test(professorV2) && /<b dir="ltr">\$\{esc\(abbr\)\}<\/b>/.test(professorV2));
 assert('professor grades use dedicated verified save endpoint', professorV2.includes("'/students/'+encodeURIComponent(row.studentId)+'/grades'") && /r\.verified!==true/.test(professorV2) && /professor_grade_verification_failed/.test(server));
 assert('manual professor save verifies every student atomically', /async function forceProfessorGradeSave\(\)/.test(professorV2) && /students\/'\+encodeURIComponent\(row\.studentId\)\+'\/grades/.test(professorV2) && /before-student-grade-save/.test(server) && /professor_grade_reload_verification_failed/.test(professorV2));
 assert('manual professor save commits every visible grade input before request', /const commitVisibleGradeInputs=\(\)=>/.test(professorV2) && /commitVisibleGradeInputs\(\);gradeEditRevision\+\+/.test(professorV2));
 assert('professor own lists refresh from server before display', /async function openMySubjectsList[\s\S]{0,240}await refreshProfile\(\)/.test(professorV2) && /async function openSubjectList[\s\S]{0,240}await refreshProfile\(\)/.test(professorV2));
 assert('professor PDF avoids visible about blank window', !/window\.open\('',\s*'_blank'\)/.test(professorV2) && /document\.createElement\('iframe'\)/.test(professorV2) && /contentWindow\?\.print/.test(professorV2));
-assert('professor v2 cache-busted asset is current', /professor-v2\.js\?v=47/.test(index));
+assert('professor v2 cache-busted asset is current', /professor-v2\.js\?v=48/.test(index));
 assert('secure cookie enabled', /httpOnly:true/.test(server) && /sameSite:'lax'/.test(server));
 assert('origin protection enabled', /cross_site_request_blocked/.test(server));
 assert('CSP enabled', /Content-Security-Policy/.test(server));
