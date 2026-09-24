@@ -52,7 +52,7 @@ assert('premium v2 visual layer loaded', /nataiji-premium-v2\.css/.test(index) &
 assert('approved home reference layer loaded last', /nataiji-home-reference-v1\.css/.test(index) && /nataiji-home-reference-v1\.js/.test(index));
 assert('privacy page exists', exists('public/privacy.html'));
 assert('terms page exists', exists('public/terms.html'));
-assert('PWA cache version current', /nataiji-shell-v83/.test(sw));
+assert('PWA cache version current', /nataiji-shell-v84/.test(sw));
 assert('PWA caches final mobile css', /release-100-v1\.css/.test(sw));
 assert('PWA caches final visual polish', /nataiji-final-visual-v1\.css/.test(sw));
 assert('PWA caches premium v2 layer', /nataiji-premium-v2\.css/.test(sw) && /nataiji-premium-v2\.js/.test(sw));
@@ -135,6 +135,7 @@ const professorCatalogSrc = read('src/professor-academic-catalog.js');
 assert('official Mauritanian professor catalog is wired', /MR-SECONDARY-OFFICIAL-2026-V4/.test(professorCatalogSrc) && /code:'7AS'/.test(professorCatalogSrc) && /technology_informatics/.test(professorCatalogSrc) && /branch\('A',29/.test(professorCatalogSrc) && /branch\('C',30/.test(professorCatalogSrc));
 assert('collective professor list uses official subject abbreviations', /name\.abbr\|\|String\(s\.subjectKey/.test(professorV2) && /<b dir="ltr">\$\{esc\(abbr\)\}<\/b>/.test(professorV2));
 assert('collective subject headers use vertical Arabic labels', /professorCollectiveSubjectArabic/.test(professorV2) && /subject-vertical/.test(professorV2) && /writing-mode:vertical-rl/.test(professorV2));
+assert('collective vertical Arabic subject labels are enlarged', /subject-vertical\{height:30mm[^}]*font-size:9\.2pt/.test(professorV2));
 assert('collective list is ranked and readable on Android print', /function professorClassListLandscape\(\)\{return false\}/.test(professorV2) && /orderedStudents=/.test(professorV2) && /collective-class-table/.test(professorV2));
 assert('collective list omits class average footer', !/class=\"summary\"><div class=\"dual-summary\"/.test(professorV2.slice(professorV2.indexOf('function printClassList'),professorV2.indexOf('function professorReportSwitcher'))));
 assert('collective PDF uses numeric ranks and no stamp box', /class-list-students-few/.test(professorV2) && /studentCount:data\.students\?\.length\|\|0/.test(professorV2) && !/الختم \/ Cachet/.test(professorV2) && /التوقيع \/ Signature/.test(professorV2));
@@ -153,8 +154,10 @@ assert('professor own lists refresh from server before display', /async function
 assert('professor PDF avoids visible about blank window', !/window\.open\('',\s*'_blank'\)/.test(professorV2) && /document\.createElement\('iframe'\)/.test(professorV2) && /contentWindow\?\.print/.test(professorV2));
 assert('professor official bulletin prints one student per A4 page', /official-student-bulletin-doc/.test(professorV2) && /singlePages:true/.test(professorV2) && /class=\"student-page\"/.test(professorV2) && /Observations du Directeur/.test(professorV2));
 assert('official bulletin enlarges header and student identity', /official-student-bulletin-doc \.official-head\{[^}]*font-size:10\.8pt/.test(professorV2) && /official-student-bulletin-doc \.student-name\{[^}]*font-size:12\.2pt/.test(professorV2));
+assert('student bulletin narrows test and expands observations', /test-head/.test(professorV2) && /test-cell/.test(professorV2) && /obs-head,.official-student-bulletin-doc \.secondary-bulletin-table \.observation-cell\{width:30%\}/.test(professorV2));
+assert('Arabic official header is balanced against French', /official-student-bulletin-doc \.official-ar\{font-size:11\.7pt/.test(professorV2) && /class-list-doc \.official-ar\{font-size:11\.5pt/.test(professorV2));
 assert('professor batch bulletin label says one student per A4', /كشوف التلاميذ الرسمية – طالب واحد لكل A4/.test(professorV2) && /Bulletins officiels – 1 élève par A4/.test(professorV2));
-assert('professor v2 cache-busted asset is current', /professor-v2\.js\?v=57/.test(index));
+assert('professor v2 cache-busted asset is current', /professor-v2\.js\?v=58/.test(index));
 const ownerStaff = read('public/owner-staff-v1.js');
 assert('owner professor tools support official branches', /staffClassBranch/.test(ownerStaff) && /data-branch/.test(ownerStaff) && /subjectOptions\(catalog,level,branch\)/.test(ownerStaff));
 assert('owner staff cache-busted asset is current', /owner-staff-v1\.js\?v=3/.test(index));
