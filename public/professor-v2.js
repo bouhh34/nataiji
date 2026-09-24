@@ -193,10 +193,21 @@ function professorGradeRows(ctx){
 }
 async function saveProfessorGradeContext(ctx,target){
  if(!ctx)return true;
- const rows=professorGradeRows(ctx),r=await api('/api/professor/assignments/'+encodeURIComponent(ctx.assignmentId)+'/grades',{method:'PUT',body:JSON.stringify({term:ctx.term,rows})});
- if(!r?.ok||r.verified!==true)throw new Error('professor_grade_verification_failed');
- if(gradeEditRevision===target&&r.marks&&typeof r.marks==='object')profile.marks[ctx.assignmentId]=structuredClone(r.marks);
- return true
+ const rows=professorGradeRows(ctx),confirmed=[];
+ for(const row of rows){
+  const r=await api('/api/professor/assignments/'+encodeURIComponent(ctx.assignmentId)+'/students/'+encodeURIComponent(row.studentId)+'/grades',{method:'PUT',body:JSON.stringify({term:ctx.term,test:row.test,exam:row.exam})});
+  if(!r?.ok||r.verified!==true||String(r.studentId)!==String(row.studentId))throw new Error('professor_grade_verification_failed');
+  confirmed.push(r)
+ }
+ if(gradeEditRevision===target){
+  const assignmentMarks=marksFor(ctx.assignmentId);
+  for(const r of confirmed){
+   assignmentMarks[r.studentId]=assignmentMarks[r.studentId]&&typeof assignmentMarks[r.studentId]==='object'?assignmentMarks[r.studentId]:{terms:{}};
+   assignmentMarks[r.studentId].terms=assignmentMarks[r.studentId].terms&&typeof assignmentMarks[r.studentId].terms==='object'?assignmentMarks[r.studentId].terms:{};
+   assignmentMarks[r.studentId].terms[String(ctx.term)]=structuredClone(r.record||{tests:[''],exam:''})
+  }
+ }
+ return{ok:true,rowCount:confirmed.length}
 }
 function scheduleGradeAutosave(){
  gradeEditRevision++;if(gradeSaveTimer)clearTimeout(gradeSaveTimer);
@@ -219,17 +230,21 @@ async function forceProfessorGradeSave(){
  if(gradeSaveInFlight){try{await gradeSaveInFlight}catch{}}
  const ctx=currentGradeSaveContext();if(!ctx)return true;
  const target=gradeEditRevision,rows=professorGradeRows(ctx);
- gradeStatus(tr('جارٍ تثبيت جميع نتائج التلاميذ…','Enregistrement de toutes les notes…'));
+ gradeStatus(tr('جارٍ تثبيت '+rows.length+' تلميذًا واحدًا واحدًا…','Enregistrement vérifié de '+rows.length+' élève(s), un par un…'));
  try{
-  const r=await api('/api/professor/assignments/'+encodeURIComponent(ctx.assignmentId)+'/grades',{method:'PUT',body:JSON.stringify({term:ctx.term,rows,force:true})});
-  if(!r?.ok||r.verified!==true||Number(r.rowCount)!==rows.length)throw new Error('professor_grade_verification_failed');
+  const result=await saveProfessorGradeContext(ctx,target);
+  if(!result?.ok||Number(result.rowCount)!==rows.length)throw new Error('professor_grade_verification_failed');
   if(gradeEditRevision!==target)return forceProfessorGradeSave();
   await refreshProfile();
+  const persisted=professorGradeRows(ctx);
+  const wanted=new Map(rows.map(x=>[x.studentId,JSON.stringify([String(x.test??''),String(x.exam??'')])]));
+  const verified=persisted.length===rows.length&&persisted.every(x=>wanted.get(x.studentId)===JSON.stringify([String(x.test??''),String(x.exam??'')]));
+  if(!verified)throw new Error('professor_grade_reload_verification_failed');
   gradeSavedRevision=gradeEditRevision;
-  gradeStatus(tr('✓ تم حفظ والتحقق من '+rows.length+' تلميذًا','✓ '+rows.length+' élève(s) enregistré(s) et vérifié(s)'));
+  gradeStatus(tr('✓ تم تثبيت '+rows.length+'/'+rows.length+' تلميذًا على الخادم','✓ '+rows.length+'/'+rows.length+' élève(s) confirmés sur le serveur'));
   return true
  }catch{
-  gradeStatus(tr('تعذر حفظ جميع النتائج — لم يتم اعتماد الحفظ','Impossible d’enregistrer toutes les notes — enregistrement non confirmé'));
+  gradeStatus(tr('تعذر تثبيت جميع النتائج على الخادم — لم يتم اعتماد الحفظ','Impossible de confirmer toutes les notes sur le serveur — enregistrement non validé'));
   return false
  }
 }
