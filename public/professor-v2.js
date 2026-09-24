@@ -250,12 +250,52 @@ function renderCurrent(){
  return renderHome()
 }
 
+function professorHeroIllustration(){
+ return `<svg class="prof-home-hero-svg" viewBox="0 0 260 210" aria-hidden="true" focusable="false">
+  <defs>
+   <linearGradient id="profBook1" x1="0" x2="1"><stop offset="0" stop-color="#0d6f68"/><stop offset="1" stop-color="#13a083"/></linearGradient>
+   <linearGradient id="profBook2" x1="0" x2="1"><stop offset="0" stop-color="#123f57"/><stop offset="1" stop-color="#0d7d77"/></linearGradient>
+   <linearGradient id="profPaper" x1="0" x2="1"><stop offset="0" stop-color="#dff7ef"/><stop offset="1" stop-color="#ffffff"/></linearGradient>
+   <linearGradient id="profGold" x1="0" x2="1"><stop offset="0" stop-color="#f5d777"/><stop offset="1" stop-color="#d49d2d"/></linearGradient>
+   <filter id="profShadow" x="-30%" y="-30%" width="160%" height="160%"><feDropShadow dx="0" dy="8" stdDeviation="8" flood-color="#002d35" flood-opacity=".28"/></filter>
+  </defs>
+  <g filter="url(#profShadow)">
+   <g transform="translate(54 130) rotate(-4)">
+    <rect x="0" y="27" rx="9" ry="9" width="151" height="27" fill="url(#profBook2)"/>
+    <rect x="13" y="31" rx="4" width="123" height="18" fill="url(#profPaper)" opacity=".95"/>
+    <path d="M9 38h132" stroke="#b8ddd5" stroke-width="2" opacity=".7"/>
+    <rect x="18" y="0" rx="9" ry="9" width="151" height="29" fill="url(#profBook1)"/>
+    <rect x="31" y="4" rx="4" width="123" height="20" fill="url(#profPaper)" opacity=".97"/>
+    <path d="M30 12h126M30 18h126" stroke="#b7dcd4" stroke-width="1.7" opacity=".7"/>
+   </g>
+   <g transform="translate(86 67)">
+    <path d="M0 22 72 0l74 25-73 28z" fill="#0e6670" stroke="#7bd5c8" stroke-width="2"/>
+    <path d="M17 30v28c33 22 72 23 109 2V31L73 53z" fill="#084e62"/>
+    <path d="M73 53c18 8 36 8 53 1v16c-33 19-73 16-109-3V53c19 8 37 9 56 0z" fill="#0b5f6e" opacity=".78"/>
+    <circle cx="73" cy="24" r="4.5" fill="#e8c45d"/>
+    <path d="M74 25c42 4 54 20 55 56" fill="none" stroke="url(#profGold)" stroke-width="4" stroke-linecap="round"/>
+    <path d="m126 80 8 12-6 17-7-17z" fill="url(#profGold)"/>
+   </g>
+   <g transform="translate(170 35) rotate(11)">
+    <rect x="0" y="0" width="62" height="92" rx="12" fill="rgba(255,255,255,.17)" stroke="rgba(255,255,255,.42)" stroke-width="2"/>
+    <path d="M15 24h13M15 42h32M15 56h32M15 70h25" stroke="#d9fff6" stroke-width="5" stroke-linecap="round" opacity=".9"/>
+    <circle cx="18" cy="19" r="4" fill="#f5d777"/>
+   </g>
+  </g>
+  <g fill="#f3d66b">
+   <path d="m36 42 4 10 10 4-10 4-4 10-4-10-10-4 10-4z"/>
+   <path d="m226 18 2.5 6 6 2.5-6 2.5-2.5 6-2.5-6-6-2.5 6-2.5z"/>
+   <path d="m224 136 3.5 8 8 3.5-8 3.5-3.5 8-3.5-8-8-3.5 8-3.5z"/>
+  </g>
+ </svg>`
+}
+
 function renderHome(){
  currentView='home';const el=root(),classes=displayClasses();if(!homeClassId||!classes.some(c=>String(c.id)===String(homeClassId)))homeClassId=classes[0]?.id||'';
  const m=homeMetrics(homeClassId),className=classDisplayName(m.cls),statusRows=m.subjectStats.map(({assignment:a,students,done,percent})=>`<button type="button" class="prof-home-subject-row" data-home-grade-id="${esc(a.id)}"><div class="prof-home-subject-main"><span class="prof-home-subject-icon">${esc(iconFor(a.subject))}</span><div><b>${esc(profSubject(a.subject))}</b><small>${done}/${students}</small></div></div><div class="prof-home-subject-progress"><span>${percent}%</span><div><i style="width:${percent}%"></i></div></div></button>`).join('');
  const averageText=m.average==null?'—':m.average.toFixed(1);
  el.innerHTML=`<div class="professor-shell prof-home-shell">${topbar('','',true)}
- <section class="prof-v2-hero prof-reference-hero"><div class="prof-home-hero-art" aria-hidden="true"><b>${professorMoreIcon('results')}</b><span>${professorMoreIcon('spark')}</span></div><div class="prof-hero-copy"><small class="prof-home-kicker">${tr('لوحة النتائج','Tableau des résultats')}</small><h1>${tr('مرحباً، ','Bonjour, ')}${esc(profName(professorUser?.name||''))}</h1><p>${tr('تابع إدخال النتائج واكتمالها من مكان واحد.','Suivez la saisie et l’avancement des résultats depuis un seul endroit.')}</p><button class="primary" id="profGoGrades"><span>✎</span>${tr('إدخال النتائج','Saisir les résultats')}</button></div></section>
+ <section class="prof-v2-hero prof-reference-hero"><div class="prof-home-hero-art" aria-hidden="true">${professorHeroIllustration()}</div><div class="prof-hero-copy"><small class="prof-home-kicker">${tr('لوحة النتائج','Tableau des résultats')}</small><h1>${tr('مرحباً، ','Bonjour, ')}${esc(profName(professorUser?.name||''))}</h1><p>${tr('تابع إدخال النتائج واكتمالها من مكان واحد.','Suivez la saisie et l’avancement des résultats depuis un seul endroit.')}</p><button class="primary" id="profGoGrades"><span>✎</span>${tr('إدخال النتائج','Saisir les résultats')}</button></div></section>
  <section class="prof-v2-stats prof-reference-stats"><article class="students"><span class="prof-stat-icon">${professorMoreIcon('students')}</span><div><strong>${m.students.length}</strong><small>${tr('التلاميذ','Élèves')}</small></div></article><article class="average"><span class="prof-stat-icon">${professorMoreIcon('average')}</span><div><strong class="prof-grade-outof" dir="ltr"><span>${averageText}</span><span>/20</span></strong><small>${tr('معدل القسم','Moyenne de la classe')}</small><em>${tr('مؤقت حسب الدرجات المدخلة','Provisoire selon les notes saisies')}</em></div></article><article class="complete"><span class="prof-stat-icon">${professorMoreIcon('complete')}</span><div><strong>${m.completion}%</strong><small>${tr('اكتمال الدرجات','Notes complètes')}</small></div></article><article class="needs"><span class="prof-stat-icon">${professorMoreIcon('alert')}</span><div><strong>${m.needs}</strong><small>${tr('أقل من 10/20','Sous 10/20')}</small><em>${tr('مؤقت حسب الدرجات المدخلة','Provisoire selon les notes saisies')}</em></div></article></section>
  <section class="professor-content prof-home-status"><div class="prof-home-status-head"><div><span class="prof-home-status-icon">${professorMoreIcon('results')}</span><div><h2>${tr('حالة الفصل','État du trimestre')}</h2><p>${tr('نسبة إدخال الدرجات لكل مادة','Progression de la saisie pour chaque matière')} · ${tr('الفصل','T')} ${m.term}${className?' · '+esc(className):''}</p></div></div><button id="profShowAllGrades">${tr('عرض الكل','Tout afficher')}</button></div><div class="prof-home-subject-list">${statusRows||`<div class="professor-empty compact"><div>✎</div><h3>${tr('ابدأ بإضافة مادة','Ajoutez votre première matière')}</h3><p>${tr('بعد إضافة المادة ستظهر نسبة إدخال نتائجها هنا.','Après ajout, sa progression apparaîtra ici.')}</p><div class="prof-home-empty-actions"><button class="primary" id="profEmptyAdd">+ ${tr('إضافة مادة أو قسم','Ajouter une matière ou une classe')}</button><button id="profJoinClass">🔗 ${tr('الانضمام برمز القسم','Rejoindre avec un code')}</button></div></div>`}</div></section>
  ${nav('home')}</div>`;
