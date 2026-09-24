@@ -1,4 +1,4 @@
-const CACHE = "nataiji-shell-v72";
+const CACHE = "nataiji-shell-v73";
 const ASSETS = [
   "/workflow-polish.css",
   "/release-100-v1.css",
