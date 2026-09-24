@@ -52,7 +52,7 @@ assert('premium v2 visual layer loaded', /nataiji-premium-v2\.css/.test(index) &
 assert('approved home reference layer loaded last', /nataiji-home-reference-v1\.css/.test(index) && /nataiji-home-reference-v1\.js/.test(index));
 assert('privacy page exists', exists('public/privacy.html'));
 assert('terms page exists', exists('public/terms.html'));
-assert('PWA cache version current', /nataiji-shell-v80/.test(sw));
+assert('PWA cache version current', /nataiji-shell-v81/.test(sw));
 assert('PWA caches final mobile css', /release-100-v1\.css/.test(sw));
 assert('PWA caches final visual polish', /nataiji-final-visual-v1\.css/.test(sw));
 assert('PWA caches premium v2 layer', /nataiji-premium-v2\.css/.test(sw) && /nataiji-premium-v2\.js/.test(sw));
@@ -141,12 +141,17 @@ assert('collective professor results include every official curriculum subject',
 assert('linked professor marks use canonical shared class metadata', /canonicalLevelCode/.test(server) && /canonicalBranchCode/.test(server) && /mergeMarks=/.test(server));
 assert('collective official results are not labelled provisional', /if\(data\?\.curriculumComplete&&data\?\.expectedCoefficientTotal\)return String\(data\.expectedCoefficientTotal\)/.test(professorV2) && /officialReady=general!=null&&curriculumComplete/.test(server));
 assert('professor grades use dedicated verified save endpoint', professorV2.includes("'/students/'+encodeURIComponent(row.studentId)+'/grades'") && /r\.verified!==true/.test(professorV2) && /professor_grade_verification_failed/.test(server));
+assert('structural professor save flushes pending grades first', /async function saveProfile\(message=''\)\{\s*if\(gradeSaveTimer\|\|gradeSaveInFlight\|\|gradeSavedRevision<gradeEditRevision\)await flushGradeAutosave\(\)/.test(professorV2));
+assert('professor recovery snapshots retain 200 versions', /ORDER BY id DESC LIMIT 200/.test(server));
+assert('professor grades have append-only server history', /nataiji_professor_grade_history/.test(server) && /appendProfessorGradeHistory/.test(server));
+assert('structural professor saves preserve surviving grades', /function preserveProfessorMarks\(/.test(server) && /candidate=preserveProfessorMarks\(before,req\.body\?\.profile\)/.test(server));
+assert('opening professor profile never rewrites stored grades', /profile=cleanProfessorProfile\(profile\);\s*res\.json\(\{ok:true,profile,classLinks\}\)/.test(server) && !/profile=cleanProfessorProfile\(profile\);await saveProfessorProfile\(req\.user\.id,profile,\{syncShared:false\}\)/.test(server));
 assert('manual professor save verifies every student atomically', /async function forceProfessorGradeSave\(\)/.test(professorV2) && /students\/'\+encodeURIComponent\(row\.studentId\)\+'\/grades/.test(professorV2) && /before-student-grade-save/.test(server) && /professor_grade_reload_verification_failed/.test(professorV2));
 assert('manual professor save commits every visible grade input before request', /const commitVisibleGradeInputs=\(\)=>/.test(professorV2) && /commitVisibleGradeInputs\(\);gradeEditRevision\+\+/.test(professorV2));
 assert('professor own lists refresh from server before display', /async function openMySubjectsList[\s\S]{0,240}await refreshProfile\(\)/.test(professorV2) && /async function openSubjectList[\s\S]{0,240}await refreshProfile\(\)/.test(professorV2));
 assert('professor PDF avoids visible about blank window', !/window\.open\('',\s*'_blank'\)/.test(professorV2) && /document\.createElement\('iframe'\)/.test(professorV2) && /contentWindow\?\.print/.test(professorV2));
 assert('professor official bulletin prints one student per A4 page', /official-student-bulletin-doc/.test(professorV2) && /singlePages:true/.test(professorV2) && /class=\"student-page\"/.test(professorV2) && /Observations du Directeur/.test(professorV2));
-assert('professor v2 cache-busted asset is current', /professor-v2\.js\?v=54/.test(index));
+assert('professor v2 cache-busted asset is current', /professor-v2\.js\?v=55/.test(index));
 const ownerStaff = read('public/owner-staff-v1.js');
 assert('owner professor tools support official branches', /staffClassBranch/.test(ownerStaff) && /data-branch/.test(ownerStaff) && /subjectOptions\(catalog,level,branch\)/.test(ownerStaff));
 assert('owner staff cache-busted asset is current', /owner-staff-v1\.js\?v=3/.test(index));
