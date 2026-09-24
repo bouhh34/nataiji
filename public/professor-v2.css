@@ -4205,3 +4205,472 @@ html.nataiji-professor-mode body{background:#f4f7f6;min-height:100vh;overflow-x:
     min-height:67px!important
   }
 }
+
+
+/* Professor grades premium-clean hybrid v33 */
+/* Grades page: keep the clean production layout, borrow only the stronger card hierarchy. */
+.nataiji-professor-mode .prof-grades-reference{
+  width:min(100%,760px)!important;
+  max-width:760px!important;
+  margin-inline:auto!important;
+  padding-bottom:calc(92px + env(safe-area-inset-bottom,0px))!important
+}
+.nataiji-professor-mode .prof-grades-reference .professor-reference-topbar{
+  margin-bottom:12px!important
+}
+.nataiji-professor-mode .prof-grades-head{
+  position:relative!important;
+  display:grid!important;
+  grid-template-columns:minmax(0,1fr) auto!important;
+  align-items:center!important;
+  gap:18px!important;
+  overflow:hidden!important;
+  padding:20px 21px!important;
+  border-radius:24px!important;
+  background:
+    radial-gradient(circle at 0% 100%,rgba(213,241,232,.58),transparent 28%),
+    linear-gradient(145deg,#fff,#fbfdfc)!important
+}
+.nataiji-professor-mode .prof-grades-head::after{
+  content:""!important;
+  position:absolute!important;
+  inset-inline-end:-45px!important;
+  bottom:-68px!important;
+  width:170px!important;
+  height:150px!important;
+  border:18px solid rgba(217,186,78,.09)!important;
+  border-radius:50%!important;
+  pointer-events:none!important
+}
+.nataiji-professor-mode .prof-grades-head>div:first-child{
+  position:relative!important;
+  z-index:2!important;
+  display:grid!important;
+  grid-template-columns:48px minmax(0,1fr)!important;
+  align-items:center!important;
+  gap:13px!important
+}
+.nataiji-professor-mode .prof-grades-head-icon{
+  width:46px!important;
+  height:46px!important;
+  min-width:46px!important;
+  padding:11px!important;
+  box-sizing:border-box!important;
+  display:grid!important;
+  place-items:center!important;
+  border-radius:14px!important;
+  background:linear-gradient(145deg,#eaf8f3,#dff3ec)!important;
+  color:#0a856d!important
+}
+.nataiji-professor-mode .prof-grades-head-icon svg{
+  width:100%!important;height:100%!important
+}
+.nataiji-professor-mode .prof-grades-head h1{
+  margin:0 0 5px!important;
+  font-size:28px!important;
+  line-height:1.12!important;
+  font-weight:950!important
+}
+.nataiji-professor-mode .prof-grades-head p{
+  margin:0!important;
+  max-width:540px!important;
+  font-size:10.5px!important;
+  line-height:1.7!important
+}
+.nataiji-professor-mode .prof-grades-head>div:last-child{
+  position:relative!important;
+  z-index:2!important
+}
+.nataiji-professor-mode .prof-grades-head #profGradesAddSubject{
+  min-height:48px!important;
+  min-width:180px!important;
+  display:inline-flex!important;
+  align-items:center!important;
+  justify-content:center!important;
+  gap:8px!important;
+  padding:10px 18px!important;
+  border-radius:15px!important;
+  background:linear-gradient(135deg,#0c896f,#0a745f)!important;
+  box-shadow:0 8px 18px rgba(9,116,94,.16)!important;
+  font-weight:900!important
+}
+.nataiji-professor-mode .prof-grades-head #profGradesAddSubject>span{
+  width:23px!important;
+  height:23px!important;
+  display:grid!important;
+  place-items:center!important;
+  border-radius:50%!important;
+  background:rgba(255,255,255,.16)!important;
+  font-size:16px!important
+}
+
+.nataiji-professor-mode .prof-grades-content{
+  padding:14px!important;
+  border-radius:23px!important;
+  background:#fff!important
+}
+.nataiji-professor-mode .prof-luxe-class-group{
+  position:relative!important;
+  overflow:hidden!important;
+  display:grid!important;
+  gap:13px!important;
+  margin:0 0 13px!important;
+  padding:15px!important;
+  border:1px solid #dce9e5!important;
+  border-radius:22px!important;
+  background:
+    linear-gradient(180deg,rgba(235,248,243,.82) 0 92px,rgba(255,255,255,.98) 92px 100%)!important;
+  box-shadow:0 8px 24px rgba(25,69,60,.045)!important
+}
+.nataiji-professor-mode .prof-luxe-class-group::before{
+  content:""!important;
+  position:absolute!important;
+  top:-74px!important;
+  inset-inline-start:-46px!important;
+  width:230px!important;
+  height:150px!important;
+  border-radius:50%!important;
+  background:rgba(15,144,113,.055)!important;
+  transform:rotate(-8deg)!important;
+  pointer-events:none!important
+}
+.nataiji-professor-mode .prof-luxe-class-group .prof-class-subject-head{
+  position:relative!important;
+  z-index:2!important;
+  display:grid!important;
+  grid-template-columns:minmax(0,1fr)!important;
+  gap:11px!important;
+  padding:2px 2px 4px!important
+}
+.nataiji-professor-mode .prof-luxe-class-title{
+  display:grid!important;
+  grid-template-columns:48px minmax(0,1fr)!important;
+  align-items:center!important;
+  gap:11px!important
+}
+.nataiji-professor-mode .prof-luxe-class-icon{
+  width:46px!important;
+  height:46px!important;
+  min-width:46px!important;
+  padding:11px!important;
+  box-sizing:border-box!important;
+  display:grid!important;
+  place-items:center!important;
+  border-radius:15px!important;
+  background:#e6f7f1!important;
+  color:#07866d!important;
+  box-shadow:0 5px 12px rgba(11,121,97,.07)!important
+}
+.nataiji-professor-mode .prof-luxe-class-icon svg{
+  width:100%!important;height:100%!important
+}
+.nataiji-professor-mode .prof-luxe-class-title small{
+  display:block!important;
+  margin-bottom:2px!important;
+  color:#809096!important;
+  font-size:9px!important
+}
+.nataiji-professor-mode .prof-luxe-class-title h2{
+  margin:0 0 3px!important;
+  font-size:24px!important;
+  line-height:1!important;
+  color:#153d50!important;
+  font-weight:950!important
+}
+.nataiji-professor-mode .prof-luxe-class-title p{
+  margin:0!important;
+  color:#7d8e91!important;
+  font-size:9.5px!important;
+  line-height:1.4!important
+}
+.nataiji-professor-mode .prof-luxe-class-group .prof-class-subject-head>button{
+  width:100%!important;
+  min-height:49px!important;
+  display:flex!important;
+  align-items:center!important;
+  justify-content:center!important;
+  gap:8px!important;
+  padding:10px 14px!important;
+  border:1px solid #cee4dd!important;
+  border-radius:14px!important;
+  background:linear-gradient(180deg,#f8fdfb,#eef9f5)!important;
+  color:#105d4e!important;
+  font-size:11px!important;
+  font-weight:900!important;
+  box-shadow:0 4px 11px rgba(22,83,69,.035)!important
+}
+.nataiji-professor-mode .prof-luxe-class-group .prof-class-subject-head>button>span{
+  width:25px!important;
+  height:25px!important;
+  display:grid!important;
+  place-items:center!important;
+  border-radius:50%!important;
+  background:#0a886e!important;
+  color:#fff!important;
+  font-size:17px!important;
+  line-height:1!important
+}
+
+.nataiji-professor-mode .prof-luxe-class-group .prof-assignment-list{
+  display:grid!important;
+  gap:11px!important;
+  margin:0!important
+}
+.nataiji-professor-mode .prof-luxe-subject-card{
+  position:relative!important;
+  display:grid!important;
+  grid-template-columns:1fr!important;
+  gap:10px!important;
+  padding:14px!important;
+  overflow:hidden!important;
+  border:1px solid #dee9e5!important;
+  border-radius:20px!important;
+  background:linear-gradient(145deg,#fff,#fcfefd)!important;
+  box-shadow:0 7px 20px rgba(27,72,62,.045)!important
+}
+.nataiji-professor-mode .prof-luxe-subject-card::after{
+  content:""!important;
+  position:absolute!important;
+  z-index:0!important;
+  inset-inline-end:-36px!important;
+  bottom:-54px!important;
+  width:125px!important;
+  height:105px!important;
+  border-radius:50%!important;
+  background:rgba(11,143,112,.045)!important;
+  pointer-events:none!important
+}
+.nataiji-professor-mode .prof-luxe-subject-card>*{
+  position:relative!important;
+  z-index:2!important
+}
+.nataiji-professor-mode .prof-luxe-subject-top{
+  display:block!important
+}
+.nataiji-professor-mode .prof-luxe-subject-identity{
+  display:grid!important;
+  grid-template-columns:58px minmax(0,1fr)!important;
+  align-items:center!important;
+  gap:12px!important
+}
+.nataiji-professor-mode .prof-luxe-subject-card .prof-subject-icon{
+  width:56px!important;
+  height:56px!important;
+  min-width:56px!important;
+  display:grid!important;
+  place-items:center!important;
+  border-radius:16px!important;
+  background:linear-gradient(145deg,#0e9b7b,#087561)!important;
+  color:#fff!important;
+  font-size:23px!important;
+  font-weight:950!important;
+  box-shadow:0 8px 17px rgba(8,117,96,.14)!important
+}
+.nataiji-professor-mode .prof-luxe-subject-copy{
+  min-width:0!important;
+  display:grid!important;
+  gap:6px!important
+}
+.nataiji-professor-mode .prof-luxe-subject-card .prof-card-eyebrow{
+  display:flex!important;
+  align-items:center!important;
+  flex-wrap:wrap!important;
+  gap:6px!important;
+  margin:0!important
+}
+.nataiji-professor-mode .prof-luxe-subject-card .prof-card-eyebrow em{
+  min-height:26px!important;
+  display:inline-flex!important;
+  align-items:center!important;
+  gap:5px!important;
+  padding:4px 8px!important;
+  box-sizing:border-box!important;
+  border:0!important;
+  border-radius:999px!important;
+  background:#edf8f4!important;
+  color:#50726a!important;
+  font-size:8.5px!important;
+  line-height:1!important;
+  font-style:normal!important;
+  font-weight:750!important
+}
+.nataiji-professor-mode .prof-luxe-subject-card .prof-card-eyebrow em svg{
+  width:14px!important;
+  height:14px!important
+}
+.nataiji-professor-mode .prof-luxe-subject-card .prof-card-eyebrow .coef-chip{
+  color:#176d5c!important
+}
+.nataiji-professor-mode .prof-luxe-subject-card .prof-card-eyebrow .teacher-chip{
+  background:#f4f8f7!important
+}
+.nataiji-professor-mode .prof-luxe-subject-card h3{
+  margin:0!important;
+  color:#153c50!important;
+  font-size:20px!important;
+  line-height:1.2!important;
+  font-weight:950!important
+}
+.nataiji-professor-mode .prof-luxe-subject-card .prof-progress{
+  width:100%!important;
+  height:8px!important;
+  overflow:hidden!important;
+  margin:0!important;
+  border-radius:99px!important;
+  background:#e6eeeb!important
+}
+.nataiji-professor-mode .prof-luxe-subject-card .prof-progress i{
+  height:100%!important;
+  display:block!important;
+  border-radius:99px!important;
+  background:linear-gradient(90deg,#129f7f,#07866d)!important
+}
+.nataiji-professor-mode .prof-luxe-subject-card .prof-card-meta{
+  display:flex!important;
+  align-items:center!important;
+  justify-content:space-between!important;
+  gap:10px!important;
+  margin:0!important;
+  color:#78898e!important;
+  font-size:9.5px!important
+}
+.nataiji-professor-mode .prof-luxe-subject-card .prof-card-meta>span{
+  min-width:0!important;
+  color:#7c8d92!important;
+  font-size:9.5px!important
+}
+.nataiji-professor-mode .prof-luxe-subject-card .prof-card-meta strong{
+  color:#0b6d5c!important;
+  font-size:21px!important;
+  line-height:1!important;
+  font-weight:950!important
+}
+.nataiji-professor-mode .prof-luxe-subject-card .prof-card-meta strong span:last-child{
+  color:#75888e!important;
+  font-size:.54em!important
+}
+.nataiji-professor-mode .prof-luxe-subject-actions{
+  width:100%!important;
+  display:grid!important;
+  grid-template-columns:1fr 1fr!important;
+  gap:8px!important;
+  margin-top:1px!important
+}
+.nataiji-professor-mode .prof-luxe-subject-actions>button{
+  min-height:45px!important;
+  width:100%!important;
+  display:flex!important;
+  align-items:center!important;
+  justify-content:center!important;
+  gap:7px!important;
+  padding:9px 10px!important;
+  border-radius:13px!important;
+  font-size:10px!important;
+  font-weight:900!important
+}
+.nataiji-professor-mode .prof-luxe-subject-actions>button svg{
+  width:17px!important;
+  height:17px!important
+}
+.nataiji-professor-mode .prof-luxe-subject-actions .prof-list-action{
+  border:1px solid #d8b95b!important;
+  background:linear-gradient(180deg,#fffdf7,#fffaf0)!important;
+  color:#6e5720!important
+}
+.nataiji-professor-mode .prof-luxe-subject-actions .prof-open-grade{
+  border:1px solid #cfe2dc!important;
+  background:#fff!important;
+  color:#0a745f!important
+}
+.nataiji-professor-mode .prof-luxe-subject-actions .prof-open-grade:hover{
+  background:#eff9f5!important
+}
+
+@media(max-width:640px){
+  .nataiji-professor-mode .prof-grades-reference{
+    padding-inline:10px!important
+  }
+  .nataiji-professor-mode .prof-grades-head{
+    grid-template-columns:1fr!important;
+    gap:12px!important;
+    padding:16px!important;
+    border-radius:20px!important
+  }
+  .nataiji-professor-mode .prof-grades-head>div:first-child{
+    grid-template-columns:42px minmax(0,1fr)!important;
+    gap:10px!important
+  }
+  .nataiji-professor-mode .prof-grades-head-icon{
+    width:40px!important;height:40px!important;min-width:40px!important;padding:9px!important
+  }
+  .nataiji-professor-mode .prof-grades-head h1{
+    font-size:25px!important
+  }
+  .nataiji-professor-mode .prof-grades-head p{
+    font-size:9.7px!important
+  }
+  .nataiji-professor-mode .prof-grades-head #profGradesAddSubject{
+    width:100%!important;
+    min-width:0!important;
+    min-height:45px!important
+  }
+  .nataiji-professor-mode .prof-grades-content{
+    padding:10px!important;
+    border-radius:19px!important
+  }
+  .nataiji-professor-mode .prof-luxe-class-group{
+    padding:11px!important;
+    border-radius:19px!important
+  }
+  .nataiji-professor-mode .prof-luxe-class-title{
+    grid-template-columns:41px minmax(0,1fr)!important;
+    gap:9px!important
+  }
+  .nataiji-professor-mode .prof-luxe-class-icon{
+    width:39px!important;height:39px!important;min-width:39px!important;padding:9px!important
+  }
+  .nataiji-professor-mode .prof-luxe-class-title h2{
+    font-size:21px!important
+  }
+  .nataiji-professor-mode .prof-luxe-class-group .prof-class-subject-head>button{
+    min-height:44px!important;
+    font-size:10.5px!important
+  }
+  .nataiji-professor-mode .prof-luxe-subject-card{
+    gap:9px!important;
+    padding:12px!important;
+    border-radius:17px!important
+  }
+  .nataiji-professor-mode .prof-luxe-subject-identity{
+    grid-template-columns:48px minmax(0,1fr)!important;
+    gap:9px!important
+  }
+  .nataiji-professor-mode .prof-luxe-subject-card .prof-subject-icon{
+    width:46px!important;height:46px!important;min-width:46px!important;
+    border-radius:14px!important;font-size:20px!important
+  }
+  .nataiji-professor-mode .prof-luxe-subject-card .prof-card-eyebrow em{
+    min-height:23px!important;
+    padding:3px 7px!important;
+    font-size:7.8px!important
+  }
+  .nataiji-professor-mode .prof-luxe-subject-card h3{
+    font-size:18px!important
+  }
+  .nataiji-professor-mode .prof-luxe-subject-card .prof-card-meta strong{
+    font-size:19px!important
+  }
+  .nataiji-professor-mode .prof-luxe-subject-actions>button{
+    min-height:42px!important;
+    font-size:9.5px!important
+  }
+}
+@media(max-width:380px){
+  .nataiji-professor-mode .prof-luxe-subject-actions{
+    grid-template-columns:1fr 1fr!important
+  }
+  .nataiji-professor-mode .prof-luxe-subject-actions>button{
+    padding-inline:6px!important;
+    font-size:9px!important
+  }
+}
