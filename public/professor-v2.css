@@ -2406,3 +2406,53 @@ html.nataiji-professor-mode body{background:#f4f7f6;min-height:100vh;overflow-x:
   .nataiji-professor-mode .prof-more-row-copy b{font-size:12px!important}
   .nataiji-professor-mode .prof-more-row-copy small{font-size:7.8px!important}
 }
+
+
+/* Professor term-three annual result cards v28 */
+.nataiji-professor-mode .prof-grade-student-results.has-annual{
+  display:grid;
+  grid-template-columns:1fr 1fr;
+  gap:8px;
+  justify-content:stretch
+}
+.nataiji-professor-mode .prof-grade-student-results.has-annual>span{
+  min-width:0;
+  min-height:46px;
+  padding:7px 9px;
+  border:1px solid #dce8e4;
+  border-radius:11px;
+  background:#f8fbfa;
+  display:grid;
+  align-content:center;
+  gap:2px
+}
+.nataiji-professor-mode .prof-grade-student-results.has-annual>span small{
+  line-height:1.25
+}
+.nataiji-professor-mode .prof-grade-student-results.has-annual>span b{
+  font-size:13px
+}
+.nataiji-professor-mode .prof-grade-student-results.has-annual .annual-average{
+  border-color:#c9e6da;
+  background:#edf8f3
+}
+.nataiji-professor-mode .prof-grade-student-results.has-annual .annual-average small,
+.nataiji-professor-mode .prof-grade-student-results.has-annual .annual-average b{
+  color:#116c55
+}
+@media(max-width:420px){
+  .nataiji-professor-mode .prof-grade-student-results.has-annual{
+    grid-template-columns:1fr 1fr;
+    gap:6px
+  }
+  .nataiji-professor-mode .prof-grade-student-results.has-annual>span{
+    min-height:43px;
+    padding:6px 7px
+  }
+  .nataiji-professor-mode .prof-grade-student-results.has-annual>span small{
+    font-size:7.6px
+  }
+  .nataiji-professor-mode .prof-grade-student-results.has-annual>span b{
+    font-size:11px
+  }
+}
