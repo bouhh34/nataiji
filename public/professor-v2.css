@@ -6186,3 +6186,122 @@ html.nataiji-professor-mode body{background:#f4f7f6;min-height:100vh;overflow-x:
     grid-template-columns:1fr!important
   }
 }
+
+
+/* Professor more readability pass v40 */
+/* Improve legibility on phones without changing the professor More-page structure. */
+.nataiji-professor-mode .prof-more-reference{
+  padding-bottom:calc(106px + env(safe-area-inset-bottom,0px))!important
+}
+.nataiji-professor-mode .prof-more-reference .prof-more-reference-hero small{
+  font-size:11px!important;
+  line-height:1.25!important
+}
+.nataiji-professor-mode .prof-more-reference .prof-more-reference-hero h1{
+  font-size:25px!important;
+  line-height:1.15!important
+}
+.nataiji-professor-mode .prof-more-reference .prof-more-reference-hero p{
+  font-size:12px!important;
+  line-height:1.5!important;
+  font-weight:600!important
+}
+.nataiji-professor-mode .prof-more-reference .prof-more-list-row{
+  min-height:68px!important;
+  grid-template-columns:40px minmax(0,1fr) 20px!important;
+  gap:9px!important;
+  padding:9px 11px!important
+}
+.nataiji-professor-mode .prof-more-reference .prof-more-row-icon{
+  width:38px!important;
+  height:38px!important;
+  min-width:38px!important
+}
+.nataiji-professor-mode .prof-more-reference .prof-more-row-icon svg{
+  width:20px!important;
+  height:20px!important
+}
+.nataiji-professor-mode .prof-more-reference .prof-more-row-copy{
+  gap:3px!important
+}
+.nataiji-professor-mode .prof-more-reference .prof-more-row-copy b{
+  font-size:15px!important;
+  line-height:1.25!important;
+  font-weight:900!important
+}
+.nataiji-professor-mode .prof-more-reference .prof-more-row-copy small{
+  font-size:11.3px!important;
+  line-height:1.38!important;
+  color:#7d8d92!important;
+  font-weight:520!important
+}
+.nataiji-professor-mode .prof-more-reference .prof-more-chevron{
+  font-size:23px!important
+}
+.nataiji-professor-mode .prof-more-reference .professor-account b{
+  font-size:13.5px!important
+}
+.nataiji-professor-mode .prof-more-reference .professor-account small{
+  font-size:9.5px!important;
+  line-height:1.3!important
+}
+.nataiji-professor-mode .prof-more-reference .professor-brand b{
+  font-size:15px!important
+}
+.nataiji-professor-mode .prof-more-reference .professor-brand small{
+  font-size:8.8px!important;
+  line-height:1.25!important
+}
+.nataiji-professor-mode .prof-share-sheet p{
+  font-size:12px!important
+}
+.nataiji-professor-mode .prof-share-sheet label,
+.nataiji-professor-mode .prof-share-sheet input,
+.nataiji-professor-mode .prof-share-actions>a,
+.nataiji-professor-mode .prof-share-actions>button{
+  font-size:11px!important
+}
+
+@media(max-width:700px){
+  .nataiji-professor-mode .prof-more-reference .prof-more-reference-hero small{
+    font-size:10.5px!important
+  }
+  .nataiji-professor-mode .prof-more-reference .prof-more-reference-hero h1{
+    font-size:24px!important
+  }
+  .nataiji-professor-mode .prof-more-reference .prof-more-reference-hero p{
+    font-size:11.5px!important;
+    line-height:1.48!important
+  }
+  .nataiji-professor-mode .prof-more-reference .prof-more-list-row{
+    min-height:66px!important;
+    grid-template-columns:39px minmax(0,1fr) 19px!important;
+    padding:8px 10px!important
+  }
+  .nataiji-professor-mode .prof-more-reference .prof-more-row-icon{
+    width:37px!important;
+    height:37px!important;
+    min-width:37px!important
+  }
+  .nataiji-professor-mode .prof-more-reference .prof-more-row-copy b{
+    font-size:14.5px!important
+  }
+  .nataiji-professor-mode .prof-more-reference .prof-more-row-copy small{
+    font-size:11px!important;
+    line-height:1.35!important
+  }
+  .nataiji-professor-mode .prof-more-reference .professor-account small{
+    font-size:9.2px!important
+  }
+  .nataiji-professor-mode .prof-more-reference .professor-brand small{
+    font-size:8.6px!important
+  }
+}
+@media(max-width:380px){
+  .nataiji-professor-mode .prof-more-reference .prof-more-row-copy b{
+    font-size:14px!important
+  }
+  .nataiji-professor-mode .prof-more-reference .prof-more-row-copy small{
+    font-size:10.7px!important
+  }
+}
