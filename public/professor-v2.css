@@ -6514,3 +6514,202 @@ html.nataiji-professor-mode body{background:#f4f7f6;min-height:100vh;overflow-x:
     font-size:11.2px!important
   }
 }
+
+
+/* Professor collective shell alignment fix v43 */
+/* Collective results now uses the same professor header and bottom-nav geometry as the other professor pages. */
+.nataiji-professor-mode .prof-collective-reference{
+  width:min(100%,760px)!important;
+  max-width:760px!important;
+  margin-inline:auto!important;
+  padding-inline:8px!important;
+  padding-bottom:calc(122px + env(safe-area-inset-bottom,0px))!important;
+  box-sizing:border-box!important;
+  overflow-x:clip!important
+}
+.nataiji-professor-mode .prof-collective-reference .professor-reference-topbar{
+  min-height:68px!important;
+  padding:8px 12px!important;
+  gap:6px!important;
+  margin-bottom:12px!important;
+  border-radius:19px!important;
+  background:rgba(255,255,255,.98)!important;
+  box-shadow:0 8px 24px rgba(24,73,61,.055)!important
+}
+.nataiji-professor-mode .prof-collective-reference .professor-reference-main{
+  position:relative!important;
+  width:100%!important;
+  min-height:44px!important;
+  display:grid!important;
+  grid-template-columns:minmax(0,1fr) minmax(0,1fr)!important;
+  align-items:center!important;
+  gap:8px!important
+}
+.nataiji-professor-mode .prof-collective-reference .professor-account{
+  grid-column:auto!important;
+  width:auto!important;
+  min-width:0!important;
+  max-width:100%!important;
+  justify-self:start!important;
+  display:flex!important;
+  align-items:center!important;
+  gap:8px!important
+}
+.nataiji-professor-mode .prof-collective-reference .professor-account>span:last-child{
+  display:grid!important;
+  min-width:0!important
+}
+.nataiji-professor-mode .prof-collective-reference .prof-account-avatar{
+  width:34px!important;
+  height:34px!important;
+  min-width:34px!important;
+  padding:7px!important;
+  box-sizing:border-box!important;
+  border-radius:10px!important;
+  background:linear-gradient(145deg,#eefaf6,#dff4ed)!important;
+  border:1px solid #d2ebe3!important;
+  color:#07866d!important;
+  font-size:0!important
+}
+.nataiji-professor-mode .prof-collective-reference .prof-account-avatar svg{
+  width:100%!important;
+  height:100%!important
+}
+.nataiji-professor-mode .prof-collective-reference .professor-account b{
+  display:block!important;
+  max-width:150px!important;
+  overflow:hidden!important;
+  text-overflow:ellipsis!important;
+  white-space:nowrap!important;
+  color:#153d51!important;
+  font-size:12.5px!important;
+  line-height:1.2!important
+}
+.nataiji-professor-mode .prof-collective-reference .professor-account small{
+  display:block!important;
+  max-width:165px!important;
+  overflow:hidden!important;
+  text-overflow:ellipsis!important;
+  white-space:nowrap!important;
+  margin-top:2px!important;
+  color:#71858a!important;
+  font-size:9.3px!important;
+  line-height:1.25!important
+}
+.nataiji-professor-mode .prof-collective-reference .professor-brand{
+  grid-column:auto!important;
+  justify-self:end!important;
+  display:flex!important;
+  flex-direction:row-reverse!important;
+  align-items:center!important;
+  gap:7px!important;
+  min-width:0!important;
+  direction:ltr!important
+}
+.nataiji-professor-mode .prof-collective-reference .professor-brand img{
+  width:32px!important;
+  height:32px!important;
+  padding:1px!important;
+  border-radius:9px!important
+}
+.nataiji-professor-mode .prof-collective-reference .professor-brand span{
+  display:grid!important;
+  text-align:right!important;
+  direction:rtl!important
+}
+.nataiji-professor-mode .prof-collective-reference .professor-brand b{
+  color:#17384f!important;
+  font-size:13.5px!important;
+  line-height:1.1!important
+}
+.nataiji-professor-mode .prof-collective-reference .professor-brand small{
+  display:block!important;
+  margin-top:2px!important;
+  color:#71898c!important;
+  font-size:9.3px!important;
+  line-height:1.2!important
+}
+.nataiji-professor-mode .prof-collective-reference .prof-utility{
+  display:block!important
+}
+
+/* Enough breathing room below the report content so fixed navigation never covers the table or print buttons. */
+.nataiji-professor-mode .prof-collective-reference .prof-collective-card{
+  margin-bottom:12px!important
+}
+
+/* Fix the old collective-page left/right override that shifted half of the navigation off-screen. */
+.nataiji-professor-mode .prof-collective-reference .professor-nav{
+  position:fixed!important;
+  width:min(calc(100% - 28px),720px)!important;
+  max-width:720px!important;
+  left:50%!important;
+  right:auto!important;
+  bottom:max(10px,env(safe-area-inset-bottom,10px))!important;
+  transform:translateX(-50%)!important;
+  margin:0!important;
+  display:grid!important;
+  grid-template-columns:repeat(5,minmax(0,1fr))!important;
+  box-sizing:border-box!important;
+  overflow:visible!important;
+  z-index:1200!important
+}
+.nataiji-professor-mode .prof-collective-reference .professor-nav button{
+  min-width:0!important
+}
+
+/* Slight readability lift for the warning on phones. */
+.nataiji-professor-mode .prof-collective-reference .prof-collective-warning b{
+  font-size:13.5px!important
+}
+.nataiji-professor-mode .prof-collective-reference .prof-collective-warning p{
+  font-size:10.8px!important;
+  line-height:1.6!important
+}
+
+@media(max-width:700px){
+  .nataiji-professor-mode .prof-collective-reference{
+    padding-inline:8px!important;
+    padding-bottom:calc(118px + env(safe-area-inset-bottom,0px))!important
+  }
+  .nataiji-professor-mode .prof-collective-reference .professor-reference-topbar{
+    min-height:66px!important;
+    padding:8px 11px!important;
+    border-radius:19px!important
+  }
+  .nataiji-professor-mode .prof-collective-reference .professor-reference-main{
+    grid-template-columns:minmax(0,1fr) minmax(0,1fr)!important;
+    min-height:42px!important
+  }
+  .nataiji-professor-mode .prof-collective-reference .prof-account-avatar{
+    width:33px!important;
+    height:33px!important;
+    min-width:33px!important
+  }
+  .nataiji-professor-mode .prof-collective-reference .professor-brand img{
+    width:31px!important;
+    height:31px!important
+  }
+  .nataiji-professor-mode .prof-collective-reference .professor-account b{
+    font-size:12.2px!important
+  }
+  .nataiji-professor-mode .prof-collective-reference .professor-account small,
+  .nataiji-professor-mode .prof-collective-reference .professor-brand small{
+    font-size:9px!important
+  }
+  .nataiji-professor-mode .prof-collective-reference .professor-brand b{
+    font-size:13.2px!important
+  }
+  .nataiji-professor-mode .prof-collective-reference .professor-nav{
+    width:min(calc(100% - 28px),720px)!important;
+    left:50%!important;
+    right:auto!important;
+    transform:translateX(-50%)!important
+  }
+  .nataiji-professor-mode .prof-collective-reference .prof-collective-warning b{
+    font-size:13px!important
+  }
+  .nataiji-professor-mode .prof-collective-reference .prof-collective-warning p{
+    font-size:10.5px!important
+  }
+}
