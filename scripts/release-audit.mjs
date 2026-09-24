@@ -52,7 +52,7 @@ assert('premium v2 visual layer loaded', /nataiji-premium-v2\.css/.test(index) &
 assert('approved home reference layer loaded last', /nataiji-home-reference-v1\.css/.test(index) && /nataiji-home-reference-v1\.js/.test(index));
 assert('privacy page exists', exists('public/privacy.html'));
 assert('terms page exists', exists('public/terms.html'));
-assert('PWA cache version current', /nataiji-shell-v78/.test(sw));
+assert('PWA cache version current', /nataiji-shell-v79/.test(sw));
 assert('PWA caches final mobile css', /release-100-v1\.css/.test(sw));
 assert('PWA caches final visual polish', /nataiji-final-visual-v1\.css/.test(sw));
 assert('PWA caches premium v2 layer', /nataiji-premium-v2\.css/.test(sw) && /nataiji-premium-v2\.js/.test(sw));
@@ -134,6 +134,7 @@ const professorV2 = read('public/professor-v2.js');
 const professorCatalogSrc = read('src/professor-academic-catalog.js');
 assert('official Mauritanian professor catalog is wired', /MR-SECONDARY-OFFICIAL-2026-V4/.test(professorCatalogSrc) && /code:'7AS'/.test(professorCatalogSrc) && /technology_informatics/.test(professorCatalogSrc) && /branch\('A',29/.test(professorCatalogSrc) && /branch\('C',30/.test(professorCatalogSrc));
 assert('collective professor list uses official subject abbreviations', /name\.abbr\|\|String\(s\.subjectKey/.test(professorV2) && /<b dir="ltr">\$\{esc\(abbr\)\}<\/b>/.test(professorV2));
+assert('collective subject headers include Arabic labels', /professorCollectiveSubjectArabic/.test(professorV2) && /collective-subject-ar/.test(professorV2));
 assert('collective list is ranked and readable on Android print', /function professorClassListLandscape\(\)\{return false\}/.test(professorV2) && /orderedStudents=/.test(professorV2) && /collective-class-table/.test(professorV2));
 assert('collective PDF uses numeric ranks and no stamp box', /class-list-students-few/.test(professorV2) && /studentCount:data\.students\?\.length\|\|0/.test(professorV2) && !/الختم \/ Cachet/.test(professorV2) && /التوقيع \/ Signature/.test(professorV2));
 assert('collective professor results include every official curriculum subject', /const officialSubjects=orderedSubjects\.map/.test(server) && /assigned:false,marks:\{\}/.test(server) && /officialCoefficientTotal=subjects\.reduce/.test(server) && /Math\.abs\(officialCoefficientTotal-expectedCoefficientTotal\)/.test(server));
@@ -144,7 +145,7 @@ assert('manual professor save verifies every student atomically', /async functio
 assert('manual professor save commits every visible grade input before request', /const commitVisibleGradeInputs=\(\)=>/.test(professorV2) && /commitVisibleGradeInputs\(\);gradeEditRevision\+\+/.test(professorV2));
 assert('professor own lists refresh from server before display', /async function openMySubjectsList[\s\S]{0,240}await refreshProfile\(\)/.test(professorV2) && /async function openSubjectList[\s\S]{0,240}await refreshProfile\(\)/.test(professorV2));
 assert('professor PDF avoids visible about blank window', !/window\.open\('',\s*'_blank'\)/.test(professorV2) && /document\.createElement\('iframe'\)/.test(professorV2) && /contentWindow\?\.print/.test(professorV2));
-assert('professor v2 cache-busted asset is current', /professor-v2\.js\?v=52/.test(index));
+assert('professor v2 cache-busted asset is current', /professor-v2\.js\?v=53/.test(index));
 const ownerStaff = read('public/owner-staff-v1.js');
 assert('owner professor tools support official branches', /staffClassBranch/.test(ownerStaff) && /data-branch/.test(ownerStaff) && /subjectOptions\(catalog,level,branch\)/.test(ownerStaff));
 assert('owner staff cache-busted asset is current', /owner-staff-v1\.js\?v=3/.test(index));
