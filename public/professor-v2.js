@@ -234,8 +234,24 @@ function nav(active='home'){return `<nav class="professor-nav">
 function bindNav(el){qa('[data-prof-nav]',el).forEach(b=>b.onclick=async()=>{await flushGradeAutosave();currentView=b.dataset.profNav;renderCurrent()})}
 
 function assignmentCard(a){
- const cls=classById(a.classId),s=statsFor(a),linked=linkFor(a.classId),avg=s.avg==null?'—':s.avg.toFixed(2);
- return `<article class="prof-v2-assignment"><div class="prof-subject-icon">${esc(iconFor(a.subject))}</div><div class="prof-card-body"><div class="prof-card-eyebrow"><span>${esc(classDisplayName(cls))}</span><em>${tr('المعامل','Coef.')} ×${coefficientOf(a)}</em>${linked?`<em>🔗 ${linked.memberCount} ${tr('أساتذة','professeurs')}</em>`:''}</div><h3>${esc(profSubject(a.subject))}</h3><div class="prof-progress"><i style="width:${s.students?Math.round((s.done/s.students)*100):0}%"></i></div><div class="prof-card-meta"><span>${s.done}/${s.students} ${tr('مكتمل','terminé')}${s.term?' · '+tr('الفصل','T')+' '+s.term:''}</span><strong class="prof-grade-outof" dir="ltr"><span>${avg}</span><span>/20</span></strong></div></div><div class="prof-card-actions"><button data-subject-list-id="${esc(a.id)}">▤ ${tr('لائحة مادتي','Liste de ma matière')}</button><button class="prof-open-grade" data-grade-id="${esc(a.id)}">${tr('إدخال الدرجات','Saisir les notes')} <span>›</span></button></div></article>`
+ const cls=classById(a.classId),s=statsFor(a),linked=linkFor(a.classId),avg=s.avg==null?'—':s.avg.toFixed(2),percent=s.students?Math.round((s.done/s.students)*100):0,teachers=linked?.memberCount||1;
+ return `<article class="prof-v2-assignment prof-luxe-subject-card">
+  <div class="prof-luxe-subject-top">
+   <div class="prof-luxe-subject-identity">
+    <div class="prof-subject-icon">${esc(iconFor(a.subject))}</div>
+    <div class="prof-luxe-subject-copy">
+     <div class="prof-card-eyebrow">
+      <em class="coef-chip">${professorMoreIcon('books')}<span>${tr('المعامل','Coef.')} ×${coefficientOf(a)}</span></em>
+      <em class="teacher-chip">${professorMoreIcon('students')}<span>${teachers} ${tr('أستاذ','professeur(s)')}</span></em>
+     </div>
+     <h3>${esc(profSubject(a.subject))}</h3>
+    </div>
+   </div>
+  </div>
+  <div class="prof-progress"><i style="width:${percent}%"></i></div>
+  <div class="prof-card-meta"><strong class="prof-grade-outof" dir="ltr"><span>${avg}</span><span>/20</span></strong><span>${s.done}/${s.students} ${tr('مكتمل','terminé')}${s.term?' · '+tr('الفصل','T')+' '+s.term:''}</span></div>
+  <div class="prof-card-actions prof-luxe-subject-actions"><button class="prof-list-action" data-subject-list-id="${esc(a.id)}">${professorMoreIcon('reports')}<span>${tr('لائحة مادتي','Liste de ma matière')}</span></button><button class="prof-open-grade" data-grade-id="${esc(a.id)}">${professorMoreIcon('grades')}<span>${tr('إدخال الدرجات','Saisir les notes')}</span></button></div>
+ </article>`
 }
 
 function renderCurrent(){
@@ -305,10 +321,16 @@ function renderHome(){
 function renderGrades(){
  currentView='grades';const el=root(),assignments=profile.assignments||[];
  const groups=displayClasses().filter(cls=>assignments.some(a=>String(a.classId)===String(cls.id))).map(cls=>{
-  const subs=assignmentsForClass(cls.id),linked=linkFor(cls.id);
-  return `<section class="prof-class-subject-group"><div class="prof-class-subject-head"><div><small>${tr('القسم','Classe')}</small><h2>${esc(classDisplayName(cls))}</h2><p>${subs.length} ${tr('مادة في حسابك','matière(s) dans votre compte')}${linked?' · 🔗 '+linked.memberCount+' '+tr('أساتذة','professeurs'):''}</p></div><button data-add-subject-to-class="${esc(cls.id)}">+ ${tr('إضافة مادة لهذا القسم','Ajouter une matière à cette classe')}</button></div><div class="prof-assignment-list">${subs.map(assignmentCard).join('')}</div></section>`
+  const subs=assignmentsForClass(cls.id),linked=linkFor(cls.id),teacherCount=linked?.memberCount||1;
+  return `<section class="prof-class-subject-group prof-luxe-class-group">
+   <div class="prof-class-subject-head">
+    <div class="prof-luxe-class-title"><span class="prof-luxe-class-icon">${professorMoreIcon('students')}</span><div><small>${tr('القسم','Classe')}</small><h2>${esc(classDisplayName(cls))}</h2><p>${subs.length} ${tr('مادة في حسابك','matière(s) dans votre compte')} · ${teacherCount} ${tr('أستاذ','professeur(s)')}</p></div></div>
+    <button data-add-subject-to-class="${esc(cls.id)}"><span>+</span>${tr('إضافة مادة لهذا القسم','Ajouter une matière à cette classe')}</button>
+   </div>
+   <div class="prof-assignment-list">${subs.map(assignmentCard).join('')}</div>
+  </section>`
  }).join('');
- el.innerHTML=`<div class="professor-shell">${topbar(tr('الدرجات','Notes'),tr('القسم أولًا ثم المادة','Classe puis matière'))}<section class="prof-page-head"><div><h1>${tr('درجات موادي','Notes de mes matières')}</h1><p>${tr('القسم يُنشأ مرة واحدة. أضف داخله مادة أو أكثر، وستستخدم كل المواد نفس قائمة التلاميذ مع درجات مستقلة لكل مادة.','Une classe est créée une seule fois. Ajoutez-y une ou plusieurs matières ; elles utilisent la même liste d’élèves avec des notes indépendantes.')}</p></div><div><button class="primary" id="profGradesAddSubject">+ ${tr('مادة أو قسم','Matière ou classe')}</button></div></section><section class="professor-content">${groups||`<div class="professor-empty"><div>✎</div><h3>${tr('لا توجد مواد بعد','Aucune matière')}</h3><p>${tr('أنشئ قسمًا مع أول مادة، وبعد ذلك أضف بقية المواد إلى نفس القسم دون تكرار التلاميذ.','Créez une classe avec sa première matière, puis ajoutez les autres matières à la même classe sans répéter les élèves.')}</p><button class="primary" id="profGradesEmptyAdd">+ ${tr('إضافة أول مادة','Ajouter la première matière')}</button></div>`}</section>${nav('grades')}</div>`;
+ el.innerHTML=`<div class="professor-shell prof-grades-reference">${topbar(tr('الدرجات','Notes'),tr('القسم أولًا ثم المادة','Classe puis matière'))}<section class="prof-page-head prof-grades-head"><div><span class="prof-grades-head-icon">${professorMoreIcon('average')}</span><div><h1>${tr('درجات موادي','Notes de mes matières')}</h1><p>${tr('القسم يُنشأ مرة واحدة. أضف داخله مادة أو أكثر، وتستخدم جميع المواد نفس قائمة التلاميذ مع درجات مستقلة لكل مادة.','Une classe est créée une seule fois. Ajoutez-y une ou plusieurs matières ; toutes utilisent la même liste d’élèves avec des notes indépendantes.')}</p></div></div><div><button class="primary" id="profGradesAddSubject"><span>+</span>${tr('مادة أو قسم','Matière ou classe')}</button></div></section><section class="professor-content prof-grades-content">${groups||`<div class="professor-empty"><div>✎</div><h3>${tr('لا توجد مواد بعد','Aucune matière')}</h3><p>${tr('أنشئ قسمًا مع أول مادة، وبعد ذلك أضف بقية المواد إلى نفس القسم دون تكرار التلاميذ.','Créez une classe avec sa première matière, puis ajoutez les autres matières à la même classe sans répéter les élèves.')}</p><button class="primary" id="profGradesEmptyAdd">+ ${tr('إضافة أول مادة','Ajouter la première matière')}</button></div>`}</section>${nav('grades')}</div>`;
  bindTop(el);bindNav(el);['#profGradesAddSubject','#profGradesEmptyAdd'].forEach(s=>q(s,el)?.addEventListener('click',openAssignment));qa('[data-add-subject-to-class]',el).forEach(b=>b.onclick=()=>openAssignment(b.dataset.addSubjectToClass));qa('[data-grade-id]',el).forEach(b=>b.onclick=()=>openGrades(b.dataset.gradeId));qa('[data-subject-list-id]',el).forEach(b=>b.onclick=()=>openSubjectList(b.dataset.subjectListId,1))
 }
 function renderClasses(){
