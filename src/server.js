@@ -112,9 +112,9 @@ function professorTermAverage(row,term){
  return(rec.test+rec.exam)/2
 }
 function professorAnnualAverage(row){
- const r1=professorTermRecord(row,1),r2=professorTermRecord(row,2),r3=professorTermRecord(row,3);
- if([r1.test,r1.exam,r2.test,r2.exam,r3.test,r3.exam].some(v=>v==null))return null;
- return(r1.test+r2.test+r3.test+r1.exam+(r2.exam*2)+(r3.exam*3))/9
+ const f1=professorTermAverage(row,1),f2=professorTermAverage(row,2),f3=professorTermAverage(row,3);
+ if([f1,f2,f3].some(v=>v==null))return null;
+ return((f1*1)+(f2*2)+(f3*3))/6
 }
 function professorSubjectIdentity(a){const key=normalizeProfessorSubjectKey(a?.subjectKey||a?.subject);return key?'key:'+key:'name:'+String(a?.subject||'').trim().toLowerCase()}
 async function professorSharedSubjectConflict(userId,beforeInput,nextInput){
