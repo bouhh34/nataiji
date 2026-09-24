@@ -214,6 +214,25 @@ async function flushGradeAutosave(){
  if(ok&&gradeSavedRevision<gradeEditRevision)return flushGradeAutosave();
  return ok
 }
+async function forceProfessorGradeSave(){
+ if(gradeSaveTimer){clearTimeout(gradeSaveTimer);gradeSaveTimer=null}
+ if(gradeSaveInFlight){try{await gradeSaveInFlight}catch{}}
+ const ctx=currentGradeSaveContext();if(!ctx)return true;
+ const target=gradeEditRevision,rows=professorGradeRows(ctx);
+ gradeStatus(tr('جارٍ تثبيت جميع نتائج التلاميذ…','Enregistrement de toutes les notes…'));
+ try{
+  const r=await api('/api/professor/assignments/'+encodeURIComponent(ctx.assignmentId)+'/grades',{method:'PUT',body:JSON.stringify({term:ctx.term,rows,force:true})});
+  if(!r?.ok||r.verified!==true||Number(r.rowCount)!==rows.length)throw new Error('professor_grade_verification_failed');
+  if(gradeEditRevision!==target)return forceProfessorGradeSave();
+  await refreshProfile();
+  gradeSavedRevision=gradeEditRevision;
+  gradeStatus(tr('✓ تم حفظ والتحقق من '+rows.length+' تلميذًا','✓ '+rows.length+' élève(s) enregistré(s) et vérifié(s)'));
+  return true
+ }catch{
+  gradeStatus(tr('تعذر حفظ جميع النتائج — لم يتم اعتماد الحفظ','Impossible d’enregistrer toutes les notes — enregistrement non confirmé'));
+  return false
+ }
+}
 function toggleLanguage(){const next=fr()?'ar':'fr';localStorage.setItem('nataiji-lang',next);syncProfessorLanguage();renderCurrent()}
 
 function topbar(title='',subtitle='',home=false){
@@ -819,7 +838,7 @@ function openGrades(id,term=1){
   const sid=btn.dataset.sid,kind=btn.dataset.absentKind;marks[sid]=marks[sid]||{terms:{}};const rec=ensureProfessorTerm(marks[sid],term),current=kind==='test'?rec.tests[0]:rec.exam,next=professorIsAbsent(current)?'':'ABSENT';
   if(kind==='test')rec.tests[0]=next;else rec.exam=next;const inp=kind==='test'?q(`[data-test-index][data-sid="${CSS.escape(sid)}"]`,el):q(`[data-exam][data-sid="${CSS.escape(sid)}"]`,el);if(inp)inp.value=professorGradeDisplay(next,studentFor(sid));recalc(sid);syncAssessment(sid,kind);scheduleGradeAutosave()
  });
- q('#pv2SaveGrades',el).onclick=async()=>{const b=q('#pv2SaveGrades',el);b.disabled=true;try{const ok=await flushGradeAutosave();if(ok){q('#pv2SaveState',el).textContent=tr('✓ تم حفظ درجات الفصل '+term,'✓ Notes du trimestre '+term+' enregistrées');toast(tr('تم الحفظ','Enregistré'))}}finally{b.disabled=false}}
+ q('#pv2SaveGrades',el).onclick=async()=>{const b=q('#pv2SaveGrades',el),fields=qa('.prof-grade-entry-list input,.prof-grade-entry-list button',el);b.disabled=true;fields.forEach(x=>x.disabled=true);try{const ok=await forceProfessorGradeSave();if(ok){const ctx=currentGradeSaveContext(),count=ctx?professorGradeRows(ctx).length:0;q('#pv2SaveState',el).textContent=tr('✓ تم حفظ والتحقق من جميع النتائج ('+count+' تلميذًا)','✓ Toutes les notes ont été enregistrées et vérifiées ('+count+' élève(s))');toast(tr('تم حفظ جميع النتائج','Toutes les notes sont enregistrées'))}}finally{fields.forEach(x=>x.disabled=false);b.disabled=false}}
 }
 
 function resultText(v){return v==null?'—':Number(v).toFixed(2)}
