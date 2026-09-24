@@ -334,11 +334,42 @@ function renderGrades(){
  bindTop(el);bindNav(el);['#profGradesAddSubject','#profGradesEmptyAdd'].forEach(s=>q(s,el)?.addEventListener('click',openAssignment));qa('[data-add-subject-to-class]',el).forEach(b=>b.onclick=()=>openAssignment(b.dataset.addSubjectToClass));qa('[data-grade-id]',el).forEach(b=>b.onclick=()=>openGrades(b.dataset.gradeId));qa('[data-subject-list-id]',el).forEach(b=>b.onclick=()=>openSubjectList(b.dataset.subjectListId,1))
 }
 function renderClasses(){
- currentView='students';const el=root();const cards=displayClasses().map(c=>{const l=linkFor(c.id),subs=assignmentsForClass(c.id);return `<article class="prof-class-card"><header><div class="prof-class-avatar">♙</div><div><h3>${esc(classDisplayName(c))}</h3><p>${(c.students||[]).length} ${tr('تلميذ','élève(s)')} · ${subs.length} ${tr('مواد','matière(s)')}</p></div></header><div class="prof-class-tags">${subs.map(a=>`<span>${esc(profSubject(a.subject))} · ${tr('معامل','coef.')} ${coefficientOf(a)}</span>`).join('')||`<span class="muted">${tr('لا توجد مادة مرتبطة بعد','Aucune matière liée')}</span>`}</div><div class="prof-class-link-state">${l?`<span class="linked">🔗 ${tr('قسم جماعي','Classe collective')}</span><small>${l.memberCount} ${tr('أساتذة مرتبطون','professeurs liés')}</small>`:`<span>${tr('قسم خاص بحسابك','Classe privée')}</span><small>${tr('يمكنك إنشاء رمز جماعي لربط أساتذة هذا القسم','Vous pouvez créer un code collectif pour relier les professeurs de cette classe')}</small>`}</div><footer><button class="primary" data-manage-class="${esc(c.id)}">${tr('إدارة التلاميذ','Gérer les élèves')}</button><button data-share-class="${esc(c.id)}">🔗 ${l?tr('الرمز الجماعي','Code collectif'):tr('إنشاء رمز جماعي','Créer un code collectif')}</button></footer></article>`}).join('');
- el.innerHTML=`<div class="professor-shell">${topbar(tr('التلاميذ','Élèves'),tr('إدارة قوائم الأقسام والربط','Listes de classes et liaison'))}<section class="prof-page-head"><div><h1>${tr('التلاميذ','Élèves')}</h1><p>${tr('اختر القسم لإضافة التلاميذ أو حذفهم. القائمة نفسها تُستخدم في جميع مواد ذلك القسم.','Choisissez une classe pour ajouter ou retirer des élèves. La même liste sert à toutes les matières de la classe.')}</p></div><div><button id="profClassJoin">🔗 ${tr('الانضمام برمز القسم','Rejoindre avec un code')}</button><button class="primary" id="profClassAddSubject">+ ${tr('قسم جديد مع مادة','Nouvelle classe + matière')}</button></div></section><section class="prof-class-grid">${cards||`<div class="professor-empty"><div>♙</div><h3>${tr('لا توجد أقسام بعد','Aucune classe')}</h3><p>${tr('أنشئ القسم مع أول مادة من تبويب الدرجات، أو انضم إلى قسم جماعي بالرمز.','Créez la classe avec sa première matière depuis Notes, ou rejoignez une classe collective avec son code.')}</p><button class="primary" id="profStudentsCreate">${tr('اذهب إلى الدرجات','Aller aux notes')}</button></div>`}</section>${nav('students')}</div>`;
- bindTop(el);bindNav(el);q('#profClassAddSubject',el).onclick=openAssignment;q('#profClassJoin',el).onclick=openJoinClass;q('#profStudentsCreate',el)?.addEventListener('click',()=>{currentView='grades';renderGrades()});qa('[data-manage-class]',el).forEach(b=>b.onclick=()=>openClass(b.dataset.manageClass));qa('[data-share-class]',el).forEach(b=>b.onclick=()=>shareClass(b.dataset.shareClass))
+ currentView='students';const el=root();
+ const cards=displayClasses().map(c=>{
+  const l=linkFor(c.id),subs=assignmentsForClass(c.id),studentCount=(c.students||[]).length,teacherCount=l?.memberCount||1;
+  const subjectTags=subs.map(a=>`<span class="prof-student-subject-chip"><i>${esc(iconFor(a.subject))}</i><b>${esc(profSubject(a.subject))}</b><small>${tr('معامل','Coef.')} ${coefficientOf(a)}</small></span>`).join('')||`<span class="prof-student-subject-chip muted">${tr('لا توجد مادة مرتبطة بعد','Aucune matière liée')}</span>`;
+  return `<article class="prof-class-card prof-student-class-card">
+   <header class="prof-student-class-head">
+    <span class="prof-class-avatar">${professorMoreIcon('students')}</span>
+    <div class="prof-student-class-title"><h3>${esc(classDisplayName(c))}</h3><p><span>${studentCount} ${tr('تلميذ','élève(s)')}</span><i>•</i><span>${subs.length} ${tr('مواد','matière(s)')}</span></p></div>
+    <button class="prof-student-class-arrow" data-manage-class="${esc(c.id)}" aria-label="${tr('فتح القسم','Ouvrir la classe')}">›</button>
+   </header>
+   <div class="prof-class-tags prof-student-subject-tags">${subjectTags}</div>
+   <div class="prof-class-link-state prof-student-link-state">
+    <span class="prof-student-link-icon">${professorMoreIcon(l?'students':'link')}</span>
+    <div>${l?`<span class="linked">${tr('قسم جماعي','Classe collective')}</span><small>${teacherCount} ${tr('أساتذة مرتبطون','professeurs liés')}</small>`:`<span>${tr('قسم خاص بحسابك','Classe privée')}</span><small>${tr('يمكنك إنشاء رمز جماعي لربط أساتذة هذا القسم','Vous pouvez créer un code collectif pour relier les professeurs de cette classe')}</small>`}</div>
+   </div>
+   <footer class="prof-student-class-actions">
+    <button class="primary" data-manage-class="${esc(c.id)}">${professorMoreIcon('students')}<span>${tr('إدارة التلاميذ','Gérer les élèves')}</span></button>
+    <button data-share-class="${esc(c.id)}">${professorMoreIcon('link')}<span>${l?tr('الرمز الجماعي','Code collectif'):tr('إنشاء رمز جماعي','Créer un code collectif')}</span></button>
+   </footer>
+  </article>`
+ }).join('');
+ el.innerHTML=`<div class="professor-shell prof-students-reference">${topbar(tr('التلاميذ','Élèves'),tr('إدارة قوائم الأقسام والربط','Listes de classes et liaison'))}
+  <section class="prof-page-head prof-students-head">
+   <div class="prof-students-head-copy"><span class="prof-students-head-icon">${professorMoreIcon('students')}</span><div><h1>${tr('التلاميذ','Élèves')}</h1><p>${tr('اختر القسم لإضافة التلاميذ أو حذفهم. القائمة نفسها تُستخدم في جميع مواد ذلك القسم.','Choisissez une classe pour ajouter ou retirer des élèves. La même liste sert à toutes les matières de la classe.')}</p></div></div>
+   <div class="prof-students-head-actions"><button id="profClassJoin">${professorMoreIcon('link')}<span>${tr('الانضمام برمز القسم','Rejoindre avec un code')}</span></button><button class="primary" id="profClassAddSubject"><span class="plus">+</span><span>${tr('قسم جديد مع مادة','Nouvelle classe + matière')}</span></button></div>
+  </section>
+  <section class="prof-class-grid prof-students-class-grid">${cards||`<div class="professor-empty"><div>${professorMoreIcon('students')}</div><h3>${tr('لا توجد أقسام بعد','Aucune classe')}</h3><p>${tr('أنشئ القسم مع أول مادة من تبويب الدرجات، أو انضم إلى قسم جماعي بالرمز.','Créez la classe avec sa première matière depuis Notes, ou rejoignez une classe collective avec son code.')}</p><button class="primary" id="profStudentsCreate">${tr('اذهب إلى الدرجات','Aller aux notes')}</button></div>`}</section>
+  ${nav('students')}
+ </div>`;
+ bindTop(el);bindNav(el);
+ q('#profClassAddSubject',el).onclick=openAssignment;
+ q('#profClassJoin',el).onclick=openJoinClass;
+ q('#profStudentsCreate',el)?.addEventListener('click',()=>{currentView='grades';renderGrades()});
+ qa('[data-manage-class]',el).forEach(b=>b.onclick=()=>openClass(b.dataset.manageClass));
+ qa('[data-share-class]',el).forEach(b=>b.onclick=()=>shareClass(b.dataset.shareClass))
 }
-
 function professorMoreIcon(name){
  const common='viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"';
  const icons={
