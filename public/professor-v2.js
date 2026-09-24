@@ -90,12 +90,13 @@ function profClassPair(v){const raw=String(v||'').trim();return{ar:raw,fr:profCl
 function profSchoolPair(){const ar=String(profile.schoolName||'').trim(),frName=String(profile.schoolNameFr||'').trim()||profSchoolFrAuto(ar);return{ar,fr:frName}}
 function profRegionPair(){const ar=String(profile.region||'').trim(),frName=String(profile.regionFr||'').trim()||PROF_PLACE_FR[ar]||profTranslit(ar);return{ar,fr:frName}}
 function profInspectionPair(){const ar=String(profile.inspection||'').trim(),frName=String(profile.inspectionFr||'').trim()||profTranslit(ar);return{ar,fr:frName}}
-function profSubjectPair(subject,subjectKey='',levelCode='',branchCode=''){const spec=catalogSubject(levelCode,subjectKey||subject,branchCode),raw=String(subject||'').trim();return{ar:String(spec?.ar||raw),fr:String(spec?.fr||profSubjectFr(raw))}}
+function profSubjectPair(subject,subjectKey='',levelCode='',branchCode=''){const spec=catalogSubject(levelCode,subjectKey||subject,branchCode),raw=String(subject||'').trim();return{ar:String(spec?.ar||raw),fr:String(spec?.fr||profSubjectFr(raw)),abbr:String(spec?.abbr||'')}}
 
 function catalogLevel(code){return (academicCatalog.levels||[]).find(x=>x.code===String(code||'').toUpperCase())||null}
-function inferredLevelCode(name){const m=String(name||'').toUpperCase().replace(/\s+/g,'').match(/^([12356])AS/);return m?m[1]+'AS':''}
+function inferredLevelCode(name){const m=String(name||'').toUpperCase().replace(/\s+/g,'').match(/^([123567])AS/);return m?m[1]+'AS':''}
 function classLevel(cls){return catalogLevel(cls?.levelCode||inferredLevelCode(cls?.name))}
-function catalogBranch(levelCode,branchCode=''){const level=catalogLevel(levelCode),code=String(branchCode||'').toUpperCase();return (level?.branches||[]).find(b=>String(b.code||'').toUpperCase()===code)||null}
+function normalizedBranchCode(value){const code=String(value||'').trim().toUpperCase(),aliases={M:'C',SN:'D',LM:'A',LO:'O'};return aliases[code]||code}
+function catalogBranch(levelCode,branchCode=''){const level=catalogLevel(levelCode),code=normalizedBranchCode(branchCode);return (level?.branches||[]).find(b=>String(b.code||'').toUpperCase()===code)||null}
 function catalogSubjects(levelCode,branchCode=''){const level=catalogLevel(levelCode);if(!level)return[];const branch=catalogBranch(levelCode,branchCode);return branch?.subjects?.length?branch.subjects:(level.subjects||[])}
 function normalizedSubjectKey(value){
  const raw=String(value||'').trim().toLowerCase();if(!raw)return'';
@@ -618,10 +619,10 @@ function openAssignment(preselectClass=''){
  const opts=displayClasses().map(c=>`<option value="${esc(c.id)}" ${preselectClass===c.id?'selected':''}>${esc(classDisplayName(c))}${linkFor(c.id)?' 🔗':''}</option>`).join('');
  const levelOpts=levels.map(l=>`<option value="${esc(l.code)}">${esc(l.code)} — ${esc(fr()?l.fr:l.ar)}</option>`).join('');
  const m=modal(preselectClass?tr('إضافة مادة إلى القسم','Ajouter une matière à la classe'):tr('إضافة مادة أو قسم','Ajouter une matière ou une classe'),`
- <div class="prof-link-explain"><b>${tr('المستوى والشعبة والمادة والمعامل','Niveau, filière, matière et coefficient')}</b><p>${tr('1AS–3AS تُستخدم بمعاملاتها المعتادة. في 5AS و6AS اختر الشعبة أولًا، ثم تظهر موادها ومعاملاتها تلقائيًا.','Les niveaux 1AS–3AS utilisent leurs coefficients habituels. En 5AS et 6AS, choisissez d’abord la filière ; ses matières et coefficients s’affichent automatiquement.')}</p></div>
+ <div class="prof-link-explain"><b>${tr('المستوى والشعبة والمادة والمعامل','Niveau, filière, matière et coefficient')}</b><p>${tr('1AS–3AS تستخدم المواد والمعاملات الرسمية الجديدة للإعدادية. في 5AS و6AS و7AS اختر الشعبة الرسمية A أو C أو D أو O، ثم تظهر موادها ومعاملاتها تلقائيًا.','Les niveaux 1AS–3AS utilisent la grille officielle actuelle du collège. En 5AS, 6AS et 7AS, choisissez la section officielle A, C, D ou O ; ses matières et coefficients s’affichent automatiquement.')}</p></div>
  <label>${tr('القسم','Classe')}<select id="pv2Class"><option value="">${tr('إنشاء قسم جديد','Créer une nouvelle classe')}</option>${opts}</select></label>
- <label id="pv2NewClassLabel">${tr('اسم القسم','Nom de la classe')}<input id="pv2NewClass" maxlength="100" placeholder="${tr('مثال: 5AS-M-A','Ex. 5AS-M-A')}"></label>
- <label id="pv2LevelLabel">${tr('المستوى','Niveau')}<select id="pv2Level"><option value="">${tr('اختر المستوى','Choisir le niveau')}</option>${levelOpts}</select><small>${tr('المستويات المتاحة للأساتذة: 1AS، 2AS، 3AS، 5AS، 6AS.','Niveaux disponibles : 1AS, 2AS, 3AS, 5AS et 6AS.')}</small></label>
+ <label id="pv2NewClassLabel">${tr('اسم القسم','Nom de la classe')}<input id="pv2NewClass" maxlength="100" placeholder="${tr('مثال: 5AS-C-A','Ex. 5AS-C-A')}"></label>
+ <label id="pv2LevelLabel">${tr('المستوى','Niveau')}<select id="pv2Level"><option value="">${tr('اختر المستوى','Choisir le niveau')}</option>${levelOpts}</select><small>${tr('المستويات المتاحة للأساتذة: 1AS، 2AS، 3AS، 5AS، 6AS، 7AS.','Niveaux disponibles : 1AS, 2AS, 3AS, 5AS, 6AS et 7AS.')}</small></label>
  <label id="pv2BranchLabel" style="display:none">${tr('الشعبة','Filière')}<select id="pv2Branch"></select><small id="pv2BranchHint"></small></label>
  <label>${tr('المادة','Matière')}<select id="pv2Subject"><option value="">${tr('اختر المادة','Choisir la matière')}</option></select></label>
  <label id="pv2CustomSubjectLabel" style="display:none">${tr('مادة أخرى','Autre matière')}<input id="pv2CustomSubject" maxlength="100"></label>
@@ -629,7 +630,7 @@ function openAssignment(preselectClass=''){
  <button class="primary" id="pv2SaveAssignment">${tr('إضافة المادة','Ajouter la matière')}</button><p class="professor-msg"></p>`);
  const sel=q('#pv2Class',m.wrap),newLabel=q('#pv2NewClassLabel',m.wrap),levelSel=q('#pv2Level',m.wrap),levelLabel=q('#pv2LevelLabel',m.wrap),branchLabel=q('#pv2BranchLabel',m.wrap),branchSel=q('#pv2Branch',m.wrap),branchHint=q('#pv2BranchHint',m.wrap),subjectSel=q('#pv2Subject',m.wrap),customLabel=q('#pv2CustomSubjectLabel',m.wrap),customInput=q('#pv2CustomSubject',m.wrap),coef=q('#pv2Coefficient',m.wrap),coefHint=q('#pv2CoefficientHint',m.wrap);
  if(preselectClass)sel.value=preselectClass;
- const currentBranch=()=>{const cls=sel.value?classById(sel.value):null;return String(cls?.branchCode||branchSel.value||'').toUpperCase()};
+ const currentBranch=()=>{const cls=sel.value?classById(sel.value):null;return normalizedBranchCode(cls?.branchCode||branchSel.value||'')};
  const syncCoefficient=()=>{
   customLabel.style.display=subjectSel.value==='__other__'?'grid':'none';
   const cls=sel.value?classById(sel.value):null,levelCode=cls?.levelCode||inferredLevelCode(cls?.name)||levelSel.value,branchCode=currentBranch(),spec=catalogSubject(levelCode,subjectSel.value,branchCode);
@@ -643,7 +644,7 @@ function openAssignment(preselectClass=''){
   branchLabel.style.display=branches.length?'grid':'none';
   if(branches.length){
    branchSel.innerHTML=branches.map(b=>`<option value="${esc(b.code)}">${esc(b.code)} — ${esc(fr()?b.fr:b.ar)}</option>`).join('');
-   const desired=String(cls?.branchCode||previousBranch||branches[0]?.code||'').toUpperCase();
+   const desired=normalizedBranchCode(cls?.branchCode||previousBranch||branches[0]?.code||'');
    if([...branchSel.options].some(o=>o.value===desired))branchSel.value=desired;
    branchSel.disabled=!!cls?.branchCode;
    const selected=branches.find(b=>b.code===branchSel.value);branchHint.textContent=selected?.expectedCoefficientTotal?tr('مجموع معاملات الشعبة: ','Total des coefficients : ')+selected.expectedCoefficientTotal:''
@@ -656,7 +657,7 @@ function openAssignment(preselectClass=''){
  sel.onchange=()=>{const cls=sel.value?classById(sel.value):null;if(!cls)levelSel.disabled=false;syncSubjects()};
  levelSel.onchange=syncSubjects;branchSel.onchange=syncSubjects;subjectSel.onchange=syncCoefficient;syncSubjects();
  q('#pv2SaveAssignment',m.wrap).onclick=async()=>{
-  const msg=q('.professor-msg',m.wrap),className=q('#pv2NewClass',m.wrap).value.trim(),existing=sel.value?classById(sel.value):null,levelCode=existing?.levelCode||inferredLevelCode(existing?.name)||levelSel.value,level=catalogLevel(levelCode),branches=Array.isArray(level?.branches)?level.branches:[],branchCode=String(existing?.branchCode||branchSel.value||'').toUpperCase(),spec=catalogSubject(levelCode,subjectSel.value,branchCode),custom=customInput.value.trim(),subjectKey=spec?.key||'',subject=spec?.ar||(subjectSel.value==='__other__'?custom:''),official=spec?.official?Number(spec.coefficient):null,coefficient=official??Number(coef.value);
+  const msg=q('.professor-msg',m.wrap),className=q('#pv2NewClass',m.wrap).value.trim(),existing=sel.value?classById(sel.value):null,levelCode=existing?.levelCode||inferredLevelCode(existing?.name)||levelSel.value,level=catalogLevel(levelCode),branches=Array.isArray(level?.branches)?level.branches:[],branchCode=normalizedBranchCode(existing?.branchCode||branchSel.value||''),spec=catalogSubject(levelCode,subjectSel.value,branchCode),custom=customInput.value.trim(),subjectKey=spec?.key||'',subject=spec?.ar||(subjectSel.value==='__other__'?custom:''),official=spec?.official?Number(spec.coefficient):null,coefficient=official??Number(coef.value);
   if(!levelCode||!level){msg.textContent=tr('اختر المستوى أولًا','Choisissez d’abord le niveau');return}
   if(branches.length&&!branchCode){msg.textContent=tr('اختر الشعبة أولًا','Choisissez d’abord la filière');return}
   if(!subject){msg.textContent=tr('اختر المادة أو اكتب مادة أخرى','Choisissez une matière ou saisissez une autre matière');return}
@@ -973,7 +974,7 @@ function professorOwnListLandscape(subjectCount){return Number(subjectCount)>=3}
 function professorClassListLandscape(subjectCount){return Number(subjectCount)>=6}
 function printClassList(data){
  const className=profClassPair(data.className),term=professorTermPair(data.term),notice=professorCurriculumNoticePair(data);
- const subjectHeads=data.subjects.map(s=>{const name=profSubjectPair(s.subject,s.subjectKey,data.levelCode,data.branchCode);return `<th>${dualReportLabel(name.ar,name.fr)}<small>×${s.coefficient}</small></th>`}).join('');
+ const subjectHeads=data.subjects.map(s=>{const name=profSubjectPair(s.subject,s.subjectKey,data.levelCode,data.branchCode),abbr=name.abbr||String(s.subjectKey||'').toUpperCase().slice(0,6);return `<th title="${esc(name.ar)} / ${esc(name.fr)}"><b dir="ltr">${esc(abbr)}</b><small>×${s.coefficient}</small></th>`}).join('');
  const rows=data.students.map((row,i)=>{const studentName=profStudentNamePair(row.student),remark=professorRemarkPair(row.general);return `<tr><td>${esc(row.student.callNumber||i+1)}</td><td class="name">${dualReportLabel(studentName.ar||row.student.name,studentName.fr||row.student.name)}${row.student.nns?`<small dir="ltr">NNS: ${esc(row.student.nns)}</small>`:''}</td>${row.subjectResults.map(r=>`<td>${resultText(data.term===3?r.annualAverage:r.average)}</td>`).join('')}<td>${resultText(row.general)}</td><td>${row.rank??'—'}</td><td class="name">${dualReportLabel(remark.ar,remark.fr)}</td></tr>`}).join('');
  const avgAr=data.term===3?(data.curriculumComplete?'المعدل العام':'المعدل العام المؤقت'):(data.curriculumComplete?'معدل الفصل':'معدل الفصل المؤقت'),avgFr=data.term===3?(data.curriculumComplete?'Moyenne générale':'Moyenne générale provisoire'):(data.curriculumComplete?'Moyenne du trimestre':'Moyenne du trimestre provisoire');
  const body=`<div class="report-subtitle"><div class="dual-line"><span dir="rtl">${esc(className.ar)} · ${esc(term.ar)} · مجموع المعاملات ${curriculumProgressText(data)}</span><span dir="ltr">${esc(className.fr)} · ${esc(term.fr)} · Total coefficients ${curriculumProgressText(data)}</span></div></div>${!data.curriculumComplete?`<p class="incomplete"><span dir="rtl">${esc(notice.ar)}</span><span dir="ltr">${esc(notice.fr)}</span></p>`:''}<table class="result-table"><thead><tr><th>#</th><th>${dualReportLabel('التلميذ','Élève')}</th>${subjectHeads}<th>${dualReportLabel(avgAr,avgFr)}</th><th>${dualReportLabel(data.curriculumComplete?'الرتبة':'رتبة مؤقتة',data.curriculumComplete?'Rang':'Rang provisoire')}</th><th>${dualReportLabel('التقييم','Appréciation')}</th></tr></thead><tbody>${rows}</tbody></table><div class="summary"><div class="dual-summary"><span class="dual-ar" dir="rtl">${avgAr}: ${resultText(data.classAverage)} /20</span><span class="dual-fr" dir="ltr">${avgFr}: ${resultText(data.classAverage)} /20</span></div></div>`;
