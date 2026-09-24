@@ -472,7 +472,7 @@ app.put('/api/professor/profile',auth,async(req,res)=>{
  if(req.user.role!=='professor')return res.status(403).json({error:'forbidden'});if(!pool)return res.status(503).json({error:'durable_storage_required'});
  const before=await loadProfessorProfile(req.user.id),candidate=preserveProfessorMarks(before,req.body?.profile),conflict=await professorSharedSubjectConflict(req.user.id,before,candidate);
  if(conflict)return res.status(409).json({error:'shared_subject_taken',subject:conflict.subject,subjectKey:conflict.subjectKey,sharedClassId:conflict.sharedClassId});
- let profile=await saveProfessorProfile(req.user.id,candidate),classLinks=await professorClassLinks(profile,req.user.id);profile=cleanProfessorProfile(profile);await saveProfessorProfile(req.user.id,profile,{syncShared:false});res.json({ok:true,profile,classLinks})
+ let profile=await saveProfessorProfile(req.user.id,candidate),classLinks=await professorClassLinks(profile,req.user.id);profile=cleanProfessorProfile(profile);res.json({ok:true,profile,classLinks})
 });
 app.get('/api/professor/integrity',auth,async(req,res)=>{
  if(req.user.role!=='professor')return res.status(403).json({error:'forbidden'});if(!pool)return res.status(503).json({error:'durable_storage_required'});
