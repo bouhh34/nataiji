@@ -156,8 +156,10 @@ async function professorAggregatedResults(userId,localClassId,term){
  for(const memberId of members){
   const p=await loadProfessorProfile(memberId),classes=sharedClassId?p.classes.filter(x=>String(x.sharedClassId||'')===sharedClassId):p.classes.filter(x=>String(x.id)===String(localClassId));
   for(const cls of classes)for(const a of p.assignments.filter(x=>String(x.classId)===String(cls.id))){
-   const official=officialProfessorCoefficient(cls.levelCode,a.subjectKey||a.subject,cls.branchCode),coefficient=official??(Number(a.coefficient)>0?Number(a.coefficient):1),marks=p.marks?.[a.id]&&typeof p.marks[a.id]==='object'?p.marks[a.id]:{};
-   subjects.push({key:memberId+':'+a.id,subject:String(a.subject||''),subjectKey:String(a.subjectKey||''),coefficient,coefficientSource:official!=null?'official':'manual',ownerUserId:memberId,own:memberId===String(userId),marks})
+   const official=officialProfessorCoefficient(cls.levelCode,a.subjectKey||a.subject,cls.branchCode);
+   if(official==null)continue;
+   const coefficient=official,marks=p.marks?.[a.id]&&typeof p.marks[a.id]==='object'?p.marks[a.id]:{};
+   subjects.push({key:memberId+':'+a.id,subject:String(a.subject||''),subjectKey:String(a.subjectKey||''),coefficient,coefficientSource:'official',ownerUserId:memberId,own:memberId===String(userId),marks})
   }
  }
  const levelCatalog=professorCatalog().levels.find(x=>String(x.code)===levelCode),branchCatalog=(levelCatalog?.branches||[]).find(x=>String(x.code)===String(local.branchCode||'').toUpperCase()),orderedSubjects=branchCatalog?.subjects?.length?branchCatalog.subjects:(levelCatalog?.subjects||[]),subjectOrder=new Map(orderedSubjects.map((s,i)=>[String(s.key),i]));
