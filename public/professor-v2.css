@@ -3770,3 +3770,231 @@ html.nataiji-professor-mode body{background:#f4f7f6;min-height:100vh;overflow-x:
     width:100%!important
   }
 }
+
+
+/* Professor exact-reference correction v31 */
+/* Final corrections against the approved phone reference.
+   These rules deliberately reset legacy grid placements that were clipping numbers. */
+.nataiji-professor-mode .prof-home-shell .prof-reference-stats article{
+  grid-template-columns:clamp(46px,15%,68px) minmax(0,1fr)!important;
+  grid-template-rows:1fr!important;
+  align-items:center!important;
+  direction:ltr!important
+}
+.nataiji-professor-mode .prof-home-shell .prof-reference-stats article>.prof-stat-icon{
+  grid-column:1!important;
+  grid-row:1!important;
+  align-self:center!important;
+  justify-self:start!important;
+  margin:0!important
+}
+.nataiji-professor-mode .prof-home-shell .prof-reference-stats article>div{
+  grid-column:2!important;
+  grid-row:1!important;
+  width:100%!important;
+  max-width:100%!important;
+  min-width:0!important;
+  overflow:visible!important;
+  box-sizing:border-box!important;
+  justify-items:stretch!important;
+  align-content:center!important;
+  text-align:right!important;
+  direction:rtl!important
+}
+.nataiji-professor-mode .prof-home-shell .prof-reference-stats strong,
+.nataiji-professor-mode .prof-home-shell .prof-reference-stats small,
+.nataiji-professor-mode .prof-home-shell .prof-reference-stats em{
+  max-width:100%!important;
+  box-sizing:border-box!important;
+  overflow:visible!important
+}
+.nataiji-professor-mode .prof-home-shell .prof-reference-stats strong{
+  text-align:right!important
+}
+.nataiji-professor-mode .prof-home-shell .prof-reference-stats .prof-grade-outof{
+  width:100%!important;
+  max-width:100%!important;
+  justify-content:flex-end!important;
+  overflow:visible!important;
+  letter-spacing:-.04em!important
+}
+
+/* Reference-like quiet decorations, behind content only. */
+.nataiji-professor-mode .prof-home-shell .prof-reference-stats article::before{
+  content:""!important;
+  position:absolute!important;
+  z-index:0!important;
+  pointer-events:none!important;
+  opacity:.34!important
+}
+.nataiji-professor-mode .prof-home-shell .prof-reference-stats article.students::before{
+  width:145px!important;height:80px!important;
+  right:-24px!important;bottom:-10px!important;
+  border:12px solid #b9e3ff!important;
+  border-left-color:transparent!important;
+  border-bottom-color:transparent!important;
+  border-radius:50%!important;
+  transform:rotate(-15deg)!important
+}
+.nataiji-professor-mode .prof-home-shell .prof-reference-stats article.average::before{
+  width:52px!important;height:42px!important;
+  right:17px!important;bottom:17px!important;
+  background:
+    linear-gradient(135deg,transparent 42%,#7dd7c2 43% 48%,transparent 49%) 0 14px/18px 18px no-repeat,
+    linear-gradient(135deg,transparent 42%,#7dd7c2 43% 48%,transparent 49%) 16px 4px/18px 18px no-repeat,
+    linear-gradient(135deg,transparent 42%,#7dd7c2 43% 48%,transparent 49%) 32px 0/18px 18px no-repeat!important
+}
+.nataiji-professor-mode .prof-home-shell .prof-reference-stats article.complete::before{
+  width:54px!important;height:58px!important;
+  right:17px!important;bottom:13px!important;
+  background:
+    linear-gradient(to top,#efbd3f 0 100%) 4px 31px/8px 22px no-repeat,
+    linear-gradient(to top,#efbd3f 0 100%) 21px 20px/8px 33px no-repeat,
+    linear-gradient(to top,#efbd3f 0 100%) 38px 6px/8px 47px no-repeat!important;
+  border-radius:7px!important
+}
+.nataiji-professor-mode .prof-home-shell .prof-reference-stats article.needs::before{
+  width:54px!important;height:58px!important;
+  right:17px!important;bottom:13px!important;
+  background:
+    linear-gradient(to top,#f2a6aa 0 100%) 4px 30px/8px 23px no-repeat,
+    linear-gradient(to top,#f2a6aa 0 100%) 21px 10px/8px 43px no-repeat,
+    linear-gradient(to top,#f2a6aa 0 100%) 38px 22px/8px 31px no-repeat!important;
+  border-radius:7px!important
+}
+.nataiji-professor-mode .prof-home-shell .prof-reference-stats article>.prof-stat-icon,
+.nataiji-professor-mode .prof-home-shell .prof-reference-stats article>div{
+  position:relative!important;
+  z-index:2!important
+}
+
+/* Keep status rows on one line like the approved reference, even on narrow phones. */
+.nataiji-professor-mode .prof-home-shell .prof-home-subject-row{
+  grid-template-columns:minmax(125px,1fr) minmax(125px,48%)!important;
+  min-height:72px!important;
+  padding:10px 42px 10px 11px!important
+}
+.nataiji-professor-mode .prof-home-shell .prof-home-subject-row::after{
+  left:14px!important;
+  right:auto!important;
+  inset-inline-start:auto!important;
+  inset-inline-end:auto!important;
+  content:"›"!important;
+  transform:translateY(-50%)!important
+}
+.nataiji-professor-mode .prof-home-shell .prof-home-subject-main{
+  min-width:0!important
+}
+.nataiji-professor-mode .prof-home-shell .prof-home-subject-progress{
+  min-width:0!important;
+  width:100%!important
+}
+
+/* Enlarge hero illustration/copy to match the approved balance. */
+@media(max-width:470px){
+  .nataiji-professor-mode .prof-home-shell .prof-reference-hero{
+    min-height:204px!important;
+    grid-template-columns:minmax(145px,39%) minmax(0,1fr)!important;
+    gap:8px!important;
+    padding:15px 16px!important
+  }
+  .nataiji-professor-mode .prof-home-shell .prof-home-hero-svg{
+    width:170px!important;
+    max-width:none!important;
+    transform:translateX(-3px)!important
+  }
+  .nataiji-professor-mode .prof-home-shell .prof-home-kicker{
+    margin-bottom:7px!important;
+    font-size:10px!important
+  }
+  .nataiji-professor-mode .prof-home-shell .prof-reference-hero h1{
+    margin-bottom:8px!important;
+    font-size:29px!important;
+    line-height:1.08!important
+  }
+  .nataiji-professor-mode .prof-home-shell .prof-reference-hero p{
+    margin-bottom:13px!important;
+    font-size:10.5px!important
+  }
+  .nataiji-professor-mode .prof-home-shell #profGoGrades{
+    min-width:160px!important;
+    min-height:46px!important;
+    font-size:12.5px!important
+  }
+
+  .nataiji-professor-mode .prof-home-shell .prof-reference-stats article{
+    min-height:119px!important;
+    grid-template-columns:47px minmax(0,1fr)!important;
+    gap:9px!important;
+    padding:13px 14px!important
+  }
+  .nataiji-professor-mode .prof-home-shell .prof-stat-icon{
+    width:46px!important;height:46px!important;min-width:46px!important;padding:11px!important
+  }
+  .nataiji-professor-mode .prof-home-shell .prof-reference-stats strong{
+    font-size:31px!important;
+    line-height:1!important;
+    letter-spacing:-.035em!important
+  }
+  .nataiji-professor-mode .prof-home-shell .prof-reference-stats .prof-grade-outof>span:last-child{
+    font-size:13px!important
+  }
+  .nataiji-professor-mode .prof-home-shell .prof-reference-stats small{
+    font-size:11px!important
+  }
+  .nataiji-professor-mode .prof-home-shell .prof-reference-stats em{
+    font-size:8.2px!important
+  }
+
+  .nataiji-professor-mode .prof-home-shell .prof-home-status{
+    padding:13px!important
+  }
+  .nataiji-professor-mode .prof-home-shell .prof-home-status-head{
+    min-height:48px!important;
+    margin-bottom:10px!important
+  }
+  .nataiji-professor-mode .prof-home-shell .prof-home-status-head h2{
+    font-size:22px!important
+  }
+  .nataiji-professor-mode .prof-home-shell .prof-home-subject-row{
+    grid-template-columns:minmax(118px,1fr) minmax(112px,47%)!important;
+    min-height:66px!important;
+    gap:8px!important;
+    padding:9px 34px 9px 9px!important
+  }
+  .nataiji-professor-mode .prof-home-shell .prof-home-subject-row::after{
+    left:11px!important;
+    font-size:21px!important
+  }
+  .nataiji-professor-mode .prof-home-shell .prof-home-subject-main{
+    grid-template-columns:39px minmax(0,1fr)!important;
+    gap:8px!important
+  }
+  .nataiji-professor-mode .prof-home-shell .prof-home-subject-icon{
+    width:38px!important;height:38px!important;min-width:38px!important;
+    border-radius:11px!important;font-size:16px!important
+  }
+  .nataiji-professor-mode .prof-home-shell .prof-home-subject-progress{
+    grid-template-columns:38px minmax(0,1fr)!important;
+    gap:6px!important
+  }
+  .nataiji-professor-mode .prof-home-shell .prof-home-subject-progress>div{
+    height:7px!important
+  }
+}
+
+/* Tiny phones keep the same composition instead of stacking. */
+@media(max-width:370px){
+  .nataiji-professor-mode .prof-home-shell .prof-reference-hero{
+    grid-template-columns:126px minmax(0,1fr)!important
+  }
+  .nataiji-professor-mode .prof-home-shell .prof-home-hero-svg{
+    width:150px!important
+  }
+  .nataiji-professor-mode .prof-home-shell .prof-reference-hero h1{
+    font-size:25px!important
+  }
+  .nataiji-professor-mode .prof-home-shell .prof-home-subject-row{
+    grid-template-columns:minmax(106px,1fr) minmax(96px,45%)!important
+  }
+}
