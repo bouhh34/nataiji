@@ -395,6 +395,8 @@ function professorMoreIcon(name){
   chat:`<svg ${common}><path d="M4 5h16v11H9l-5 4z"/><path d="M8 10h.01M12 10h.01M16 10h.01"/></svg>`,
   install:`<svg ${common}><path d="M12 3v12"/><path d="m8 11 4 4 4-4"/><path d="M5 20h14"/></svg>`,
   logout:`<svg ${common}><path d="M10 4H5v16h5"/><path d="M13 8l4 4-4 4"/><path d="M17 12H8"/></svg>`,
+  share:`<svg ${common}><circle cx="18" cy="5" r="2.5"/><circle cx="6" cy="12" r="2.5"/><circle cx="18" cy="19" r="2.5"/><path d="m8.2 10.8 7.5-4.4M8.2 13.2l7.5 4.4"/></svg>`,
+  settings:`<svg ${common}><circle cx="12" cy="12" r="3"/><path d="M19.2 13.5a7.8 7.8 0 0 0 0-3l2-1.2-2-3.4-2.3.7a7.8 7.8 0 0 0-2.6-1.5L13.8 2H10l-.5 3.1a7.8 7.8 0 0 0-2.6 1.5l-2.3-.7-2 3.4 2 1.2a7.8 7.8 0 0 0 0 3l-2 1.2 2 3.4 2.3-.7a7.8 7.8 0 0 0 2.6 1.5l.5 3.1h3.8l.5-3.1a7.8 7.8 0 0 0 2.6-1.5l2.3.7 2-3.4z"/></svg>`,
   trash:`<svg ${common}><path d="M4 7h16M9 7V4h6v3M7 7l1 13h8l1-13M10 11v5M14 11v5"/></svg>`
  };return icons[name]||''
 }
@@ -457,6 +459,43 @@ async function openProfessorInstall(){
  </div>`);q('.professor-x-inline',m.wrap).onclick=m.close
 }
 
+function professorShareUrl(){
+ try{return new URL('/',window.location.href).href}catch{return window.location.href}
+}
+async function shareNataiji(){
+ const url=professorShareUrl(),title='Nataiji | نتائجي',shareText=tr('جرّب تطبيق نتائجي لإدارة الأقسام والتلاميذ والدرجات والتقارير بسهولة.','Découvrez Nataiji pour gérer facilement les classes, les élèves, les notes et les rapports.');
+ try{
+  if(typeof navigator.share==='function'){
+   await navigator.share({title,text:shareText,url});
+   return
+  }
+ }catch(e){if(e?.name==='AbortError')return}
+ try{
+  if(navigator.clipboard?.writeText){
+   await navigator.clipboard.writeText(shareText+'\n'+url);
+   toast(tr('تم نسخ رابط نتائجي للمشاركة','Le lien Nataiji a été copié'));
+   return
+  }
+ }catch{}
+ const wa='https://wa.me/?text='+encodeURIComponent(shareText+'\n'+url);
+ const m=modal(tr('مشاركة نتائجي','Partager Nataiji'),`<div class="prof-share-sheet">
+  <span class="prof-info-icon share">${professorMoreIcon('share')}</span>
+  <h3>${tr('شارك نتائجي','Partager Nataiji')}</h3>
+  <p>${tr('أرسل رابط نتائجي إلى زملائك أو انسخه لمشاركته في أي تطبيق.','Envoyez le lien Nataiji à vos collègues ou copiez-le pour le partager dans toute application.')}</p>
+  <label>${tr('رابط نتائجي','Lien Nataiji')}<input id="profShareUrl" readonly dir="ltr" value="${esc(url)}"></label>
+  <div class="prof-share-actions"><a class="prof-support-link whatsapp" target="_blank" rel="noopener" href="${wa}">${tr('مشاركة عبر WhatsApp','Partager via WhatsApp')}</a><button class="primary" id="profCopyShareUrl">${tr('نسخ الرابط','Copier le lien')}</button></div>
+  <p class="professor-msg"></p>
+ </div>`);
+ q('#profCopyShareUrl',m.wrap).onclick=async()=>{
+  const input=q('#profShareUrl',m.wrap),msg=q('.professor-msg',m.wrap);
+  try{
+   if(navigator.clipboard?.writeText)await navigator.clipboard.writeText(url);
+   else{input.focus();input.select();document.execCommand('copy')}
+   msg.textContent=tr('تم نسخ الرابط','Lien copié')
+  }catch{input.focus();input.select();msg.textContent=tr('حدد الرابط وانسخه يدويًا','Sélectionnez le lien et copiez-le manuellement')}
+ }
+}
+
 function openProfessorDeleteAccount(){
  const m=modal(tr('حذف الحساب','Supprimer le compte'),`<div class="prof-delete-sheet">
   <span class="prof-info-icon delete">${professorMoreIcon('trash')}</span>
@@ -477,7 +516,7 @@ function renderMore(){
  currentView='more';const el=root();
  const row=(id,icon,title,subtitle,tone='')=>`<button type="button" id="${id}" class="prof-more-list-row ${tone}"><span class="prof-more-row-icon">${professorMoreIcon(icon)}</span><span class="prof-more-row-copy"><b>${title}</b><small>${subtitle}</small></span><span class="prof-more-chevron">‹</span></button>`;
  el.innerHTML=`<div class="professor-shell prof-more-reference">${topbar('','')}
-  <section class="prof-more-reference-hero"><div><small>${tr('المزيد','Plus')}</small><h1>${tr('الإعدادات والأدوات','Paramètres et outils')}</h1><p>${tr('جميع الخيارات المهمة لحسابك في مكان واحد.','Toutes les options importantes de votre compte au même endroit.')}</p></div><span class="prof-more-hero-icon">⚙</span></section>
+  <section class="prof-more-reference-hero"><div><small>${tr('المزيد','Plus')}</small><h1>${tr('الإعدادات والأدوات','Paramètres et outils')}</h1><p>${tr('جميع الخيارات المهمة لحسابك في مكان واحد.','Toutes les options importantes de votre compte au même endroit.')}</p></div><span class="prof-more-hero-icon">${professorMoreIcon('settings')}</span></section>
   <section class="prof-more-list">
    ${row('profMoreAccount','account',tr('إعدادات الحساب','Paramètres du compte'),tr('الملف الشخصي، كلمة المرور وتفضيلات الحساب','Profil, mot de passe et préférences du compte'))}
    ${row('profMoreSettings','school',tr('إعدادات المؤسسة','Paramètres de l’établissement'),tr('معلومات المؤسسة والجهات الرسمية','Informations de l’établissement et autorités officielles'))}
@@ -485,6 +524,7 @@ function renderMore(){
    ${row('profMoreJoin','link',tr('الانضمام برمز القسم','Rejoindre avec un code de classe'),tr('ربط أستاذ آخر بنفس القسم','Relier un autre professeur à la même classe'))}
    ${row('profMoreRefresh','refresh',tr('تحديث البيانات','Actualiser les données'),tr('تحميل أحدث نسخة محفوظة من الخادم','Charger la dernière version enregistrée sur le serveur'))}
    ${row('profMoreLang','language',tr('اللغة','Langue'),fr()?'العربية / Français':'العربية / Français')}
+   ${row('profMoreShare','share',tr('مشاركة نتائجي','Partager Nataiji'),tr('شارك التطبيق مع زملائك عبر الهاتف أو الرابط','Partagez l’application avec vos collègues ou par lien'),'share')}
    ${row('profMorePrivacy','shield',tr('سياسة البرنامج','Politique de l’application'),tr('شروط الاستخدام وحماية البيانات','Conditions d’utilisation et protection des données'))}
    ${row('profMoreSupport','chat',tr('الدعم والملاحظات','Support et commentaires'),tr('تواصل مع إدارة نتائجي عبر WhatsApp أو البريد','Contactez Nataiji par WhatsApp ou e-mail'))}
    ${professorIsWebsite()?row('profMoreInstall','install',tr('تحميل التطبيق','Installer l’application'),tr('تحميل نتائجي أو إضافته إلى الشاشة الرئيسية','Installer Nataiji ou l’ajouter à l’écran d’accueil')):''}
@@ -500,6 +540,7 @@ function renderMore(){
  q('#profMoreJoin',el).onclick=openJoinClass;
  q('#profMoreRefresh',el).onclick=async()=>{const b=q('#profMoreRefresh',el);b.disabled=true;try{await flushGradeAutosave();await refreshProfile();toast(tr('تم التحديث','Actualisé'));renderMore()}finally{b.disabled=false}};
  q('#profMoreLang',el).onclick=async()=>{await flushGradeAutosave();toggleLanguage()};
+ q('#profMoreShare',el).onclick=shareNataiji;
  q('#profMorePrivacy',el).onclick=openProfessorPrivacy;
  q('#profMoreSupport',el).onclick=openProfessorSupport;
  q('#profMoreInstall',el)?.addEventListener('click',openProfessorInstall);
