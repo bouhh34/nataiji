@@ -194,7 +194,7 @@
 .nataiji-more-grid>.menu-card.owner-card.more-row-card>span{color:#d9edf1!important}
 
 @media(max-width:760px){
-  [data-page="more"].nataiji-more-page{padding-bottom:84px}
+  [data-page="more"].nataiji-more-page{padding-bottom:calc(140px + env(safe-area-inset-bottom,0px));scroll-padding-bottom:calc(140px + env(safe-area-inset-bottom,0px))}
   .nataiji-more-hero{min-height:108px;padding:18px;border-radius:19px;margin-bottom:9px}
   .nataiji-more-hero h1{font-size:26px}
   .nataiji-more-hero p{font-size:11.5px;max-width:78%}
