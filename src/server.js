@@ -144,30 +144,47 @@ async function professorSharedSubjectConflict(userId,beforeInput,nextInput){
 async function professorAggregatedResults(userId,localClassId,term){
  const requester=await loadProfessorProfile(userId),local=requester.classes.find(x=>String(x.id)===String(localClassId));if(!local)return null;
  const sharedClassId=String(local.sharedClassId||''),members=[];
- let className=String(local.name||''),students=Array.isArray(local.students)?structuredClone(local.students):[];
+ let className=String(local.name||''),students=Array.isArray(local.students)?structuredClone(local.students):[],canonicalLevelCode=String(local.levelCode||inferProfessorLevelCode(local.name)||'').toUpperCase(),canonicalBranchCode=normalizeProfessorBranchCode(local.branchCode||'');
  if(sharedClassId){
   const membership=await pool.query('SELECT 1 FROM nataiji_professor_class_members WHERE class_id=$1 AND user_id=$2',[sharedClassId,userId]);if(!membership.rowCount)return null;
-  const room=await pool.query('SELECT data FROM nataiji_professor_classrooms WHERE class_id=$1',[sharedClassId]);if(room.rowCount){const d=room.rows[0].data||{};className=String(d.name||className);students=Array.isArray(d.students)?d.students.map(s=>professorStudentData(s)).filter(s=>s.id&&s.name):students}
+  const room=await pool.query('SELECT data FROM nataiji_professor_classrooms WHERE class_id=$1',[sharedClassId]);if(room.rowCount){const d=room.rows[0].data||{};className=String(d.name||className);students=Array.isArray(d.students)?d.students.map(s=>professorStudentData(s)).filter(s=>s.id&&s.name):students;canonicalLevelCode=String(d.levelCode||canonicalLevelCode||inferProfessorLevelCode(className)||'').toUpperCase();canonicalBranchCode=normalizeProfessorBranchCode(d.branchCode||canonicalBranchCode||'')}
   const rows=(await pool.query('SELECT user_id FROM nataiji_professor_class_members WHERE class_id=$1 ORDER BY joined_at,user_id',[sharedClassId])).rows;for(const row of rows)members.push(String(row.user_id))
  }else members.push(String(userId));
- const subjects=[];
- const levelCode=String(local.levelCode||inferProfessorLevelCode(local.name)||'').toUpperCase();
- const expectedCoefficientTotal=expectedProfessorCoefficientTotal(levelCode,local.branchCode);
+ const subjects=[],levelCode=canonicalLevelCode,branchCode=canonicalBranchCode;
+ const expectedCoefficientTotal=expectedProfessorCoefficientTotal(levelCode,branchCode);
  for(const memberId of members){
   const p=await loadProfessorProfile(memberId),classes=sharedClassId?p.classes.filter(x=>String(x.sharedClassId||'')===sharedClassId):p.classes.filter(x=>String(x.id)===String(localClassId));
   for(const cls of classes)for(const a of p.assignments.filter(x=>String(x.classId)===String(cls.id))){
-   const official=officialProfessorCoefficient(cls.levelCode,a.subjectKey||a.subject,cls.branchCode);
-   if(official==null)continue;
-   const coefficient=official,marks=p.marks?.[a.id]&&typeof p.marks[a.id]==='object'?p.marks[a.id]:{};
-   subjects.push({key:memberId+':'+a.id,subject:String(a.subject||''),subjectKey:String(a.subjectKey||''),coefficient,coefficientSource:'official',ownerUserId:memberId,own:memberId===String(userId),marks})
+   let normalizedKey=normalizeProfessorSubjectKey(a.subjectKey||a.subject);
+   if((normalizedKey==='technology'||normalizedKey==='informatics')&&professorSubjectFor(levelCode,'technology_informatics',branchCode))normalizedKey='technology_informatics';
+   const spec=professorSubjectFor(levelCode,normalizedKey||a.subject,branchCode);
+   if(!spec?.official)continue;
+   const coefficient=Number(spec.coefficient),marks=p.marks?.[a.id]&&typeof p.marks[a.id]==='object'?p.marks[a.id]:{};
+   subjects.push({key:memberId+':'+a.id,subject:String(spec.ar||a.subject||''),subjectKey:String(spec.key||normalizedKey||a.subjectKey||''),coefficient,coefficientSource:'official',ownerUserId:memberId,own:memberId===String(userId),marks})
   }
  }
- const levelCatalog=professorCatalog().levels.find(x=>String(x.code)===levelCode),branchCatalog=(levelCatalog?.branches||[]).find(x=>String(x.code)===normalizeProfessorBranchCode(local.branchCode)),orderedSubjects=branchCatalog?.subjects?.length?branchCatalog.subjects:(levelCatalog?.subjects||[]),subjectOrder=new Map(orderedSubjects.map((s,i)=>[String(s.key),i]));
+ const levelCatalog=professorCatalog().levels.find(x=>String(x.code)===levelCode),branchCatalog=(levelCatalog?.branches||[]).find(x=>String(x.code)===branchCode),orderedSubjects=branchCatalog?.subjects?.length?branchCatalog.subjects:(levelCatalog?.subjects||[]),subjectOrder=new Map(orderedSubjects.map((s,i)=>[String(s.key),i]));
+ const mergeMarks=(primary={},secondary={})=>{
+  const out=structuredClone(primary&&typeof primary==='object'?primary:{});
+  const isEmpty=v=>v===''||v==null;
+  for(const [studentId,row] of Object.entries(secondary&&typeof secondary==='object'?secondary:{})){
+   if(!out[studentId]){out[studentId]=structuredClone(row);continue}
+   const target=out[studentId],source=row&&typeof row==='object'?row:{},targetTerms=target.terms&&typeof target.terms==='object'?target.terms:(target.terms={}),sourceTerms=source.terms&&typeof source.terms==='object'?source.terms:{};
+   for(const [termKey,sourceTermRaw] of Object.entries(sourceTerms)){
+    const sourceTerm=sourceTermRaw&&typeof sourceTermRaw==='object'?sourceTermRaw:{},targetTerm=targetTerms[termKey]&&typeof targetTerms[termKey]==='object'?targetTerms[termKey]:(targetTerms[termKey]={tests:[],exam:''}),sourceTests=Array.isArray(sourceTerm.tests)?sourceTerm.tests:[],targetTests=Array.isArray(targetTerm.tests)?targetTerm.tests:(targetTerm.tests=[]);
+    if(isEmpty(targetTests[0])&&!isEmpty(sourceTests[0]))targetTests[0]=sourceTests[0];
+    if(isEmpty(targetTerm.exam)&&!isEmpty(sourceTerm.exam))targetTerm.exam=sourceTerm.exam
+   }
+  }
+  return out
+ };
  const collectedByKey=new Map();
  for(const subject of subjects){
   const key=normalizeProfessorSubjectKey(subject.subjectKey||subject.subject);if(!key)continue;
   const previous=collectedByKey.get(key),count=x=>Object.keys(x?.marks||{}).length;
-  if(!previous||count(subject)>count(previous))collectedByKey.set(key,subject)
+  if(!previous){collectedByKey.set(key,subject);continue}
+  const preferred=count(subject)>count(previous)?subject:previous,other=preferred===subject?previous:subject;
+  collectedByKey.set(key,{...preferred,marks:mergeMarks(preferred.marks,other.marks)})
  }
  const officialSubjects=orderedSubjects.map(spec=>{
   const found=collectedByKey.get(String(spec.key));
@@ -189,7 +206,7 @@ async function professorAggregatedResults(userId,localClassId,term){
  const ranked=rows.filter(x=>x.general!=null).sort((a,b)=>b.general-a.general);
  for(const row of rows)if(row.general!=null)row.rank=1+ranked.filter(x=>x.general>row.general).length;else row.rank=null;
  const classValues=rows.map(x=>x.general).filter(x=>x!=null),classAverage=classValues.length?classValues.reduce((a,b)=>a+b,0)/classValues.length:null,officialClassValues=rows.filter(x=>x.officialReady).map(x=>x.general),officialClassAverage=officialClassValues.length?officialClassValues.reduce((a,b)=>a+b,0)/officialClassValues.length:null;
- return{classId:String(local.id),sharedClassId:sharedClassId||'',className,levelCode,branchCode:String(local.branchCode||''),term,memberCount:members.length,students:rows,subjects:subjects.map(({marks,...s})=>s),assignedCoefficientTotal,officialCoefficientTotal,expectedCoefficientTotal,curriculumComplete,classAverage,officialClassAverage,completeStudents:rows.filter(x=>x.complete).length,officialCompleteStudents:officialClassValues.length,totalStudents:rows.length}
+ return{classId:String(local.id),sharedClassId:sharedClassId||'',className,levelCode,branchCode,term,memberCount:members.length,students:rows,subjects:subjects.map(({marks,...s})=>s),assignedCoefficientTotal,officialCoefficientTotal,expectedCoefficientTotal,curriculumComplete,classAverage,officialClassAverage,completeStudents:rows.filter(x=>x.complete).length,officialCompleteStudents:officialClassValues.length,totalStudents:rows.length}
 }
 async function professorClassLinks(profile,userId){
  const links={};if(!pool)return links;
