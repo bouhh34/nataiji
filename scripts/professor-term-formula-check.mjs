@@ -21,14 +21,14 @@ const t1=calc(row,1),t2=calc(row,2),t3=calc(row,3),year=annual(row);
 if(!close(t1,11.5))throw new Error('Trimester 1 formula mismatch: '+t1);
 if(!close(t2,15.5))throw new Error('Trimester 2 formula mismatch: '+t2);
 if(!close(t3,17.5))throw new Error('Trimester 3 formula mismatch: '+t3);
-if(!close(year,16))throw new Error('Final subject formula mismatch: '+year);
+if(!close(year,95/6))throw new Error('Final subject formula mismatch: '+year);
 
 const userExample={terms:{
  '1':{tests:['10'],exam:'12'},
  '2':{tests:['10'],exam:'13'},
  '3':{tests:['10'],exam:'15'}
 }};
-if(!close(annual(userExample),113/9))throw new Error('Requested 1-2-3 weighted final subject formula mismatch: '+annual(userExample));
+if(!close(annual(userExample),71.5/6))throw new Error('Requested 1-2-3 weighted final subject formula mismatch: '+annual(userExample));
 
 if(calc({terms:{'1':{tests:[''],exam:'13'}}},1)!==null)throw new Error('Trimester average must wait for its test');
 if(calc({terms:{'2':{tests:['12'],exam:''}}},2)!==null)throw new Error('Trimester average must wait for its exam');
