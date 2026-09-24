@@ -468,7 +468,7 @@ app.put('/api/professor/assignments/:assignmentId/grades',auth,async(req,res)=>{
    return String(tests[0]??'')===cleanGrade(row.test)&&String(rec.exam??'')===cleanGrade(row.exam)
   });
   if(!verified)return res.status(409).json({error:'professor_grade_verification_failed'});
-  res.json({ok:true,verified:true,assignmentId,term,marks:confirmedMarks,savedAt:verify.rows[0]?.updated_at||new Date().toISOString()})
+  res.json({ok:true,verified:true,rowCount:rows.length,assignmentId,term,marks:confirmedMarks,savedAt:verify.rows[0]?.updated_at||new Date().toISOString()})
  }catch(e){try{await client.query('ROLLBACK')}catch{}throw e}finally{client.release()}
 });
 app.get('/api/professor/classes/:localClassId/results',auth,async(req,res)=>{
