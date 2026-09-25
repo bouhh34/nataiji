@@ -633,11 +633,11 @@ function openSettings(){
   try{await saveProfile(tr('تم حفظ الإعدادات','Paramètres enregistrés'));m.close();renderCurrent()}catch{msg.textContent=tr('تعذر الحفظ','Enregistrement impossible')}finally{b.disabled=false}
  }
 }
-function openAssignment(preselectClass=''){
+function openAssignment(preselectClass='',forcedMode=''){
  if(typeof preselectClass!=='string')preselectClass='';const returnView=currentView,levels=academicCatalog.levels||[],classes=displayClasses();
  const opts=classes.map(c=>`<option value="${esc(c.id)}" ${preselectClass===c.id?'selected':''}>${linkFor(c.id)?esc(tr('مشترك · ','Partagée · ')):''}${esc(classDisplayName(c))}</option>`).join('');
  const levelOpts=levels.map(l=>`<option value="${esc(l.code)}">${esc(l.code)} — ${esc(fr()?l.fr:l.ar)}</option>`).join('');
- let mode=preselectClass||classes.length?'existing':'new';
+ let mode=forcedMode==='new'?'new':forcedMode==='existing'?'existing':(preselectClass||classes.length?'existing':'new');
  const m=modal(preselectClass?tr('إضافة مادة إلى القسم','Ajouter une matière à la classe'):tr('إضافة مادة أو قسم','Ajouter une matière ou une classe'),`
  <div class="prof-assignment-mode" role="tablist">
   <button type="button" data-assignment-mode="existing">${tr('إضافة مادة لقسم موجود','Ajouter à une classe')}</button>
@@ -706,8 +706,8 @@ function openAssignment(preselectClass=''){
   }
   cls.levelCode=levelCode;if(branches.length)cls.branchCode=branchCode;else cls.branchCode='';
   if(profile.assignments.some(a=>a.classId===classId&&((subjectKey&&a.subjectKey===subjectKey)||(!subjectKey&&a.subject.trim().toLowerCase()===subject.toLowerCase())))){msg.textContent=tr('هذه المادة موجودة في هذا القسم بالفعل','Cette matière existe déjà pour cette classe');return}
-  profile.assignments.push({id:uid(),subject,classId,subjectKey,coefficient:Math.round(coefficient*100)/100,coefficientSource:official!=null?'official':'manual'});
-  try{await saveProfile(tr('تمت إضافة المادة للقسم','Matière ajoutée à la classe'));m.close();if(preselectClass)return openClass(classId);if(returnView==='grades')return renderGrades();if(returnView==='students'||returnView==='classes')return renderClasses();if(returnView==='more')return renderMore();renderHome()}catch(e){profile=normalize(snapshot);msg.textContent=e.code==='shared_subject_taken'?tr('هذه المادة مسجلة بالفعل عند أستاذ آخر داخل نفس القسم الجماعي. لا يمكن تكرار مالك المادة.','Cette matière appartient déjà à un autre professeur dans la même classe collective. Un seul propriétaire est autorisé.'):tr('تعذر الحفظ','Enregistrement impossible')}
+  const newAssignment={id:uid(),subject,classId,subjectKey,coefficient:Math.round(coefficient*100)/100,coefficientSource:official!=null?'official':'manual'};profile.assignments.push(newAssignment);
+  try{await saveProfile(tr('تمت إضافة المادة للقسم','Matière ajoutée à la classe'));m.close();const gradeMatch=String(returnView||'').match(/^grade:[^:]+:([123])$/);if(gradeMatch)return openGrades(newAssignment.id,Number(gradeMatch[1]));if(preselectClass)return openClass(classId);if(returnView==='grades')return renderGrades();if(returnView==='students'||returnView==='classes')return renderClasses();if(returnView==='more')return renderMore();renderHome()}catch(e){profile=normalize(snapshot);msg.textContent=e.code==='shared_subject_taken'?tr('هذه المادة مسجلة بالفعل عند أستاذ آخر داخل نفس القسم الجماعي. لا يمكن تكرار مالك المادة.','Cette matière appartient déjà à un autre professeur dans la même classe collective. Un seul propriétaire est autorisé.'):tr('تعذر الحفظ','Enregistrement impossible')}
  }
 }
 
@@ -842,8 +842,8 @@ function openGrades(id,term=1){
  term=Math.max(1,Math.min(3,Number(term)||1));const a=profile.assignments.find(x=>x.id===id);if(!a)return;currentView='grade:'+id+':'+term;
  const cls=classById(a.classId),students=cls?.students||[],marks=marksFor(id),l=linkFor(a.classId),canManageRoster=!l||l.role==='owner',coefficient=coefficientOf(a),showAnnual=term===3,avgHead=termAverageLabel(term);
  const gradeClasses=displayClasses().filter(c=>assignmentsForClass(c.id).length),siblingSubjects=assignmentsForClass(a.classId);
- const classOptions=gradeClasses.map(c=>{const linked=linkFor(c.id);return `<option value="${esc(c.id)}" ${String(c.id)===String(a.classId)?'selected':''}>${linked?esc(tr('مشترك · ','Partagée · ')):''}${esc(classDisplayName(c))}</option>`}).join('');
- const subjectOptions=siblingSubjects.map(subject=>`<option value="${esc(subject.id)}" ${String(subject.id)===String(a.id)?'selected':''}>${esc(profSubject(subject.subject))}</option>`).join('');
+ const classOptions=gradeClasses.map(c=>{const linked=linkFor(c.id);return `<option value="${esc(c.id)}" ${String(c.id)===String(a.classId)?'selected':''}>${linked?esc(tr('مشترك · ','Partagée · ')):''}${esc(classDisplayName(c))}</option>`}).join('')+`<option value="__add_class__">${tr('＋ إضافة قسم','＋ Ajouter une classe')}</option>`;
+ const subjectOptions=siblingSubjects.map(subject=>`<option value="${esc(subject.id)}" ${String(subject.id)===String(a.id)?'selected':''}>${esc(profSubject(subject.subject))}</option>`).join('')+`<option value="__add_subject__">${tr('＋ إضافة مادة','＋ Ajouter une matière')}</option>`;
  const rows=students.map((s,i)=>{
   const m=marks[s.id]||{},rec=ensureProfessorTerm(m,term),annualAvg=showAnnual?annualSubjectResult(m):null,names=profStudentNamePair(s),mainName=fr()?(names.fr||names.ar):(names.ar||names.fr),subName=fr()?(names.ar||names.fr):(names.fr||names.ar),mainDir=fr()?'ltr':'rtl',subDir=fr()?'rtl':'ltr';
   const testAbsent=professorIsAbsent(rec.tests[0]),examAbsent=professorIsAbsent(rec.exam),termDisplay=professorTermAverageDisplay(m,term);
@@ -882,8 +882,8 @@ function openGrades(id,term=1){
   </section>${nav('grades')}</div>`;
  bindTop(el);bindNav(el);
  q('#pv2BackGrade',el).onclick=async()=>{await flushGradeAutosave();renderGrades()};
- q('#pv2GradeClassSelect',el).onchange=async e=>{await flushGradeAutosave();const next=assignmentsForClass(e.target.value)[0];if(next)openGrades(next.id,term)};
- q('#pv2GradeSubjectSelect',el).onchange=async e=>{await flushGradeAutosave();openGrades(e.target.value,term)};
+ q('#pv2GradeClassSelect',el).onchange=async e=>{const value=e.target.value;await flushGradeAutosave();if(value==='__add_class__'){e.target.value=a.classId;openAssignment('','new');return}const next=assignmentsForClass(value)[0];if(next)openGrades(next.id,term)};
+ q('#pv2GradeSubjectSelect',el).onchange=async e=>{const value=e.target.value;await flushGradeAutosave();if(value==='__add_subject__'){e.target.value=a.id;openAssignment(a.classId,'existing');return}openGrades(value,term)};
  q('#pv2OwnSubjectList',el).onclick=()=>{void openSubjectList(id,term)};
  q('#pv2EditCoefficient',el).onclick=async()=>{await flushGradeAutosave();editCoefficient(id)};
  if(canManageRoster)q('#pv2AddStudentGrade',el).onclick=async()=>{await flushGradeAutosave();addStudent(a.classId,()=>openGrades(id,term))};
