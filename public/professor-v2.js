@@ -149,6 +149,16 @@ function coefficientOf(a){const cls=classById(a?.classId),spec=catalogSubject(cl
 function professorIsAbsent(v){return /^(ABSENT|غائب|غائبة|absent|absente|a)$/i.test(String(v??'').trim())}
 function professorAbsentLabel(student){const female=String(student?.sex||'').toLowerCase()==='female';return fr()?(female?'Absente':'Absent'):(female?'غائبة':'غائب')}
 function professorGradeDisplay(v,student){return professorIsAbsent(v)?professorAbsentLabel(student):String(v??'')}
+function professorTermFullyAbsent(m,term){
+ const raw=m?.terms?.[String(term)]||m?.terms?.[term]||{},tests=Array.isArray(raw?.tests)?raw.tests:[];
+ return professorIsAbsent(tests[0]??'')&&professorIsAbsent(raw?.exam??'')
+}
+function professorTermAverageDisplay(m,term){
+ const avg=termResult(m,term);if(avg==null)return'—';return professorTermFullyAbsent(m,term)?tr('غائب','Absent'):avg.toFixed(2)+'/20'
+}
+function professorReportTermAverage(test,exam,avg){
+ return professorIsAbsent(test)&&professorIsAbsent(exam)?dualReportLabel('غائب','Absent'):resultText(avg)
+}
 function markNumber(v){if(v===''||v==null)return null;if(professorIsAbsent(v))return 0;const n=Number(v);return Number.isFinite(n)?n:null}
 function ensureProfessorTerm(m,term){
  m.terms=m.terms&&typeof m.terms==='object'?m.terms:{};
@@ -767,7 +777,7 @@ function termAverageLabel(term){return term===1?tr('معدل الفصل الأو
 
 function professorSubjectListRows(a,term){
  const cls=classById(a.classId),marks=marksFor(a.id),students=cls?.students||[],annual=term===3;
- return students.map((s,i)=>{const m=marks[s.id]||{},rec=termRecord(m,term),avg=termResult(m,term),annualAvg=annual?annualSubjectResult(m):null,name=profStudentNamePair(s);return`<tr><td>${esc(s.callNumber||i+1)}</td><td class="name">${dualReportLabel(name.ar||s.name,name.fr||s.name)}${s.nns?`<small dir="ltr">NNS: ${esc(s.nns)}</small>`:''}</td><td>${reportMark(rec.displayTest,s)}</td><td>${reportMark(rec.displayExam,s)}</td><td>${resultText(avg)}</td>${annual?`<td>${resultText(annualAvg)}</td>`:''}</tr>`}).join('')
+ return students.map((s,i)=>{const m=marks[s.id]||{},rec=termRecord(m,term),avg=termResult(m,term),annualAvg=annual?annualSubjectResult(m):null,name=profStudentNamePair(s);return`<tr><td>${esc(s.callNumber||i+1)}</td><td class="name">${dualReportLabel(name.ar||s.name,name.fr||s.name)}${s.nns?`<small dir="ltr">NNS: ${esc(s.nns)}</small>`:''}</td><td>${reportMark(rec.displayTest,s)}</td><td>${reportMark(rec.displayExam,s)}</td><td>${professorReportTermAverage(rec.displayTest,rec.displayExam,avg)}</td>${annual?`<td>${resultText(annualAvg)}</td>`:''}</tr>`}).join('')
 }
 function professorSubjectListTable(a,term){
  const annual=term===3,rows=professorSubjectListRows(a,term),avgLabel=term===1?['معدل الفصل الأول','Moyenne du 1er trimestre']:term===2?['معدل الفصل الثاني','Moyenne du 2e trimestre']:['معدل الفصل الثالث','Moyenne du 3e trimestre'];
@@ -777,7 +787,7 @@ function professorMySubjectsTable(classId,term){
  const cls=classById(classId),assignments=assignmentsForClass(classId),students=cls?.students||[],annual=term===3;
  const top=assignments.map(a=>{const subject=profSubjectPair(a.subject,a.subjectKey,cls?.levelCode);return `<th colspan="${annual?4:3}" class="own-subject-group">${dualReportLabel(subject.ar,subject.fr)}<small>×${coefficientOf(a)}</small></th>`}).join('');
  const sub=assignments.map(()=>`<th>${dualReportLabel('اختبار /20','Test /20')}</th><th>${dualReportLabel(term===3?'الامتحان النهائي /20':'الامتحان /20',term===3?'Examen final /20':'Composition /20')}</th><th>${dualReportLabel('معدل الفصل','Moy. trimestre')}</th>${annual?`<th>${dualReportLabel('المعدل العام','Moy. générale')}</th>`:''}`).join('');
- const rows=students.map((student,i)=>{const name=profStudentNamePair(student),cells=assignments.map(a=>{const mark=marksFor(a.id)?.[student.id]||{},rec=termRecord(mark,term),avg=termResult(mark,term),finalAvg=annual?annualSubjectResult(mark):null;return `<td>${reportMark(rec.displayTest,student)}</td><td>${reportMark(rec.displayExam,student)}</td><td>${resultText(avg)}</td>${annual?`<td>${resultText(finalAvg)}</td>`:''}`}).join('');return `<tr><td>${esc(student.callNumber||i+1)}</td><td class="name">${dualReportLabel(name.ar||student.name,name.fr||student.name)}</td>${cells}</tr>`}).join('');
+ const rows=students.map((student,i)=>{const name=profStudentNamePair(student),cells=assignments.map(a=>{const mark=marksFor(a.id)?.[student.id]||{},rec=termRecord(mark,term),avg=termResult(mark,term),finalAvg=annual?annualSubjectResult(mark):null;return `<td>${reportMark(rec.displayTest,student)}</td><td>${reportMark(rec.displayExam,student)}</td><td>${professorReportTermAverage(rec.displayTest,rec.displayExam,avg)}</td>${annual?`<td>${resultText(finalAvg)}</td>`:''}`}).join('');return `<tr><td>${esc(student.callNumber||i+1)}</td><td class="name">${dualReportLabel(name.ar||student.name,name.fr||student.name)}</td>${cells}</tr>`}).join('');
  const colspan=2+(assignments.length*(annual?4:3));
  return `<table class="result-table professor-my-subjects-table" data-term="${term}"><thead><tr><th rowspan="2">${dualReportLabel('رقم النداء','N°')}</th><th rowspan="2">${dualReportLabel('التلميذ','Élève')}</th>${top}</tr><tr>${sub}</tr></thead><tbody>${rows||`<tr><td colspan="${colspan}">${dualReportLabel('لا يوجد تلاميذ','Aucun élève')}</td></tr>`}</tbody></table>`
 }
@@ -806,38 +816,57 @@ async function openSubjectList(id,term=1){
 function openGrades(id,term=1){
  term=Math.max(1,Math.min(3,Number(term)||1));const a=profile.assignments.find(x=>x.id===id);if(!a)return;currentView='grade:'+id+':'+term;
  const cls=classById(a.classId),students=cls?.students||[],marks=marksFor(id),l=linkFor(a.classId),canManageRoster=!l||l.role==='owner',coefficient=coefficientOf(a),showAnnual=term===3,avgHead=termAverageLabel(term);
- const cards=students.map((s,i)=>{
-  const m=marks[s.id]||{},rec=ensureProfessorTerm(m,term),avg=termResult(m,term),annualAvg=showAnnual?annualSubjectResult(m):null,names=profStudentNamePair(s),mainName=fr()?(names.fr||names.ar):(names.ar||names.fr),subName=fr()?(names.ar||names.fr):(names.fr||names.ar),mainDir=fr()?'ltr':'rtl',subDir=fr()?'rtl':'ltr';
-  const testAbsent=professorIsAbsent(rec.tests[0]),examAbsent=professorIsAbsent(rec.exam);
-  return `<article class="prof-grade-student-card" data-prof-grade-card="${esc(s.id)}">
-   <header class="prof-grade-student-head"><span class="prof-grade-call">${esc(s.callNumber||i+1)}</span><div class="prof-grade-student-copy"><b dir="${mainDir}">${esc(mainName||'—')}</b><small dir="${subDir}">${esc(subName||'—')}</small>${s.nns?`<em dir="ltr">NNS: ${esc(s.nns)}</em>`:''}</div></header>
-   <div class="prof-grade-assessments">
-    <div class="prof-grade-assessment ${testAbsent?'is-absent':''}" data-grade-assessment="test">
-     <div class="prof-grade-assessment-label"><b>${tr('الاختبار','Interrogation')}</b><small dir="ltr">/20</small></div>
-     <div class="prof-grade-score-controls"><div class="prof-grade-score-field" dir="ltr"><input inputmode="decimal" data-test-index="0" data-sid="${esc(s.id)}" value="${esc(professorGradeDisplay(rec.tests[0],s))}" placeholder="—"><em>/20</em></div><button type="button" class="prof-grade-absent" data-absent-kind="test" data-sid="${esc(s.id)}" aria-pressed="${testAbsent?'true':'false'}">${esc(professorAbsentLabel(s))}</button></div>
-    </div>
-    <div class="prof-grade-assessment ${examAbsent?'is-absent':''}" data-grade-assessment="exam">
-     <div class="prof-grade-assessment-label"><b>${term===3?tr('الامتحان النهائي','Examen final'):tr('امتحان الفصل','Composition')}</b><small dir="ltr">/20</small></div>
-     <div class="prof-grade-score-controls"><div class="prof-grade-score-field" dir="ltr"><input inputmode="decimal" data-exam="1" data-sid="${esc(s.id)}" value="${esc(professorGradeDisplay(rec.exam,s))}" placeholder="—"><em>/20</em></div><button type="button" class="prof-grade-absent" data-absent-kind="exam" data-sid="${esc(s.id)}" aria-pressed="${examAbsent?'true':'false'}">${esc(professorAbsentLabel(s))}</button></div>
-    </div>
-   </div>
-   <footer class="prof-grade-student-results ${showAnnual?'has-annual':''}"><span class="term-average"><small>${esc(avgHead)}</small><b data-avg="${esc(s.id)}">${avg==null?'—':avg.toFixed(2)}${avg==null?'':'/20'}</b></span>${showAnnual?`<span class="annual-average"><small>${tr('المعدل العام للمادة','Moyenne générale de la matière')}</small><b data-annual="${esc(s.id)}">${annualAvg==null?'—':annualAvg.toFixed(2)}${annualAvg==null?'':'/20'}</b></span>`:''}</footer>
-  </article>`
+ const gradeClasses=displayClasses().filter(c=>assignmentsForClass(c.id).length),siblingSubjects=assignmentsForClass(a.classId);
+ const classOptions=gradeClasses.map(c=>`<option value="${esc(c.id)}" ${String(c.id)===String(a.classId)?'selected':''}>${linkFor(c.id)?'🔗 ':''}${esc(classDisplayName(c))}</option>`).join('');
+ const subjectOptions=siblingSubjects.map(subject=>`<option value="${esc(subject.id)}" ${String(subject.id)===String(a.id)?'selected':''}>${esc(profSubject(subject.subject))}</option>`).join('');
+ const rows=students.map((s,i)=>{
+  const m=marks[s.id]||{},rec=ensureProfessorTerm(m,term),annualAvg=showAnnual?annualSubjectResult(m):null,names=profStudentNamePair(s),mainName=fr()?(names.fr||names.ar):(names.ar||names.fr),subName=fr()?(names.ar||names.fr):(names.fr||names.ar),mainDir=fr()?'ltr':'rtl',subDir=fr()?'rtl':'ltr';
+  const testAbsent=professorIsAbsent(rec.tests[0]),examAbsent=professorIsAbsent(rec.exam),termDisplay=professorTermAverageDisplay(m,term);
+  return `<tr data-prof-grade-card="${esc(s.id)}">
+   <td class="prof-grade-table-call">${esc(s.callNumber||i+1)}</td>
+   <td class="prof-grade-table-name"><b dir="${mainDir}">${esc(mainName||'—')}</b><small dir="${subDir}">${esc(subName||'—')}</small></td>
+   <td class="prof-grade-cell ${testAbsent?'is-absent':''}" data-grade-assessment="test"><input inputmode="decimal" data-test-index="0" data-sid="${esc(s.id)}" value="${esc(professorGradeDisplay(rec.tests[0],s))}" placeholder="—"><button type="button" class="prof-grade-absent" data-absent-kind="test" data-sid="${esc(s.id)}" aria-pressed="${testAbsent?'true':'false'}">${esc(professorAbsentLabel(s))}</button></td>
+   <td class="prof-grade-cell ${examAbsent?'is-absent':''}" data-grade-assessment="exam"><input inputmode="decimal" data-exam="1" data-sid="${esc(s.id)}" value="${esc(professorGradeDisplay(rec.exam,s))}" placeholder="—"><button type="button" class="prof-grade-absent" data-absent-kind="exam" data-sid="${esc(s.id)}" aria-pressed="${examAbsent?'true':'false'}">${esc(professorAbsentLabel(s))}</button></td>
+   <td class="prof-grade-table-average"><b data-avg="${esc(s.id)}">${esc(termDisplay)}</b>${showAnnual?`<small>${tr('العام','Annuel')}</small><strong data-annual="${esc(s.id)}">${annualAvg==null?'—':annualAvg.toFixed(2)+'/20'}</strong>`:''}</td>
+  </tr>`
  }).join('');
  const termTabs=[1,2,3].map(t=>`<button class="${t===term?'on':''}" data-prof-term="${t}">${tr('الفصل '+t,'Trimestre '+t)}</button>`).join('');
- const siblingSubjects=assignmentsForClass(a.classId),subjectSwitcher=siblingSubjects.length>1?`<div class="prof-subject-switch"><span>${tr('مواد هذا القسم','Matières de cette classe')}</span><div>${siblingSubjects.map(s=>`<button class="${s.id===a.id?'on':''}" data-switch-subject="${esc(s.id)}">${esc(profSubject(s.subject))}</button>`).join('')}</div></div>`:'';
- const el=root();el.innerHTML=`<div class="professor-shell prof-grade-reference">${topbar(profSubject(a.subject),profClass(cls?.name||''))}<section class="prof-page-head"><div><button id="pv2BackGrade" class="prof-back-inline">‹ ${tr('رجوع','Retour')}</button><span class="professor-badge">${tr('اختبار واحد /20 + امتحان واحد /20 لكل فصل','Une interrogation /20 + une composition /20 par trimestre')}</span><h1>${esc(profSubject(a.subject))}</h1><p>${esc(profClass(cls?.name||''))} · ${tr('المعامل','Coefficient')} ${coefficient} ${l?'· 🔗 '+l.memberCount+' '+tr('أساتذة','professeurs'):''}</p></div><div><button class="primary" id="pv2SaveGrades">${tr('حفظ الدرجات','Enregistrer les notes')}</button><button id="pv2OwnSubjectList">▤ ${tr('لائحة مادتي','Liste de ma matière')}</button><button id="pv2EditCoefficient">${tr('المعامل','Coefficient')} ×${coefficient}</button>${canManageRoster?`<button id="pv2AddStudentGrade">+ ${tr('تلميذ','Élève')}</button>`:''}</div></section><section class="professor-content prof-grade-teacher-style">${subjectSwitcher}<div class="prof-term-tabs">${termTabs}</div><div class="prof-term-formula"><b>${tr('تنظيم الفصل','Organisation du trimestre')}</b><span>${esc(termFormula(term))}</span><small>${term===3?tr('الفصل الثالث يعرض خانتين محسوبتين: معدل الفصل الثالث، ثم المعدل العام للمادة المعتمد في اللائحة النهائية.','Le troisième trimestre affiche deux résultats calculés : la moyenne du 3e trimestre, puis la moyenne générale de la matière utilisée dans la liste finale.'):tr('لا يُسمى هذا المعدل “المعدل العام”؛ هو معدل هذا الفصل فقط.','Cette moyenne est celle du trimestre, pas la moyenne générale annuelle.')}</small><small class="prof-absence-rule">${tr('يمكن تسجيل الغياب للاختبار أو الامتحان بشكل مستقل. تُكتب «غائب» في الوثائق وتُحتسب 0 في المعدل.','L’absence peut être saisie séparément pour l’interrogation ou la composition. « Absent » reste affiché dans les documents et compte comme 0 dans la moyenne.')}</small></div><div class="prof-grade-entry-list">${cards||`<div class="professor-empty compact"><p>${canManageRoster?tr('أضف تلاميذ القسم أولًا.','Ajoutez d’abord les élèves de la classe.'):tr('قائمة القسم الموحدة فارغة حاليًا. منشئ الرمز هو من يدير التلاميذ.','La liste unifiée est vide. Le créateur du code gère les élèves.')}</p></div>`}</div><div class="prof-save-bar"><span id="pv2SaveState">${tr('لا توجد تغييرات غير محفوظة','Aucune modification non enregistrée')}</span><small>${tr('هذا إدخال مادة الأستاذ فقط. زر الغياب يتبع جنس التلميذ ولغة التطبيق.','Cette saisie concerne uniquement la matière du professeur. Le bouton d’absence suit le sexe de l’élève et la langue de l’application.')}</small></div></section>${nav('grades')}</div>`;
+ const el=root();el.innerHTML=`<div class="professor-shell prof-grade-reference">${topbar(tr('إدخال الدرجات','Saisie des notes'),l?tr('قسم مشترك','Classe partagée'):tr('موادي','Mes matières'))}
+  <section class="prof-grade-simple-head">
+   <button id="pv2BackGrade" class="prof-grade-back" aria-label="${tr('رجوع','Retour')}">‹</button>
+   <div><h1>${tr('إدخال الدرجات','Saisie des notes')}</h1><p>${l?tr('قسم مشترك · أدخل درجات مادتك فقط','Classe partagée · saisissez uniquement les notes de votre matière'):tr('موادي · إدخال سريع وواضح','Mes matières · saisie rapide et simple')}</p></div>
+  </section>
+  <section class="professor-content prof-grade-teacher-style">
+   <div class="prof-grade-context-selectors">
+    <label><span>${tr('القسم','Classe')}${l?' · 🔗':''}</span><select id="pv2GradeClassSelect">${classOptions}</select></label>
+    <label><span>${tr('المادة','Matière')}</span><select id="pv2GradeSubjectSelect">${subjectOptions}</select></label>
+   </div>
+   ${l?`<div class="prof-grade-shared-note"><b>${tr('قسم مشترك','Classe partagée')}</b><span>${l.memberCount} ${tr('أساتذة مرتبطون','professeurs liés')} · ${tr('كل أستاذ يحفظ درجات مادته بشكل مستقل','chaque professeur enregistre sa matière séparément')}</span></div>`:''}
+   <div class="prof-grade-subject-line"><span class="prof-grade-subject-icon">${esc(iconFor(a.subject))}</span><div><b>${esc(profSubject(a.subject))}</b><small>${tr('المعامل','Coefficient')} ×${coefficient}</small></div></div>
+   <div class="prof-term-tabs">${termTabs}</div>
+   <div class="prof-grade-absence-tip"><span>i</span><p>${tr('الغائب يُحتسب 0 في الحساب. إذا غاب التلميذ عن الاختبار والامتحان معًا يظهر معدل الفصل «غائب».','Une absence compte 0 dans le calcul. Si l’élève est absent à l’interrogation et à la composition, la moyenne du trimestre affiche « Absent ».')}</p></div>
+   <div class="prof-grade-table-wrap prof-grade-entry-list">
+    <table class="prof-grade-compact-table">
+     <thead><tr><th>#</th><th>${tr('اسم التلميذ','Élève')}</th><th>${tr('الاختبار','Interro.')}<small>/20</small></th><th>${term===3?tr('النهائي','Final'):tr('الامتحان','Compo.')}<small>/20</small></th><th>${tr('المعدل','Moyenne')}<small>/20</small></th></tr></thead>
+     <tbody>${rows||`<tr><td colspan="5" class="prof-grade-empty">${canManageRoster?tr('أضف تلاميذ القسم أولًا.','Ajoutez d’abord les élèves de la classe.'):tr('قائمة القسم المشتركة فارغة حاليًا.','La liste de la classe partagée est vide.')}</td></tr>`}</tbody>
+    </table>
+   </div>
+   <button class="primary prof-grade-save-main" id="pv2SaveGrades">${tr('حفظ الدرجات','Enregistrer les notes')}</button>
+   <div class="prof-save-bar"><span id="pv2SaveState">${tr('لا توجد تغييرات غير محفوظة','Aucune modification non enregistrée')}</span><small>${tr('الحفظ التلقائي يعمل، وزر الحفظ يثبت النتائج ويتحقق منها على الخادم.','L’enregistrement automatique est actif ; le bouton confirme ensuite toutes les notes sur le serveur.')}</small></div>
+   <details class="prof-grade-tools"><summary>${tr('خيارات المادة','Options de la matière')}</summary><div><button id="pv2OwnSubjectList">${tr('لائحة مادتي','Liste de ma matière')}</button><button id="pv2EditCoefficient">${tr('المعامل','Coefficient')} ×${coefficient}</button>${canManageRoster?`<button id="pv2AddStudentGrade">+ ${tr('إضافة تلميذ','Ajouter un élève')}</button>`:''}</div></details>
+  </section>${nav('grades')}</div>`;
  bindTop(el);bindNav(el);
- q('#pv2BackGrade',el).onclick=async()=>{await flushGradeAutosave();openClass(a.classId)};
+ q('#pv2BackGrade',el).onclick=async()=>{await flushGradeAutosave();renderGrades()};
+ q('#pv2GradeClassSelect',el).onchange=async e=>{await flushGradeAutosave();const next=assignmentsForClass(e.target.value)[0];if(next)openGrades(next.id,term)};
+ q('#pv2GradeSubjectSelect',el).onchange=async e=>{await flushGradeAutosave();openGrades(e.target.value,term)};
  q('#pv2OwnSubjectList',el).onclick=()=>{void openSubjectList(id,term)};
  q('#pv2EditCoefficient',el).onclick=async()=>{await flushGradeAutosave();editCoefficient(id)};
  if(canManageRoster)q('#pv2AddStudentGrade',el).onclick=async()=>{await flushGradeAutosave();addStudent(a.classId,()=>openGrades(id,term))};
- qa('[data-switch-subject]',el).forEach(b=>b.onclick=async()=>{await flushGradeAutosave();openGrades(b.dataset.switchSubject,term)});
  qa('[data-prof-term]',el).forEach(b=>b.onclick=async()=>{await flushGradeAutosave();openGrades(id,Number(b.dataset.profTerm))});
  const studentFor=sid=>students.find(s=>String(s.id)===String(sid))||{};
  const recalc=sid=>{
-  const m=marks[sid]||{},avg=termResult(m,term),annualAvg=showAnnual?annualSubjectResult(m):null,avgEl=q(`[data-avg="${CSS.escape(sid)}"]`,el),annualEl=showAnnual?q(`[data-annual="${CSS.escape(sid)}"]`,el):null;
-  if(avgEl)avgEl.textContent=avg==null?'—':avg.toFixed(2)+'/20';if(annualEl)annualEl.textContent=annualAvg==null?'—':annualAvg.toFixed(2)+'/20'
+  const m=marks[sid]||{},annualAvg=showAnnual?annualSubjectResult(m):null,avgEl=q(`[data-avg="${CSS.escape(sid)}"]`,el),annualEl=showAnnual?q(`[data-annual="${CSS.escape(sid)}"]`,el):null;
+  if(avgEl)avgEl.textContent=professorTermAverageDisplay(m,term);if(annualEl)annualEl.textContent=annualAvg==null?'—':annualAvg.toFixed(2)+'/20'
  };
  const syncAssessment=(sid,kind)=>{
   const s=studentFor(sid),rec=ensureProfessorTerm(marks[sid]||(marks[sid]={terms:{}}),term),raw=kind==='test'?rec.tests[0]:rec.exam,box=q(`[data-prof-grade-card="${CSS.escape(sid)}"] [data-grade-assessment="${kind}"]`,el),inp=kind==='test'?q(`[data-test-index][data-sid="${CSS.escape(sid)}"]`,el):q(`[data-exam][data-sid="${CSS.escape(sid)}"]`,el),btn=q(`[data-absent-kind="${kind}"][data-sid="${CSS.escape(sid)}"]`,el),isAbsent=professorIsAbsent(raw);
@@ -901,7 +930,7 @@ function professorSecondaryBulletinTable(data,row){
  const term=Math.max(1,Math.min(3,Number(data?.term)||1)),subjects=Array.isArray(data?.subjects)?data.subjects:[],results=Array.isArray(row?.subjectResults)?row.subjectResults:[],annual=term===3;
  const rows=subjects.map((s,i)=>{
   const r=results[i]||{},name=profSubjectPair(s.subject,s.subjectKey,data.levelCode,data.branchCode),remark=professorRemarkPair(annual?r.annualAverage:r.average);
-  return `<tr><td class="name">${dualReportLabel(name.ar,name.fr)}</td><td class="test-cell">${reportMark(r.tests?.[0],row.student)}</td><td class="assessment-cell">${reportMark(r.exam,row.student)}</td><td class="mean-cell">${resultText(r.average)}</td>${annual?`<td class="mean-cell">${resultText(r.annualAverage)}</td>`:''}<td class="coef-cell">${s.coefficient}</td><td class="weighted-cell">${resultText(r.weighted)}</td><td class="observation-cell">${dualReportLabel(remark.ar,remark.fr)}</td></tr>`
+  return `<tr><td class="name">${dualReportLabel(name.ar,name.fr)}</td><td class="test-cell">${reportMark(r.tests?.[0],row.student)}</td><td class="assessment-cell">${reportMark(r.exam,row.student)}</td><td class="mean-cell">${professorReportTermAverage(r.tests?.[0],r.exam,r.average)}</td>${annual?`<td class="mean-cell">${resultText(r.annualAverage)}</td>`:''}<td class="coef-cell">${s.coefficient}</td><td class="weighted-cell">${resultText(r.weighted)}</td><td class="observation-cell">${dualReportLabel(remark.ar,remark.fr)}</td></tr>`
  }).join('');
  const colspan=annual?8:7,avgLabel=term===1?['معدل الفصل الأول','Moyenne du 1er trimestre']:term===2?['معدل الفصل الثاني','Moyenne du 2e trimestre']:['معدل الفصل الثالث','Moyenne du 3e trimestre'];
  return `<table class="result-table secondary-bulletin-table" data-term="${term}"><thead><tr><th class="discipline-head">${dualReportLabel('المواد الدراسية','Disciplines')}</th><th class="test-head">${dualReportLabel('الاختبار /20','Interrogation /20')}</th><th class="assessment-col">${dualReportLabel(term===3?'الامتحان النهائي /20':'امتحان الفصل /20',term===3?'Examen final /20':'Composition /20')}</th><th class="mean-head">${dualReportLabel(avgLabel[0],avgLabel[1])}</th>${annual?`<th class="mean-head">${dualReportLabel('المعدل العام للمادة','Moyenne générale de la matière')}</th>`:''}<th class="coef-head">${dualReportLabel('المعامل','Coef.')}</th><th class="weighted-head">${dualReportLabel('النقاط الموزونة','Points pondérés')}</th><th class="obs-head">${dualReportLabel('ملاحظات الأستاذ','Observations du professeur')}</th></tr></thead><tbody>${rows||`<tr><td colspan="${colspan}">${dualReportLabel('لا توجد مواد','Aucune matière')}</td></tr>`}</tbody></table>`
@@ -995,7 +1024,7 @@ function printClassList(data){
  const className=profClassPair(data.className),term=professorTermPair(data.term),notice=professorCurriculumNoticePair(data);
  const subjectHeads=data.subjects.map(s=>{const name=profSubjectPair(s.subject,s.subjectKey,data.levelCode,data.branchCode),abbr=name.abbr||String(s.subjectKey||'').toUpperCase().slice(0,6),ar=professorCollectiveSubjectArabic(s.subjectKey,name.ar);return `<th class="subject-head" title="${esc(name.ar)} / ${esc(name.fr)}"><span class="subject-vertical" dir="rtl">${esc(ar)}</span><b dir="ltr">${esc(abbr)}</b><small>×${s.coefficient}</small></th>`}).join('');
  const orderedStudents=[...(data.students||[])].sort((a,b)=>(Number(a.rank)||9999)-(Number(b.rank)||9999)||String(a.student?.name||'').localeCompare(String(b.student?.name||''),'ar'));
- const rows=orderedStudents.map(row=>{const studentName=profStudentNamePair(row.student),remark=professorRemarkPair(row.general),rank=Number(row.rank);return `<tr><td class="rank-cell">${Number.isFinite(rank)&&rank>=1?esc(String(rank)):'—'}</td><td class="name">${dualReportLabel(studentName.ar||row.student.name,studentName.fr||row.student.name)}${row.student.nns?`<small dir="ltr">NNS: ${esc(row.student.nns)}</small>`:''}</td>${row.subjectResults.map(r=>`<td>${reportMark(data.term===3?r.annualAverage:r.average)}</td>`).join('')}<td>${resultText(row.general)}</td><td class="name">${dualReportLabel(remark.ar,remark.fr)}</td></tr>`}).join('');
+ const rows=orderedStudents.map(row=>{const studentName=profStudentNamePair(row.student),remark=professorRemarkPair(row.general),rank=Number(row.rank);return `<tr><td class="rank-cell">${Number.isFinite(rank)&&rank>=1?esc(String(rank)):'—'}</td><td class="name">${dualReportLabel(studentName.ar||row.student.name,studentName.fr||row.student.name)}${row.student.nns?`<small dir="ltr">NNS: ${esc(row.student.nns)}</small>`:''}</td>${row.subjectResults.map(r=>`<td>${data.term===3?reportMark(r.annualAverage):professorReportTermAverage(r.tests?.[0],r.exam,r.average)}</td>`).join('')}<td>${resultText(row.general)}</td><td class="name">${dualReportLabel(remark.ar,remark.fr)}</td></tr>`}).join('');
  const avgAr=data.term===3?(data.curriculumComplete?'المعدل العام':'المعدل العام المؤقت'):(data.curriculumComplete?'معدل الفصل':'معدل الفصل المؤقت'),avgFr=data.term===3?(data.curriculumComplete?'Moyenne générale':'Moyenne générale provisoire'):(data.curriculumComplete?'Moyenne du trimestre':'Moyenne du trimestre provisoire');
  const body=`<div class="report-subtitle collective-meta"><div class="collective-meta-row ar" dir="rtl"><span><b>القسم:</b> ${esc(className.ar)}</span><span><b>الفصل:</b> ${esc(term.ar)}</span><span><b>مجموع المعاملات:</b> ${curriculumProgressText(data)}</span></div><div class="collective-meta-row fr" dir="ltr"><span><b>Classe :</b> ${esc(className.fr)}</span><span><b>Trimestre :</b> ${esc(term.fr)}</span><span><b>Total coefficients :</b> ${curriculumProgressText(data)}</span></div></div>${!data.curriculumComplete?`<p class="incomplete"><span dir="rtl">${esc(notice.ar)}</span><span dir="ltr">${esc(notice.fr)}</span></p>`:''}<table class="result-table collective-class-table"><thead><tr><th class="rank-head">${dualReportLabel(data.curriculumComplete?'الرتبة':'رتبة مؤقتة',data.curriculumComplete?'Rang':'Rang provisoire')}</th><th class="student-head">${dualReportLabel('التلميذ','Élève')}</th>${subjectHeads}<th class="average-head">${dualReportLabel(avgAr,avgFr)}</th><th class="appreciation-head">${dualReportLabel('التقييم','Appréciation')}</th></tr></thead><tbody>${rows}</tbody></table>`;
  printProfessorDocument(tr('اللائحة الجماعية للقسم','Liste collective de la classe'),body,{className:data.className,term:data.term,compact:true,subjectCount:data.subjects.length,titleAr:'اللائحة الجماعية للقسم',titleFr:'Liste collective de la classe',layoutClass:'class-list-doc',landscape:false,studentCount:data.students?.length||0,pageMargin:'3mm'})
