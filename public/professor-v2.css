@@ -6872,3 +6872,241 @@ html.nataiji-professor-mode body{background:#f4f7f6;min-height:100vh;overflow-x:
     font-size:10.5px!important
   }
 }
+
+
+/* Professor grade-entry simplification v45 — professor workspace only */
+.nataiji-professor-mode .prof-grade-reference .prof-grade-simple-head{
+  display:flex;align-items:center;gap:12px;margin:4px 0 12px;padding:2px 2px 0
+}
+.nataiji-professor-mode .prof-grade-reference .prof-grade-simple-head h1{
+  margin:0;color:#173d4d;font-size:26px;line-height:1.2
+}
+.nataiji-professor-mode .prof-grade-reference .prof-grade-simple-head p{
+  margin:3px 0 0;color:#73867f;font-size:11.5px;line-height:1.45
+}
+.nataiji-professor-mode .prof-grade-reference .prof-grade-back{
+  width:42px;height:42px;min-width:42px;padding:0!important;border-radius:50%!important;
+  display:grid;place-items:center;font-size:29px!important;line-height:1;background:#fff!important
+}
+.nataiji-professor-mode .prof-grade-reference .prof-grade-context-selectors{
+  display:grid;grid-template-columns:1fr 1fr;gap:9px;margin-bottom:10px
+}
+.nataiji-professor-mode .prof-grade-reference .prof-grade-context-selectors label{
+  display:grid;gap:5px;min-width:0
+}
+.nataiji-professor-mode .prof-grade-reference .prof-grade-context-selectors label>span{
+  color:#6b7f78;font-size:11px;font-weight:800
+}
+.nataiji-professor-mode .prof-grade-reference .prof-grade-context-selectors select{
+  width:100%;min-width:0;height:52px;border:1px solid #d7e4df;border-radius:13px;
+  background:#fff;color:#17362d;padding:0 12px;font:800 15px/1.2 inherit;box-sizing:border-box
+}
+.nataiji-professor-mode .prof-grade-reference .prof-grade-shared-note{
+  display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap;
+  padding:9px 11px;margin-bottom:10px;border:1px solid #cfe6dd;border-radius:12px;background:#eff9f5
+}
+.nataiji-professor-mode .prof-grade-reference .prof-grade-shared-note b{
+  color:#126b4d;font-size:12px
+}
+.nataiji-professor-mode .prof-grade-reference .prof-grade-shared-note span{
+  color:#6b8078;font-size:10.5px
+}
+.nataiji-professor-mode .prof-grade-reference .prof-grade-subject-line{
+  display:flex;align-items:center;gap:10px;padding:10px 12px;margin-bottom:10px;
+  border:1px solid #e1eae6;border-radius:14px;background:#fbfdfc
+}
+.nataiji-professor-mode .prof-grade-reference .prof-grade-subject-icon{
+  width:42px;height:42px;border-radius:12px;background:#eaf6f1;color:#126b4d;
+  display:grid;place-items:center;font-size:21px;font-weight:900;flex:none
+}
+.nataiji-professor-mode .prof-grade-reference .prof-grade-subject-line>div{
+  display:grid;gap:2px
+}
+.nataiji-professor-mode .prof-grade-reference .prof-grade-subject-line b{
+  font-size:16px;color:#173d4d
+}
+.nataiji-professor-mode .prof-grade-reference .prof-grade-subject-line small{
+  font-size:10.5px;color:#73867f
+}
+.nataiji-professor-mode .prof-grade-reference .prof-grade-absence-tip{
+  display:grid;grid-template-columns:30px 1fr;gap:9px;align-items:center;
+  margin:10px 0 11px;padding:10px 11px;border-radius:13px;background:#eef8f4;border:1px solid #d6ebe2
+}
+.nataiji-professor-mode .prof-grade-reference .prof-grade-absence-tip>span{
+  width:28px;height:28px;border-radius:50%;display:grid;place-items:center;
+  background:#14805c;color:#fff;font-weight:900;font-size:15px
+}
+.nataiji-professor-mode .prof-grade-reference .prof-grade-absence-tip p{
+  margin:0;color:#355a4d;font-size:11.5px;line-height:1.6;font-weight:700
+}
+.nataiji-professor-mode .prof-grade-reference .prof-grade-table-wrap{
+  overflow:hidden;border:1px solid #dbe7e2;border-radius:15px;background:#fff;margin-top:0
+}
+.nataiji-professor-mode .prof-grade-reference .prof-grade-compact-table{
+  width:100%;border-collapse:collapse;table-layout:fixed
+}
+.nataiji-professor-mode .prof-grade-reference .prof-grade-compact-table th,
+.nataiji-professor-mode .prof-grade-reference .prof-grade-compact-table td{
+  border-bottom:1px solid #e7eeeb;border-inline-end:1px solid #edf2f0;text-align:center;vertical-align:middle
+}
+.nataiji-professor-mode .prof-grade-reference .prof-grade-compact-table th:last-child,
+.nataiji-professor-mode .prof-grade-reference .prof-grade-compact-table td:last-child{
+  border-inline-end:0
+}
+.nataiji-professor-mode .prof-grade-reference .prof-grade-compact-table tr:last-child td{
+  border-bottom:0
+}
+.nataiji-professor-mode .prof-grade-reference .prof-grade-compact-table th{
+  background:#eef8f4;color:#234d40;padding:9px 3px;font-size:11px;font-weight:900;line-height:1.2
+}
+.nataiji-professor-mode .prof-grade-reference .prof-grade-compact-table th small{
+  display:block;margin-top:2px;color:#668079;font-size:9px;font-weight:750
+}
+.nataiji-professor-mode .prof-grade-reference .prof-grade-compact-table th:nth-child(1){width:7%}
+.nataiji-professor-mode .prof-grade-reference .prof-grade-compact-table th:nth-child(2){width:33%}
+.nataiji-professor-mode .prof-grade-reference .prof-grade-compact-table th:nth-child(3){width:20%}
+.nataiji-professor-mode .prof-grade-reference .prof-grade-compact-table th:nth-child(4){width:20%}
+.nataiji-professor-mode .prof-grade-reference .prof-grade-compact-table th:nth-child(5){width:20%}
+.nataiji-professor-mode .prof-grade-reference .prof-grade-table-call{
+  font-size:13px;font-weight:900;color:#294b40;padding:7px 2px
+}
+.nataiji-professor-mode .prof-grade-reference .prof-grade-table-name{
+  padding:8px 6px;text-align:start
+}
+.nataiji-professor-mode .prof-grade-reference .prof-grade-table-name b{
+  display:block;color:#17364d;font-size:13px;line-height:1.25;font-weight:900;overflow-wrap:anywhere
+}
+.nataiji-professor-mode .prof-grade-reference .prof-grade-table-name small{
+  display:block;margin-top:2px;color:#8b9994;font-size:8.8px;line-height:1.2;font-weight:600;overflow-wrap:anywhere
+}
+.nataiji-professor-mode .prof-grade-reference .prof-grade-cell{
+  padding:6px 5px;background:#fff
+}
+.nataiji-professor-mode .prof-grade-reference .prof-grade-cell input{
+  display:block;width:100%!important;height:38px!important;min-height:38px!important;
+  box-sizing:border-box!important;margin:0 0 4px!important;padding:0 3px!important;
+  border:1px solid #cfded8!important;border-radius:9px!important;background:#fff!important;
+  color:#17364d!important;text-align:center!important;font-size:14px!important;font-weight:850!important;
+  line-height:38px!important;outline:none!important
+}
+.nataiji-professor-mode .prof-grade-reference .prof-grade-cell input:focus{
+  border-color:#18855f!important;box-shadow:0 0 0 3px rgba(24,133,95,.1)!important
+}
+.nataiji-professor-mode .prof-grade-reference .prof-grade-cell .prof-grade-absent{
+  display:block;width:100%!important;min-width:0!important;height:27px!important;min-height:27px!important;
+  padding:0 2px!important;margin:0!important;border-radius:8px!important;border:1px solid #e3e9e6!important;
+  background:#f3f6f5!important;color:#6b7b75!important;font-size:9.5px!important;font-weight:850!important;box-shadow:none!important
+}
+.nataiji-professor-mode .prof-grade-reference .prof-grade-cell .prof-grade-absent::before{display:none!important}
+.nataiji-professor-mode .prof-grade-reference .prof-grade-cell.is-absent{background:#fff8f8}
+.nataiji-professor-mode .prof-grade-reference .prof-grade-cell.is-absent input{
+  background:#ffe9e9!important;border-color:#f3b8b8!important;color:#b93232!important;font-size:11px!important
+}
+.nataiji-professor-mode .prof-grade-reference .prof-grade-cell.is-absent .prof-grade-absent{
+  background:#ffdede!important;border-color:#f0b1b1!important;color:#bd2f2f!important
+}
+.nataiji-professor-mode .prof-grade-reference .prof-grade-table-average{
+  padding:7px 4px;background:#f6fcf9
+}
+.nataiji-professor-mode .prof-grade-reference .prof-grade-table-average>b{
+  display:block;color:#126b4d;font-size:15px;line-height:1.2;font-weight:950;direction:ltr
+}
+.nataiji-professor-mode .prof-grade-reference .prof-grade-table-average>b:not(:first-child){margin-top:2px}
+.nataiji-professor-mode .prof-grade-reference .prof-grade-table-average small{
+  display:block;margin-top:4px;color:#74877f;font-size:8px;font-weight:750
+}
+.nataiji-professor-mode .prof-grade-reference .prof-grade-table-average strong{
+  display:block;color:#355b4e;font-size:10px;line-height:1.2;direction:ltr
+}
+.nataiji-professor-mode .prof-grade-reference .prof-grade-empty{
+  padding:28px 10px!important;color:#71847d;font-size:12px
+}
+.nataiji-professor-mode .prof-grade-reference .prof-grade-save-main{
+  width:100%;min-height:52px;margin-top:11px;font-size:15px!important
+}
+.nataiji-professor-mode .prof-grade-reference .prof-save-bar{
+  display:grid!important;gap:3px!important;padding:9px 2px 0!important;margin-bottom:8px!important
+}
+.nataiji-professor-mode .prof-grade-reference .prof-grade-tools{
+  margin-top:8px;border:1px solid #e0e9e5;border-radius:12px;background:#fbfdfc;overflow:hidden
+}
+.nataiji-professor-mode .prof-grade-reference .prof-grade-tools summary{
+  cursor:pointer;padding:10px 12px;color:#60766e;font-size:11px;font-weight:850
+}
+.nataiji-professor-mode .prof-grade-reference .prof-grade-tools>div{
+  display:flex;gap:6px;flex-wrap:wrap;padding:0 10px 10px
+}
+.nataiji-professor-mode .prof-grade-reference .prof-grade-tools button{
+  flex:1 1 130px;min-height:38px;padding:7px 9px!important;font-size:10.5px!important
+}
+@media(max-width:640px){
+  .nataiji-professor-mode .prof-grade-reference{
+    padding-inline:8px!important
+  }
+  .nataiji-professor-mode .prof-grade-reference .professor-reference-topbar{
+    margin-bottom:7px!important
+  }
+  .nataiji-professor-mode .prof-grade-reference .prof-grade-simple-head{
+    margin-bottom:9px
+  }
+  .nataiji-professor-mode .prof-grade-reference .prof-grade-simple-head h1{
+    font-size:23px
+  }
+  .nataiji-professor-mode .prof-grade-reference .prof-grade-context-selectors{
+    gap:7px
+  }
+  .nataiji-professor-mode .prof-grade-reference .prof-grade-context-selectors select{
+    height:48px;font-size:13px;padding-inline:8px
+  }
+  .nataiji-professor-mode .prof-grade-reference .prof-term-tabs{
+    position:static!important;margin-bottom:8px!important
+  }
+  .nataiji-professor-mode .prof-grade-reference .prof-term-tabs button{
+    min-height:43px!important;font-size:11.5px!important
+  }
+  .nataiji-professor-mode .prof-grade-reference .prof-grade-absence-tip{
+    margin:8px 0 9px;padding:9px
+  }
+  .nataiji-professor-mode .prof-grade-reference .prof-grade-absence-tip p{
+    font-size:10.8px
+  }
+  .nataiji-professor-mode .prof-grade-reference .prof-grade-compact-table th{
+    font-size:10.5px;padding:8px 2px
+  }
+  .nataiji-professor-mode .prof-grade-reference .prof-grade-compact-table th:nth-child(1){width:7%}
+  .nataiji-professor-mode .prof-grade-reference .prof-grade-compact-table th:nth-child(2){width:31%}
+  .nataiji-professor-mode .prof-grade-reference .prof-grade-compact-table th:nth-child(3){width:21%}
+  .nataiji-professor-mode .prof-grade-reference .prof-grade-compact-table th:nth-child(4){width:21%}
+  .nataiji-professor-mode .prof-grade-reference .prof-grade-compact-table th:nth-child(5){width:20%}
+  .nataiji-professor-mode .prof-grade-reference .prof-grade-table-name{
+    padding:7px 4px
+  }
+  .nataiji-professor-mode .prof-grade-reference .prof-grade-table-name b{
+    font-size:12px
+  }
+  .nataiji-professor-mode .prof-grade-reference .prof-grade-table-name small{
+    font-size:8px
+  }
+  .nataiji-professor-mode .prof-grade-reference .prof-grade-cell{
+    padding:5px 3px
+  }
+  .nataiji-professor-mode .prof-grade-reference .prof-grade-cell input{
+    height:36px!important;min-height:36px!important;line-height:36px!important;font-size:13px!important
+  }
+  .nataiji-professor-mode .prof-grade-reference .prof-grade-cell .prof-grade-absent{
+    height:26px!important;min-height:26px!important;font-size:9px!important
+  }
+  .nataiji-professor-mode .prof-grade-reference .prof-grade-table-average>b{
+    font-size:13px
+  }
+}
+@media(max-width:380px){
+  .nataiji-professor-mode .prof-grade-reference .prof-grade-context-selectors{
+    grid-template-columns:1fr
+  }
+  .nataiji-professor-mode .prof-grade-reference .prof-grade-compact-table th:nth-child(2){width:30%}
+  .nataiji-professor-mode .prof-grade-reference .prof-grade-compact-table th:nth-child(3),
+  .nataiji-professor-mode .prof-grade-reference .prof-grade-compact-table th:nth-child(4){width:21.5%}
+  .nataiji-professor-mode .prof-grade-reference .prof-grade-compact-table th:nth-child(5){width:20%}
+  .nataiji-professor-mode .prof-grade-reference .prof-grade-table-name b{font-size:11.5px}
+}
