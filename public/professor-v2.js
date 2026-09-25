@@ -299,19 +299,26 @@ function nav(active='home'){return `<nav class="professor-nav">
 function bindNav(el){qa('[data-prof-nav]',el).forEach(b=>b.onclick=async()=>{await flushGradeAutosave();currentView=b.dataset.profNav;renderCurrent()})}
 
 function assignmentCard(a){
- const s=statsFor(a),linked=linkFor(a.classId),avg=s.avg==null?'—':s.avg.toFixed(2),percent=s.students?Math.round((s.done/s.students)*100):0,teachers=linked?.memberCount||1;
- return `<article class="prof-v2-assignment prof-luxe-subject-card prof-subject-card-compact">
-  <div class="prof-luxe-subject-identity">
-   <div class="prof-subject-icon">${esc(iconFor(a.subject))}</div>
-   <div class="prof-luxe-subject-copy">
-    <h3>${esc(profSubject(a.subject))}</h3>
-    <div class="prof-card-eyebrow"><em class="coef-chip">×${coefficientOf(a)} ${tr('معامل','Coef.')}</em><em class="teacher-chip">${teachers} ${tr('أستاذ','prof.')}</em></div>
+ const cls=classById(a.classId),st=statsFor(a),linked=linkFor(a.classId),avg=st.avg==null?'—':st.avg.toFixed(2),percent=st.students?Math.round((st.done/st.students)*100):0,teachers=linked?.memberCount||1;
+ return `<article class="prof-v2-assignment prof-luxe-subject-card prof-compact-subject-card">
+  <div class="prof-luxe-subject-top">
+   <div class="prof-luxe-subject-identity">
+    <div class="prof-subject-icon">${esc(iconFor(a.subject))}</div>
+    <div class="prof-luxe-subject-copy">
+     <div class="prof-card-eyebrow">
+      <em class="coef-chip"><span>${tr('المعامل','Coef.')} ×${coefficientOf(a)}</span></em>
+      <em class="teacher-chip"><span>${teachers} ${tr('أستاذ','professeur(s)')}</span></em>
+     </div>
+     <h3>${esc(profSubject(a.subject))}</h3>
+     <div class="prof-card-meta compact"><strong class="prof-grade-outof" dir="ltr"><span>${avg}</span><span>/20</span></strong><span>${st.done}/${st.students} ${tr('مكتمل','terminé')}${st.term?' · '+tr('الفصل','T')+' '+st.term:''}</span></div>
+    </div>
    </div>
-   <strong class="prof-grade-outof prof-subject-card-average" dir="ltr"><span>${avg}</span><span>/20</span></strong>
   </div>
-  <div class="prof-card-meta prof-subject-card-meta"><span>${s.done}/${s.students} ${tr('مكتمل','terminé')}${s.term?' · '+tr('الفصل','T')+' '+s.term:''}</span><span>${percent}%</span></div>
-  <div class="prof-progress prof-subject-card-progress"><i style="width:${percent}%"></i></div>
-  <div class="prof-card-actions prof-luxe-subject-actions"><button class="primary prof-open-grade" data-grade-id="${esc(a.id)}"><span>${tr('إدخال الدرجات','Saisir les notes')}</span></button><button class="prof-list-action" data-subject-list-id="${esc(a.id)}"><span>${tr('لائحة مادتي','Ma liste')}</span></button></div>
+  <div class="prof-progress compact" aria-hidden="true"><i style="width:${percent}%"></i></div>
+  <div class="prof-card-actions prof-luxe-subject-actions compact-actions">
+   <button class="prof-open-grade primary-card-action" data-grade-id="${esc(a.id)}"><span>${tr('إدخال الدرجات','Saisir les notes')}</span></button>
+   <button class="prof-list-action secondary-card-action" data-subject-list-id="${esc(a.id)}"><span>${tr('لائحة مادتي','Liste de ma matière')}</span></button>
+  </div>
  </article>`
 }
 
@@ -383,15 +390,15 @@ function renderGrades(){
  currentView='grades';const el=root(),assignments=profile.assignments||[];
  const groups=displayClasses().filter(cls=>assignments.some(a=>String(a.classId)===String(cls.id))).map(cls=>{
   const subs=assignmentsForClass(cls.id),linked=linkFor(cls.id),teacherCount=linked?.memberCount||1;
-  return `<section class="prof-class-subject-group prof-luxe-class-group prof-class-group-compact">
+  return `<section class="prof-class-subject-group prof-luxe-class-group prof-compact-class-group">
    <div class="prof-class-subject-head">
-    <div class="prof-luxe-class-title"><div><small>${tr('القسم','Classe')}${linked?' · '+tr('مشترك','Partagée'):''}</small><h2>${esc(classDisplayName(cls))}</h2><p>${subs.length} ${tr('مواد','matière(s)')} · ${teacherCount} ${tr('أستاذ','professeur(s)')}</p></div></div>
+    <div class="prof-luxe-class-title"><span class="prof-luxe-class-icon">${professorMoreIcon('students')}</span><div><small>${tr('القسم','Classe')}</small><h2>${esc(classDisplayName(cls))} ${linked?`<em class="prof-shared-class-badge">${tr('مشترك','Partagée')}</em>`:''}</h2><p>${subs.length} ${tr('مواد','matière(s)')} · ${teacherCount} ${tr('أستاذ','professeur(s)')}</p></div></div>
     <button data-add-subject-to-class="${esc(cls.id)}"><span>+</span>${tr('إضافة مادة','Ajouter une matière')}</button>
    </div>
    <div class="prof-assignment-list">${subs.map(assignmentCard).join('')}</div>
   </section>`
  }).join('');
- el.innerHTML=`<div class="professor-shell prof-grades-reference">${topbar(tr('الدرجات','Notes'),tr('إدخال سريع للنتائج','Saisie rapide des résultats'))}<section class="prof-page-head prof-grades-head prof-grades-head-simple"><div><div><h1>${tr('درجات موادي','Notes de mes matières')}</h1><p>${tr('اختر القسم ثم المادة لإدخال الدرجات.','Choisissez la classe puis la matière pour saisir les notes.')}</p></div></div><div><button class="primary" id="profGradesAddSubject"><span>+</span>${tr('إضافة مادة أو قسم','Ajouter')}</button></div></section><section class="professor-content prof-grades-content">${groups||`<div class="professor-empty"><h3>${tr('لا توجد مواد بعد','Aucune matière')}</h3><p>${tr('أنشئ قسمًا جديدًا أو أضف مادة إلى قسم موجود.','Créez une classe ou ajoutez une matière à une classe existante.')}</p><button class="primary" id="profGradesEmptyAdd">+ ${tr('إضافة','Ajouter')}</button></div>`}</section>${nav('grades')}</div>`;
+ el.innerHTML=`<div class="professor-shell prof-grades-reference">${topbar(tr('الدرجات','Notes'),tr('القسم ثم المادة','Classe puis matière'))}<section class="prof-page-head prof-grades-head"><div><span class="prof-grades-head-icon">${professorMoreIcon('average')}</span><div><h1>${tr('درجات موادي','Notes de mes matières')}</h1><p>${tr('اختر القسم ثم المادة لإدخال الدرجات بسرعة.','Choisissez la classe puis la matière pour saisir rapidement les notes.')}</p></div></div><div><button class="primary" id="profGradesAddSubject"><span>+</span>${tr('مادة أو قسم','Matière ou classe')}</button></div></section><section class="professor-content prof-grades-content">${groups||`<div class="professor-empty"><div>✎</div><h3>${tr('لا توجد مواد بعد','Aucune matière')}</h3><p>${tr('أنشئ قسمًا مع أول مادة، أو أضف مادة إلى قسم موجود.','Créez une classe avec sa première matière, ou ajoutez une matière à une classe existante.')}</p><button class="primary" id="profGradesEmptyAdd">+ ${tr('إضافة أول مادة','Ajouter la première matière')}</button></div>`}</section>${nav('grades')}</div>`;
  bindTop(el);bindNav(el);['#profGradesAddSubject','#profGradesEmptyAdd'].forEach(x=>q(x,el)?.addEventListener('click',openAssignment));qa('[data-add-subject-to-class]',el).forEach(b=>b.onclick=()=>openAssignment(b.dataset.addSubjectToClass));qa('[data-grade-id]',el).forEach(b=>b.onclick=()=>openGrades(b.dataset.gradeId));qa('[data-subject-list-id]',el).forEach(b=>b.onclick=()=>{void openSubjectList(b.dataset.subjectListId,1)})
 }
 
@@ -627,67 +634,70 @@ function openSettings(){
  }
 }
 function openAssignment(preselectClass=''){
- if(typeof preselectClass!=='string')preselectClass='';const returnView=currentView,levels=academicCatalog.levels||[],classes=displayClasses(),forced=!!preselectClass;
- const opts=classes.map(c=>`<option value="${esc(c.id)}" ${preselectClass===c.id?'selected':''}>${linkFor(c.id)?tr('مشترك · ','Partagée · '):''}${esc(classDisplayName(c))}</option>`).join('');
+ if(typeof preselectClass!=='string')preselectClass='';const returnView=currentView,levels=academicCatalog.levels||[],classes=displayClasses();
+ const opts=classes.map(c=>`<option value="${esc(c.id)}" ${preselectClass===c.id?'selected':''}>${linkFor(c.id)?esc(tr('مشترك · ','Partagée · ')):''}${esc(classDisplayName(c))}</option>`).join('');
  const levelOpts=levels.map(l=>`<option value="${esc(l.code)}">${esc(l.code)} — ${esc(fr()?l.fr:l.ar)}</option>`).join('');
- let mode=forced||classes.length?'existing':'new';
- const modeChooser=forced?'':`<div class="prof-assignment-mode"><button type="button" data-assignment-mode="existing" ${classes.length?'':'disabled'}>${tr('إضافة مادة لقسم موجود','Ajouter une matière')}</button><button type="button" data-assignment-mode="new">${tr('إنشاء قسم جديد','Créer une classe')}</button></div>`;
- const m=modal(forced?tr('إضافة مادة إلى القسم','Ajouter une matière'):tr('إضافة مادة أو قسم','Ajouter une matière ou une classe'),`
- ${modeChooser}
- <div class="prof-link-explain prof-assignment-explain"><b>${tr('اختيار بسيط','Choix simple')}</b><p>${tr('اختر المستوى ثم الشعبة عند الحاجة، وستظهر المواد الرسمية ومعاملاتها تلقائيًا.','Choisissez le niveau puis la filière si nécessaire ; les matières et coefficients officiels s’affichent automatiquement.')}</p></div>
- <label id="pv2ExistingClassLabel">${tr('القسم','Classe')}<select id="pv2Class">${opts}</select></label>
- <div id="pv2NewClassFields">
-  <label id="pv2LevelLabel">${tr('المستوى','Niveau')}<select id="pv2Level"><option value="">${tr('اختر المستوى','Choisir le niveau')}</option>${levelOpts}</select></label>
-  <label id="pv2BranchLabel" style="display:none">${tr('الشعبة','Filière')}<select id="pv2Branch"></select><small id="pv2BranchHint"></small></label>
-  <label id="pv2NewClassLabel">${tr('اسم القسم','Nom de la classe')}<input id="pv2NewClass" maxlength="100" placeholder="${tr('مثال: 1AS أ أو 5AS-C','Ex. 1AS A ou 5AS-C')}"><small>${tr('يمكن تعديل الاسم بما يناسب مؤسستك.','Le nom reste modifiable selon votre établissement.')}</small></label>
+ let mode=preselectClass||classes.length?'existing':'new';
+ const m=modal(preselectClass?tr('إضافة مادة إلى القسم','Ajouter une matière à la classe'):tr('إضافة مادة أو قسم','Ajouter une matière ou une classe'),`
+ <div class="prof-assignment-mode" role="tablist">
+  <button type="button" data-assignment-mode="existing">${tr('إضافة مادة لقسم موجود','Ajouter à une classe')}</button>
+  <button type="button" data-assignment-mode="new">${tr('إنشاء قسم جديد','Créer une classe')}</button>
  </div>
+ <div class="prof-link-explain prof-assignment-help"><p>${tr('اختر المستوى ثم المادة. المواد الرسمية ومعاملاتها تظهر تلقائيًا، والمعامل اليدوي يظهر فقط عند إضافة مادة أخرى.','Choisissez le niveau puis la matière. Les matières officielles et leurs coefficients sont automatiques ; le coefficient manuel n’apparaît que pour une autre matière.')}</p></div>
+ <label id="pv2ExistingClassLabel">${tr('القسم','Classe')}<select id="pv2Class">${opts}</select></label>
+ <label id="pv2NewClassLabel">${tr('اسم القسم','Nom de la classe')}<input id="pv2NewClass" maxlength="100" placeholder="${tr('مثال: 5AS-C-A','Ex. 5AS-C-A')}"></label>
+ <label id="pv2LevelLabel">${tr('المستوى','Niveau')}<select id="pv2Level"><option value="">${tr('اختر المستوى','Choisir le niveau')}</option>${levelOpts}</select><small>${tr('1AS، 2AS، 3AS، 5AS، 6AS، 7AS','1AS, 2AS, 3AS, 5AS, 6AS, 7AS')}</small></label>
+ <label id="pv2BranchLabel" style="display:none">${tr('الشعبة','Filière')}<select id="pv2Branch"></select><small id="pv2BranchHint"></small></label>
  <label id="pv2SubjectLabel">${tr('المادة','Matière')}<select id="pv2Subject"><option value="">${tr('اختر المادة','Choisir la matière')}</option></select></label>
  <label id="pv2CustomSubjectLabel" style="display:none">${tr('مادة أخرى','Autre matière')}<input id="pv2CustomSubject" maxlength="100"></label>
- <label id="pv2CoefficientLabel" style="display:none">${tr('المعامل','Coefficient')}<input id="pv2Coefficient" type="number" inputmode="decimal" min="0.25" max="20" step="0.25" value="1"><small id="pv2CoefficientHint">${tr('يظهر المعامل اليدوي فقط للمادة غير الرسمية.','Le coefficient manuel apparaît seulement pour une matière non officielle.')}</small></label>
+ <label id="pv2CoefficientLabel" style="display:none">${tr('المعامل','Coefficient')}<input id="pv2Coefficient" type="number" inputmode="decimal" min="0.25" max="20" step="0.25" value="1"><small id="pv2CoefficientHint"></small></label>
  <button class="primary" id="pv2SaveAssignment">${tr('إضافة المادة','Ajouter la matière')}</button><p class="professor-msg"></p>`);
  m.wrap.classList.add('prof-assignment-modal');
- const sel=q('#pv2Class',m.wrap),existingLabel=q('#pv2ExistingClassLabel',m.wrap),newFields=q('#pv2NewClassFields',m.wrap),newClassInput=q('#pv2NewClass',m.wrap),levelSel=q('#pv2Level',m.wrap),branchLabel=q('#pv2BranchLabel',m.wrap),branchSel=q('#pv2Branch',m.wrap),branchHint=q('#pv2BranchHint',m.wrap),subjectSel=q('#pv2Subject',m.wrap),customLabel=q('#pv2CustomSubjectLabel',m.wrap),customInput=q('#pv2CustomSubject',m.wrap),coefLabel=q('#pv2CoefficientLabel',m.wrap),coef=q('#pv2Coefficient',m.wrap),saveBtn=q('#pv2SaveAssignment',m.wrap);
- if(preselectClass&&[...sel.options].some(o=>o.value===preselectClass))sel.value=preselectClass;
- const activeClass=()=>mode==='existing'&&sel.value?classById(sel.value):null;
- const currentBranch=()=>normalizedBranchCode(activeClass()?.branchCode||branchSel.value||'');
+ const sel=q('#pv2Class',m.wrap),existingLabel=q('#pv2ExistingClassLabel',m.wrap),newLabel=q('#pv2NewClassLabel',m.wrap),levelSel=q('#pv2Level',m.wrap),levelLabel=q('#pv2LevelLabel',m.wrap),branchLabel=q('#pv2BranchLabel',m.wrap),branchSel=q('#pv2Branch',m.wrap),branchHint=q('#pv2BranchHint',m.wrap),subjectSel=q('#pv2Subject',m.wrap),customLabel=q('#pv2CustomSubjectLabel',m.wrap),customInput=q('#pv2CustomSubject',m.wrap),coefLabel=q('#pv2CoefficientLabel',m.wrap),coef=q('#pv2Coefficient',m.wrap),coefHint=q('#pv2CoefficientHint',m.wrap);
+ if(preselectClass)sel.value=preselectClass;else if(mode==='existing'&&!sel.value&&sel.options.length)sel.selectedIndex=0;
+ const modeButtons=qa('[data-assignment-mode]',m.wrap);
+ const currentClass=()=>mode==='existing'&&sel.value?classById(sel.value):null;
+ const currentBranch=()=>{const cls=currentClass();return normalizedBranchCode(cls?.branchCode||branchSel.value||'')};
  const syncCoefficient=()=>{
-  const cls=activeClass(),levelCode=cls?.levelCode||inferredLevelCode(cls?.name)||levelSel.value,branchCode=currentBranch(),spec=catalogSubject(levelCode,subjectSel.value,branchCode),custom=subjectSel.value==='__other__';
-  customLabel.style.display=custom?'grid':'none';
-  if(spec?.official){coef.value=spec.coefficient;coef.readOnly=true;coefLabel.style.display='none'}
-  else if(custom){coef.readOnly=false;if(!Number(coef.value)||Number(coef.value)<=0)coef.value='1';coefLabel.style.display='grid'}
-  else coefLabel.style.display='none'
+  customLabel.style.display=subjectSel.value==='__other__'?'grid':'none';
+  const cls=currentClass(),levelCode=cls?.levelCode||inferredLevelCode(cls?.name)||levelSel.value,branchCode=currentBranch(),spec=catalogSubject(levelCode,subjectSel.value,branchCode),manual=subjectSel.value==='__other__'||(subjectSel.value&&!spec?.official);
+  if(spec?.official){coef.value=spec.coefficient;coef.readOnly=true;coefHint.textContent=tr('المعامل الرسمي يُطبق تلقائيًا.','Le coefficient officiel est appliqué automatiquement.')}
+  else{coef.readOnly=false;if(!Number(coef.value)||Number(coef.value)<=0)coef.value='1';coefHint.textContent=manual?tr('اكتب معامل المادة غير الرسمية.','Saisissez le coefficient de la matière non officielle.') : ''}
+  coefLabel.style.display=manual?'grid':'none'
  };
  const syncSubjects=()=>{
-  const cls=activeClass(),knownLevel=cls?.levelCode||inferredLevelCode(cls?.name),levelCode=knownLevel||levelSel.value,level=catalogLevel(levelCode),branches=Array.isArray(level?.branches)?level.branches:[],previousBranch=currentBranch();
-  if(mode==='new'){
-   branchLabel.style.display=branches.length?'grid':'none';
-   if(branches.length){
-    branchSel.innerHTML=branches.map(b=>`<option value="${esc(b.code)}">${esc(b.code)} — ${esc(fr()?b.fr:b.ar)}</option>`).join('');
-    const desired=normalizedBranchCode(previousBranch||branches[0]?.code||'');if([...branchSel.options].some(o=>o.value===desired))branchSel.value=desired;
-    const selected=branches.find(b=>b.code===branchSel.value);branchHint.textContent=selected?.expectedCoefficientTotal?tr('مجموع المعاملات: ','Total coefficients : ')+selected.expectedCoefficientTotal:''
-   }else{branchSel.innerHTML='';branchHint.textContent=''}
-   if(levelCode&&!newClassInput.value.trim())newClassInput.placeholder=levelCode+(branchSel.value?' - '+branchSel.value:'')+tr(' - أ',' - A')
-  }else branchLabel.style.display='none';
-  const branchCode=mode==='new'&&branches.length?branchSel.value:normalizedBranchCode(cls?.branchCode||''),subjects=catalogSubjects(levelCode,branchCode),previous=subjectSel.value;
+  const cls=currentClass(),knownLevel=cls?.levelCode||inferredLevelCode(cls?.name),levelCode=knownLevel||levelSel.value,level=catalogLevel(levelCode);
+  existingLabel.style.display=mode==='existing'?'grid':'none';newLabel.style.display=mode==='new'?'grid':'none';
+  levelLabel.style.display=mode==='new'||!knownLevel?'grid':'none';levelSel.disabled=!!knownLevel;if(knownLevel)levelSel.value=knownLevel;
+  const branches=Array.isArray(level?.branches)?level.branches:[],previousBranch=currentBranch(),knownBranch=normalizedBranchCode(cls?.branchCode||'');
+  branchLabel.style.display=branches.length&&(mode==='new'||!knownBranch)?'grid':'none';
+  if(branches.length){
+   branchSel.innerHTML=branches.map(b=>`<option value="${esc(b.code)}">${esc(b.code)} — ${esc(fr()?b.fr:b.ar)}</option>`).join('');
+   const desired=normalizedBranchCode(knownBranch||previousBranch||branches[0]?.code||'');
+   if([...branchSel.options].some(o=>o.value===desired))branchSel.value=desired;
+   branchSel.disabled=!!knownBranch;
+   const selected=branches.find(b=>b.code===branchSel.value);branchHint.textContent=selected?.expectedCoefficientTotal?tr('مجموع المعاملات: ','Total des coefficients : ')+selected.expectedCoefficientTotal:''
+  }else{branchSel.innerHTML='';branchSel.disabled=false;branchHint.textContent=''}
+  const branchCode=branches.length?(knownBranch||branchSel.value):'',subjects=catalogSubjects(levelCode,branchCode),previous=subjectSel.value;
   subjectSel.innerHTML=`<option value="">${tr('اختر المادة','Choisir la matière')}</option>`+subjects.map(x=>`<option value="${esc(x.key)}">${esc(fr()?x.fr:x.ar)}${x.official?' · ×'+x.coefficient:''}</option>`).join('')+`<option value="__other__">${tr('مادة أخرى…','Autre matière…')}</option>`;
   if([...subjectSel.options].some(o=>o.value===previous))subjectSel.value=previous;
   syncCoefficient()
  };
- const syncMode=()=>{
-  existingLabel.style.display=mode==='existing'?'grid':'none';newFields.style.display=mode==='new'?'grid':'none';
-  qa('[data-assignment-mode]',m.wrap).forEach(b=>b.classList.toggle('on',b.dataset.assignmentMode===mode));
-  saveBtn.textContent=mode==='new'?tr('إنشاء القسم وإضافة المادة','Créer la classe et ajouter la matière'):tr('إضافة المادة','Ajouter la matière');
+ const setMode=next=>{
+  if(next==='existing'&&!classes.length)next='new';mode=next;
+  modeButtons.forEach(b=>b.classList.toggle('on',b.dataset.assignmentMode===mode));
+  if(mode==='existing'&&!sel.value&&sel.options.length)sel.selectedIndex=0;
   syncSubjects()
  };
- qa('[data-assignment-mode]',m.wrap).forEach(b=>b.onclick=()=>{if(b.disabled)return;mode=b.dataset.assignmentMode;syncMode()});
- sel.onchange=syncSubjects;levelSel.onchange=syncSubjects;branchSel.onchange=syncSubjects;subjectSel.onchange=syncCoefficient;syncMode();
- saveBtn.onclick=async()=>{
-  const msg=q('.professor-msg',m.wrap),existing=activeClass(),className=newClassInput.value.trim(),levelCode=existing?.levelCode||inferredLevelCode(existing?.name)||levelSel.value,level=catalogLevel(levelCode),branches=Array.isArray(level?.branches)?level.branches:[],branchCode=normalizedBranchCode(existing?.branchCode||(mode==='new'?branchSel.value:'')||''),spec=catalogSubject(levelCode,subjectSel.value,branchCode),custom=customInput.value.trim(),subjectKey=spec?.key||'',subject=spec?.ar||(subjectSel.value==='__other__'?custom:''),official=spec?.official?Number(spec.coefficient):null,coefficient=official??Number(coef.value);
+ modeButtons.forEach(b=>b.onclick=()=>setMode(b.dataset.assignmentMode));
+ sel.onchange=syncSubjects;levelSel.onchange=syncSubjects;branchSel.onchange=syncSubjects;subjectSel.onchange=syncCoefficient;setMode(mode);
+ q('#pv2SaveAssignment',m.wrap).onclick=async()=>{
+  const msg=q('.professor-msg',m.wrap),className=q('#pv2NewClass',m.wrap).value.trim(),existing=currentClass(),levelCode=existing?.levelCode||inferredLevelCode(existing?.name)||levelSel.value,level=catalogLevel(levelCode),branches=Array.isArray(level?.branches)?level.branches:[],branchCode=normalizedBranchCode(existing?.branchCode||branchSel.value||''),spec=catalogSubject(levelCode,subjectSel.value,branchCode),custom=customInput.value.trim(),subjectKey=spec?.key||'',subject=spec?.ar||(subjectSel.value==='__other__'?custom:''),official=spec?.official?Number(spec.coefficient):null,coefficient=official??Number(coef.value);
   if(mode==='existing'&&!existing){msg.textContent=tr('اختر القسم أولًا','Choisissez d’abord la classe');return}
   if(!levelCode||!level){msg.textContent=tr('اختر المستوى أولًا','Choisissez d’abord le niveau');return}
-  if(mode==='new'&&branches.length&&!branchCode){msg.textContent=tr('اختر الشعبة أولًا','Choisissez d’abord la filière');return}
-  if(mode==='new'&&!className){msg.textContent=tr('اكتب اسم القسم','Saisissez le nom de la classe');return}
+  if(branches.length&&!branchCode){msg.textContent=tr('اختر الشعبة أولًا','Choisissez d’abord la filière');return}
   if(!subject){msg.textContent=tr('اختر المادة أو اكتب مادة أخرى','Choisissez une matière ou saisissez une autre matière');return}
+  if(mode==='new'&&!className){msg.textContent=tr('اكتب اسم القسم','Saisissez le nom de la classe');return}
   if(!Number.isFinite(coefficient)||coefficient<=0||coefficient>20){msg.textContent=tr('أدخل معاملًا صحيحًا أكبر من 0','Saisissez un coefficient valide supérieur à 0');return}
   const snapshot=structuredClone(profile);let cls=existing,classId=existing?.id||'';
   if(!cls){
@@ -697,7 +707,7 @@ function openAssignment(preselectClass=''){
   cls.levelCode=levelCode;if(branches.length)cls.branchCode=branchCode;else cls.branchCode='';
   if(profile.assignments.some(a=>a.classId===classId&&((subjectKey&&a.subjectKey===subjectKey)||(!subjectKey&&a.subject.trim().toLowerCase()===subject.toLowerCase())))){msg.textContent=tr('هذه المادة موجودة في هذا القسم بالفعل','Cette matière existe déjà pour cette classe');return}
   profile.assignments.push({id:uid(),subject,classId,subjectKey,coefficient:Math.round(coefficient*100)/100,coefficientSource:official!=null?'official':'manual'});
-  try{await saveProfile(tr('تمت إضافة المادة للقسم','Matière ajoutée à la classe'));m.close();if(returnView==='grades')return renderGrades();if(returnView==='students'||returnView==='classes')return renderClasses();if(returnView.startsWith('class:'))return openClass(classId);if(returnView==='more')return renderMore();renderHome()}catch(e){profile=normalize(snapshot);msg.textContent=e.code==='shared_subject_taken'?tr('هذه المادة مسجلة بالفعل عند أستاذ آخر داخل نفس القسم الجماعي.','Cette matière appartient déjà à un autre professeur dans la même classe collective.'):tr('تعذر الحفظ','Enregistrement impossible')}
+  try{await saveProfile(tr('تمت إضافة المادة للقسم','Matière ajoutée à la classe'));m.close();if(preselectClass)return openClass(classId);if(returnView==='grades')return renderGrades();if(returnView==='students'||returnView==='classes')return renderClasses();if(returnView==='more')return renderMore();renderHome()}catch(e){profile=normalize(snapshot);msg.textContent=e.code==='shared_subject_taken'?tr('هذه المادة مسجلة بالفعل عند أستاذ آخر داخل نفس القسم الجماعي. لا يمكن تكرار مالك المادة.','Cette matière appartient déjà à un autre professeur dans la même classe collective. Un seul propriétaire est autorisé.'):tr('تعذر الحفظ','Enregistrement impossible')}
  }
 }
 
@@ -1056,17 +1066,17 @@ function printClassList(data){
  printProfessorDocument(tr('اللائحة الجماعية للقسم','Liste collective de la classe'),body,{className:data.className,term:data.term,compact:true,subjectCount:data.subjects.length,titleAr:'اللائحة الجماعية للقسم',titleFr:'Liste collective de la classe',layoutClass:'class-list-doc',landscape:false,studentCount:data.students?.length||0,pageMargin:'3mm'})
 }
 
-function professorReportSwitcher(active='own'){return `<div class="prof-report-switcher prof-report-switcher-premium prof-report-switcher-simple"><button class="${active==='own'?'on':''}" data-report-section="own"><b>${tr('لائحة موادي','Mes listes')}</b><small>${tr('نتائج موادي','Mes matières')}</small></button><button class="${active==='collective'?'on':''}" data-report-section="collective"><b>${tr('النتائج الجماعية','Résultats collectifs')}</b><small>${tr('الكشوف واللائحة','Bulletins et liste')}</small></button></div>`}
+function professorReportSwitcher(active='own'){return `<div class="prof-report-switcher prof-report-switcher-premium"><button class="${active==='own'?'on':''}" data-report-section="own"><span>${professorMoreIcon('reports')}</span><b>${tr('لائحة موادي','Listes de mes matières')}</b><small>${tr('نتائج موادي فقط','Mes matières uniquement')}</small></button><button class="${active==='collective'?'on':''}" data-report-section="collective"><span>${professorMoreIcon('students')}</span><b>${tr('النتائج الجماعية','Résultats collectifs')}</b><small>${tr('كشف جماعي + اللائحة','Bulletin collectif + liste')}</small></button></div>`}
 
 function renderReportsHub(term=1){
  term=Math.max(1,Math.min(3,Number(term)||1));currentView='reports';const el=root();
- const classCards=displayClasses().map(cls=>({cls,subjects:assignmentsForClass(cls.id),linked:linkFor(cls.id)})).filter(x=>x.subjects.length).map(({cls,subjects,linked})=>{const names=subjects.map(a=>`<span><b>${esc(profSubject(a.subject))}</b><small>×${coefficientOf(a)}</small></span>`).join('');return `<article class="prof-report-subject-card prof-report-class-card prof-report-class-card-premium prof-report-class-card-simple">
-  <div class="prof-report-card-top"><div><small>${linked?tr('مشترك','Partagée'):tr('قسم','Classe')}</small><h3>${esc(classDisplayName(cls))}</h3></div></div>
+ const classCards=displayClasses().map(cls=>({cls,subjects:assignmentsForClass(cls.id),linked:linkFor(cls.id)})).filter(x=>x.subjects.length).map(({cls,subjects,linked})=>{const names=subjects.map(a=>`<span><i>${esc(iconFor(a.subject))}</i><b>${esc(profSubject(a.subject))}</b><small>×${coefficientOf(a)}</small></span>`).join('');return `<article class="prof-report-subject-card prof-report-class-card prof-report-class-card-premium">
+  <div class="prof-report-card-top"><span class="prof-report-subject-icon">${professorMoreIcon('reports')}</span><div><small>${tr('القسم','Classe')} ${linked?'· '+tr('مشترك','Partagée'):''}</small><h3>${esc(classDisplayName(cls))}</h3></div></div>
   <div class="prof-report-class-subjects">${names}</div>
   <button data-open-own-class-report="${esc(cls.id)}"><b>${tr('فتح اللائحة','Ouvrir la liste')}</b><em>‹</em></button>
  </article>`}).join('');
  el.innerHTML=`<div class="professor-shell prof-reports-reference">${topbar(tr('التقارير والطباعة','Rapports et impression'),tr('فضاء الأستاذ','Espace professeur'))}<section class="professor-content prof-reports-content">${professorReportSwitcher('own')}<div class="prof-term-tabs prof-report-term-tabs">${[1,2,3].map(t=>`<button class="${t===term?'on':''}" data-own-report-term="${t}"><b>${tr('الفصل '+t,'Trimestre '+t)}</b></button>`).join('')}</div><div class="prof-report-subject-grid">${classCards||`<div class="professor-empty compact"><h3>${tr('لا توجد مواد بعد','Aucune matière')}</h3><p>${tr('أضف مادة لتظهر لائحتها هنا.','Ajoutez une matière pour voir sa liste ici.')}</p></div>`}</div></section>${nav('reports')}</div>`;
- bindTop(el);bindNav(el);qa('[data-own-report-term]',el).forEach(b=>b.onclick=()=>renderReportsHub(Number(b.dataset.ownReportTerm)));qa('[data-open-own-class-report]',el).forEach(b=>b.onclick=()=>{void openMySubjectsList(b.dataset.openOwnClassReport,term)});q('[data-report-section="collective"]',el)?.addEventListener('click',()=>renderResults('',term))
+ bindTop(el);bindNav(el);qa('[data-own-report-term]',el).forEach(b=>b.onclick=()=>renderReportsHub(Number(b.dataset.ownReportTerm)));qa('[data-open-own-class-report]',el).forEach(b=>b.onclick=()=>{void openMySubjectsList(b.dataset.openOwnClassReport,term)});qa('[data-report-section="collective"]',el).forEach(b=>b.onclick=()=>renderResults('',term))
 }
 
 async function renderResults(classId='',term=1){
