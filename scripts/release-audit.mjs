@@ -52,7 +52,7 @@ assert('premium v2 visual layer loaded', /nataiji-premium-v2\.css/.test(index) &
 assert('approved home reference layer loaded last', /nataiji-home-reference-v1\.css/.test(index) && /nataiji-home-reference-v1\.js/.test(index));
 assert('privacy page exists', exists('public/privacy.html'));
 assert('terms page exists', exists('public/terms.html'));
-assert('PWA cache version current', /nataiji-shell-v94/.test(sw));
+assert('PWA cache version current', /nataiji-shell-v95/.test(sw));
 assert('PWA caches final mobile css', /release-100-v1\.css/.test(sw));
 assert('PWA caches final visual polish', /nataiji-final-visual-v1\.css/.test(sw));
 assert('PWA caches premium v2 layer', /nataiji-premium-v2\.css/.test(sw) && /nataiji-premium-v2\.js/.test(sw));
@@ -136,6 +136,8 @@ const professorCatalogSrc = read('src/professor-academic-catalog.js');
 assert('official Mauritanian professor catalog is wired', /MR-SECONDARY-OFFICIAL-2026-V4/.test(professorCatalogSrc) && /code:'7AS'/.test(professorCatalogSrc) && /technology_informatics/.test(professorCatalogSrc) && /branch\('A',29/.test(professorCatalogSrc) && /branch\('C',30/.test(professorCatalogSrc));
 assert('collective professor list uses official subject abbreviations', /name\.abbr\|\|String\(s\.subjectKey/.test(professorV2) && /<b dir="ltr">\$\{esc\(abbr\)\}<\/b>/.test(professorV2));
 assert('collective subject headers use vertical Arabic labels', /professorCollectiveSubjectArabic/.test(professorV2) && /subject-vertical/.test(professorV2) && /writing-mode:vertical-rl/.test(professorV2));
+assert('collective rank and appreciation headers are vertical and wider', /class="rank-head edge-vertical-head"/.test(professorV2) && /class="appreciation-head edge-vertical-head"/.test(professorV2) && /edge-vertical-label/.test(professorV2) && /appreciation-cell/.test(professorV2) && /width:11\.5%/.test(professorV2));
+assert('collective appreciation cells wrap safely', /appreciation-cell\{padding-inline:\.7mm;white-space:normal;overflow-wrap:anywhere/.test(professorV2));
 assert('collective vertical Arabic subject labels are enlarged', /subject-vertical\{height:30mm[^}]*font-size:9\.2pt/.test(professorV2));
 assert('collective list is ranked and readable on Android print', /function professorClassListLandscape\(\)\{return false\}/.test(professorV2) && /orderedStudents=/.test(professorV2) && /collective-class-table/.test(professorV2));
 assert('collective list omits class average footer', !/class=\"summary\"><div class=\"dual-summary\"/.test(professorV2.slice(professorV2.indexOf('function printClassList'),professorV2.indexOf('function professorReportSwitcher'))));
@@ -182,7 +184,7 @@ assert('student bulletin decision and signatures are easy to read', /official-bu
 assert('bulletin summary has more vertical space', /official-bulletin-summary>div\{min-height:14mm/.test(professorV2));
 assert('Arabic official header is balanced against French', /official-student-bulletin-doc \.official-ar\{font-size:11\.7pt/.test(professorV2) && /class-list-doc \.official-ar\{font-size:11\.5pt/.test(professorV2));
 assert('professor batch bulletin label says one student per A4', /كشوف التلاميذ الرسمية – طالب واحد لكل A4/.test(professorV2) && /Bulletins officiels – 1 élève par A4/.test(professorV2));
-assert('professor v2 cache-busted asset is current', /professor-v2\.js\?v=68/.test(index));
+assert('professor v2 cache-busted asset is current', /professor-v2\.js\?v=69/.test(index));
 assert('professor v2 stylesheet cache-busted asset is current', /professor-v2\.css\?v=47/.test(index));
 const ownerStaff = read('public/owner-staff-v1.js');
 assert('owner professor tools support official branches', /staffClassBranch/.test(ownerStaff) && /data-branch/.test(ownerStaff) && /subjectOptions\(catalog,level,branch\)/.test(ownerStaff));
