@@ -52,7 +52,7 @@ assert('premium v2 visual layer loaded', /nataiji-premium-v2\.css/.test(index) &
 assert('approved home reference layer loaded last', /nataiji-home-reference-v1\.css/.test(index) && /nataiji-home-reference-v1\.js/.test(index));
 assert('privacy page exists', exists('public/privacy.html'));
 assert('terms page exists', exists('public/terms.html'));
-assert('PWA cache version current', /nataiji-shell-v92/.test(sw));
+assert('PWA cache version current', /nataiji-shell-v93/.test(sw));
 assert('PWA caches final mobile css', /release-100-v1\.css/.test(sw));
 assert('PWA caches final visual polish', /nataiji-final-visual-v1\.css/.test(sw));
 assert('PWA caches premium v2 layer', /nataiji-premium-v2\.css/.test(sw) && /nataiji-premium-v2\.js/.test(sw));
@@ -161,10 +161,12 @@ assert('fully absent students stay only in collective list', /function professor
 assert('individual professor bulletin blocks fully absent student', /if\(professorStudentFullyAbsent\(row\)\)\{toast/.test(professorV2));
 assert('professor compact grade table is scoped to professor workspace', /prof-grade-compact-table/.test(professorV2) && /\.nataiji-professor-mode \.prof-grade-reference \.prof-grade-compact-table/.test(professorV2Css));
 assert('professor compact grade entry keeps verified save path', /forceProfessorGradeSave\(\)/.test(professorV2) && /professor_grade_reload_verification_failed/.test(professorV2));
-assert('professor assignment dialog separates existing and new class flows', /data-assignment-mode="existing"/.test(professorV2) && /data-assignment-mode="new"/.test(professorV2) && /id="pv2NewClassFields"/.test(professorV2));
+assert('professor assignment dialog separates existing and new class flows', /data-assignment-mode="existing"/.test(professorV2) && /data-assignment-mode="new"/.test(professorV2) && /id="pv2ExistingClassLabel"/.test(professorV2) && /id="pv2NewClassLabel"/.test(professorV2));
+assert('official professor coefficient field is hidden unless manual', /id="pv2CoefficientLabel" style="display:none"/.test(professorV2) && /coefLabel\.style\.display=manual\?'grid':'none'/.test(professorV2));
+assert('professor shared class badge is explicit on grades page', /prof-shared-class-badge/.test(professorV2) && /tr\('مشترك','Partagée'\)/.test(professorV2));
 assert('official professor coefficient stays automatic and manual coefficient is custom-only', /coefLabel\.style\.display='none'/.test(professorV2) && /else if\(custom\).*coefLabel\.style\.display='grid'/.test(professorV2));
-assert('professor grade cards are compact with grade entry as primary action', /prof-subject-card-compact/.test(professorV2) && /primary prof-open-grade/.test(professorV2) && /Professor simplification pass v46/.test(professorV2Css));
-assert('professor reports remove duplicate collective entry and term icons', /prof-report-switcher-simple/.test(professorV2) && !/prof-collective-entry prof-collective-entry-premium/.test(professorV2.slice(professorV2.indexOf('function renderReportsHub'),professorV2.indexOf('async function renderResults'))) && !/data-own-report-term="\$\{t\}"[^>]*><span/.test(professorV2));
+assert('professor grade cards are compact with grade entry as primary action', /prof-compact-subject-card/.test(professorV2) && /primary-card-action/.test(professorV2) && /Professor workflow simplification v47/.test(professorV2Css));
+assert('professor reports remove duplicate collective entry and term icons', /prof-report-switcher-premium/.test(professorV2) && !/prof-collective-entry prof-collective-entry-premium/.test(professorV2.slice(professorV2.indexOf('function renderReportsHub'),professorV2.indexOf('async function renderResults'))) && !/data-own-report-term="\$\{t\}"[^>]*><span/.test(professorV2));
 assert('collective PDF uses compact values and compact absence labels', /function compactResultText/.test(professorV2) && /class="collective-absent"/.test(professorV2) && /td class="subject-value"/.test(professorV2));
 
 assert('professor absence stays labelled in documents', /if\(professorIsAbsent\(v\)\)return professorAbsentLabel\(student\)/.test(professorV2) && /professorReportTermAverage/.test(professorV2));
@@ -178,8 +180,8 @@ assert('student bulletin decision and signatures are easy to read', /official-bu
 assert('bulletin summary has more vertical space', /official-bulletin-summary>div\{min-height:14mm/.test(professorV2));
 assert('Arabic official header is balanced against French', /official-student-bulletin-doc \.official-ar\{font-size:11\.7pt/.test(professorV2) && /class-list-doc \.official-ar\{font-size:11\.5pt/.test(professorV2));
 assert('professor batch bulletin label says one student per A4', /كشوف التلاميذ الرسمية – طالب واحد لكل A4/.test(professorV2) && /Bulletins officiels – 1 élève par A4/.test(professorV2));
-assert('professor v2 cache-busted asset is current', /professor-v2\.js\?v=66/.test(index));
-assert('professor v2 stylesheet cache-busted asset is current', /professor-v2\.css\?v=46/.test(index));
+assert('professor v2 cache-busted asset is current', /professor-v2\.js\?v=67/.test(index));
+assert('professor v2 stylesheet cache-busted asset is current', /professor-v2\.css\?v=47/.test(index));
 const ownerStaff = read('public/owner-staff-v1.js');
 assert('owner professor tools support official branches', /staffClassBranch/.test(ownerStaff) && /data-branch/.test(ownerStaff) && /subjectOptions\(catalog,level,branch\)/.test(ownerStaff));
 assert('owner staff cache-busted asset is current', /owner-staff-v1\.js\?v=3/.test(index));
