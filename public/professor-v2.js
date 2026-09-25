@@ -817,7 +817,7 @@ function openGrades(id,term=1){
  term=Math.max(1,Math.min(3,Number(term)||1));const a=profile.assignments.find(x=>x.id===id);if(!a)return;currentView='grade:'+id+':'+term;
  const cls=classById(a.classId),students=cls?.students||[],marks=marksFor(id),l=linkFor(a.classId),canManageRoster=!l||l.role==='owner',coefficient=coefficientOf(a),showAnnual=term===3,avgHead=termAverageLabel(term);
  const gradeClasses=displayClasses().filter(c=>assignmentsForClass(c.id).length),siblingSubjects=assignmentsForClass(a.classId);
- const classOptions=gradeClasses.map(c=>`<option value="${esc(c.id)}" ${String(c.id)===String(a.classId)?'selected':''}>${linkFor(c.id)?'🔗 ':''}${esc(classDisplayName(c))}</option>`).join('');
+ const classOptions=gradeClasses.map(c=>{const linked=linkFor(c.id);return `<option value="${esc(c.id)}" ${String(c.id)===String(a.classId)?'selected':''}>${linked?esc(tr('مشترك · ','Partagée · ')):''}${esc(classDisplayName(c))}</option>`}).join('');
  const subjectOptions=siblingSubjects.map(subject=>`<option value="${esc(subject.id)}" ${String(subject.id)===String(a.id)?'selected':''}>${esc(profSubject(subject.subject))}</option>`).join('');
  const rows=students.map((s,i)=>{
   const m=marks[s.id]||{},rec=ensureProfessorTerm(m,term),annualAvg=showAnnual?annualSubjectResult(m):null,names=profStudentNamePair(s),mainName=fr()?(names.fr||names.ar):(names.ar||names.fr),subName=fr()?(names.ar||names.fr):(names.fr||names.ar),mainDir=fr()?'ltr':'rtl',subDir=fr()?'rtl':'ltr';
