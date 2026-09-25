@@ -7110,3 +7110,284 @@ html.nataiji-professor-mode body{background:#f4f7f6;min-height:100vh;overflow-x:
   .nataiji-professor-mode .prof-grade-reference .prof-grade-compact-table th:nth-child(5){width:20%}
   .nataiji-professor-mode .prof-grade-reference .prof-grade-table-name b{font-size:11.5px}
 }
+
+
+/* Professor simplification pass v46 — scoped only to professor workspace */
+
+/* Grades page: tighter class groups and subject cards. */
+.nataiji-professor-mode .prof-grades-reference .prof-grades-head-simple{
+  align-items:center!important;
+  padding:14px 15px!important
+}
+.nataiji-professor-mode .prof-grades-reference .prof-grades-head-simple>div:first-child{
+  display:block!important
+}
+.nataiji-professor-mode .prof-grades-reference .prof-grades-head-simple h1{
+  margin:0 0 4px!important
+}
+.nataiji-professor-mode .prof-grades-reference .prof-class-group-compact{
+  gap:9px!important;
+  padding:11px!important;
+  margin-bottom:10px!important
+}
+.nataiji-professor-mode .prof-grades-reference .prof-class-group-compact .prof-class-subject-head{
+  grid-template-columns:minmax(0,1fr) auto!important;
+  align-items:center!important;
+  gap:8px!important;
+  padding:0!important
+}
+.nataiji-professor-mode .prof-grades-reference .prof-class-group-compact .prof-luxe-class-title{
+  display:block!important
+}
+.nataiji-professor-mode .prof-grades-reference .prof-class-group-compact .prof-luxe-class-title small{
+  font-size:9.5px!important
+}
+.nataiji-professor-mode .prof-grades-reference .prof-class-group-compact .prof-luxe-class-title h2{
+  font-size:20px!important;
+  line-height:1.15!important;
+  margin:1px 0 3px!important
+}
+.nataiji-professor-mode .prof-grades-reference .prof-class-group-compact .prof-luxe-class-title p{
+  font-size:9.5px!important
+}
+.nataiji-professor-mode .prof-grades-reference .prof-class-group-compact .prof-class-subject-head>button{
+  width:auto!important;
+  min-height:38px!important;
+  padding:7px 10px!important;
+  font-size:10px!important;
+  border-radius:11px!important
+}
+.nataiji-professor-mode .prof-grades-reference .prof-class-group-compact .prof-class-subject-head>button>span{
+  width:21px!important;height:21px!important;font-size:14px!important
+}
+.nataiji-professor-mode .prof-grades-reference .prof-subject-card-compact{
+  gap:7px!important;
+  padding:10px!important;
+  border-radius:15px!important
+}
+.nataiji-professor-mode .prof-grades-reference .prof-subject-card-compact .prof-luxe-subject-identity{
+  grid-template-columns:44px minmax(0,1fr) auto!important;
+  gap:9px!important
+}
+.nataiji-professor-mode .prof-grades-reference .prof-subject-card-compact .prof-subject-icon{
+  width:42px!important;height:42px!important;min-width:42px!important;
+  border-radius:12px!important;font-size:18px!important
+}
+.nataiji-professor-mode .prof-grades-reference .prof-subject-card-compact .prof-luxe-subject-copy{
+  gap:4px!important
+}
+.nataiji-professor-mode .prof-grades-reference .prof-subject-card-compact h3{
+  font-size:17px!important;
+  line-height:1.2!important
+}
+.nataiji-professor-mode .prof-grades-reference .prof-subject-card-compact .prof-card-eyebrow{
+  gap:4px!important
+}
+.nataiji-professor-mode .prof-grades-reference .prof-subject-card-compact .prof-card-eyebrow em{
+  min-height:21px!important;
+  padding:3px 6px!important;
+  font-size:8px!important
+}
+.nataiji-professor-mode .prof-grades-reference .prof-subject-card-average{
+  font-size:18px!important;
+  color:#0b6d5c!important;
+  white-space:nowrap!important
+}
+.nataiji-professor-mode .prof-grades-reference .prof-subject-card-average span:last-child{
+  font-size:.55em!important;color:#75888e!important
+}
+.nataiji-professor-mode .prof-grades-reference .prof-subject-card-meta{
+  margin:0!important;
+  font-size:9px!important
+}
+.nataiji-professor-mode .prof-grades-reference .prof-subject-card-progress{
+  height:4px!important
+}
+.nataiji-professor-mode .prof-grades-reference .prof-subject-card-compact .prof-luxe-subject-actions{
+  grid-template-columns:1.45fr .8fr!important;
+  gap:6px!important
+}
+.nataiji-professor-mode .prof-grades-reference .prof-subject-card-compact .prof-luxe-subject-actions>button{
+  min-height:38px!important;
+  padding:7px 8px!important;
+  font-size:9.8px!important;
+  border-radius:11px!important
+}
+.nataiji-professor-mode .prof-grades-reference .prof-subject-card-compact .prof-open-grade{
+  background:#0d8469!important;
+  border-color:#0d8469!important;
+  color:#fff!important;
+  box-shadow:0 5px 12px rgba(13,132,105,.12)!important
+}
+.nataiji-professor-mode .prof-grades-reference .prof-subject-card-compact .prof-list-action{
+  background:#fffdf8!important;
+  color:#735d28!important;
+  border-color:#dfc873!important
+}
+
+/* Assignment modal: clearly separate "existing class" and "new class". */
+.nataiji-professor-mode .prof-assignment-modal .professor-modal-card{
+  width:min(560px,100%)!important
+}
+.nataiji-professor-mode .prof-assignment-mode{
+  display:grid;
+  grid-template-columns:1fr 1fr;
+  gap:7px
+}
+.nataiji-professor-mode .prof-assignment-mode button{
+  min-height:45px!important;
+  padding:8px 10px!important;
+  background:#f7faf9!important;
+  color:#5f756d!important;
+  border-color:#dbe6e2!important
+}
+.nataiji-professor-mode .prof-assignment-mode button.on{
+  background:#e8f7f1!important;
+  color:#0a745f!important;
+  border-color:#8fcbbb!important;
+  box-shadow:inset 0 0 0 1px rgba(10,116,95,.08)!important
+}
+.nataiji-professor-mode .prof-assignment-explain{
+  padding:9px 11px!important
+}
+.nataiji-professor-mode .prof-assignment-explain b{
+  font-size:12px!important
+}
+.nataiji-professor-mode .prof-assignment-explain p{
+  font-size:10.5px!important;
+  line-height:1.45!important
+}
+.nataiji-professor-mode .prof-assignment-modal #pv2NewClassFields{
+  display:grid;
+  gap:12px
+}
+
+/* Grade-entry table: preserve touch comfort but reduce wasted vertical space. */
+.nataiji-professor-mode .prof-grade-reference .prof-grade-absence-tip{
+  grid-template-columns:26px 1fr!important;
+  padding:8px 9px!important;
+  margin:7px 0 8px!important
+}
+.nataiji-professor-mode .prof-grade-reference .prof-grade-absence-tip>span{
+  width:24px!important;height:24px!important;font-size:13px!important
+}
+.nataiji-professor-mode .prof-grade-reference .prof-grade-absence-tip p{
+  font-size:10.5px!important;
+  line-height:1.4!important
+}
+.nataiji-professor-mode .prof-grade-reference .prof-grade-cell{
+  padding:4px 3px!important
+}
+.nataiji-professor-mode .prof-grade-reference .prof-grade-cell input{
+  height:34px!important;min-height:34px!important;line-height:34px!important;
+  margin-bottom:3px!important
+}
+.nataiji-professor-mode .prof-grade-reference .prof-grade-cell .prof-grade-absent{
+  height:24px!important;min-height:24px!important
+}
+.nataiji-professor-mode .prof-grade-reference .prof-grade-table-name{
+  padding-block:6px!important
+}
+
+/* Reports page: remove repetition and decorative overload. */
+.nataiji-professor-mode .prof-reports-reference .prof-report-switcher-simple{
+  grid-template-columns:1fr 1fr!important
+}
+.nataiji-professor-mode .prof-reports-reference .prof-report-switcher-simple button{
+  display:grid!important;
+  grid-template-columns:1fr!important;
+  place-items:center!important;
+  gap:2px!important;
+  min-height:54px!important;
+  text-align:center!important
+}
+.nataiji-professor-mode .prof-reports-reference .prof-report-switcher-simple button>b{
+  font-size:12.2px!important
+}
+.nataiji-professor-mode .prof-reports-reference .prof-report-switcher-simple button>small{
+  font-size:9px!important
+}
+.nataiji-professor-mode .prof-reports-reference .prof-report-term-tabs button{
+  gap:0!important
+}
+.nataiji-professor-mode .prof-reports-reference .prof-report-class-card-simple{
+  gap:7px!important;
+  padding:10px 11px!important
+}
+.nataiji-professor-mode .prof-reports-reference .prof-report-class-card-simple .prof-report-card-top{
+  display:block!important
+}
+.nataiji-professor-mode .prof-reports-reference .prof-report-class-card-simple .prof-report-card-top small{
+  font-size:9.5px!important;
+  color:#18856d!important;
+  font-weight:850!important
+}
+.nataiji-professor-mode .prof-reports-reference .prof-report-class-card-simple .prof-report-card-top h3{
+  font-size:18px!important;
+  margin-top:2px!important
+}
+.nataiji-professor-mode .prof-reports-reference .prof-report-class-card-simple .prof-report-class-subjects{
+  gap:4px!important
+}
+.nataiji-professor-mode .prof-reports-reference .prof-report-class-card-simple .prof-report-class-subjects span{
+  min-height:26px!important;
+  padding:4px 7px!important;
+  gap:4px!important
+}
+.nataiji-professor-mode .prof-reports-reference .prof-report-class-card-simple .prof-report-class-subjects span b{
+  font-size:10px!important
+}
+.nataiji-professor-mode .prof-reports-reference .prof-report-class-card-simple .prof-report-class-subjects span small{
+  font-size:9px!important
+}
+.nataiji-professor-mode .prof-reports-reference .prof-report-class-card-simple>button{
+  width:auto!important;
+  justify-self:stretch!important;
+  min-height:38px!important;
+  padding:7px 10px!important;
+  display:flex!important;
+  align-items:center!important;
+  justify-content:space-between!important
+}
+.nataiji-professor-mode .prof-reports-reference .prof-report-class-card-simple>button>b{
+  font-size:10.8px!important
+}
+
+@media(max-width:640px){
+  .nataiji-professor-mode .prof-grades-reference .prof-class-group-compact .prof-class-subject-head{
+    grid-template-columns:1fr auto!important
+  }
+  .nataiji-professor-mode .prof-grades-reference .prof-class-group-compact .prof-class-subject-head>button{
+    width:auto!important;
+    min-height:36px!important;
+    font-size:9.5px!important
+  }
+  .nataiji-professor-mode .prof-grades-reference .prof-subject-card-compact{
+    padding:9px!important
+  }
+  .nataiji-professor-mode .prof-grades-reference .prof-subject-card-compact .prof-luxe-subject-identity{
+    grid-template-columns:40px minmax(0,1fr) auto!important
+  }
+  .nataiji-professor-mode .prof-grades-reference .prof-subject-card-compact .prof-subject-icon{
+    width:38px!important;height:38px!important;min-width:38px!important;font-size:17px!important
+  }
+  .nataiji-professor-mode .prof-grades-reference .prof-subject-card-compact h3{
+    font-size:16px!important
+  }
+  .nataiji-professor-mode .prof-grades-reference .prof-subject-card-average{
+    font-size:16.5px!important
+  }
+  .nataiji-professor-mode .prof-grades-reference .prof-subject-card-compact .prof-luxe-subject-actions>button{
+    min-height:36px!important
+  }
+  .nataiji-professor-mode .prof-assignment-mode{
+    grid-template-columns:1fr!important
+  }
+  .nataiji-professor-mode .prof-reports-reference .prof-report-switcher-simple button{
+    min-height:50px!important
+  }
+  .nataiji-professor-mode .prof-reports-reference .prof-report-class-card-simple .prof-report-class-subjects span{
+    min-height:25px!important;
+    padding:3px 6px!important
+  }
+}
