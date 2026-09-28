@@ -4,6 +4,7 @@ if(window.__nataijiMorePageV1)return;
 window.__nataijiMorePageV1=true;
 
 const q=(s,r=document)=>r.querySelector(s);
+const setText=(node,value)=>{if(node&&node.textContent!==value)node.textContent=value};
 const fr=()=>localStorage.getItem('nataiji-lang')==='fr';
 const GROUPS=[
   {
@@ -44,9 +45,9 @@ function hero(page){
     h.innerHTML='<div class="nataiji-more-hero-copy"><small></small><h1></h1><p></p></div><div class="nataiji-more-hero-mark" aria-hidden="true"><i data-feather="grid"></i></div>';
     page.prepend(h);
   }
-  q('small',h).textContent=fr()?'OUTILS & RÉGLAGES':'أدوات وإعدادات';
-  q('h1',h).textContent=fr()?'Plus':'المزيد';
-  q('p',h).textContent=fr()?'Tout ce qu’il faut pour gérer votre école simplement.':'كل ما تحتاجه لإدارة مدرستك بسهولة ومن مكان واحد.';
+  setText(q('small',h),fr()?'OUTILS & RÉGLAGES':'أدوات وإعدادات');
+  setText(q('h1',h),fr()?'Plus':'المزيد');
+  setText(q('p',h),fr()?'Tout ce qu’il faut pour gérer votre école simplement.':'كل ما تحتاجه لإدارة مدرستك بسهولة ومن مكان واحد.');
 }
 function heading(group){
   let h=document.getElementById('moreGroup-'+group.key);
@@ -57,8 +58,8 @@ function heading(group){
     h.dataset.moreHeading=group.key;
     h.innerHTML='<span class="more-group-heading-icon"><i data-feather="'+group.icon+'"></i></span><span class="more-group-heading-copy"><b></b><small></small></span>';
   }
-  q('b',h).textContent=fr()?group.fr:group.ar;
-  q('small',h).textContent=fr()?group.subFr:group.subAr;
+  setText(q('b',h),fr()?group.fr:group.ar);
+  setText(q('small',h),fr()?group.subFr:group.subAr);
   return h;
 }
 function decorateCard(card,key){
@@ -116,7 +117,7 @@ function apply(){
       grid.appendChild(frag);
     }
 
-    if(window.feather)window.feather.replace({class:'lux-feather','stroke-width':1.9});
+    if(window.feather&&document.querySelector('i[data-feather]'))window.feather.replace({class:'lux-feather','stroke-width':1.9});
   }finally{applying=false}
 }
 function schedule(){clearTimeout(timer);timer=setTimeout(apply,32)}

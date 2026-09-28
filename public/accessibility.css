@@ -1,0 +1,23 @@
+/* Keep controls legible and usable on narrow phones without affecting reports. */
+@media screen {
+  button, a, input, select, textarea { -webkit-tap-highlight-color: transparent; }
+  button, a { touch-action: manipulation; }
+  :is(button,a,input,select,textarea):focus-visible {
+    outline: 3px solid #087d67 !important;
+    outline-offset: 3px;
+  }
+  .menu-card, .section-head > div, .profile { min-width: 0; }
+  .menu-card b, .subject-progress-name { overflow-wrap: anywhere; }
+  @media (max-width: 480px) {
+    input, select, textarea { font-size: 16px; }
+    .bottom-nav button { min-height: 44px; }
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: .01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: .01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
