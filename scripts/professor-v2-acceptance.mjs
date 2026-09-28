@@ -32,7 +32,7 @@ try{
  check('professor home follows teacher dashboard structure',await page.locator('.professor-reference-topbar').count()===1&&await page.locator('.prof-reference-stats article').count()===4&&await page.locator('.prof-home-status').count()===1);
  await page.locator('#profEmptyAdd').click();
  const levelOptions=await page.locator('#pv2Level option').allTextContents();
- check('only current first-cycle levels are offered',levelOptions.some(x=>x.includes('1AS'))&&levelOptions.some(x=>x.includes('2AS'))&&levelOptions.some(x=>x.includes('3AS'))&&!levelOptions.some(x=>/4AS|5AS/.test(x)),levelOptions.join(' | '));
+ check('current middle and secondary levels are offered', ['1AS','2AS','3AS','5AS','6AS','7AS'].every(code=>levelOptions.some(x=>x.includes(code)))&&!levelOptions.some(x=>x.includes('4AS')),levelOptions.join(' | '));
  await page.locator('#pv2Level').selectOption('2AS');
  await page.locator('#pv2Subject').selectOption('math');
  check('official math coefficient loads automatically',await page.locator('#pv2Coefficient').inputValue()==='6'&&await page.locator('#pv2Coefficient').getAttribute('readonly')!==null);
@@ -80,7 +80,7 @@ try{
  check('same professor can own two subjects in one class',await page.locator('[data-class-grade]').count()===2);
  check('same class keeps one shared roster for both own subjects',await page.locator('.prof-student-row').count()===1);
  await page.locator('[data-class-grade]').filter({hasText:'اللغة الفرنسية'}).click();
- check('grade screen exposes direct switch between same-class subjects',await page.locator('[data-switch-subject]').count()===2);
+ check('grade screen exposes direct switch between same-class subjects',await page.locator('#pv2GradeSubjectSelect option:not([value="__add_subject__"])').count()===2);
  let frenchTests=page.locator('[data-test-index]');
  await frenchTests.first().fill('15');
  await page.locator('[data-exam]').fill('15');
@@ -94,10 +94,11 @@ try{
  frenchTests=page.locator('[data-test-index]');await frenchTests.first().fill('15');
  await page.locator('[data-exam]').fill('15');await page.locator('#pv2SaveGrades').click();
  await page.waitForFunction(()=>document.querySelector('#pv2SaveState')?.textContent?.includes('✓'),null,{timeout:8000});
- check('second own subject keeps independent trimester marks',(await page.locator('[data-avg]').first().innerText()).trim()==='15.00');
- check('annual subject average appears only in trimester 3',(await page.locator('[data-annual]').first().innerText()).trim()==='15.00');
+ check('second own subject keeps independent trimester marks',(await page.locator('[data-avg]').first().innerText()).trim()==='15.00/20');
+ check('annual subject average appears only in trimester 3',(await page.locator('[data-annual]').first().innerText()).trim()==='15.00/20');
  check('trimester 3 individual list includes annual subject column',await page.locator('#pv2OwnSubjectList').count()===1);
  // Individual mode has a subject list but no collective student bulletin.
+ await page.locator('.prof-grade-tools > summary').click();
  await page.locator('#pv2OwnSubjectList').click();
  check('individual professor has bilingual one-test subject list',await page.locator('.professor-own-list-table').count()===1&&(await page.locator('.prof-own-list-preview').innerText()).includes('Interrogation /20'));
  check('trimester 3 subject list uses final-subject-average wording',(await page.locator('.prof-own-list-preview').innerText()).includes('Moyenne finale de la matière')&&(await page.locator('.prof-own-list-preview').innerText()).includes('المعدل النهائي للمادة'));
@@ -137,7 +138,7 @@ try{
  await page.locator('#pv2SaveGrades').click();
  await page.waitForFunction(()=>document.querySelector('#pv2SaveState')?.textContent?.includes('✓'),null,{timeout:8000});
  await page.unroute('**/api/professor/profile');
- check('autosave response cannot erase newer professor grade edits',(await page.locator('[data-avg]').first().innerText()).trim()==='11.50');
+ check('autosave response cannot erase newer professor grade edits',(await page.locator('[data-avg]').first().innerText()).trim()==='11.50/20');
  await page.waitForFunction(async()=>{const r=await fetch('/api/professor/profile');const j=await r.json(),a=j.profile.assignments.find(x=>x.subjectKey==='math'||String(x.subject||'').includes('رياض')),sid=j.profile.classes.find(x=>x.id===a.classId)?.students?.[0]?.id,rec=j.profile.marks?.[a.id]?.[sid]?.terms?.['1'];return JSON.stringify(rec?.tests)===JSON.stringify(['10'])&&rec?.exam==='13'},null,{timeout:8000});
  const persistedRaceMarks=await page.evaluate(async()=>{const r=await fetch('/api/professor/profile');const j=await r.json();const a=j.profile.assignments.find(x=>x.subjectKey==='math'||String(x.subject||'').includes('رياض'));const sid=j.profile.classes.find(x=>x.id===a.classId)?.students?.[0]?.id;return j.profile.marks?.[a.id]?.[sid]?.terms?.['1']||null});
  check('raced professor grades are durably saved',JSON.stringify(persistedRaceMarks?.tests)===JSON.stringify(['10'])&&persistedRaceMarks?.exam==='13',JSON.stringify(persistedRaceMarks));
@@ -146,14 +147,14 @@ try{
  gradeTests=page.locator('[data-test-index]');await gradeTests.first().fill('14');
  await page.locator('[data-exam]').fill('17');await page.locator('#pv2SaveGrades').click();
  await page.waitForFunction(()=>document.querySelector('#pv2SaveState')?.textContent?.includes('✓'),null,{timeout:8000});
- check('math trimester 2 is independent from trimester 1',(await page.locator('[data-avg]').first().innerText()).trim()==='15.50');
+ check('math trimester 2 is independent from trimester 1',(await page.locator('[data-avg]').first().innerText()).trim()==='15.50/20');
  await page.locator('[data-prof-term="3"]').click();
  await page.locator('[data-prof-term="3"].on').waitFor({state:'visible',timeout:8000});
  gradeTests=page.locator('[data-test-index]');await gradeTests.first().fill('16');
  await page.locator('[data-exam]').fill('19');await page.locator('#pv2SaveGrades').click();
  await page.waitForFunction(()=>document.querySelector('#pv2SaveState')?.textContent?.includes('✓'),null,{timeout:8000});
- check('math trimester 3 uses its own test and final exam',(await page.locator('[data-avg]').first().innerText()).trim()==='17.50');
- check('math final subject average appears in trimester 3',(await page.locator('[data-annual]').first().innerText()).trim()==='16.00');
+ check('math trimester 3 uses its own test and final exam',(await page.locator('[data-avg]').first().innerText()).trim()==='17.50/20');
+ check('math final subject average appears in trimester 3',(await page.locator('[data-annual]').first().innerText()).trim()==='16.00/20');
  await page.locator('#pv2BackGrade').click();
 
  await logout();
@@ -209,20 +210,20 @@ try{
  let physicsTests=page.locator('[data-test-index]');
  await physicsTests.first().fill('14');
  await page.locator('[data-exam]').fill('18');
- check('one test and exam compute trimester average',(await page.locator('[data-avg]').first().innerText()).trim()==='16.00');
+ check('one test and exam compute trimester average',(await page.locator('[data-avg]').first().innerText()).trim()==='16.00/20');
  await page.locator('#pv2SaveGrades').click();
  await page.waitForFunction(()=>document.querySelector('#pv2SaveState')?.textContent?.includes('✓'),null,{timeout:8000});
  await page.locator('[data-prof-term="2"]').click();
  physicsTests=page.locator('[data-test-index]');await physicsTests.first().fill('12');
  await page.locator('[data-exam]').fill('16');await page.locator('#pv2SaveGrades').click();
  await page.waitForFunction(()=>document.querySelector('#pv2SaveState')?.textContent?.includes('✓'),null,{timeout:8000});
- check('second professor trimester 2 is independent',(await page.locator('[data-avg]').first().innerText()).trim()==='14.00');
+ check('second professor trimester 2 is independent',(await page.locator('[data-avg]').first().innerText()).trim()==='14.00/20');
  await page.locator('[data-prof-term="3"]').click();
  physicsTests=page.locator('[data-test-index]');await physicsTests.first().fill('13');
  await page.locator('[data-exam]').fill('17');await page.locator('#pv2SaveGrades').click();
  await page.waitForFunction(()=>document.querySelector('#pv2SaveState')?.textContent?.includes('✓'),null,{timeout:8000});
- check('second professor trimester 3 is independent',(await page.locator('[data-avg]').first().innerText()).trim()==='15.00');
- check('second professor final subject average is available only in trimester 3',(await page.locator('[data-annual]').first().innerText()).trim()==='15.56');
+ check('second professor trimester 3 is independent',(await page.locator('[data-avg]').first().innerText()).trim()==='15.00/20');
+ check('second professor final subject average is available only in trimester 3',(await page.locator('[data-annual]').first().innerText()).trim()==='15.56/20');
  await page.locator('[data-prof-nav="reports"]').click();
  await page.locator('.prof-report-switcher').waitFor({state:'visible',timeout:10000});
  check('reports opens with combined subject lists separated from collective results',await page.locator('[data-report-section="own"].on').count()===1&&await page.locator('[data-open-own-class-report]').count()>=1);
@@ -242,11 +243,11 @@ try{
  await page.locator('[data-prof-nav="students"]').click();
  await page.locator('[data-manage-class]').first().click();
  await page.locator('[data-class-grade]').click();
- check('professor grades persist after reload',(await page.locator('[data-avg]').first().innerText()).trim()==='16.00');
- check('official coefficient persists after reload',(await page.locator('[data-avg]').first().innerText()).trim()==='16.00');
+ check('professor grades persist after reload',(await page.locator('[data-avg]').first().innerText()).trim()==='16.00/20');
+ check('official coefficient persists after reload',(await page.locator('[data-avg]').first().innerText()).trim()==='16.00/20');
  await page.locator('[data-prof-term="3"]').click();
  await page.locator('[data-test-index="0"]').waitFor({state:'visible',timeout:8000});
- check('term 3 professor grades persist after reload',(await page.locator('[data-avg]').first().innerText()).trim()==='15.00');
+ check('term 3 professor grades persist after reload',(await page.locator('[data-avg]').first().innerText()).trim()==='15.00/20');
 
  await page.locator('[data-prof-nav="reports"]').click();
  await page.locator('.prof-report-switcher').waitFor({state:'visible',timeout:10000});

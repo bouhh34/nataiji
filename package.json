@@ -6,7 +6,7 @@
   "scripts": {
     "dev": "node scripts/dev-server.mjs",
     "start": "node --import ./src/gmail-mail-bridge.js src/server.js",
-    "check": "node --check src/server.js && node --check src/gmail-mail-bridge.js && node scripts/server-smoke.mjs",
+    "check": "node scripts/syntax-check.mjs && node scripts/server-smoke.mjs",
     "mobile:sync": "npx cap sync",
     "mobile:android": "npx cap open android",
     "mobile:ios": "npx cap open ios",

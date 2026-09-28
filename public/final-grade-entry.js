@@ -95,7 +95,7 @@ function enhanceInputs(){
   const buttonHost=compactRow?.querySelector?.('.score-controls')||input.parentElement;
   let b=buttonHost?.querySelector?.('.absent-btn')||compactRow?.querySelector?.('.absent-btn');
   if(!b&&buttonHost){b=document.createElement('button');b.type='button';b.className='absent-btn';buttonHost.appendChild(b)}
-  if(b){const syncPressed=()=>b.setAttribute('aria-pressed',isAbsent(input.value)?'true':'false');b.textContent=absenceLabel(i);syncPressed();b.onclick=e=>{e.preventDefault();e.stopPropagation();if(isAbsent(input.value)){input.value='';commitEntry(input,true);syncPressed();input.dispatchEvent(new Event('change',{bubbles:true}));input.focus()}else{input.value=absenceLabel(i);commitEntry(input,true);syncPressed();input.dispatchEvent(new Event('change',{bubbles:true}))}}
+  if(b){const syncPressed=()=>b.setAttribute('aria-pressed',isAbsent(input.value)?'true':'false');b.textContent=absenceLabel(i);syncPressed();b.onclick=e=>{e.preventDefault();e.stopPropagation();if(isAbsent(input.value)){input.value='';commitEntry(input,true);syncPressed();input.dispatchEvent(new Event('change',{bubbles:true}));input.focus()}else{input.value=absenceLabel(i);commitEntry(input,true);syncPressed();input.dispatchEvent(new Event('change',{bubbles:true}))}}}
  })
 }
 try{
