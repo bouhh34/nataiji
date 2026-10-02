@@ -60,7 +60,7 @@ Use the existing upload key if this package has already been registered in Play.
 
 The professor browser acceptance workflow captures four 1080 × 1920 PNG previews using disposable demonstration accounts: Arabic teacher home, grades and collective reports, plus French reports. Download the `nataiji-play-screenshots` artifact from a successful current run and inspect all images before uploading. These screenshots do not substitute for testing an Android device.
 
-The branded native icon and splash images are generated from `assets/logo.png`. A 1024 × 500 feature graphic still needs to be prepared from the same approved branding.
+The branded native icon and splash images are generated from `assets/logo.png`. Store assets are prepared in `assets/play-store/`: `icon-512.png` (512 × 512, PNG with alpha channel) and `feature-graphic.png` (1024 × 500, opaque PNG). The editable banner source is `feature-graphic.svg`, which uses the existing approved logo.
 
 ## Play Console declarations to review
 
