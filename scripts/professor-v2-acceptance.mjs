@@ -303,7 +303,7 @@ try{
 
  const classPrint=await capturePrint('#pv2PrintClass');
  const classPrintText=await classPrint.locator('body').innerText();
- check('printed collective class list is bilingual',classPrintText.includes('اللائحة الجماعية للقسم')&&classPrintText.includes('Liste collective de la classe')&&classPrintText.includes('الفيزياء والكيمياء')&&classPrintText.includes('Physique-Chimie'),classPrintText);
+ check('collective class list keeps bilingual identity and compact curriculum columns',classPrintText.includes('اللائحة الجماعية للقسم')&&classPrintText.includes('Liste collective de la classe')&&classPrintText.includes('الفيزياء والكيمياء')&&await classPrint.locator('.subject-head[title*="Physique-Chimie"]').count()===1&&await classPrint.locator('.subject-head').count()===11,classPrintText);
  check('collective class list uses its dedicated layout',await classPrint.locator('main.class-list-doc').count()===1);
  check('collective class list keeps date and teacher/director signatures',await classPrint.locator('.school-signatures').count()===1&&await classPrint.locator('.official-date-line').count()===1&&await classPrint.locator('.signature-zone').count()===2);
  check('class list keeps its portrait layout for dense subject lists',await classPrint.locator('main.landscape-doc').count()===0&&await page.evaluate(()=>window.NataijiProfessor?._classListLandscape?.(5)===false&&window.NataijiProfessor?._classListLandscape?.(6)===false));
@@ -324,7 +324,7 @@ try{
  await page.locator('#pv2ResultsBody .prof-collective-roster').waitFor({state:'visible',timeout:10000});
  const frenchResults=await page.locator('#pv2ResultsBody').innerText();
  const frenchClassPrint=await capturePrint('#pv2PrintClass');
- check('French mode prints translated subject labels',(await frenchClassPrint.locator('body').innerText()).includes('Mathématiques'));
+ check('French mode keeps translated subject titles and official abbreviations',await frenchClassPrint.locator('.subject-head[title*="Mathématiques"]').count()===1&&(await frenchClassPrint.locator('.subject-head[title*="Mathématiques"] b').innerText()).trim()==='MATS');
  await frenchClassPrint.close();
  check('French mode transliterates student names automatically',frenchResults.includes('Mohamed Salem'),frenchResults);
  const frenchMeta=await page.evaluate(()=>({lang:document.documentElement.lang,dir:document.documentElement.dir,htmlFr:document.documentElement.classList.contains('lang-fr')}));

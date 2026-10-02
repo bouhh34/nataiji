@@ -1,4 +1,4 @@
-const CACHE = "nataiji-shell-v99";
+const CACHE = "nataiji-shell-v100";
 const ASSETS = [
   "/",
   "/privacy.html",
