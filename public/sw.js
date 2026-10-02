@@ -1,7 +1,9 @@
-const CACHE = "nataiji-shell-v97";
+const CACHE = "nataiji-shell-v98";
 const ASSETS = [
   "/",
   "/privacy.html",
+  "/delete-account.html",
+  "/info-pages.css?v=1",
   "/terms.html",
   "/download.html",
   "/class-report-print-v2.js?v=3",
@@ -57,7 +59,7 @@ const ASSETS = [
   "/nataiji-home-reference-v1.js?v=2",
   "/more-page-v1.js?v=7"
 ];
-const shellPages = new Set(['/', '/index.html', '/privacy.html', '/terms.html', '/download.html']);
+const shellPages = new Set(['/', '/index.html', '/privacy.html', '/delete-account.html', '/terms.html', '/download.html']);
 const assetPaths = new Set(ASSETS.map(p=>new URL(p,location.origin).pathname));
 self.addEventListener('install', event=>{
   // An incomplete release must not replace the working offline shell.

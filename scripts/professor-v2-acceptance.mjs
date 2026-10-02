@@ -1,11 +1,19 @@
 import { chromium } from 'playwright';
+import fs from 'node:fs/promises';
 
 const base=process.env.NATAIJI_TEST_URL||'http://127.0.0.1:3222';
 const browser=await chromium.launch({headless:true});
-const context=await browser.newContext({viewport:{width:390,height:844},isMobile:true,hasTouch:true,locale:'ar'});
+const context=await browser.newContext({viewport:{width:390,height:844},deviceScaleFactor:3,isMobile:true,hasTouch:true,locale:'ar'});
 const page=await context.newPage();
 const failures=[];
 const check=(name,ok,detail='')=>{console.log(`${ok?'PASS':'FAIL'}  ${name}${detail?' — '+detail:''}`);if(!ok)failures.push(name+(detail?': '+detail:''))};
+async function storeScreenshot(name){
+ if(process.env.NATAIJI_CAPTURE_PLAY_SCREENSHOTS!=='1')return;
+ await fs.mkdir('artifacts/play',{recursive:true});
+ await page.setViewportSize({width:360,height:640});
+ await page.screenshot({path:`artifacts/play/${name}.png`,fullPage:false});
+ await page.setViewportSize({width:390,height:844});
+}
 
 async function registerProfessor(name,email){
  await page.goto(base,{waitUntil:'domcontentloaded',timeout:30000});
@@ -23,6 +31,10 @@ async function logout(){
  await page.locator('#profUtilityToggle').click();
  await page.locator('#profLogout').click();
  await page.locator('[data-auth2="login"]').waitFor({state:'visible',timeout:10000});
+}
+async function collectiveResult(term){
+ const classId=await page.locator('#pv2ResultsClass').inputValue();
+ return await page.evaluate(async({classId,term})=>{const r=await fetch('/api/professor/classes/'+encodeURIComponent(classId)+'/results?term='+term);if(!r.ok)throw new Error('Collective result failed: '+r.status);return r.json()},{classId,term});
 }
 async function capturePrint(selector){
  // Printing uses a temporary iframe. Capture its actual document before the
@@ -57,6 +69,7 @@ try{
  const homeAverageDir=await page.locator('.prof-reference-stats .average strong').getAttribute('dir');
  check('professor /20 averages are isolated left-to-right',homeAverageDir==='ltr',String(homeAverageDir));
  check('professor can create own subject and class',homeSubjectText.includes('الرياضيات'),homeSubjectText);
+ await storeScreenshot('01-teacher-home-ar');
  await page.locator('[data-prof-nav="grades"]').click();
  await page.locator('.prof-v2-assignment').waitFor({state:'visible',timeout:8000});
  const firstAssignmentText=await page.locator('.prof-v2-assignment').innerText();
@@ -128,7 +141,8 @@ try{
  const unsharedCollective=await page.evaluate(async()=>{const p=await fetch('/api/professor/profile');const j=await p.json();const id=j.profile.classes[0].id;const r=await fetch('/api/professor/classes/'+encodeURIComponent(id)+'/results?term=1');return{status:r.status,body:await r.json()}});
  check('individual professor cannot open collective student bulletins before sharing',unsharedCollective.status===409&&unsharedCollective.body?.error==='collective_mode_required',JSON.stringify(unsharedCollective));
  await page.locator('#pv2BackGrade').click();
-
+ await page.locator('[data-prof-nav="students"]').click();
+ await page.locator('[data-manage-class]').first().click();
  await page.locator('#pv2ShareClass').click();
  await page.locator('.prof-class-code').waitFor({state:'visible',timeout:8000});
  const code=(await page.locator('.prof-class-code').innerText()).trim();
@@ -165,6 +179,7 @@ try{
  await page.waitForFunction(()=>document.querySelector('#pv2SaveState')?.textContent?.includes('✓'),null,{timeout:8000});
  check('math trimester 3 uses its own test and final exam',(await page.locator('[data-avg]').first().innerText()).trim()==='17.50/20');
  check('math annual subject average weights trimesters 1, 2 and 3',(await page.locator('[data-annual]').first().innerText()).trim()===(95/6).toFixed(2)+'/20');
+ await storeScreenshot('02-teacher-grades-ar');
  await page.locator('#pv2BackGrade').click();
 
  await logout();
@@ -239,12 +254,12 @@ try{
  check('reports opens with combined subject lists separated from collective results',await page.locator('[data-report-section="own"].on').count()===1&&await page.locator('[data-open-own-class-report]').count()>=1);
  check('collective reports explicitly expose bulletin and list',((await page.locator('.prof-collective-entry').innerText()).includes('كشف جماعي'))&&((await page.locator('.prof-collective-entry').innerText()).includes('اللائحة')));
  await page.locator('[data-report-section="collective"]').first().click();
- await page.locator('#pv2ResultsBody .prof-results-table').waitFor({state:'visible',timeout:10000});
+ await page.locator('#pv2ResultsBody .prof-collective-roster').waitFor({state:'visible',timeout:10000});
  const autosavedResults=await page.locator('#pv2ResultsBody').innerText();
  check('leaving grade page auto-saves professor grades',autosavedResults.includes('13.18'),autosavedResults);
  check('partial curriculum is clearly marked provisional',autosavedResults.includes('11 / 28')&&/مؤقت|provisoire/i.test(autosavedResults),autosavedResults);
  await page.locator('[data-results-term="3"]').click();
- await page.locator('#pv2ResultsBody .prof-results-table').waitFor({state:'visible',timeout:10000});
+ await page.locator('#pv2ResultsBody .prof-collective-roster').waitFor({state:'visible',timeout:10000});
  const term3Results=await page.locator('#pv2ResultsBody').innerText();
  const annualCollective=((95/6)*6+15*4+(89/6))/11;
  check('shared annual result combines both professors with official coefficients',term3Results.includes(annualCollective.toFixed(2)),term3Results);
@@ -264,69 +279,57 @@ try{
  await page.locator('[data-prof-nav="reports"]').click();
  await page.locator('.prof-report-switcher').waitFor({state:'visible',timeout:10000});
  await page.locator('[data-report-section="collective"]').first().click();
- await page.locator('#pv2ResultsBody .prof-results-table').waitFor({state:'visible',timeout:10000});
+ await page.locator('#pv2ResultsBody .prof-collective-roster').waitFor({state:'visible',timeout:10000});
  const resultsText=await page.locator('#pv2ResultsBody').innerText();
- check('shared results include subjects from both professors',resultsText.includes('الرياضيات')&&resultsText.includes('اللغة الفرنسية')&&resultsText.includes('العلوم الفيزيائية'),resultsText);
- const orderedSubjects=await page.locator('#pv2ResultsBody .prof-result-subject').allTextContents();
- check('collective report subjects follow curriculum order',JSON.stringify(orderedSubjects.slice(0,3))===JSON.stringify(['الرياضيات','اللغة الفرنسية','العلوم الفيزيائية']),JSON.stringify(orderedSubjects));
- check('shared general average uses subject coefficients',resultsText.includes('13.18'),resultsText);
+ const sharedData=await collectiveResult(1);
+ const orderedSubjects=sharedData.subjects.map(s=>s.subjectKey);
+ check('shared results include both professors in curriculum order',JSON.stringify(orderedSubjects)===JSON.stringify(['math','french','physical_sciences']),JSON.stringify(orderedSubjects));
+ check('shared general average uses subject coefficients',Math.abs(sharedData.students[0].general-145/11)<0.00001&&resultsText.includes('13.18'),resultsText);
  check('report exposes official coefficient coverage',resultsText.includes('11 / 28'),resultsText);
- check('shared results expose one student bulletin button',await page.locator('[data-bulletin]').count()===1);
- await page.locator('[data-bulletin]').click();
- await page.locator('.prof-bulletin-preview').waitFor({state:'visible',timeout:10000});
- const bulletinPreview=await page.locator('.prof-bulletin-preview').innerText();
- check('student bulletin contains all shared subjects',bulletinPreview.includes('الرياضيات')&&bulletinPreview.includes('اللغة الفرنسية')&&bulletinPreview.includes('العلوم الفيزيائية'));
- check('student bulletin preview is bilingual independent of Arabic UI',bulletinPreview.includes('Mathématiques')&&bulletinPreview.includes('Français')&&bulletinPreview.includes('Sciences physiques')&&bulletinPreview.includes('محمد سالم')&&bulletinPreview.includes('Mohamed Salem'),bulletinPreview);
- const studentPrint=await capturePrint('#pv2PrintStudent');
+ await storeScreenshot('03-teacher-reports-ar');
+ check('collective results expose official student bulletin printing',await page.locator('#pv2PrintAllStudents').count()===1);
+ const studentPrint=await capturePrint('#pv2PrintAllStudents');
  const studentPrintText=await studentPrint.locator('body').innerText();
  check('printed student bulletin has bilingual Mauritanian official header',studentPrintText.includes('الجمهورية الإسلامية الموريتانية')&&studentPrintText.includes('République Islamique de Mauritanie')&&studentPrintText.includes('وزارة التربية وإصلاح النظام التعليمي')&&studentPrintText.includes('Ministère de l’Éducation et de la Réforme du Système Éducatif'),studentPrintText);
- check('printed student bulletin keeps Arabic and French subject/name labels together',studentPrintText.includes('الرياضيات')&&studentPrintText.includes('Mathématiques')&&studentPrintText.includes('محمد سالم')&&studentPrintText.includes('Mohamed Salem'),studentPrintText);
- check('single student bulletin prints one official copy',await studentPrint.locator('.official-head').count()===1&&await studentPrint.locator('.cut-line').count()===0);
- check('single student bulletin keeps date and teacher/director signatures',await studentPrint.locator('.school-signatures').count()===1&&await studentPrint.locator('.official-date-line').count()===1&&await studentPrint.locator('.signature-zone').count()===2);
- const schoolGridStyle=await studentPrint.locator('.secondary-summary').first().evaluate(el=>({left:getComputedStyle(el).borderLeftStyle,bottom:getComputedStyle(el).borderBottomStyle,color:getComputedStyle(el).color}));
+ check('printed bulletin contains all shared subjects in both languages',studentPrintText.includes('الرياضيات')&&studentPrintText.includes('Mathématiques')&&studentPrintText.includes('اللغة الفرنسية')&&studentPrintText.includes('Français')&&studentPrintText.includes('العلوم الفيزيائية')&&studentPrintText.includes('Sciences physiques'),studentPrintText);
+ check('printed bulletin keeps both student names',studentPrintText.includes('محمد سالم')&&studentPrintText.includes('Mohamed Salem'),studentPrintText);
+ check('bulk bulletin output uses one official A4 page per student',await studentPrint.locator('.student-page').count()===sharedData.students.length&&await studentPrint.locator('.official-head').count()===sharedData.students.length&&await studentPrint.locator('.student-pair').count()===0);
+ check('student bulletin keeps date and teacher/director signatures',await studentPrint.locator('.school-signatures').count()===1&&await studentPrint.locator('.official-date-line').count()===1&&await studentPrint.locator('.signature-zone').count()===2);
+ const schoolGridStyle=await studentPrint.locator('.official-bulletin-summary').evaluate(el=>({left:getComputedStyle(el).borderLeftStyle,bottom:getComputedStyle(el).borderBottomStyle}));
  check('student bulletin uses formal bordered school-record blocks',schoolGridStyle.left==='solid'&&schoolGridStyle.bottom==='solid',JSON.stringify(schoolGridStyle));
+ check('first trimester bulletin has one bilingual test column',(await studentPrint.locator('.secondary-bulletin-table[data-term="1"] thead').innerText()).includes('الاختبار /20')&&(await studentPrint.locator('.secondary-bulletin-table[data-term="1"] thead').innerText()).includes('Interrogation /20'));
  await studentPrint.close();
- await page.locator('.professor-x').click();
-
- check('collective results expose bulk student printing',await page.locator('#pv2PrintAllStudents').count()===1);
- const bulkPrint=await capturePrint('#pv2PrintAllStudents');
- check('bulk bulletin output uses one official A4 page per student',await bulkPrint.locator('.student-page').count()===1&&await bulkPrint.locator('.official-head').count()===1&&await bulkPrint.locator('.student-pair').count()===0);
- check('bulk bulletin pulls the same collective subjects',((await bulkPrint.locator('body').innerText()).includes('الرياضيات'))&&((await bulkPrint.locator('body').innerText()).includes('اللغة الفرنسية'))&&((await bulkPrint.locator('body').innerText()).includes('العلوم الفيزيائية')));
- await bulkPrint.close();
 
  const classPrint=await capturePrint('#pv2PrintClass');
  const classPrintText=await classPrint.locator('body').innerText();
  check('printed collective class list is bilingual',classPrintText.includes('اللائحة الجماعية للقسم')&&classPrintText.includes('Liste collective de la classe')&&classPrintText.includes('العلوم الفيزيائية')&&classPrintText.includes('Sciences physiques'),classPrintText);
- check('collective class list uses dedicated wider print layout',await classPrint.locator('main.class-list-doc').count()===1);
+ check('collective class list uses its dedicated layout',await classPrint.locator('main.class-list-doc').count()===1);
  check('collective class list keeps date and teacher/director signatures',await classPrint.locator('.school-signatures').count()===1&&await classPrint.locator('.official-date-line').count()===1&&await classPrint.locator('.signature-zone').count()===2);
  check('class list keeps its portrait layout for dense subject lists',await classPrint.locator('main.landscape-doc').count()===0&&await page.evaluate(()=>window.NataijiProfessor?._classListLandscape?.(5)===false&&window.NataijiProfessor?._classListLandscape?.(6)===false));
  await classPrint.close();
 
- // Secondary-school bulletin structure stays trimester-aware.
- await page.locator('[data-results-term="1"]').click();
- await page.locator('#pv2ResultsBody .prof-results-table').waitFor({state:'visible',timeout:10000});
- await page.locator('[data-bulletin]').click();
- check('first trimester collective bulletin has one /20 test column',(await page.locator('.secondary-bulletin-table[data-term="1"] thead').innerText()).includes('الاختبار /20')&&(await page.locator('.secondary-bulletin-table[data-term="1"] thead').innerText()).includes('Interrogation /20'));
- await page.locator('.professor-x').click();
  await page.locator('[data-results-term="2"]').click();
- await page.locator('#pv2ResultsBody .prof-results-table').waitFor({state:'visible',timeout:10000});
- await page.locator('[data-bulletin]').click();
- const term2Bulletin=await page.locator('.prof-bulletin-preview').innerText();
- check('second trimester collective bulletin still has one /20 test column',(await page.locator('.secondary-bulletin-table[data-term="2"] thead').innerText()).includes('الاختبار /20')&&(await page.locator('.secondary-bulletin-table[data-term="2"] thead').innerText()).includes('Interrogation /20'));
+ await page.locator('#pv2ResultsBody .prof-collective-roster').waitFor({state:'visible',timeout:10000});
+ const term2Print=await capturePrint('#pv2PrintAllStudents');
+ const term2Bulletin=await term2Print.locator('body').innerText();
+ check('second trimester bulletin has one bilingual test column',(await term2Print.locator('.secondary-bulletin-table[data-term="2"] thead').innerText()).includes('الاختبار /20')&&(await term2Print.locator('.secondary-bulletin-table[data-term="2"] thead').innerText()).includes('Interrogation /20'));
  check('second trimester bulletin shows bilingual test and composition',term2Bulletin.includes('الاختبار /20')&&term2Bulletin.includes('Interrogation /20')&&term2Bulletin.includes('امتحان الفصل /20')&&term2Bulletin.includes('Composition /20'),term2Bulletin);
- const physicsTerm2=await page.locator('.secondary-bulletin-table tbody tr').filter({hasText:'العلوم الفيزيائية'}).innerText();
- check('second trimester bulletin shows that trimester test and exam',physicsTerm2.includes('12')&&physicsTerm2.includes('16'),physicsTerm2);
- await page.locator('.professor-x').click();
+ const physicsTerm2=await term2Print.locator('.secondary-bulletin-table tbody tr').filter({hasText:'العلوم الفيزيائية'}).innerText();
+ check('second trimester bulletin prints that trimester marks',physicsTerm2.includes('12')&&physicsTerm2.includes('16'),physicsTerm2);
+ await term2Print.close();
 
  await page.locator('#profUtilityToggle').click();
  await page.locator('#profLang').click();
- await page.locator('#pv2ResultsBody .prof-results-table').waitFor({state:'visible',timeout:10000});
+ await page.locator('#pv2ResultsBody .prof-collective-roster').waitFor({state:'visible',timeout:10000});
  const frenchResults=await page.locator('#pv2ResultsBody').innerText();
- check('French mode translates Arabic professor subject automatically',frenchResults.includes('Mathématiques'),frenchResults);
+ const frenchClassPrint=await capturePrint('#pv2PrintClass');
+ check('French mode prints translated subject labels',(await frenchClassPrint.locator('body').innerText()).includes('Mathématiques'));
+ await frenchClassPrint.close();
  check('French mode transliterates student names automatically',frenchResults.includes('Mohamed Salem'),frenchResults);
  const frenchMeta=await page.evaluate(()=>({lang:document.documentElement.lang,dir:document.documentElement.dir,htmlFr:document.documentElement.classList.contains('lang-fr')}));
  check('professor French mode applies LTR metadata consistently',frenchMeta.lang==='fr'&&frenchMeta.dir==='ltr'&&frenchMeta.htmlFr,JSON.stringify(frenchMeta));
  check('collective results body is fully localized in French',!/[\u0600-\u06ff]/u.test(frenchResults),frenchResults);
+ await storeScreenshot('04-teacher-reports-fr');
  await page.locator('#profUtilityToggle').click();
  check('language switch clearly offers Arabic from French mode',(await page.locator('#profLang').innerText()).trim()==='العربية');
 
