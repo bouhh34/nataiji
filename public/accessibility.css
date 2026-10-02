@@ -8,6 +8,12 @@
   }
   .menu-card, .section-head > div, .profile { min-width: 0; }
   .menu-card b, .subject-progress-name { overflow-wrap: anywhere; }
+  .nataiji-professor-mode .professor-reference-topbar {
+    position: relative;
+    z-index: 30;
+    overflow: visible;
+  }
+  .nataiji-professor-mode #profUtilityMenu { z-index: 31; }
   @media (max-width: 480px) {
     input, select, textarea { font-size: 16px; }
     .bottom-nav button { min-height: 44px; }

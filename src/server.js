@@ -278,7 +278,6 @@ async function saveProfessorProfile(userId,input,{syncShared=true}={}){
  return profile
 }
 async function cleanupProfessorSharing(userId,client){
- await archiveProfessorProfileVersion(userId,client,'before-account-delete');
  const memberships=(await client.query('SELECT class_id FROM nataiji_professor_class_members WHERE user_id=$1',[userId])).rows;
  for(const row of memberships){
   const classId=String(row.class_id),cq=await client.query('SELECT owner_user_id FROM nataiji_professor_classrooms WHERE class_id=$1',[classId]);
@@ -289,6 +288,8 @@ async function cleanupProfessorSharing(userId,client){
   }
   await client.query('DELETE FROM nataiji_professor_class_members WHERE class_id=$1 AND user_id=$2',[classId,userId])
  }
+ await client.query('DELETE FROM nataiji_professor_grade_history WHERE user_id=$1',[userId]);
+ await client.query('DELETE FROM nataiji_professor_profile_versions WHERE user_id=$1',[userId]);
  await client.query('DELETE FROM nataiji_professor_profiles WHERE user_id=$1',[userId])
 }
 const workspaceSelectionKey=u=>u?.activeSharedGrant?`shared:${u.activeSharedGrant}`:`school:${u?.schoolId||''}`;
