@@ -43,3 +43,5 @@
  @media(max-width:360px){.prof-sync-status{align-items:flex-start;flex-direction:column}.professor-reference-main{gap:6px!important}.professor-brand small{display:none}}
 }
 @media screen{.professor-app input[aria-invalid=true]{border:2px solid #b32f2f!important;background:#fff4f2!important}}
+
+@media screen{.professor-toast{position:static!important;inset:auto!important;transform:none!important;display:none!important;opacity:1!important;margin:8px 0!important;width:auto!important;max-width:100%!important;border-radius:12px!important;box-shadow:none!important;padding:10px 12px!important;pointer-events:none}.professor-toast.show{display:block!important}}

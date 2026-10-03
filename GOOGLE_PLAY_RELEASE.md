@@ -10,7 +10,7 @@ Account deletion: https://nataiji.onrender.com/delete-account.html
 
 ## Current candidate: 1.0.0-rc.2
 
-- Public shell: `nataiji-shell-v101`. Release signing and live deployment are verified after merge.
+- Public shell: `nataiji-shell-v102`. Release signing and live deployment are verified after merge.
 - Professor grades: account-scoped local drafts in an already authenticated workspace, delta batches of up to 50 changed pupils, automatic reconnect retry, conflict review, draft export/import. A fresh login/reload still requires connectivity; do not advertise unrestricted offline login.
 - Local drafts contain pupil IDs and grades, not names or credentials. Exported backups can include full profile data; the user chooses the download.
 - Account settings can revoke other sessions using the current password.

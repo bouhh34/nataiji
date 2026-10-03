@@ -13,6 +13,8 @@ on:
       - main
     paths:
       - '.github/workflows/mobile-android-release.yml'
+      - 'public/professor-v2.js'
+      - 'public/accessibility.css'
 
 permissions:
   contents: read
