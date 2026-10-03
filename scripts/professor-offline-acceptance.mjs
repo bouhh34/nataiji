@@ -1,5 +1,6 @@
 import {chromium} from 'playwright';
 import assert from 'node:assert/strict';
+import fs from 'node:fs/promises';
 const base=process.env.NATAIJI_TEST_URL||'http://127.0.0.1:3222';
 const browser=await chromium.launch({headless:true});
 const context=await browser.newContext({viewport:{width:320,height:740},isMobile:true,hasTouch:true});
@@ -30,9 +31,19 @@ try{
  assert.equal(await page.evaluate(()=>JSON.parse(localStorage.getItem('nataiji-grade-drafts-v1:'+currentUser.id)).rows.length),2,'offline navigation preserves two trimester drafts');
  assert.match(await page.locator('#profSyncStatus').innerText(),/محفوظ على الجهاز/);
  assert.ok(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth+2),'320px screen must not overflow');
+ await page.locator('[data-prof-nav="more"]').click();await page.locator('#profMoreBackup').click();
+ const downloaded=page.waitForEvent('download');await page.locator('#profExportDrafts').click();
+ const backup=JSON.parse(await fs.readFile(await (await downloaded).path(),'utf8'));assert.equal(backup.userId,reg.user.id);assert.equal(backup.drafts.length,2);
+ await page.locator('.professor-x').click();
  // Reconnect with writes temporarily blocked so reauthentication/reload cannot erase drafts.
  await page.route('**/api/professor/assignments/*/grades',route=>route.abort());
  await context.setOffline(false);await page.reload({waitUntil:'domcontentloaded'});await page.locator('#profSyncStatus').waitFor({state:'visible'});
+ assert.equal(await page.evaluate(()=>JSON.parse(localStorage.getItem('nataiji-grade-drafts-v1:'+currentUser.id)).rows.length),2);
+ // Exercise the downloaded backup: erase the local drafts, then restore them explicitly.
+ await page.evaluate(()=>localStorage.removeItem('nataiji-grade-drafts-v1:'+currentUser.id));await page.reload({waitUntil:'domcontentloaded'});await page.locator('#profSyncStatus').waitFor({state:'visible'});
+ await page.locator('[data-prof-nav="more"]').click();await page.locator('#profMoreBackup').click();
+ page.once('dialog',d=>d.accept());await page.locator('#profImportDrafts').setInputFiles({name:'Nataiji-backup.json',mimeType:'application/json',buffer:Buffer.from(JSON.stringify(backup))});
+ await page.waitForFunction(()=>document.querySelector('.professor-modal')===null);
  assert.equal(await page.evaluate(()=>JSON.parse(localStorage.getItem('nataiji-grade-drafts-v1:'+currentUser.id)).rows.length),2);
  await page.unroute('**/api/professor/assignments/*/grades');
  await page.locator('#profSyncRetry').click();
@@ -66,5 +77,5 @@ try{
  assert.ok(await page.evaluate(id=>!!localStorage.getItem('nataiji-grade-drafts-v1:'+id),reg.user.id));
  await request('/api/auth/logout','POST',{});await request('/api/auth/login','POST',{email:'offline.professor@example.com',password:'OfflinePass-9021'});
  await page.reload({waitUntil:'domcontentloaded'});await page.locator('#profSyncStatus').waitFor({state:'visible'});assert.match(await page.locator('#profSyncStatus').innerText(),/بانتظار المزامنة/);
- console.log('PASS offline drafts, reload, account isolation, 25-pupil delta batching, atomic rejection, idempotency and concurrent-device conflict resolution');
-}finally{await browser.close()}
+ console.log('PASS backup export/import, offline drafts, reload, account isolation, 25-pupil delta batching, atomic rejection, idempotency and concurrent-device conflict resolution');
+}catch(e){await fs.mkdir('artifacts/play',{recursive:true});await page.screenshot({path:'artifacts/play/offline-failure.png',fullPage:true}).catch(()=>{});console.error('Offline test page:',await page.locator('body').innerText().catch(()=>''));throw e}finally{await browser.close()}

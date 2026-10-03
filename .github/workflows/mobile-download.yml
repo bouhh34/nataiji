@@ -46,7 +46,7 @@ jobs:
       - name: Apply RC version metadata
         run: |
           VERSION_NAME="$(node -e "const p=require('./package.json'); process.stdout.write(p.version)")"
-          sed -i -E "s/versionCode [0-9]+/versionCode 1/" android/app/build.gradle
+          sed -i -E "s/versionCode [0-9]+/versionCode 2/" android/app/build.gradle
           sed -i -E "s/versionName \"[^\"]+\"/versionName \"$VERSION_NAME\"/" android/app/build.gradle
           grep -E "versionCode|versionName" android/app/build.gradle
       - name: Build installable APK
@@ -61,6 +61,6 @@ jobs:
           name: Nataiji Android Download
           prerelease: true
           body: |
-            نتائجي v1.0.0 RC1 — نسخة أندرويد مرشحة للإطلاق للتثبيت المباشر.
+            نتائجي v1.0.0 RC2 — نسخة أندرويد مرشحة للإطلاق للتثبيت المباشر.
             المصدر الرسمي للتنزيل هو صفحة نتائجي فقط.
           files: Nataiji-Android.apk
