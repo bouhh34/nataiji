@@ -5,8 +5,12 @@ on:
     paths:
       - 'src/**'
       - 'public/professor-v2.*'
+      - 'public/grade-journal.js'
+      - 'public/app.js'
+      - 'public/accessibility.css'
       - 'public/index.html'
       - 'scripts/professor-v2-acceptance.mjs'
+      - 'scripts/professor-offline-acceptance.mjs'
       - '.github/workflows/professor-ui-acceptance.yml'
   workflow_dispatch:
 
@@ -64,7 +68,9 @@ jobs:
         env:
           NATAIJI_TEST_URL: http://127.0.0.1:3222
           NATAIJI_CAPTURE_PLAY_SCREENSHOTS: '1'
-        run: node scripts/professor-v2-acceptance.mjs
+        run: |
+          node scripts/professor-v2-acceptance.mjs
+          node scripts/professor-offline-acceptance.mjs
       - name: Upload store screenshot previews
         if: always()
         uses: actions/upload-artifact@v4

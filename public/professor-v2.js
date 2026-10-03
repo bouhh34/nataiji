@@ -186,84 +186,117 @@ function latestTermResult(m){for(let term=3;term>=1;term--){const value=termResu
 function statsFor(a){const students=classById(a.classId)?.students||[],marks=marksFor(a.id),byTerm={1:[],2:[],3:[]};for(const s of students){const m=marks[s.id]||{};for(let term=1;term<=3;term++){const value=termResult(m,term);if(value!=null)byTerm[term].push(value)}}let term=0;for(let t=3;t>=1;t--)if(byTerm[t].length){term=t;break}const values=term?byTerm[term]:[],avg=values.length?values.reduce((x,y)=>x+y,0)/values.length:null,coefficient=coefficientOf(a);return{students:students.length,done:values.length,avg,term,coefficient,weighted:avg==null?null:avg*coefficient}}
 function iconFor(subject){const s=String(subject||'').toLowerCase();if(/math|رياض/.test(s))return'∑';if(/fran|فرنس/.test(s))return'FR';if(/anglais|english|إنج/.test(s))return'EN';if(/phys|فيز/.test(s))return'⚛';if(/chim|كيم/.test(s))return'⚗';if(/arab|عرب/.test(s))return'ع';if(/islam|إسلام/.test(s))return'☾';return'✦'}
 function toast(text){let t=q('.professor-toast');if(!t){t=document.createElement('div');t.className='professor-toast';document.body.appendChild(t)}t.textContent=text;t.classList.add('show');setTimeout(()=>t.classList.remove('show'),1800)}
-function modal(title,body){const w=document.createElement('div');w.className='professor-modal';w.innerHTML=`<div class="professor-modal-card"><header><h2>${esc(title)}</h2><button type="button" class="professor-x" aria-label="${esc(tr('إغلاق','Fermer'))}">×</button></header><div class="professor-modal-body">${body}</div></div>`;document.body.appendChild(w);const close=()=>w.remove();q('.professor-x',w).onclick=close;w.onclick=e=>{if(e.target===w)close()};return{wrap:w,close}}
-async function refreshProfile(){const [r,cat]=await Promise.all([api('/api/professor/profile'),api('/api/professor/catalog').catch(()=>null)]);profile=normalize(r.profile);links=r.classLinks||{};if(cat?.catalog)academicCatalog=cat.catalog;return r}
+function modal(title,body){
+ const previous=document.activeElement,w=document.createElement('div');w.className='professor-modal';
+ w.innerHTML=`<div class="professor-modal-card" role="dialog" aria-modal="true" aria-labelledby="profDialogTitle"><header><h2 id="profDialogTitle">${esc(title)}</h2><button type="button" class="professor-x" aria-label="${esc(tr('إغلاق','Fermer'))}">×</button></header><div class="professor-modal-body">${body}</div></div>`;document.body.appendChild(w);
+ const close=()=>{w.remove();if(previous?.isConnected)previous.focus()};q('.professor-x',w).onclick=close;w.onclick=e=>{if(e.target===w)close()};
+ w.addEventListener('keydown',e=>{if(e.key==='Escape'){e.preventDefault();close()}if(e.key==='Tab'){const controls=qa('button:not([disabled]),a[href],input:not([disabled]),select:not([disabled]),textarea:not([disabled])',w).filter(x=>!x.hidden&&x.getClientRects().length),first=controls[0],last=controls.at(-1);if(e.shiftKey&&document.activeElement===first){e.preventDefault();last?.focus()}else if(!e.shiftKey&&document.activeElement===last){e.preventDefault();first?.focus()}}});q('.professor-x',w).focus();return{wrap:w,close}
+}
+let gradeJournal=null,confirmedProfile=null,syncError=null,syncRetry=0;
+function draftPair(record){return {test:String(record?.tests?.[0]??''),exam:String(record?.exam??'')}}
+function overlayDrafts(){
+ for(const row of gradeJournal?.snapshot()||[]){
+  const a=profile.assignments.find(x=>String(x.id)===row.assignmentId),cls=a&&classById(a.classId);
+  if(!cls?.students?.some(x=>String(x.id)===row.studentId))continue;
+  const marks=marksFor(row.assignmentId),rec=ensureProfessorTerm(marks[row.studentId]||(marks[row.studentId]={terms:{}}),row.term);
+  rec.tests[0]=row.value.test;rec.exam=row.value.exam
+ }
+}
+async function refreshProfile(){
+ const [r,cat]=await Promise.all([api('/api/professor/profile'),api('/api/professor/catalog').catch(()=>null)]);
+ confirmedProfile=normalize(r.profile);profile=normalize(r.profile);links=r.classLinks||{};if(cat?.catalog)academicCatalog=cat.catalog;
+ overlayDrafts();updateSyncStatus();return r
+}
 async function saveProfile(message=''){
- if(gradeSaveTimer||gradeSaveInFlight||gradeSavedRevision<gradeEditRevision)await flushGradeAutosave();
+ if(!await flushGradeAutosave()){toast(tr('زامن مسودات الدرجات أولًا قبل تعديل بيانات القسم.','Synchronisez les brouillons avant de modifier la classe.'));throw Error('drafts_pending')}
  const sent=structuredClone(profile),sentJson=JSON.stringify(sent);
  const r=await api('/api/professor/profile',{method:'PUT',body:JSON.stringify({profile:sent})});
- // Never let an older server response overwrite marks typed while this request
- // was still in flight. A later autosave will persist the newer local revision.
- if(JSON.stringify(profile)===sentJson)profile=normalize(r.profile);
- links=r.classLinks||links||{};if(message)toast(message);return r
+ confirmedProfile=normalize(r.profile);if(JSON.stringify(profile)===sentJson)profile=normalize(r.profile);
+ overlayDrafts();links=r.classLinks||links||{};if(message)toast(message);return r
 }
-function gradeStatus(text){
- const el=q('#pv2SaveState');if(el)el.textContent=text
+function gradeStatus(text){const el=q('#pv2SaveState');if(el){el.textContent=text;el.setAttribute('role','status');el.setAttribute('aria-live','polite')}}
+function updateSyncStatus(){
+ const count=gradeJournal?.rows.size||0,unavailable=gradeJournal&&!gradeJournal.available;
+ let text=unavailable?tr('تعذر حفظ المسودة على الجهاز؛ لا تغلق التطبيق قبل الحفظ على الخادم.','Brouillon local indisponible : gardez l’application ouverte jusqu’à l’enregistrement serveur.'):
+ syncError?.code==='professor_grade_conflict'?tr('توجد علامات مختلفة على جهاز آخر؛ راجعها قبل المزامنة.','Des notes diffèrent sur un autre appareil. Vérifiez avant de synchroniser.'):
+ [401,403].includes(syncError?.status)?tr('انتهت الجلسة أو تغيّرت الصلاحيات؛ سجّل الدخول مجددًا لاستعادة مسودتك.','Session expirée ou droits modifiés : reconnectez-vous pour retrouver le brouillon.'):
+ count?tr('محفوظ على الجهاز · '+count+' نتيجة بانتظار المزامنة','Enregistré sur cet appareil · '+count+' note(s) à synchroniser'):
+ navigator.onLine===false?tr('الاتصال منقطع · يمكنك إدخال الدرجات هنا','Hors connexion · vous pouvez saisir les notes ici'):
+ tr('✓ جميع التغييرات محفوظة على الخادم','✓ Toutes les modifications sont enregistrées sur le serveur');
+ const banner=q('#profSyncStatus');if(banner){banner.dataset.state=syncError||unavailable?'error':count||navigator.onLine===false?'pending':'saved';q('[data-sync-text]',banner).textContent=text;q('#profSyncRetry',banner).hidden=!count;q('#profSyncReview',banner).hidden=!syncError;q('#profSyncRetry',banner).disabled=!!gradeSaveInFlight}
+ gradeStatus(text)
 }
-function currentGradeSaveContext(){
- const m=String(currentView||'').match(/^grade:([^:]+):([123])$/);return m?{assignmentId:m[1],term:Number(m[2])}:null
-}
+function currentGradeSaveContext(){const m=String(currentView||'').match(/^grade:([^:]+):([123])$/);return m?{assignmentId:m[1],term:Number(m[2])}:null}
 function professorGradeRows(ctx){
  const a=profile.assignments.find(x=>String(x.id)===String(ctx?.assignmentId)),cls=a?classById(a.classId):null,marks=a?marksFor(a.id):{};
  return (cls?.students||[]).map(student=>{const rec=ensureProfessorTerm(marks[student.id]||(marks[student.id]={terms:{}}),ctx.term);return{studentId:String(student.id),test:rec.tests[0]??'',exam:rec.exam??''}})
 }
-async function saveProfessorGradeContext(ctx,target){
- if(!ctx)return true;
- const rows=professorGradeRows(ctx),confirmed=[];
- for(const row of rows){
-  const r=await api('/api/professor/assignments/'+encodeURIComponent(ctx.assignmentId)+'/students/'+encodeURIComponent(row.studentId)+'/grades',{method:'PUT',body:JSON.stringify({term:ctx.term,test:row.test,exam:row.exam})});
-  if(!r?.ok||r.verified!==true||String(r.studentId)!==String(row.studentId))throw new Error('professor_grade_verification_failed');
-  confirmed.push(r)
+function stageGradeDraft(studentId){
+ const ctx=currentGradeSaveContext();if(!ctx||!gradeJournal)return;
+ for(const row of professorGradeRows(ctx)){
+  if(studentId&&row.studentId!==String(studentId))continue;
+  const expected=draftPair(confirmedProfile?.marks?.[ctx.assignmentId]?.[row.studentId]?.terms?.[String(ctx.term)]);
+  gradeJournal.stage(ctx,row.studentId,expected,row)
  }
- if(gradeEditRevision===target){
-  const assignmentMarks=marksFor(ctx.assignmentId);
-  for(const r of confirmed){
-   assignmentMarks[r.studentId]=assignmentMarks[r.studentId]&&typeof assignmentMarks[r.studentId]==='object'?assignmentMarks[r.studentId]:{terms:{}};
-   assignmentMarks[r.studentId].terms=assignmentMarks[r.studentId].terms&&typeof assignmentMarks[r.studentId].terms==='object'?assignmentMarks[r.studentId].terms:{};
-   assignmentMarks[r.studentId].terms[String(ctx.term)]=structuredClone(r.record||{tests:[''],exam:''})
-  }
- }
- return{ok:true,rowCount:confirmed.length}
+ updateSyncStatus()
 }
-function scheduleGradeAutosave(){
- gradeEditRevision++;if(gradeSaveTimer)clearTimeout(gradeSaveTimer);
- gradeStatus(tr('جارٍ انتظار الحفظ التلقائي…','En attente de l’enregistrement automatique…'));
- gradeSaveTimer=setTimeout(()=>{gradeSaveTimer=null;void flushGradeAutosave()},450)
+function scheduleGradeAutosave(studentId){
+ gradeEditRevision++;stageGradeDraft(studentId);if(gradeSaveTimer)clearTimeout(gradeSaveTimer);
+ gradeSaveTimer=setTimeout(()=>{gradeSaveTimer=null;void flushGradeAutosave()},800)
 }
 async function flushGradeAutosave(){
  if(gradeSaveTimer){clearTimeout(gradeSaveTimer);gradeSaveTimer=null}
- if(gradeSaveInFlight){try{await gradeSaveInFlight}catch{}}
- if(gradeSavedRevision>=gradeEditRevision)return true;
- const ctx=currentGradeSaveContext();if(!ctx)return true;
- const target=gradeEditRevision;gradeStatus(tr('جارٍ الحفظ والتحقق على الخادم…','Enregistrement et vérification sur le serveur…'));
- gradeSaveInFlight=(async()=>{try{await saveProfessorGradeContext(ctx,target);gradeSavedRevision=Math.max(gradeSavedRevision,target);gradeStatus(tr('✓ تم الحفظ والتحقق من الخادم','✓ Enregistré et vérifié sur le serveur'));return true}catch{gradeStatus(tr('تعذر تثبيت النتائج على الخادم — أعد المحاولة','Impossible de confirmer les notes sur le serveur — réessayez'));return false}finally{gradeSaveInFlight=null}})();
- const ok=await gradeSaveInFlight;
- if(ok&&gradeSavedRevision<gradeEditRevision)return flushGradeAutosave();
- return ok
+ if(gradeSaveInFlight)return gradeSaveInFlight;
+ if(!gradeJournal?.rows.size){gradeSavedRevision=gradeEditRevision;return true}
+ if(navigator.onLine===false){updateSyncStatus();return false}
+ const userId=professorUser?.id,journal=gradeJournal;
+ gradeSaveInFlight=(async()=>{
+  try{
+   syncError=null;
+   while(journal.rows.size){
+    if(professorUser?.id!==userId||gradeJournal!==journal)throw Error('save_account_changed');
+    const first=journal.snapshot()[0],batch=journal.snapshot().filter(r=>r.assignmentId===first.assignmentId&&r.term===first.term).slice(0,50);
+    const r=await api('/api/professor/assignments/'+encodeURIComponent(first.assignmentId)+'/grades',{method:'PUT',body:JSON.stringify({term:first.term,rows:batch.map(row=>({studentId:row.studentId,...row.value,expected:row.expected}))})});
+    if(!r?.ok||r.verified!==true||r.assignmentId!==first.assignmentId||r.rowCount!==batch.length)throw Error('professor_grade_verification_failed');
+    if(professorUser?.id!==userId||gradeJournal!==journal)throw Error('save_account_changed');
+    for(const row of batch){
+     const record=r.marks?.[row.studentId]?.terms?.[String(row.term)];
+     if(!record||JSON.stringify(draftPair(record))!==JSON.stringify(row.value))throw Error('professor_grade_verification_failed');
+    }
+    for(const row of batch){
+     const record=r.marks[row.studentId].terms[String(row.term)];
+     for(const p of [confirmedProfile,profile]){p.marks[row.assignmentId]=p.marks[row.assignmentId]||{};const m=p.marks[row.assignmentId][row.studentId]||(p.marks[row.assignmentId][row.studentId]={terms:{}});m.terms=m.terms||{};m.terms[String(row.term)]=structuredClone(record)}
+    }
+    journal.ack(batch);overlayDrafts();updateSyncStatus()
+   }
+   syncRetry=0;gradeSavedRevision=gradeEditRevision;return true
+  }catch(error){
+   syncError=error;
+   if(!error.status||error.status>=500||error.status===429){
+    const delay=Math.min(60000,5000*2**Math.min(syncRetry++,4));
+    gradeSaveTimer=setTimeout(()=>{gradeSaveTimer=null;if(document.visibilityState!=='hidden')void flushGradeAutosave()},delay)
+   }
+   return false
+  }finally{gradeSaveInFlight=null;updateSyncStatus()}
+ })();updateSyncStatus();return gradeSaveInFlight
 }
-async function forceProfessorGradeSave(){
- if(gradeSaveTimer){clearTimeout(gradeSaveTimer);gradeSaveTimer=null}
- if(gradeSaveInFlight){try{await gradeSaveInFlight}catch{}}
- const ctx=currentGradeSaveContext();if(!ctx)return true;
- const target=gradeEditRevision,rows=professorGradeRows(ctx);
- gradeStatus(tr('جارٍ تثبيت '+rows.length+' تلميذًا واحدًا واحدًا…','Enregistrement vérifié de '+rows.length+' élève(s), un par un…'));
- try{
-  const result=await saveProfessorGradeContext(ctx,target);
-  if(!result?.ok||Number(result.rowCount)!==rows.length)throw new Error('professor_grade_verification_failed');
-  if(gradeEditRevision!==target)return forceProfessorGradeSave();
-  await refreshProfile();
-  const persisted=professorGradeRows(ctx);
-  const wanted=new Map(rows.map(x=>[x.studentId,JSON.stringify([String(x.test??''),String(x.exam??'')])]));
-  const verified=persisted.length===rows.length&&persisted.every(x=>wanted.get(x.studentId)===JSON.stringify([String(x.test??''),String(x.exam??'')]));
-  if(!verified)throw new Error('professor_grade_reload_verification_failed');
-  gradeSavedRevision=gradeEditRevision;
-  gradeStatus(tr('✓ تم تثبيت '+rows.length+'/'+rows.length+' تلميذًا على الخادم','✓ '+rows.length+'/'+rows.length+' élève(s) confirmés sur le serveur'));
-  return true
- }catch{
-  gradeStatus(tr('تعذر تثبيت جميع النتائج على الخادم — لم يتم اعتماد الحفظ','Impossible de confirmer toutes les notes sur le serveur — enregistrement non validé'));
-  return false
- }
+async function forceProfessorGradeSave(){stageGradeDraft();return flushGradeAutosave()}
+function exportProfessorBackup(){
+ const data={format:'nataiji-professor-backup',version:1,createdAt:new Date().toISOString(),userId:professorUser?.id,profile:structuredClone(profile),drafts:gradeJournal?.snapshot()||[]};
+ const blob=new Blob([JSON.stringify(data,null,2)],{type:'application/json'}),url=URL.createObjectURL(blob),a=document.createElement('a');a.href=url;a.download='Nataiji-backup-'+new Date().toISOString().slice(0,10)+'.json';a.click();setTimeout(()=>URL.revokeObjectURL(url),1000)
 }
+function reviewGradeDrafts(){
+ const conflicts=syncError?.data?.conflicts||[],rows=gradeJournal?.snapshot()||[];
+ const content=conflicts.map((c,i)=>{const row=rows.find(r=>r.studentId===c.studentId),a=row&&profile.assignments.find(x=>x.id===row.assignmentId),student=a&&classById(a.classId)?.students?.find(x=>String(x.id)===c.studentId);return row?`<article class="prof-draft-conflict"><b>${esc(profStudentName(student)||c.studentId)}</b><p>${tr('على الخادم','Sur le serveur')}: ${esc(c.current.test||'—')} / ${esc(c.current.exam||'—')}</p><p>${tr('مسودتك','Votre brouillon')}: ${esc(row.value.test||'—')} / ${esc(row.value.exam||'—')}</p><div><button data-draft-server="${i}">${tr('اعتماد الخادم','Garder le serveur')}</button><button data-draft-local="${i}">${tr('اعتماد مسودتي','Garder mon brouillon')}</button></div></article>`:''}).join('');
+ const m=modal(tr('حماية مسودات الدرجات','Protéger les brouillons'),`<p>${tr('مسوداتك محفوظة لهذا الحساب على هذا الجهاز. صدّر نسخة قبل حذف بيانات المتصفح أو التطبيق.','Les brouillons sont conservés pour ce compte sur cet appareil. Exportez une copie avant d’effacer les données du navigateur ou de l’application.')}</p>${content||`<p>${esc(syncError?.status===401||syncError?.status===403?tr('أعد تسجيل الدخول للمزامنة.','Reconnectez-vous pour synchroniser.'):tr('تعذر إرسال المسودات. تحقق من اتصالك ومن بقاء القسم والتلاميذ في حسابك.','Envoi impossible. Vérifiez la connexion et la présence de la classe et des élèves.'))}</p>`}<label class="prof-backup-import">${tr('استرجاع مسودات من نسخة نتائجي','Restaurer des brouillons Nataiji')}<input type="file" id="profImportDrafts" accept="application/json,.json"></label><p id="profImportMessage" role="status"></p><button class="primary" id="profExportDrafts">${tr('تنزيل نسخة احتياطية','Télécharger une sauvegarde')}</button>`);
+ q('#profExportDrafts',m.wrap).onclick=exportProfessorBackup;
+ q('#profImportDrafts',m.wrap).onchange=async e=>{const file=e.target.files?.[0],msg=q('#profImportMessage',m.wrap);if(!file)return;try{if(file.size>1024*1024)throw Error('too_large');const data=JSON.parse(await file.text());if(data.format!=='nataiji-professor-backup'||data.version!==1||data.userId!==professorUser?.id||!Array.isArray(data.drafts))throw Error('invalid_backup');const valid=v=>v===''||v==='ABSENT'||(Number.isFinite(Number(v))&&Number(v)>=0&&Number(v)<=20);for(const r of data.drafts){const a=profile.assignments.find(x=>String(x.id)===r.assignmentId),cls=a&&classById(a.classId);if(!cls?.students?.some(x=>String(x.id)===r.studentId)||![1,2,3].includes(r.term)||!r.value||!valid(r.value.test)||!valid(r.value.exam))throw Error('invalid_backup')}if(!data.drafts.length){msg.textContent=tr('هذه النسخة لا تحتوي على مسودات غير متزامنة.','Cette sauvegarde ne contient aucun brouillon en attente.');return}if(!confirm(tr('استرجاع '+data.drafts.length+' مسودة إلى هذا الجهاز؟ ستُراجع أي اختلافات مع الخادم قبل الحفظ.','Restaurer '+data.drafts.length+' brouillon(s) sur cet appareil ? Les conflits seront vérifiés avant l’enregistrement.')))return;for(const r of data.drafts)gradeJournal.stage(r,r.studentId,r.expected||draftPair(confirmedProfile.marks?.[r.assignmentId]?.[r.studentId]?.terms?.[String(r.term)]),r.value);overlayDrafts();m.close();renderCurrent();void flushGradeAutosave()}catch{msg.textContent=tr('تعذر الاسترجاع. استخدم نسخة سليمة لهذا الحساب ولأقسامه الحالية، بحجم أقل من 1 ميغابايت.','Restauration impossible. Utilisez une sauvegarde valide de ce compte et de ses classes actuelles, inférieure à 1 Mo.')}};
+ for(const kind of ['server','local'])qa('[data-draft-'+kind+']',m.wrap).forEach(b=>b.onclick=()=>{const c=conflicts[Number(b.dataset[kind==='server'?'draftServer':'draftLocal'])],row=rows.find(r=>r.studentId===c.studentId);gradeJournal.resolve(row,c.current,kind==='server');const cm=confirmedProfile.marks[row.assignmentId]||(confirmedProfile.marks[row.assignmentId]={}),cr=cm[row.studentId]||(cm[row.studentId]={terms:{}});cr.terms=cr.terms||{};cr.terms[String(row.term)]={tests:[c.current.test],exam:c.current.exam};if(kind==='server'){const mark=marksFor(row.assignmentId)[row.studentId];ensureProfessorTerm(mark,row.term).tests[0]=c.current.test;mark.terms[String(row.term)].exam=c.current.exam}syncError=null;m.close();renderCurrent();void flushGradeAutosave()})
+}
+document.addEventListener?.('visibilitychange',()=>{if(document.visibilityState==='visible'&&professorUser&&gradeJournal?.rows.size)void flushGradeAutosave()});
+window.addEventListener('offline',updateSyncStatus);
+window.addEventListener('online',()=>{updateSyncStatus();if(professorUser)void flushGradeAutosave()});
+window.addEventListener('beforeunload',e=>{if(gradeJournal?.rows.size&&!gradeJournal.available){e.preventDefault();e.returnValue=''}});
 function toggleLanguage(){const next=fr()?'ar':'fr';localStorage.setItem('nataiji-lang',next);syncProfessorLanguage();renderCurrent()}
 
 function topbar(title='',subtitle='',home=false){
@@ -277,9 +310,10 @@ function topbar(title='',subtitle='',home=false){
    <div class="prof-utility"><button type="button" id="profUtilityToggle" class="prof-utility-toggle" aria-label="${tr('خيارات الحساب','Options du compte')}">⋯</button><div class="professor-top-actions" id="profUtilityMenu"><button type="button" id="profLang" class="ghost prof-lang">${fr()?'العربية':'Français'}</button><button type="button" id="profRefresh" class="ghost prof-icon-action" aria-label="${tr('تحديث البيانات','Actualiser les données')}">↻</button><button type="button" id="profLogout" class="ghost prof-logout">${tr('تسجيل الخروج','Déconnexion')}</button></div></div>
   </div>
   ${home?`<div class="prof-home-context"><button type="button" id="profHomeYear" class="prof-home-context-item"><span>${professorMoreIcon('calendar')}</span><div><small>${tr('السنة الدراسية','Année scolaire')}</small><b dir="ltr">${esc(profile.year||'…')}</b></div></button><label class="prof-home-context-item prof-home-class-select"><span>${professorMoreIcon('class')}</span><div><small>${tr('القسم الحالي','Classe actuelle')}</small><select id="profHomeClass">${classOptions||`<option value="">${tr('لا يوجد قسم','Aucune classe')}</option>`}</select></div></label></div>`:''}
- </header>`
+ </header><section class="prof-sync-status" id="profSyncStatus" role="status" aria-live="polite"><span data-sync-text></span><div><button id="profSyncRetry" type="button" hidden>${tr('مزامنة','Synchroniser')}</button><button id="profSyncReview" type="button" hidden>${tr('مراجعة','Vérifier')}</button></div></section>`
 }
 function bindTop(el){
+ updateSyncStatus();q('#profSyncRetry',el)?.addEventListener('click',()=>void flushGradeAutosave());q('#profSyncReview',el)?.addEventListener('click',reviewGradeDrafts);
  const menu=q('#profUtilityMenu',el),toggle=q('#profUtilityToggle',el);
  toggle?.addEventListener('click',()=>menu?.classList.toggle('open'));
  q('#profLang',el)?.addEventListener('click',async()=>{await flushGradeAutosave();toggleLanguage()});
@@ -478,8 +512,9 @@ function openProfessorAccountSettings(){
   <label>${tr('كلمة المرور الحالية','Mot de passe actuel')}<input id="profCurrentPassword" type="password" autocomplete="current-password"></label>
   <label>${tr('كلمة المرور الجديدة','Nouveau mot de passe')}<input id="profNewPassword" type="password" autocomplete="new-password" minlength="8"></label>
   <label>${tr('تأكيد كلمة المرور الجديدة','Confirmer le nouveau mot de passe')}<input id="profConfirmPassword" type="password" autocomplete="new-password" minlength="8"></label>
-  <button class="primary" id="profSavePassword">${tr('حفظ كلمة المرور','Enregistrer le mot de passe')}</button><p class="professor-msg"></p>
+  <button type="button" id="profRevokeSessions">${tr('تسجيل الخروج من الأجهزة الأخرى','Déconnecter les autres appareils')}</button><button class="primary" id="profSavePassword">${tr('حفظ كلمة المرور','Enregistrer le mot de passe')}</button><p class="professor-msg"></p>
  </div>`);
+ q('#profRevokeSessions',m.wrap).onclick=async()=>{const b=q('#profRevokeSessions',m.wrap),msg=q('.professor-msg',m.wrap),currentPassword=q('#profCurrentPassword',m.wrap).value;if(!currentPassword){msg.textContent=tr('أدخل كلمة المرور الحالية أولًا.','Saisissez d’abord le mot de passe actuel.');return}b.disabled=true;try{const r=await api('/api/account/sessions/revoke',{method:'POST',body:JSON.stringify({currentPassword})});professorUser=r.user;msg.textContent=tr('تم إغلاق الجلسات الأخرى، وهذه الجلسة ما زالت مفتوحة.','Les autres sessions sont fermées. Celle-ci reste ouverte.')}catch{msg.textContent=tr('تعذر تنفيذ الطلب. تحقق من كلمة المرور والاتصال.','Échec. Vérifiez le mot de passe et la connexion.')}finally{b.disabled=false}};
  q('#profSavePassword',m.wrap).onclick=async()=>{
   const currentPassword=q('#profCurrentPassword',m.wrap).value,password=q('#profNewPassword',m.wrap).value,confirmPassword=q('#profConfirmPassword',m.wrap).value,msg=q('.professor-msg',m.wrap),btn=q('#profSavePassword',m.wrap);
   if(password.length<8){msg.textContent=tr('كلمة المرور الجديدة يجب أن تكون 8 أحرف على الأقل.','Le nouveau mot de passe doit contenir au moins 8 caractères.');return}
@@ -577,7 +612,7 @@ function openProfessorDeleteAccount(){
  q('#profDeleteAccountNow',m.wrap).onclick=async()=>{
   const password=q('#profDeletePassword',m.wrap).value,confirm=q('#profDeleteConfirm',m.wrap).value.trim(),msg=q('.professor-msg',m.wrap),btn=q('#profDeleteAccountNow',m.wrap);
   if(!password||!confirm){msg.textContent=tr('أدخل كلمة المرور وكلمة التأكيد.','Saisissez le mot de passe et la confirmation.');return}
-  btn.disabled=true;try{await api('/api/account',{method:'DELETE',body:JSON.stringify({password,confirm})});location.reload()}catch(e){msg.textContent=e.code==='bad_password'?tr('كلمة المرور غير صحيحة.','Mot de passe incorrect.'):tr('تعذر حذف الحساب. تحقق من كلمة التأكيد ثم أعد المحاولة.','Impossible de supprimer le compte. Vérifiez la confirmation puis réessayez.')}finally{btn.disabled=false}
+  btn.disabled=true;try{await api('/api/account',{method:'DELETE',body:JSON.stringify({password,confirm})});gradeJournal?.clear();localStorage.removeItem('nataiji-data');localStorage.removeItem('nataiji-active-user');location.reload()}catch(e){msg.textContent=e.code==='bad_password'?tr('كلمة المرور غير صحيحة.','Mot de passe incorrect.'):tr('تعذر حذف الحساب. تحقق من كلمة التأكيد ثم أعد المحاولة.','Impossible de supprimer le compte. Vérifiez la confirmation puis réessayez.')}finally{btn.disabled=false}
  }
 }
 
@@ -587,6 +622,7 @@ function renderMore(){
  el.innerHTML=`<div class="professor-shell prof-more-reference">${topbar('','')}
   <section class="prof-more-reference-hero"><div><small>${tr('المزيد','Plus')}</small><h1>${tr('الإعدادات والأدوات','Paramètres et outils')}</h1><p>${tr('جميع الخيارات المهمة لحسابك في مكان واحد.','Toutes les options importantes de votre compte au même endroit.')}</p></div><span class="prof-more-hero-icon">${professorMoreIcon('settings')}</span></section>
   <section class="prof-more-list">
+   ${row('profMoreBackup','shield',tr('نسخة احتياطية ومسودات','Sauvegarde et brouillons'),tr('تنزيل بياناتك ومراجعة المزامنة','Télécharger vos données et vérifier la synchronisation'))}
    ${row('profMoreAccount','account',tr('إعدادات الحساب','Paramètres du compte'),tr('الملف الشخصي، كلمة المرور وتفضيلات الحساب','Profil, mot de passe et préférences du compte'))}
    ${row('profMoreSettings','school',tr('إعدادات المؤسسة','Paramètres de l’établissement'),tr('معلومات المؤسسة والجهات الرسمية','Informations de l’établissement et autorités officielles'))}
    ${row('profMoreSubjects','books',tr('إدارة المواد والأقسام','Gestion des matières et classes'),tr('إضافة وإدارة المواد والأقسام','Ajouter et gérer les matières et les classes'))}
@@ -603,6 +639,7 @@ function renderMore(){
   ${nav('more')}
  </div>`;
  bindTop(el);bindNav(el);
+ q('#profMoreBackup',el).onclick=reviewGradeDrafts;
  q('#profMoreAccount',el).onclick=openProfessorAccountSettings;
  q('#profMoreSettings',el).onclick=openSettings;
  q('#profMoreSubjects',el).onclick=()=>{currentView='grades';renderGrades()};
@@ -877,10 +914,10 @@ function openGrades(id,term=1){
     </table>
    </div>
    <button class="primary prof-grade-save-main" id="pv2SaveGrades">${tr('حفظ الدرجات','Enregistrer les notes')}</button>
-   <div class="prof-save-bar"><span id="pv2SaveState">${tr('لا توجد تغييرات غير محفوظة','Aucune modification non enregistrée')}</span><small>${tr('الحفظ التلقائي يعمل، وزر الحفظ يثبت النتائج ويتحقق منها على الخادم.','L’enregistrement automatique est actif ; le bouton confirme ensuite toutes les notes sur le serveur.')}</small></div>
+   <div class="prof-save-bar"><span id="pv2SaveState">${tr('لا توجد تغييرات غير محفوظة','Aucune modification non enregistrée')}</span><small>${tr('تُحفظ التغييرات على الجهاز أولًا، ثم تُرسل عند توفر الاتصال.','Les modifications sont d’abord conservées sur cet appareil, puis envoyées dès que la connexion est disponible.')}</small></div>
    <details class="prof-grade-tools"><summary>${tr('خيارات المادة','Options de la matière')}</summary><div><button id="pv2OwnSubjectList">${tr('لائحة مادتي','Liste de ma matière')}</button><button id="pv2EditCoefficient">${tr('المعامل','Coefficient')} ×${coefficient}</button>${canManageRoster?`<button id="pv2AddStudentGrade">+ ${tr('إضافة تلميذ','Ajouter un élève')}</button>`:''}</div></details>
   </section>${nav('grades')}</div>`;
- bindTop(el);bindNav(el);
+ bindTop(el);bindNav(el);updateSyncStatus();
  q('#pv2BackGrade',el).onclick=async()=>{await flushGradeAutosave();renderGrades()};
  q('#pv2GradeClassSelect',el).onchange=async e=>{const value=e.target.value;await flushGradeAutosave();if(value==='__add_class__'){e.target.value=a.classId;openAssignment('','new');return}const next=assignmentsForClass(value)[0];if(next)openGrades(next.id,term)};
  q('#pv2GradeSubjectSelect',el).onchange=async e=>{const value=e.target.value;await flushGradeAutosave();if(value==='__add_subject__'){e.target.value=a.id;openAssignment(a.classId,'existing');return}openGrades(value,term)};
@@ -903,15 +940,15 @@ function openGrades(id,term=1){
  };
  qa('[data-test-index]',el).forEach(inp=>{
   inp.onfocus=()=>{const sid=inp.dataset.sid,rec=ensureProfessorTerm(marks[sid]||(marks[sid]={terms:{}}),term);if(professorIsAbsent(rec.tests[0]))inp.select()};
-  inp.oninput=()=>{const sid=inp.dataset.sid,k=Number(inp.dataset.testIndex),value=cleanGrade(inp.value);marks[sid]=marks[sid]||{terms:{}};const rec=ensureProfessorTerm(marks[sid],term);rec.tests[k]=value;inp.value=professorGradeDisplay(value,studentFor(sid));recalc(sid);syncAssessment(sid,'test');scheduleGradeAutosave()}
+  inp.oninput=()=>{const sid=inp.dataset.sid,k=Number(inp.dataset.testIndex),value=cleanGrade(inp.value);marks[sid]=marks[sid]||{terms:{}};const rec=ensureProfessorTerm(marks[sid],term);rec.tests[k]=value;inp.value=professorGradeDisplay(value,studentFor(sid));recalc(sid);syncAssessment(sid,'test');scheduleGradeAutosave(sid)}
  });
  qa('[data-exam]',el).forEach(inp=>{
   inp.onfocus=()=>{const sid=inp.dataset.sid,rec=ensureProfessorTerm(marks[sid]||(marks[sid]={terms:{}}),term);if(professorIsAbsent(rec.exam))inp.select()};
-  inp.oninput=()=>{const sid=inp.dataset.sid,value=cleanGrade(inp.value);marks[sid]=marks[sid]||{terms:{}};const rec=ensureProfessorTerm(marks[sid],term);rec.exam=value;inp.value=professorGradeDisplay(value,studentFor(sid));recalc(sid);syncAssessment(sid,'exam');scheduleGradeAutosave()}
+  inp.oninput=()=>{const sid=inp.dataset.sid,value=cleanGrade(inp.value);marks[sid]=marks[sid]||{terms:{}};const rec=ensureProfessorTerm(marks[sid],term);rec.exam=value;inp.value=professorGradeDisplay(value,studentFor(sid));recalc(sid);syncAssessment(sid,'exam');scheduleGradeAutosave(sid)}
  });
  qa('[data-absent-kind]',el).forEach(btn=>btn.onclick=()=>{
   const sid=btn.dataset.sid,kind=btn.dataset.absentKind;marks[sid]=marks[sid]||{terms:{}};const rec=ensureProfessorTerm(marks[sid],term),current=kind==='test'?rec.tests[0]:rec.exam,next=professorIsAbsent(current)?'':'ABSENT';
-  if(kind==='test')rec.tests[0]=next;else rec.exam=next;const inp=kind==='test'?q(`[data-test-index][data-sid="${CSS.escape(sid)}"]`,el):q(`[data-exam][data-sid="${CSS.escape(sid)}"]`,el);if(inp)inp.value=professorGradeDisplay(next,studentFor(sid));recalc(sid);syncAssessment(sid,kind);scheduleGradeAutosave()
+  if(kind==='test')rec.tests[0]=next;else rec.exam=next;const inp=kind==='test'?q(`[data-test-index][data-sid="${CSS.escape(sid)}"]`,el):q(`[data-exam][data-sid="${CSS.escape(sid)}"]`,el);if(inp)inp.value=professorGradeDisplay(next,studentFor(sid));recalc(sid);syncAssessment(sid,kind);scheduleGradeAutosave(sid)
  });
  q('#pv2SaveGrades',el).onclick=async()=>{const b=q('#pv2SaveGrades',el),fields=qa('.prof-grade-entry-list input,.prof-grade-entry-list button',el);commitVisibleGradeInputs();gradeEditRevision++;b.disabled=true;fields.forEach(x=>x.disabled=true);try{const ok=await forceProfessorGradeSave();if(ok){const ctx=currentGradeSaveContext(),count=ctx?professorGradeRows(ctx).length:0;q('#pv2SaveState',el).textContent=tr('✓ تم حفظ والتحقق من جميع النتائج ('+count+' تلميذًا)','✓ Toutes les notes ont été enregistrées et vérifiées ('+count+' élève(s))');toast(tr('تم حفظ جميع النتائج','Toutes les notes sont enregistrées'))}}finally{fields.forEach(x=>x.disabled=false);b.disabled=false}}
 }
@@ -1153,7 +1190,7 @@ function chooseAccountType(user){
  hideLegacy();const el=root();el.innerHTML=`<div class="professor-choice"><div class="professor-choice-card"><img src="/nataiji-brand-mark.png" width="76" height="76" alt=""><small>${tr('إعداد الحساب لأول مرة','Configuration initiale')}</small><h1>${tr('كيف ستستخدم نتائجي؟','Comment utiliserez-vous Nataiji ?')}</h1><p>${tr('اختر مرة واحدة نوع حسابك. نظام المعلمين الحالي يبقى كما هو.','Choisissez une seule fois votre type de compte. Le système actuel des enseignants reste inchangé.')}</p><div class="professor-choice-grid"><button data-profile-type="teacher"><span>👨‍🏫</span><b>${tr('معلم','Enseignant')}</b><small>${tr('النظام الحالي للأقسام والفصول والنتائج','Système actuel des classes, trimestres et résultats')}</small></button><button data-profile-type="professor" class="featured"><span>🎓</span><b>${tr('أستاذ','Professeur')}</b><small>${tr('عدة مواد وأقسام، اختبار واحد وامتحان واحد لكل فصل','Plusieurs matières/classes, une interrogation et une composition par trimestre')}</small></button></div><p class="professor-choice-msg"></p></div></div>`;
  qa('[data-profile-type]',el).forEach(b=>b.onclick=async()=>{qa('[data-profile-type]',el).forEach(x=>x.disabled=true);const type=b.dataset.profileType,msg=q('.professor-choice-msg',el);try{const r=await api('/api/account/profile-type',{method:'POST',body:JSON.stringify({type})});currentUser=r.user;if(type==='professor')return renderProfessor(r.user);showLegacy();return startApp()}catch{msg.textContent=tr('تعذر حفظ الاختيار. أعد المحاولة.','Impossible d’enregistrer le choix. Réessayez.');qa('[data-profile-type]',el).forEach(x=>x.disabled=false)}});return true
 }
-async function renderProfessor(user){professorUser=user;syncProfessorLanguage();hideLegacy();const el=root();el.innerHTML=`<div class="professor-loading"><img src="/nataiji-brand-mark.png" width="64" height="64" alt=""><p>${tr('جاري تجهيز فضاء الأستاذ…','Préparation de l’espace professeur…')}</p></div>`;try{await refreshProfile();currentView='home';renderHome()}catch{el.innerHTML=`<div class="professor-loading"><h2>${tr('تعذر تحميل حساب الأستاذ','Impossible de charger le compte professeur')}</h2><button class="primary" onclick="location.reload()">${tr('إعادة المحاولة','Réessayer')}</button></div>`}}
-async function logout(){try{await api('/api/auth/logout',{method:'POST',body:'{}'})}catch{}currentUser=null;location.reload()}
+async function renderProfessor(user){professorUser=user;gradeJournal=new NataijiGradeJournal(localStorage,user.id);syncError=null;syncProfessorLanguage();hideLegacy();const el=root();el.innerHTML=`<div class="professor-loading"><img src="/nataiji-brand-mark.png" width="64" height="64" alt=""><p>${tr('جاري تجهيز فضاء الأستاذ…','Préparation de l’espace professeur…')}</p></div>`;try{await refreshProfile();currentView='home';renderHome();if(gradeJournal.rows.size)void flushGradeAutosave()}catch{el.innerHTML=`<div class="professor-loading"><h2>${tr('تعذر تحميل حساب الأستاذ','Impossible de charger le compte professeur')}</h2><button class="primary" onclick="location.reload()">${tr('إعادة المحاولة','Réessayer')}</button></div>`}}
+async function logout(){if(gradeJournal?.rows.size&&!confirm(tr('توجد مسودات لم تصل للخادم. ستبقى على هذا الجهاز لحسابك حتى تسجل الدخول مجددًا. هل تريد الخروج؟','Des brouillons restent sur cet appareil pour ce compte jusqu’à votre prochaine connexion. Se déconnecter ?')))return;try{await api('/api/auth/logout',{method:'POST',body:'{}'});professorUser=null;currentUser=null;location.reload()}catch{toast(tr('تعذر إنهاء الجلسة. اتصل بالإنترنت ثم أعد المحاولة.','Impossible de fermer la session. Reconnectez-vous à Internet et réessayez.'))}}
 window.NataijiProfessor={activate(user){if(user?.needsProfileChoice===true)return chooseAccountType(user);if(user?.role==='professor'||user?.profileType==='professor')return renderProfessor(user);return false},_calculateTerm:termResult,_calculateAnnual:annualSubjectResult,_ownListLandscape:professorOwnListLandscape,_classListLandscape:professorClassListLandscape};
 })();
