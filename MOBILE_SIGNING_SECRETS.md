@@ -13,7 +13,7 @@ Required repository secrets for a signed Play bundle:
 - `ANDROID_KEY_ALIAS`
 - `ANDROID_KEY_PASSWORD`
 
-Set the repository variable `ANDROID_VERSION_CODE` to a positive integer greater than the highest version already uploaded to Play; the initial unused app defaults to 1. A manual run can override this value with its `version_code` input. Never reuse an uploaded versionCode.
+Set the repository variable `ANDROID_VERSION_CODE` to a positive integer greater than the highest version already uploaded to Play; the current RC2 defaults to 2. A manual run can override this value with its `version_code` input. Never reuse an uploaded versionCode.
 
 Without these secrets the workflow intentionally produces an **UNSIGNED** AAB dry-run artifact only.
 
@@ -47,6 +47,9 @@ The iOS workflow remains manual and will stop immediately if the core signing se
 - Android branded release AAB: unsigned dry-run build verified.
 - iOS branded simulator app: build verified.
 - Two-school production persistence/isolation smoke test: verified and disposable test accounts deleted.
-- Signed Android AAB: verified on 3 October 2026 from commit `a974e6bb119a89041f7e0405837574b9fc042550`, API 36, versionCode 1, with the configured repository upload key.
+- Signed Android AAB: verified on 3 October 2026 from commit `497208819b791fa0ba292a2fef3e3667a37978f7`, API 36, versionCode 2, with the configured repository upload key.
 - Google Play submission: pending Play Console upload and account-specific review/testing requirements.
 - Signed iOS IPA/TestFlight: waiting for Apple Developer signing data.
+
+Current bundle SHA-256: `fcc44001323d42c50555912c0d220d8df3498a4435fb6030e67869dde874b6a1`.
+Public upload certificate SHA-256: `4C:E9:93:8E:2E:AF:71:7C:44:DE:EA:91:DC:EF:B6:3C:70:7A:EF:22:03:47:E1:A2:F1:C7:AD:98:2B:FF:65:C3` (matches the prior configured upload certificate).

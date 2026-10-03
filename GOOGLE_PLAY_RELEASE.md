@@ -10,7 +10,14 @@ Account deletion: https://nataiji.onrender.com/delete-account.html
 
 ## Current candidate: 1.0.0-rc.2
 
-- Public shell: `nataiji-shell-v102`. Release signing and live deployment are verified after merge.
+- Source commit: `497208819b791fa0ba292a2fef3e3667a37978f7` (PR #87 and #88 merged).
+- Public shell: `nataiji-shell-v102`; live PostgreSQL, Brotli delivery, privacy and deletion pages verified.
+- Validation: 28 regression tests, 180 release gates, eight feature acceptance workflows and five final visual/browser workflows passed.
+- Signed AAB: API 36, versionCode 2, versionName `1.0.0-rc.2`, 4,338,285 bytes. CI verified the JAR signature; local SHA-256 matches the build report.
+- Bundle SHA-256: `fcc44001323d42c50555912c0d220d8df3498a4435fb6030e67869dde874b6a1`.
+- Signed build: https://github.com/bouhh34/nataiji/actions/runs/37085755241
+- Production verification: https://github.com/bouhh34/nataiji/actions/runs/37085755250
+- Actual weak-connection browser test passed with 64 kbps download, 32 kbps upload and 1.5 seconds latency; one changed pupil in a class of 25 sends one row in one request.
 - Professor grades: account-scoped local drafts in an already authenticated workspace, delta batches of up to 50 changed pupils, automatic reconnect retry, conflict review, draft export/import. A fresh login/reload still requires connectivity; do not advertise unrestricted offline login.
 - Local drafts contain pupil IDs and grades, not names or credentials. Exported backups can include full profile data; the user chooses the download.
 - Account settings can revoke other sessions using the current password.
