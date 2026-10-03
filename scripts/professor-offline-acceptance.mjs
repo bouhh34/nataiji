@@ -16,11 +16,13 @@ try{
  await page.goto(base,{waitUntil:'domcontentloaded'});
  await page.locator('[data-prof-nav="grades"]').click();
  await page.locator('[data-grade-id]').first().click();
+ const slow=await context.newCDPSession(page);await slow.send('Network.enable');await slow.send('Network.emulateNetworkConditions',{offline:false,latency:1500,downloadThroughput:8192,uploadThroughput:4096,connectionType:'cellular2g'});const started=Date.now();
  await page.locator('[data-test-index]').first().fill('12');
  await page.locator('[data-exam]').first().fill('14');
  await page.waitForFunction(()=>document.querySelector('#profSyncStatus')?.dataset.state==='saved');
  assert.equal(totalRows,1,'editing one of 25 pupils sends one row');
  assert.equal(calls,1,'autosave coalesces one changed row into one request');
+ assert.ok(Date.now()-started<20000,'one-row save confirms over a 64 kbps download / 32 kbps upload connection with 1.5s latency');await slow.send('Network.emulateNetworkConditions',{offline:false,latency:0,downloadThroughput:-1,uploadThroughput:-1});
  await page.locator('[data-test-index]').first().fill('21');await page.locator('#pv2SaveGrades').click();assert.equal(await page.locator('[data-test-index]').first().getAttribute('aria-invalid'),'true');assert.equal((await request('/api/professor/profile')).profile.marks['offline-a'].p0.terms['1'].tests[0],'12','invalid entry is rejected instead of silently clamped');await page.locator('[data-test-index]').first().fill('12');
  await context.setOffline(true);
  await page.locator('[data-test-index]').first().fill('0');
