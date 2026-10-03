@@ -47,6 +47,18 @@ try{
  await pool.end();
  if(Number(versions.rows[0]?.n||0)<1)throw new Error('professor profile version was not preserved');
 
+ const peer=client();await peer.req('/api/auth/login',{method:'POST',body:{email:'professor.guard@example.com',password:'ProfessorPass-9021'}});
+ await professor.req('/api/account/sessions/revoke',{method:'POST',body:{currentPassword:'wrong'},expected:401});
+ await peer.req('/api/professor/profile');
+ const revoked=await professor.req('/api/account/sessions/revoke',{method:'POST',body:{currentPassword:'ProfessorPass-9021'}});
+ if(revoked.user.sessionVersion!==1)throw new Error('session version was not rotated');
+ await professor.req('/api/professor/profile');
+ await peer.req('/api/professor/profile',{expected:401});
+ const staleStatus=await peer.req('/api/auth/status');if(staleStatus.user!==null)throw new Error('stale session was returned as authenticated');
+ const owner=client();await owner.req('/api/auth/register',{method:'POST',body:{name:'Owner',email:'owner.guardrail@example.com',password:'OwnerPass-9021'},expected:201});
+ await owner.req('/api/owner/accounts/'+userId+'/action',{method:'POST',body:{action:'suspend'}});
+ const suspendedStatus=await professor.req('/api/auth/status');if(suspendedStatus.user!==null)throw new Error('suspended user was returned as authenticated');
+ await professor.req('/api/professor/profile',{expected:403});
  console.log('Data-loss guardrails acceptance passed');
 }finally{
  server.kill('SIGTERM');

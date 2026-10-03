@@ -8,7 +8,15 @@ Support: bahmedou596@gmail.com
 Privacy: https://nataiji.onrender.com/privacy.html  
 Account deletion: https://nataiji.onrender.com/delete-account.html
 
-## Verified Android candidate — 3 October 2026
+## Current candidate: 1.0.0-rc.2
+
+- Public shell: `nataiji-shell-v101`. Release signing and live deployment are verified after merge.
+- Professor grades: account-scoped local drafts in an already authenticated workspace, delta batches of up to 50 changed pupils, automatic reconnect retry, conflict review, draft export/import. A fresh login/reload still requires connectivity; do not advertise unrestricted offline login.
+- Local drafts contain pupil IDs and grades, not names or credentials. Exported backups can include full profile data; the user chooses the download.
+- Account settings can revoke other sessions using the current password.
+- Intended Android versionCode: 2 (confirm it exceeds any Play upload). Physical Android testing remains required.
+
+## Previous verified Android candidate — 3 October 2026
 
 - Source commit: `a974e6bb119a89041f7e0405837574b9fc042550` (merged PR #86).
 - Every one of the seven PostgreSQL/browser acceptance workflows passed, plus 20 regression tests and 180 release gates.

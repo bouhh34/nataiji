@@ -3,7 +3,15 @@ const $=s=>document.querySelector(s),$$=s=>[...document.querySelectorAll(s)];
 const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 let state=structuredClone(DEFAULT),currentUser=null,storageMode='memory',syncBusy=false;
 
-async function api(url,options={}){const method=String(options.method||'GET').toUpperCase();const r=await fetch(url,{credentials:'same-origin',cache:method==='GET'?'no-store':'no-cache',headers:{'Content-Type':'application/json','Cache-Control':'no-cache',...(options.headers||{})},...options});let data={};try{data=await r.json()}catch{}if(!r.ok){const e=new Error(data.error||'request_failed');e.code=data.error||'request_failed';e.status=r.status;throw e}return data}
+async function api(url,options={}){
+ const method=String(options.method||'GET').toUpperCase(),controller=new AbortController();
+ const timer=setTimeout(()=>controller.abort(),method==='GET'?15000:30000);
+ try{
+  const r=await fetch(url,{credentials:'same-origin',cache:method==='GET'?'no-store':'no-cache',...options,signal:options.signal||controller.signal,headers:{'Content-Type':'application/json','Cache-Control':'no-cache',...(options.headers||{})}});
+  let data={};try{data=await r.json()}catch{}
+  if(!r.ok){const e=new Error(data.error||'request_failed');e.code=data.error||'request_failed';e.status=r.status;e.data=data;throw e}return data
+ }finally{clearTimeout(timer)}
+}
 function localState(){try{return JSON.parse(localStorage.getItem('nataiji-data'))}catch{return null}}
 function localStateDataCount(s){
  if(!s||typeof s!=='object')return 0;let n=0;

@@ -27,3 +27,19 @@
     scroll-behavior: auto !important;
   }
 }
+@media screen {
+ .prof-sync-status{display:flex;align-items:center;justify-content:space-between;gap:10px;margin:8px 0;padding:10px 12px;border:1px solid #c9e5db;border-radius:12px;background:#f0faf5;color:#155b44;font-size:12px;line-height:1.6;overflow-wrap:anywhere}
+ .prof-sync-status[data-state=pending]{background:#fff8e7;border-color:#ebd599;color:#6d4d08}
+ .prof-sync-status[data-state=error]{background:#fff2f0;border-color:#edb8b2;color:#8b2921}
+ .prof-sync-status>span{flex:1;min-width:0}.prof-sync-status>div{display:flex;flex-wrap:wrap;gap:6px}
+ .prof-sync-status button,.prof-draft-conflict button{min-height:44px;border:1px solid currentColor;border-radius:9px;background:#fff;padding:7px 10px;color:inherit;cursor:pointer}
+ .prof-sync-status button[hidden]{display:none}
+ .prof-draft-conflict{padding:12px;border:1px solid #d5e1e8;border-radius:12px;margin:10px 0}.prof-draft-conflict>div{display:flex;flex-wrap:wrap;gap:8px}
+ .professor-modal-card{max-height:calc(100dvh - 24px);display:flex;flex-direction:column;min-width:0}.professor-modal-body{overflow:auto;overscroll-behavior:contain;min-height:0}
+ .professor-toast{bottom:calc(88px + env(safe-area-inset-bottom,0px))!important;max-width:calc(100vw - 32px);overflow-wrap:anywhere;pointer-events:none}
+ .professor-nav{padding-bottom:env(safe-area-inset-bottom,0px)}
+ .professor-account>span,.professor-brand>span,.prof-more-row-copy{min-width:0}.professor-account b,.professor-account small{overflow-wrap:anywhere}
+ .professor-modal button:disabled{opacity:.6;cursor:wait}
+ @media(max-width:360px){.prof-sync-status{align-items:flex-start;flex-direction:column}.professor-reference-main{gap:6px!important}.professor-brand small{display:none}}
+}
+@media screen{.professor-app input[aria-invalid=true]{border:2px solid #b32f2f!important;background:#fff4f2!important}}
