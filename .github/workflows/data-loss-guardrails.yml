@@ -5,6 +5,7 @@ on:
     paths:
       - 'src/**'
       - 'scripts/data-loss-guardrails.mjs'
+      - 'scripts/account-deletion-acceptance.mjs'
       - '.github/workflows/data-loss-guardrails.yml'
   workflow_dispatch:
 
@@ -40,3 +41,7 @@ jobs:
         env:
           DATABASE_URL: postgresql://postgres:guardrail_password@127.0.0.1:5432/nataiji_guardrails
         run: node scripts/data-loss-guardrails.mjs
+      - name: Verify complete account deletion and shared-class isolation
+        env:
+          DATABASE_URL: postgresql://postgres:guardrail_password@127.0.0.1:5432/nataiji_guardrails
+        run: node scripts/account-deletion-acceptance.mjs

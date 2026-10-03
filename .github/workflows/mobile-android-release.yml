@@ -2,6 +2,12 @@ name: Android Play release bundle
 
 on:
   workflow_dispatch:
+    inputs:
+      version_code:
+        description: 'Android versionCode (must exceed the last uploaded Play version)'
+        required: true
+        default: '1'
+        type: string
   push:
     branches:
       - main
@@ -16,6 +22,7 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 35
     env:
+      ANDROID_VERSION_CODE: ${{ inputs.version_code || vars.ANDROID_VERSION_CODE || '1' }}
       ANDROID_KEYSTORE_BASE64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
       ANDROID_KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
       ANDROID_KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
@@ -44,18 +51,35 @@ jobs:
       - name: Install Android API 36
         run: |
           yes | "$SDKMANAGER" --licenses >/dev/null || true
-          "$SDKMANAGER" "platform-tools" "platforms;android-36"
+          "$SDKMANAGER" "platform-tools" "platforms;android-36" "build-tools;36.0.0"
 
       - name: Install dependencies
         run: npm ci --no-audit --no-fund
+
+      - name: Validate release source
+        run: npm run release:check
+
+      - name: Validate signing configuration
+        shell: bash
+        run: |
+          if [ -n "$ANDROID_KEYSTORE_BASE64$ANDROID_KEYSTORE_PASSWORD$ANDROID_KEY_ALIAS$ANDROID_KEY_PASSWORD" ]; then
+            test -n "$ANDROID_KEYSTORE_BASE64"
+            test -n "$ANDROID_KEYSTORE_PASSWORD"
+            test -n "$ANDROID_KEY_ALIAS"
+            test -n "$ANDROID_KEY_PASSWORD"
+          fi
 
       - name: Generate Android project
         run: npx cap add android
 
       - name: Apply RC version metadata
         run: |
+          node --input-type=module - <<'NODE'
+          const code=process.env.ANDROID_VERSION_CODE;
+          if(!/^[1-9][0-9]*$/.test(code)||Number(code)>2100000000)throw new Error('Invalid Android versionCode');
+          NODE
           VERSION_NAME="$(node -e "const p=require('./package.json'); process.stdout.write(p.version)")"
-          sed -i -E "s/versionCode [0-9]+/versionCode 1/" android/app/build.gradle
+          sed -i -E "s/versionCode [0-9]+/versionCode $ANDROID_VERSION_CODE/" android/app/build.gradle
           sed -i -E "s/versionName \"[^\"]+\"/versionName \"$VERSION_NAME\"/" android/app/build.gradle
           grep -E "versionCode|versionName" android/app/build.gradle
 
@@ -65,30 +89,59 @@ jobs:
       - name: Sync web and native configuration
         run: npx cap sync android
 
+      - name: Verify Android package and API target
+        run: |
+          node --input-type=module - <<'NODE'
+          import fs from 'node:fs';
+          const vars=fs.readFileSync('android/variables.gradle','utf8');
+          const target=Number(vars.match(/targetSdkVersion\s*=\s*(\d+)/)?.[1]);
+          const compile=Number(vars.match(/compileSdkVersion\s*=\s*(\d+)/)?.[1]);
+          if(!(target>=36&&compile>=target))throw new Error('Google Play build must target API 36 or newer');
+          const app=fs.readFileSync('android/app/build.gradle','utf8');
+          if(!/applicationId\s+["']mr\.nataiji\.app["']/.test(app))throw new Error('Unexpected Android application ID');
+          console.log('Android release configuration:',{target,compile,versionCode:process.env.ANDROID_VERSION_CODE});
+          NODE
+
       - name: Build release AAB
         working-directory: android
         run: ./gradlew bundleRelease --no-daemon
 
-      - name: Validate signing secret set
-        if: env.ANDROID_KEYSTORE_BASE64 != ''
-        run: |
-          test -n "$ANDROID_KEYSTORE_PASSWORD"
-          test -n "$ANDROID_KEY_ALIAS"
-          test -n "$ANDROID_KEY_PASSWORD"
-
       - name: Sign release AAB
         if: env.ANDROID_KEYSTORE_BASE64 != ''
         run: |
-          echo "$ANDROID_KEYSTORE_BASE64" | base64 --decode > "$RUNNER_TEMP/nataiji-release.keystore"
-          jarsigner             -sigalg SHA256withRSA             -digestalg SHA-256             -keystore "$RUNNER_TEMP/nataiji-release.keystore"             -storepass "$ANDROID_KEYSTORE_PASSWORD"             -keypass "$ANDROID_KEY_PASSWORD"             android/app/build/outputs/bundle/release/app-release.aab             "$ANDROID_KEY_ALIAS"
-          jarsigner -verify -verbose -certs android/app/build/outputs/bundle/release/app-release.aab
+          KEYSTORE_PATH="$RUNNER_TEMP/nataiji-release.keystore"
+          trap 'rm -f "$KEYSTORE_PATH"' EXIT
+          printf '%s' "$ANDROID_KEYSTORE_BASE64" | base64 --decode > "$KEYSTORE_PATH"
+          jarsigner -digestalg SHA-256 \
+            -keystore "$KEYSTORE_PATH" \
+            -storepass:env ANDROID_KEYSTORE_PASSWORD \
+            -keypass:env ANDROID_KEY_PASSWORD \
+            android/app/build/outputs/bundle/release/app-release.aab "$ANDROID_KEY_ALIAS"
+          jarsigner -verify android/app/build/outputs/bundle/release/app-release.aab
+          unzip -Z1 android/app/build/outputs/bundle/release/app-release.aab | grep -Ei '^META-INF/.*\.(RSA|DSA|EC)$'
+
+      - name: Record release bundle identity
+        env:
+          BUNDLE_SIGNED: ${{ env.ANDROID_KEYSTORE_BASE64 != '' }}
+        run: |
+          {
+            echo "Nataiji Android release bundle"
+            echo "Source commit: $GITHUB_SHA"
+            echo "Application ID: mr.nataiji.app"
+            echo "Version code: $ANDROID_VERSION_CODE"
+            echo "Signed: $BUNDLE_SIGNED"
+            sha256sum android/app/build/outputs/bundle/release/app-release.aab
+          } | tee release-build.txt
+          cat release-build.txt >> "$GITHUB_STEP_SUMMARY"
 
       - name: Upload signed Play AAB
         if: env.ANDROID_KEYSTORE_BASE64 != ''
         uses: actions/upload-artifact@v4
         with:
           name: nataiji-android-play-SIGNED
-          path: android/app/build/outputs/bundle/release/app-release.aab
+          path: |
+            android/app/build/outputs/bundle/release/app-release.aab
+            release-build.txt
           if-no-files-found: error
           retention-days: 14
 
@@ -97,6 +150,8 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: nataiji-android-play-UNSIGNED
-          path: android/app/build/outputs/bundle/release/app-release.aab
+          path: |
+            android/app/build/outputs/bundle/release/app-release.aab
+            release-build.txt
           if-no-files-found: error
           retention-days: 14

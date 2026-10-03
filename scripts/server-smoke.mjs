@@ -45,6 +45,14 @@ try{
   if(!downloadHtml.includes('Nataiji-Android.apk')||!downloadHtml.includes('إضافة إلى الشاشة الرئيسية'))throw new Error('download page is missing mobile installation actions');
   const auth=await (await request('/api/auth/status',200)).json();
   if(auth.storage!=='memory'||auth.canRegister!==true)throw new Error(`unexpected auth status: ${JSON.stringify(auth)}`);
+  const malformedCookie=await fetch(base+'/api/auth/status',{headers:{Cookie:'nataiji_session=%E0%A4%A'}});
+  if(malformedCookie.status!==200)throw new Error('malformed cookie should be treated as an absent session');
+  const invalidJson=await fetch(base+'/api/auth/login',{method:'POST',headers:{'Content-Type':'application/json'},body:'{'});
+  if(invalidJson.status!==400)throw new Error('malformed JSON must return 400');
+  const missingApi=await fetch(base+'/api/does-not-exist');
+  if(missingApi.status!==404||!(missingApi.headers.get('content-type')||'').includes('application/json'))throw new Error('missing API must return JSON 404');
+  const missingScript=await fetch(base+'/missing-script.js');
+  if(missingScript.status!==404)throw new Error('missing script must not receive the HTML shell');
   const owner=client(),member=client(),memberEmail='teacher.smoke@example.com';
   const ownerRegistration=await owner.request('/api/auth/register',{method:'POST',body:{name:'Owner Smoke',email:ownerEmail,password:'OwnerPass-9021',school:'Owner school'},expected:201});
   if(!ownerRegistration.user?.isSuperAdmin||ownerRegistration.user?.name!=='Ahmedou bembe')throw new Error('configured super admin was not created correctly');

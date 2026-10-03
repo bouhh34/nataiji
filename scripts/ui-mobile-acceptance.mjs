@@ -99,7 +99,7 @@ try{
   const pupilCountBefore=await page.locator('.student-mobile-card').count().catch(()=>0);
   if(pupilCountBefore===0){
     const seeded=await page.evaluate(async()=>{
-      const classId=document.querySelector('#classTop')?.value||'';
+      const classId=(document.querySelector('#classTop')?.value||'').split('|').pop();
       const res=await fetch('/api/pupils',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({classId,pupil:['','طالب الاختبار','','','','Test Student','','']})});
       return {status:res.status,body:await res.json()};
     });

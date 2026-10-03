@@ -4,7 +4,7 @@ This file documents the secret names expected by the release workflows. Never co
 
 ## Android / Google Play
 
-The manual workflow `.github/workflows/mobile-android-release.yml` builds an Android App Bundle (AAB).
+The workflow `.github/workflows/mobile-android-release.yml` builds an Android App Bundle (AAB).
 
 Required repository secrets for a signed Play bundle:
 
@@ -12,6 +12,8 @@ Required repository secrets for a signed Play bundle:
 - `ANDROID_KEYSTORE_PASSWORD`
 - `ANDROID_KEY_ALIAS`
 - `ANDROID_KEY_PASSWORD`
+
+Set the repository variable `ANDROID_VERSION_CODE` to a positive integer greater than the highest version already uploaded to Play; the initial unused app defaults to 1. A manual run can override this value with its `version_code` input. Never reuse an uploaded versionCode.
 
 Without these secrets the workflow intentionally produces an **UNSIGNED** AAB dry-run artifact only.
 

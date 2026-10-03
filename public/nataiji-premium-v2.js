@@ -4,6 +4,7 @@ if(window.__nataijiPremiumV2)return;
 window.__nataijiPremiumV2=true;
 
 const q=(s,r=document)=>r.querySelector(s);
+const setText=(node,value)=>{if(node&&node.textContent!==value)node.textContent=value};
 const qa=(s,r=document)=>[...r.querySelectorAll(s)];
 const fr=()=>localStorage.getItem('nataiji-lang')==='fr';
 
@@ -42,8 +43,8 @@ function applyBrand(){
     brand.innerHTML='<img src="/nataiji-brand-mark.png" alt=""><span><b></b><small></small></span>';
     header.prepend(brand);
   }
-  q('b',brand).textContent=fr()?'Nataiji':'نتائجي';
-  q('small',brand).textContent=fr()?'Mon avenir commence ici':'مستقبلي يبدأ من هنا';
+  setText(q('b',brand),fr()?'Nataiji':'نتائجي');
+  setText(q('small',brand),fr()?'Mon avenir commence ici':'مستقبلي يبدأ من هنا');
 }
 function applyHero(){
   const hero=q('[data-page="home"] .welcome'); if(!hero)return;
@@ -177,7 +178,7 @@ function applySubjectTones(){
   });
 }
 function renderFeather(){
-  if(window.feather&&document.querySelector('[data-feather]'))window.feather.replace({class:'lux-feather','stroke-width':1.9});
+  if(window.feather&&document.querySelector('i[data-feather]'))window.feather.replace({class:'lux-feather','stroke-width':1.9});
 }
 function apply(){
   try{

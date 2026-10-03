@@ -8,6 +8,9 @@ Production URL: `https://nataiji.onrender.com`
 - Capacitor Android/iOS configuration
 - Production HTTPS URL
 - Privacy page: `/privacy.html`
+- Public account deletion page: `/delete-account.html`
+- Public support email: `bahmedou596@gmail.com`
+- Store listing and release preparation: `GOOGLE_PLAY_RELEASE.md`
 - Existing authentication and school isolation remain server-side
 - Mobile build scripts in package.json
 
@@ -32,15 +35,13 @@ Production URL: `https://nataiji.onrender.com`
 
 ## Store metadata still requiring owner input
 - Legal developer / organization name
-- Public support email
-- Public support URL or contact page
 - Final app icon and screenshots
 - Google Play Console account
 - Apple Developer / App Store Connect account and Team ID
 - Store age-rating and data-safety declarations based on final production behavior
 
 ## Release gate
-Do not submit until the web acceptance flow passes: login -> class -> subjects -> students -> grades -> results -> ranking -> reports -> two student bulletins per A4, and account/school isolation has been tested with at least two independent schools.
+Do not submit until the web acceptance flow passes: login -> class -> subjects -> students -> grades -> results -> ranking -> reports -> correct A4 bulletin layout for each account type, and account/school isolation has been tested with at least two independent schools.
 
 
 ## Phase 1 execution — completed on 19 Sep 2026
@@ -58,14 +59,14 @@ Do not submit until the web acceptance flow passes: login -> class -> subjects -
 ### Next release gates
 1. Physical Android test of login, section/term switching, grades, reports/PDF, invite/share flows and account deletion.
 2. Replace generic web-only icon assets with store-ready PNG/adaptive Android and iOS app-icon sets.
-3. Add final public support email and support URL.
+3. Public support and deletion URLs are now included in `GOOGLE_PLAY_RELEASE.md`.
 4. Prepare signed Android AAB for Play Console.
 5. Configure Apple Developer Team/signing and create a TestFlight archive.
 6. Complete store privacy/data-safety and age-rating declarations.
 
 
 ## Phase 2 execution — completed on 19 Sep 2026
-- Added `assets/logo.svg` as the native asset source.
+- Added `assets/logo.png` as the native asset source.
 - Added `@capacitor/assets` and generated branded Android and iOS app icons/splash assets in CI.
 - Verified a new Android debug APK with generated launcher icons and light/dark splash resources.
 - Added and validated a Google Play release workflow. The unsigned release AAB dry run completed successfully.
@@ -78,5 +79,5 @@ Do not submit until the web acceptance flow passes: login -> class -> subjects -
 1. Install the branded Android APK on at least one physical Android phone and validate UI/PDF behavior.
 2. Add Android release keystore secrets, then generate the signed Play AAB.
 3. Provide Apple Developer Team/distribution certificate/provisioning profile, then generate the signed IPA and TestFlight upload.
-4. Provide the final public support email and support URL for store metadata.
+4. Support email and URLs are prepared in `GOOGLE_PLAY_RELEASE.md`.
 5. Capture final App Store / Google Play screenshots after device QA.

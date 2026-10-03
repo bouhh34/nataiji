@@ -63,7 +63,16 @@ jobs:
       - name: Run professor browser acceptance
         env:
           NATAIJI_TEST_URL: http://127.0.0.1:3222
+          NATAIJI_CAPTURE_PLAY_SCREENSHOTS: '1'
         run: node scripts/professor-v2-acceptance.mjs
+      - name: Upload store screenshot previews
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: nataiji-play-screenshots
+          path: artifacts/play/*.png
+          if-no-files-found: warn
+          retention-days: 30
       - name: Show server log on failure
         if: failure()
         run: cat /tmp/nataiji-professor-ui.log || true

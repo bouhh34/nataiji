@@ -4,6 +4,7 @@ if(window.__nataijiHomeReferenceV1)return;
 window.__nataijiHomeReferenceV1=true;
 
 const q=(s,r=document)=>r.querySelector(s);
+const setText=(node,value)=>{if(node&&node.textContent!==value)node.textContent=value};
 const qa=(s,r=document)=>[...r.querySelectorAll(s)];
 const isFr=()=>localStorage.getItem('nataiji-lang')==='fr';
 
@@ -18,7 +19,7 @@ function feather(host,name,cls){
   host.prepend(i);
 }
 function render(){
-  if(window.feather)window.feather.replace({class:'lux-feather','stroke-width':1.9});
+  if(window.feather&&document.querySelector('i[data-feather]'))window.feather.replace({class:'lux-feather','stroke-width':1.9});
 }
 function decorateHeader(){
   const header=q('main > header');
@@ -62,7 +63,7 @@ function decorateHero(){
   const cta=q('button',hero);
   if(cta)cta.classList.add('np-home-cta');
   const small=q('small',hero);
-  if(small)small.textContent=isFr()?'Tableau de bord':'لوحة النتائج';
+  if(small)setText(small,isFr()?'Tableau de bord':'لوحة النتائج');
 }
 function decorateStats(){
   const config={
@@ -105,13 +106,13 @@ function decorateProgress(){
     if(oldTitle)oldTitle.replaceWith(head); else card.prepend(head);
   }
   const h2=q('h2',head),p=q('p',head),btn=q('.np-home-show-all',head);
-  if(h2)h2.textContent=isFr()?'État du trimestre':'حالة الفصل';
-  if(p)p.textContent=isFr()?'Progression de la saisie pour chaque matière':'نسبة إدخال الدرجات لكل مادة';
+  if(h2)setText(h2,isFr()?'État du trimestre':'حالة الفصل');
+  if(p)setText(p,isFr()?'Progression de la saisie pour chaque matière':'نسبة إدخال الدرجات لكل مادة');
   if(btn){
-    btn.textContent=card.classList.contains('np-home-expanded')?(isFr()?'Réduire':'عرض أقل'):(isFr()?'Tout afficher':'عرض الكل');
+    setText(btn,card.classList.contains('np-home-expanded')?(isFr()?'Réduire':'عرض أقل'):(isFr()?'Tout afficher':'عرض الكل'));
     btn.onclick=()=>{
       card.classList.toggle('np-home-expanded');
-      btn.textContent=card.classList.contains('np-home-expanded')?(isFr()?'Réduire':'عرض أقل'):(isFr()?'Tout afficher':'عرض الكل');
+      setText(btn,card.classList.contains('np-home-expanded')?(isFr()?'Réduire':'عرض أقل'):(isFr()?'Tout afficher':'عرض الكل'));
     };
   }
 

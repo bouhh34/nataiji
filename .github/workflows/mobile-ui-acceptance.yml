@@ -53,6 +53,10 @@ jobs:
           done
           cat /tmp/nataiji-ui.log
           exit 1
+      - name: Run weak network acceptance
+        env:
+          NATAIJI_TEST_URL: http://127.0.0.1:3221
+        run: node scripts/weak-network-acceptance.mjs
       - name: Run mobile browser acceptance
         env:
           NATAIJI_TEST_URL: http://127.0.0.1:3221
