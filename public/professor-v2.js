@@ -185,7 +185,12 @@ function annualSubjectResult(m){
 function latestTermResult(m){for(let term=3;term>=1;term--){const value=termResult(m,term);if(value!=null)return{term,value}}return{term:0,value:null}}
 function statsFor(a){const students=classById(a.classId)?.students||[],marks=marksFor(a.id),byTerm={1:[],2:[],3:[]};for(const s of students){const m=marks[s.id]||{};for(let term=1;term<=3;term++){const value=termResult(m,term);if(value!=null)byTerm[term].push(value)}}let term=0;for(let t=3;t>=1;t--)if(byTerm[t].length){term=t;break}const values=term?byTerm[term]:[],avg=values.length?values.reduce((x,y)=>x+y,0)/values.length:null,coefficient=coefficientOf(a);return{students:students.length,done:values.length,avg,term,coefficient,weighted:avg==null?null:avg*coefficient}}
 function iconFor(subject){const s=String(subject||'').toLowerCase();if(/math|رياض/.test(s))return'∑';if(/fran|فرنس/.test(s))return'FR';if(/anglais|english|إنج/.test(s))return'EN';if(/phys|فيز/.test(s))return'⚛';if(/chim|كيم/.test(s))return'⚗';if(/arab|عرب/.test(s))return'ع';if(/islam|إسلام/.test(s))return'☾';return'✦'}
-function toast(text){let t=q('.professor-toast');if(!t){t=document.createElement('div');t.className='professor-toast';document.body.appendChild(t)}t.textContent=text;t.classList.add('show');setTimeout(()=>t.classList.remove('show'),1800)}
+let professorToastTimer=null;
+function toast(text){
+ let t=q('.professor-toast');if(!t){t=document.createElement('div');t.className='professor-toast';t.setAttribute('role','status');t.setAttribute('aria-live','polite')}
+ const status=q('#profSyncStatus');if(status)status.insertAdjacentElement('afterend',t);else root().prepend(t);
+ if(professorToastTimer)clearTimeout(professorToastTimer);t.textContent=text;t.classList.add('show');professorToastTimer=setTimeout(()=>t.classList.remove('show'),1800)
+}
 function modal(title,body){
  const previous=document.activeElement,w=document.createElement('div');w.className='professor-modal';
  w.innerHTML=`<div class="professor-modal-card" role="dialog" aria-modal="true" aria-labelledby="profDialogTitle"><header><h2 id="profDialogTitle">${esc(title)}</h2><button type="button" class="professor-x" aria-label="${esc(tr('إغلاق','Fermer'))}">×</button></header><div class="professor-modal-body">${body}</div></div>`;document.body.appendChild(w);

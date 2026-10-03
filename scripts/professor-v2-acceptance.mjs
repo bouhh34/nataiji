@@ -9,6 +9,7 @@ const failures=[];
 const check=(name,ok,detail='')=>{console.log(`${ok?'PASS':'FAIL'}  ${name}${detail?' — '+detail:''}`);if(!ok)failures.push(name+(detail?': '+detail:''))};
 async function storeScreenshot(name){
  if(process.env.NATAIJI_CAPTURE_PLAY_SCREENSHOTS!=='1')return;
+ await page.waitForFunction(()=>!document.querySelector('.professor-toast.show')); 
  await fs.mkdir('artifacts/play',{recursive:true});
  await page.setViewportSize({width:360,height:640});
  await page.screenshot({path:`artifacts/play/${name}.png`,fullPage:false});
