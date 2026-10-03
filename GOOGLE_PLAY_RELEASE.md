@@ -8,6 +8,16 @@ Support: bahmedou596@gmail.com
 Privacy: https://nataiji.onrender.com/privacy.html  
 Account deletion: https://nataiji.onrender.com/delete-account.html
 
+## Verified Android candidate — 3 October 2026
+
+- Source commit: `a974e6bb119a89041f7e0405837574b9fc042550` (merged PR #86).
+- Every one of the seven PostgreSQL/browser acceptance workflows passed, plus 20 regression tests and 180 release gates.
+- Production verification passed for `nataiji-shell-v100`, PostgreSQL connectivity, Brotli delivery, privacy and deletion pages.
+- Signed Android AAB built successfully with API 36 and versionCode 1 using the existing repository upload key.
+- Bundle SHA-256: `5f65dd20657d4d68213325ee7d37954733d21523f59682aec5701c258233f627`.
+- Build run: https://github.com/bouhh34/nataiji/actions/runs/37080344406
+- Google Play upload and physical-device/internal testing are still pending. Confirm that versionCode 1 is unused and this configured certificate matches the package's Play upload key before submission.
+
 ## Arabic store listing
 
 Short description:

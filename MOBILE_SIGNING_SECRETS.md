@@ -47,5 +47,6 @@ The iOS workflow remains manual and will stop immediately if the core signing se
 - Android branded release AAB: unsigned dry-run build verified.
 - iOS branded simulator app: build verified.
 - Two-school production persistence/isolation smoke test: verified and disposable test accounts deleted.
-- Signed Android AAB: waiting for Android signing secrets.
+- Signed Android AAB: verified on 3 October 2026 from commit `a974e6bb119a89041f7e0405837574b9fc042550`, API 36, versionCode 1, with the configured repository upload key.
+- Google Play submission: pending Play Console upload and account-specific review/testing requirements.
 - Signed iOS IPA/TestFlight: waiting for Apple Developer signing data.
