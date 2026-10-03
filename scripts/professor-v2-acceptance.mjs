@@ -151,17 +151,17 @@ try{
 
  await page.locator('[data-class-grade]').filter({hasText:'الرياضيات'}).click();
  let delayedGradePut=false;
- await page.route('**/api/professor/profile',async route=>{
+ await page.route('**/api/professor/assignments/*/grades',async route=>{
   if(route.request().method()==='PUT'&&!delayedGradePut){delayedGradePut=true;await new Promise(r=>setTimeout(r,900))}
   await route.continue()
  });
  let gradeTests=page.locator('[data-test-index]');
  await gradeTests.first().fill('10');
- await page.waitForTimeout(650);
+ await page.waitForTimeout(1000);
  await page.locator('[data-exam]').fill('13');
  await page.locator('#pv2SaveGrades').click();
  await page.waitForFunction(()=>document.querySelector('#pv2SaveState')?.textContent?.includes('✓'),null,{timeout:8000});
- await page.unroute('**/api/professor/profile');
+ await page.unroute('**/api/professor/assignments/*/grades');
  check('autosave response cannot erase newer professor grade edits',(await page.locator('[data-avg]').first().innerText()).trim()==='11.50/20');
  await page.waitForFunction(async()=>{const r=await fetch('/api/professor/profile');const j=await r.json(),a=j.profile.assignments.find(x=>x.subjectKey==='math'||String(x.subject||'').includes('رياض')),sid=j.profile.classes.find(x=>x.id===a.classId)?.students?.[0]?.id,rec=j.profile.marks?.[a.id]?.[sid]?.terms?.['1'];return JSON.stringify(rec?.tests)===JSON.stringify(['10'])&&rec?.exam==='13'},null,{timeout:8000});
  const persistedRaceMarks=await page.evaluate(async()=>{const r=await fetch('/api/professor/profile');const j=await r.json();const a=j.profile.assignments.find(x=>x.subjectKey==='math'||String(x.subject||'').includes('رياض'));const sid=j.profile.classes.find(x=>x.id===a.classId)?.students?.[0]?.id;return j.profile.marks?.[a.id]?.[sid]?.terms?.['1']||null});

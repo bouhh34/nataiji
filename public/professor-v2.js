@@ -822,7 +822,8 @@ function studentEditor(classId,studentId,onDone){
  }
 }
 
-function cleanGrade(v){const s=String(v??'').replace(',','.').trim();if(s==='')return'';if(professorIsAbsent(s))return'ABSENT';const n=Number(s);if(!Number.isFinite(n))return'';return String(Math.max(0,Math.min(20,n)))}
+function cleanGrade(v){const s=String(v??'').replace(',','.').trim();if(s==='')return'';if(professorIsAbsent(s))return'ABSENT';const n=Number(s);if(!Number.isFinite(n)||n<0||n>20)return null;return String(n)}
+function validateProfessorGradeInput(inp){const value=cleanGrade(inp.value);inp.setAttribute('aria-invalid',value===null?'true':'false');if(value===null)gradeStatus(tr('الدرجة يجب أن تكون بين 0 و20 أو غائب. لم تُحفظ القيمة غير الصحيحة.','La note doit être entre 0 et 20, ou Absent. La valeur invalide n’est pas enregistrée.'));return value}
 function editCoefficient(id){
  const a=profile.assignments.find(x=>x.id===id);if(!a)return;const cls=classById(a.classId),levelCode=cls?.levelCode||inferredLevelCode(cls?.name),spec=catalogSubject(levelCode,a.subjectKey||a.subject,cls?.branchCode),official=spec?.official?Number(spec.coefficient):null;
  if(official!=null){const m=modal(tr('معامل المادة','Coefficient de la matière'),`<div class="prof-link-explain"><b>${esc(profSubject(a.subject))} · ${esc(levelCode)}</b><p>${tr('المعامل الرسمي لهذه المادة يُطبق تلقائيًا في الدرجات والكشف والترتيب ولا يحتاج إلى تعديل يدوي.','Le coefficient officiel de cette matière est appliqué automatiquement aux notes, bulletins et classement.')}</p></div><div class="prof-official-coefficient">×${official}</div><button class="primary professor-x-inline">${tr('حسنًا','Fermer')}</button>`);q('.professor-x-inline',m.wrap).onclick=m.close;return}
@@ -935,22 +936,23 @@ function openGrades(id,term=1){
   box?.classList.toggle('is-absent',isAbsent);if(btn){btn.textContent=professorAbsentLabel(s);btn.setAttribute('aria-pressed',isAbsent?'true':'false')}if(inp&&document.activeElement!==inp)inp.value=professorGradeDisplay(raw,s)
  };
  const commitVisibleGradeInputs=()=>{
-  qa('[data-test-index]',el).forEach(inp=>{const sid=inp.dataset.sid,k=Number(inp.dataset.testIndex),value=cleanGrade(inp.value);marks[sid]=marks[sid]||{terms:{}};ensureProfessorTerm(marks[sid],term).tests[k]=value;recalc(sid);syncAssessment(sid,'test')});
-  qa('[data-exam]',el).forEach(inp=>{const sid=inp.dataset.sid,value=cleanGrade(inp.value);marks[sid]=marks[sid]||{terms:{}};ensureProfessorTerm(marks[sid],term).exam=value;recalc(sid);syncAssessment(sid,'exam')})
+  const invalid=qa('[data-test-index],[data-exam]',el).find(inp=>validateProfessorGradeInput(inp)===null);if(invalid){invalid.focus();return false}
+  qa('[data-test-index]',el).forEach(inp=>{const sid=inp.dataset.sid,k=Number(inp.dataset.testIndex),value=validateProfessorGradeInput(inp);if(value===null)return;marks[sid]=marks[sid]||{terms:{}};ensureProfessorTerm(marks[sid],term).tests[k]=value;recalc(sid);syncAssessment(sid,'test')});
+  qa('[data-exam]',el).forEach(inp=>{const sid=inp.dataset.sid,value=validateProfessorGradeInput(inp);if(value===null)return;marks[sid]=marks[sid]||{terms:{}};ensureProfessorTerm(marks[sid],term).exam=value;recalc(sid);syncAssessment(sid,'exam')});return true
  };
  qa('[data-test-index]',el).forEach(inp=>{
   inp.onfocus=()=>{const sid=inp.dataset.sid,rec=ensureProfessorTerm(marks[sid]||(marks[sid]={terms:{}}),term);if(professorIsAbsent(rec.tests[0]))inp.select()};
-  inp.oninput=()=>{const sid=inp.dataset.sid,k=Number(inp.dataset.testIndex),value=cleanGrade(inp.value);marks[sid]=marks[sid]||{terms:{}};const rec=ensureProfessorTerm(marks[sid],term);rec.tests[k]=value;inp.value=professorGradeDisplay(value,studentFor(sid));recalc(sid);syncAssessment(sid,'test');scheduleGradeAutosave(sid)}
+  inp.oninput=()=>{const sid=inp.dataset.sid,k=Number(inp.dataset.testIndex),value=validateProfessorGradeInput(inp);if(value===null)return;marks[sid]=marks[sid]||{terms:{}};const rec=ensureProfessorTerm(marks[sid],term);rec.tests[k]=value;inp.value=professorGradeDisplay(value,studentFor(sid));recalc(sid);syncAssessment(sid,'test');scheduleGradeAutosave(sid)}
  });
  qa('[data-exam]',el).forEach(inp=>{
   inp.onfocus=()=>{const sid=inp.dataset.sid,rec=ensureProfessorTerm(marks[sid]||(marks[sid]={terms:{}}),term);if(professorIsAbsent(rec.exam))inp.select()};
-  inp.oninput=()=>{const sid=inp.dataset.sid,value=cleanGrade(inp.value);marks[sid]=marks[sid]||{terms:{}};const rec=ensureProfessorTerm(marks[sid],term);rec.exam=value;inp.value=professorGradeDisplay(value,studentFor(sid));recalc(sid);syncAssessment(sid,'exam');scheduleGradeAutosave(sid)}
+  inp.oninput=()=>{const sid=inp.dataset.sid,value=validateProfessorGradeInput(inp);if(value===null)return;marks[sid]=marks[sid]||{terms:{}};const rec=ensureProfessorTerm(marks[sid],term);rec.exam=value;inp.value=professorGradeDisplay(value,studentFor(sid));recalc(sid);syncAssessment(sid,'exam');scheduleGradeAutosave(sid)}
  });
  qa('[data-absent-kind]',el).forEach(btn=>btn.onclick=()=>{
   const sid=btn.dataset.sid,kind=btn.dataset.absentKind;marks[sid]=marks[sid]||{terms:{}};const rec=ensureProfessorTerm(marks[sid],term),current=kind==='test'?rec.tests[0]:rec.exam,next=professorIsAbsent(current)?'':'ABSENT';
-  if(kind==='test')rec.tests[0]=next;else rec.exam=next;const inp=kind==='test'?q(`[data-test-index][data-sid="${CSS.escape(sid)}"]`,el):q(`[data-exam][data-sid="${CSS.escape(sid)}"]`,el);if(inp)inp.value=professorGradeDisplay(next,studentFor(sid));recalc(sid);syncAssessment(sid,kind);scheduleGradeAutosave(sid)
+  if(kind==='test')rec.tests[0]=next;else rec.exam=next;const inp=kind==='test'?q(`[data-test-index][data-sid="${CSS.escape(sid)}"]`,el):q(`[data-exam][data-sid="${CSS.escape(sid)}"]`,el);if(inp){inp.value=professorGradeDisplay(next,studentFor(sid));inp.setAttribute('aria-invalid','false')}recalc(sid);syncAssessment(sid,kind);scheduleGradeAutosave(sid)
  });
- q('#pv2SaveGrades',el).onclick=async()=>{const b=q('#pv2SaveGrades',el),fields=qa('.prof-grade-entry-list input,.prof-grade-entry-list button',el);commitVisibleGradeInputs();gradeEditRevision++;b.disabled=true;fields.forEach(x=>x.disabled=true);try{const ok=await forceProfessorGradeSave();if(ok){const ctx=currentGradeSaveContext(),count=ctx?professorGradeRows(ctx).length:0;q('#pv2SaveState',el).textContent=tr('✓ تم حفظ والتحقق من جميع النتائج ('+count+' تلميذًا)','✓ Toutes les notes ont été enregistrées et vérifiées ('+count+' élève(s))');toast(tr('تم حفظ جميع النتائج','Toutes les notes sont enregistrées'))}}finally{fields.forEach(x=>x.disabled=false);b.disabled=false}}
+ q('#pv2SaveGrades',el).onclick=async()=>{const b=q('#pv2SaveGrades',el),fields=qa('.prof-grade-entry-list input,.prof-grade-entry-list button',el);if(!commitVisibleGradeInputs())return;gradeEditRevision++;b.disabled=true;fields.forEach(x=>x.disabled=true);try{const ok=await forceProfessorGradeSave();if(ok){const ctx=currentGradeSaveContext(),count=ctx?professorGradeRows(ctx).length:0;q('#pv2SaveState',el).textContent=tr('✓ تم حفظ والتحقق من جميع النتائج ('+count+' تلميذًا)','✓ Toutes les notes ont été enregistrées et vérifiées ('+count+' élève(s))');toast(tr('تم حفظ جميع النتائج','Toutes les notes sont enregistrées'))}}finally{fields.forEach(x=>x.disabled=false);b.disabled=false}}
 }
 
 function resultText(v){return v==null?'—':Number(v).toFixed(2)}

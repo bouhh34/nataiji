@@ -12,7 +12,7 @@ try{
  await request('/api/account/profile-type','POST',{type:'professor'});
  const profile={schoolName:'ثانوية اختبار الاتصال الضعيف',year:'2026-2027',classes:[{id:'offline-c',name:'2AS A',students:Array.from({length:25},(_,i)=>({id:'p'+i,name:'التلميذ '+i}))}],assignments:[{id:'offline-a',classId:'offline-c',subject:'الرياضيات',subjectKey:'math'}],marks:{}};
  assert.equal((await request('/api/professor/profile','PUT',{profile})).status,200);
- await page.goto(base,{waitUntil:'networkidle'});
+ await page.goto(base,{waitUntil:'domcontentloaded'});
  await page.locator('[data-prof-nav="grades"]').click();
  await page.locator('[data-grade-id]').first().click();
  await page.locator('[data-test-index]').first().fill('12');
@@ -20,6 +20,7 @@ try{
  await page.waitForFunction(()=>document.querySelector('#profSyncStatus')?.dataset.state==='saved');
  assert.equal(totalRows,1,'editing one of 25 pupils sends one row');
  assert.equal(calls,1,'autosave coalesces one changed row into one request');
+ await page.locator('[data-test-index]').first().fill('21');await page.locator('#pv2SaveGrades').click();assert.equal(await page.locator('[data-test-index]').first().getAttribute('aria-invalid'),'true');assert.equal((await request('/api/professor/profile')).profile.marks['offline-a'].p0.terms['1'].tests[0],'12','invalid entry is rejected instead of silently clamped');await page.locator('[data-test-index]').first().fill('12');
  await context.setOffline(true);
  await page.locator('[data-test-index]').first().fill('0');
  await page.locator('[data-exam]').first().fill('10');
@@ -31,7 +32,7 @@ try{
  assert.ok(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth+2),'320px screen must not overflow');
  // Reconnect with writes temporarily blocked so reauthentication/reload cannot erase drafts.
  await page.route('**/api/professor/assignments/*/grades',route=>route.abort());
- await context.setOffline(false);await page.reload({waitUntil:'networkidle'});
+ await context.setOffline(false);await page.reload({waitUntil:'domcontentloaded'});await page.locator('#profSyncStatus').waitFor({state:'visible'});
  assert.equal(await page.evaluate(()=>JSON.parse(localStorage.getItem('nataiji-grade-drafts-v1:'+currentUser.id)).rows.length),2);
  await page.unroute('**/api/professor/assignments/*/grades');
  await page.locator('#profSyncRetry').click();
@@ -60,10 +61,10 @@ try{
  await page.route('**/api/professor/assignments/*/grades',route=>route.abort());await context.setOffline(false);
  await request('/api/auth/logout','POST',{});
  const other=await request('/api/auth/register','POST',{name:'Other Professor',email:'offline.other@example.com',password:'OtherPass-9021'});assert.equal(other.status,201);await request('/api/account/profile-type','POST',{type:'professor'});
- await page.reload({waitUntil:'networkidle'});assert.match(await page.locator('#profSyncStatus').innerText(),/جميع التغييرات محفوظة/);
+ await page.reload({waitUntil:'domcontentloaded'});await page.locator('#profSyncStatus').waitFor({state:'visible'});assert.match(await page.locator('#profSyncStatus').innerText(),/جميع التغييرات محفوظة/);
  assert.equal((await request('/api/professor/profile')).profile.assignments.length,0);
  assert.ok(await page.evaluate(id=>!!localStorage.getItem('nataiji-grade-drafts-v1:'+id),reg.user.id));
  await request('/api/auth/logout','POST',{});await request('/api/auth/login','POST',{email:'offline.professor@example.com',password:'OfflinePass-9021'});
- await page.reload({waitUntil:'networkidle'});assert.match(await page.locator('#profSyncStatus').innerText(),/بانتظار المزامنة/);
+ await page.reload({waitUntil:'domcontentloaded'});await page.locator('#profSyncStatus').waitFor({state:'visible'});assert.match(await page.locator('#profSyncStatus').innerText(),/بانتظار المزامنة/);
  console.log('PASS offline drafts, reload, account isolation, 25-pupil delta batching, atomic rejection, idempotency and concurrent-device conflict resolution');
 }finally{await browser.close()}
