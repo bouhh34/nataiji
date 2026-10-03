@@ -259,11 +259,11 @@ async function flushGradeAutosave(){
   try{
    syncError=null;
    while(journal.rows.size){
-    if(professorUser?.id!==userId||gradeJournal!==journal)throw Error('save_account_changed');
+    if(professorUser?.id!==userId||currentUser?.id!==userId||gradeJournal!==journal)throw Object.assign(Error('save_account_changed'),{status:403});
     const first=journal.snapshot()[0],batch=journal.snapshot().filter(r=>r.assignmentId===first.assignmentId&&r.term===first.term).slice(0,50);
     const r=await api('/api/professor/assignments/'+encodeURIComponent(first.assignmentId)+'/grades',{method:'PUT',body:JSON.stringify({term:first.term,rows:batch.map(row=>({studentId:row.studentId,...row.value,expected:row.expected}))})});
     if(!r?.ok||r.verified!==true||r.assignmentId!==first.assignmentId||r.rowCount!==batch.length)throw Error('professor_grade_verification_failed');
-    if(professorUser?.id!==userId||gradeJournal!==journal)throw Error('save_account_changed');
+    if(professorUser?.id!==userId||currentUser?.id!==userId||gradeJournal!==journal)throw Object.assign(Error('save_account_changed'),{status:403});
     for(const row of batch){
      const record=r.marks?.[row.studentId]?.terms?.[String(row.term)];
      if(!record||JSON.stringify(draftPair(record))!==JSON.stringify(row.value))throw Error('professor_grade_verification_failed');
