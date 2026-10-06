@@ -24,12 +24,12 @@ function localStateDataCount(s){
 }
 function recoveryStorageKey(id){return'nataiji-recovery-snapshot-v1:'+(id||'unknown')}
 function normalizeState(serverState){if(serverState&&typeof serverState==='object'){const incoming=structuredClone(serverState),merged={...structuredClone(DEFAULT),...incoming};merged.subjects=Array.isArray(incoming.subjects)?incoming.subjects:[];merged.pupils=Array.isArray(incoming.pupils)?incoming.pupils:[];merged.marks=Array.isArray(incoming.marks)?incoming.marks:[];return merged}const local=localState();return local&&typeof local==='object'?{...structuredClone(DEFAULT),...local}:structuredClone(DEFAULT)}
-let saveTail=Promise.resolve(),saveSerial=0;async function save(silent=false){if(!currentUser)throw new Error('not_authenticated');const serial=++saveSerial,snapshot=structuredClone(state);const run=async()=>{syncBusy=true;try{const r=await api('/api/state',{method:'PUT',body:JSON.stringify({state:snapshot})});const check=await api('/api/state');if(!r?.revision||!check?.state||check.state.saveRevision!==r.revision)throw Object.assign(new Error('save_not_verified'),{code:'save_not_verified'});if(serial===saveSerial){const fresh=normalizeState(check.state);for(const k of Object.keys(state))delete state[k];Object.assign(state,fresh);localStorage.setItem('nataiji-data',JSON.stringify(state));if($('#saveState')){$('#saveState').textContent='✓ محفوظ فعليًا على الخادم';$('#saveState').classList.remove('dirty')}}return true}catch(e){if($('#saveState')){$('#saveState').textContent='فشل الحفظ الحقيقي — أعد المحاولة';$('#saveState').classList.add('dirty')}if(e.status===401)await showAuth();throw e}finally{syncBusy=false;if(!silent)renderDashboard()}};const job=saveTail.then(run,run);saveTail=job.catch(()=>{});return job}
+let saveTail=Promise.resolve(),saveSerial=0;async function save(silent=false){if(!currentUser)throw new Error('not_authenticated');const serial=++saveSerial,snapshot=structuredClone(state);const run=async()=>{syncBusy=true;try{const r=await api('/api/state',{method:'PUT',body:JSON.stringify({state:snapshot})});if(!r?.revision||!r?.state||r.state.saveRevision!==r.revision)throw Object.assign(new Error('save_not_verified'),{code:'save_not_verified'});if(serial===saveSerial){const fresh=normalizeState(r.state);for(const k of Object.keys(state))delete state[k];Object.assign(state,fresh);localStorage.setItem('nataiji-data',JSON.stringify(state));if($('#saveState')){$('#saveState').textContent='✓ محفوظ فعليًا على الخادم';$('#saveState').classList.remove('dirty')}}return true}catch(e){if($('#saveState')){$('#saveState').textContent='فشل الحفظ الحقيقي — أعد المحاولة';$('#saveState').classList.add('dirty')}if(e.status===401)await showAuth();throw e}finally{syncBusy=false;if(!silent)renderDashboard()}};const job=saveTail.then(run,run);saveTail=job.catch(()=>{});return job}
 
 function calc(i){const row=state.marks[i]||[],w=state.subjects.map(x=>Number(x[1])||1),weighted=row.reduce((a,n,j)=>a+(n===''||n==null?0:Number(n)||0)*w[j],0),used=w.reduce((a,b,j)=>a+(row[j]===''||row[j]==null?0:b),0);const valid=row.filter(n=>n!==''&&n!=null).map(Number).filter(Number.isFinite);return{sum:valid.reduce((a,b)=>a+b,0),avg:used?weighted/used:0}}
 function ranks(){const av=state.pupils.map((_,i)=>calc(i).avg);return av.map(v=>1+av.filter(x=>x>v).length)}
 function setView(name){$$('.view').forEach(v=>v.classList.toggle('hidden',v.dataset.page!==name));$$('[data-view]').forEach(b=>b.classList.toggle('active',b.dataset.view===name));scrollTo({top:0,behavior:'smooth'});if(name==='reports')renderReports()}
-function applyPermissions(){const admin=currentUser?.role==='admin',canPupils=admin||currentUser?.permissions?.includes('pupils');['#subjectsBtn','#inviteBtn','#settingsBtn'].forEach(s=>{const el=$(s);if(el)el.style.display=admin?'':'none'});if($('#addStudent'))$('#addStudent').style.display=canPupils?'':'none';if($('#importBtn'))$('#importBtn').style.display=canPupils?'':'none';const small=$('#teacherName small');if(small)small.textContent=admin?'مدير / صلاحيات كاملة':'معلم / إدخال النتائج'}
+function applyPermissions(){const admin=currentUser?.role==='admin',canPupils=admin||currentUser?.permissions?.includes('pupils');['#subjectsBtn','#inviteBtn','#settingsBtn'].forEach(s=>{const el=$(s);if(el)el.style.display=admin?'':'none'});if($('#addStudent'))$('#addStudent').style.display=canPupils?'':'none';if($('#importBtn'))$('#importBtn').style.display=canPupils?'':'none';const small=$('#teacherName small');if(small)small.textContent=admin?'المعلم / إدارة أقسامه':'المعلم / إدخال النتائج'}
 function selectorClasses(){const rows=(Array.isArray(state.classes)?state.classes:[]).filter(x=>x&&x.id);if(rows.length)return rows;const id=String(state.activeClassId||currentUser?.preferredClassId||currentUser?.classIds?.[0]||'');if(id&&(String(state.className||state.classCode||'').trim()||(state.pupils||[]).length||(state.subjects||[]).length))return[{id,name:String(state.className||state.classCode||'القسم الحالي'),nameFr:String(state.classNameFr||''),code:String(state.classCode||'')}];return[]}
 function selectorTerms(){let rows=[...new Set((Array.isArray(state.terms)?state.terms:[]).map(x=>String(x||'').trim()).filter(Boolean))];if(!rows.length&&state.marksByTerm&&typeof state.marksByTerm==='object')rows=[...new Set(Object.keys(state.marksByTerm).map(x=>String(x||'').trim()).filter(Boolean))];const current=String(state.term||'').trim();if(current&&!rows.includes(current))rows.unshift(current);return rows}
 function sameSelectValues(el,values){const current=[...el.options].map(o=>String(o.value));return current.length===values.length&&current.every((v,i)=>v===String(values[i]))}
@@ -184,7 +184,8 @@ async function startApp(){
  }
  state=normalizeState(remote);if(currentUser?.role==='admin'&&!remote?.subjects){state.teacher=currentUser.name||state.teacher}
  try{const sr=await api('/api/subjects?classId='+encodeURIComponent(state.activeClassId||''));if(sr?.ok){state.subjects=structuredClone(sr.subjects||[]);if(state.classData?.[state.activeClassId])state.classData[state.activeClassId].subjects=structuredClone(state.subjects)}}catch{}
- localStorage.setItem('nataiji-data',JSON.stringify(state));render();setView('home');
+ try{localStorage.setItem('nataiji-data',JSON.stringify(state))}catch{}if(refresh)render();setView('home');
+ void flushSchoolGradeJournal();
  if(recoveredLocal)setTimeout(()=>modal('تم استرجاع البيانات',`<p><b>تم العثور على نسخة محلية محفوظة على هذا الجهاز واسترجاعها إلى الخادم بنجاح.</b></p><p>تحقق من الأقسام والتلاميذ والدرجات قبل إجراء أي تعديل جديد.</p>`),120);
  else if(recoveryFailure)setTimeout(()=>modal('نسخة استرجاع محفوظة',`<p>وجدت نسخة محلية قديمة وحفظتها على الجهاز، لكن لم أستطع استعادتها تلقائيًا إلى الخادم.</p><p>لا تمسح بيانات التطبيق أو المتصفح.</p>`),120)
 }
@@ -197,32 +198,64 @@ let markCellSaveTail=Promise.resolve();
 const pendingGradeSaves=new Map(),failedGradeSaves=new Map();
 const gradeText=(ar,fr)=>document.documentElement.lang==='fr'?fr:ar;
 const gradeAccount=()=>JSON.stringify([currentUser?.id,currentUser?.schoolId,currentUser?.activeSharedGrant]);
-let manualGradeSaveActive=false;
+let manualGradeSaveActive=false,schoolGradeJournal=null,schoolGradeJournalUser='',activeGradeConflictDialog=null;
+const gradeExpectedValues=new Map(),gradeQueuedValues=new Map();
 const gradeContext=()=>({account:gradeAccount(),classId:state.activeClassId,term:state.term});
 const gradeKey=c=>JSON.stringify([c.account,c.classId,c.term]);
 const sameGradeContext=c=>gradeKey(c)===gradeKey(gradeContext());
+window.nataijiClearSchoolGradeDrafts=userId=>{try{localStorage.removeItem('nataiji-school-grade-drafts-v1:'+String(userId||''))}catch{}};
+function getSchoolGradeJournal(){
+ const id=String(currentUser?.id||'');if(!id||!window.NataijiSchoolGradeJournal)return null;
+ if(!schoolGradeJournal||schoolGradeJournalUser!==id){schoolGradeJournal=new window.NataijiSchoolGradeJournal(localStorage,id);schoolGradeJournalUser=id}
+ return schoolGradeJournal
+}
+function rowsForGradeContext(context){return(getSchoolGradeJournal()?.snapshot()||[]).filter(r=>r.account===context.account&&r.classId===String(context.classId)&&r.term===String(context.term))}
+function gradeCellKey(context,pupilKey,subjectId){return JSON.stringify([context.account,context.classId,context.term,pupilKey,subjectId])}
 function markSaveStatus(text,dirty=false){const el=$('#saveState');if(!el)return;el.textContent=text;el.classList.toggle('dirty',dirty)}
-function queueGradeSave(context,operation,onSaved){
+function updateLocalGrade(row,value,refresh=true){
+ if(row.account!==gradeAccount())return;
+ const id=gradeCellKey({account:row.account,classId:row.classId,term:row.term},row.pupilKey,row.subjectId);gradeExpectedValues.set(id,String(value??''));gradeQueuedValues.delete(id);
+ if(String(state.activeClassId)!==row.classId||String(state.term)!==row.term)return;
+ const i=state.pupils.findIndex(p=>String(p?.[7]||p?.[0]||'')===row.pupilKey),j=state.subjects.findIndex(x=>String(x?.[4]||'')===row.subjectId);
+ if(i<0||j<0)return;
+ if(!state.marks[i])state.marks[i]=[];state.marks[i][j]=value;
+ state.marksByTerm=state.marksByTerm||{};state.marksByTerm[row.term]=structuredClone(state.marks);
+ const data=state.classData?.[row.classId];if(data){data.marksByTerm=data.marksByTerm||{};data.marksByTerm[row.term]=structuredClone(state.marks)}
+ try{localStorage.setItem('nataiji-data',JSON.stringify(state))}catch{}if(refresh)render();
+}
+function showGradeConflict(row,currentValue){
+ if(activeGradeConflictDialog?.isConnected)return;
+ const j=getSchoolGradeJournal();if(!j)return;j.setConflict(row,currentValue);
+ const student=state.pupils?.find(p=>String(p?.[7]||p?.[0]||'')===row.pupilKey),subject=state.subjects?.find(x=>String(x?.[4]||'')===row.subjectId);
+ const title=gradeText('تعارض في درجة محفوظة','Conflit sur une note enregistrée');
+ const dialog=modal(title,`<p>${gradeText('حُفظت درجة مختلفة على الخادم. اختر الدرجة التي تريد اعتمادها.','Une note différente a été enregistrée sur le serveur. Choisissez celle à conserver.')}</p><p><b>${esc(student?.[1]||row.pupilKey)} — ${esc(subject?.[0]||row.subjectId)}</b></p><div class="grade-conflict-values"><div>${gradeText('على الخادم','Sur le serveur')}: <b>${esc(currentValue||'—')}</b></div><div>${gradeText('على هذا الجهاز','Sur cet appareil')}: <b>${esc(row.value||'—')}</b></div></div><div class="grade-conflict-actions"><button type="button" class="secondary use-server">${gradeText('اعتماد درجة الخادم','Garder la note du serveur')}</button><button type="button" class="primary keep-device">${gradeText('اعتماد درجة هذا الجهاز','Garder la note de cet appareil')}</button></div>`);
+ activeGradeConflictDialog=dialog;
+ dialog.querySelector('.use-server').onclick=()=>{j.discard(row);updateLocalGrade(row,String(currentValue??''));dialog.remove();activeGradeConflictDialog=null;failedGradeSaves.delete(gradeKey({account:row.account,classId:row.classId,term:row.term}));markSaveStatus(gradeText('تم اعتماد الدرجة المحفوظة على الخادم','La note du serveur a été conservée'),false)};
+ dialog.querySelector('.keep-device').onclick=async()=>{j.rebase(row,String(currentValue??''));dialog.remove();activeGradeConflictDialog=null;await flushSchoolGradeJournal({account:row.account,classId:row.classId,term:row.term})};
+}
+function queueGradeSave(context,operation,onSaved,onFailed){
  const key=gradeKey(context);
  pendingGradeSaves.set(key,(pendingGradeSaves.get(key)||0)+1);
  if(sameGradeContext(context))markSaveStatus(gradeText('جارٍ حفظ النتائج…','Enregistrement des notes…'),true);
  const run=async()=>{
   try{
    if(context.account!==gradeAccount())throw new Error('save_account_changed');
+   if(globalThis.navigator?.onLine===false)throw new TypeError('offline');
    const result=await operation();
    if(!result?.ok)throw new Error('marks_save_failed');
    onSaved?.(result);
    return true;
-  }catch(error){failedGradeSaves.set(key,true);return false}
+  }catch(error){failedGradeSaves.set(key,true);onFailed?.(error);return false}
   finally{
    const remaining=(pendingGradeSaves.get(key)||1)-1;
    if(remaining)pendingGradeSaves.set(key,remaining);else pendingGradeSaves.delete(key);
    if(sameGradeContext(context)){
-    // A later successful full save clears stale per-cell failures. While a
-    // full retry is still queued, do not flash the old failure banner.
-    const hasFailure=failedGradeSaves.has(key);
+    const hasFailure=failedGradeSaves.has(key),drafts=rowsForGradeContext(context);
     if(remaining)markSaveStatus(gradeText('جارٍ حفظ النتائج…','Enregistrement des notes…'),true);
-    else if(hasFailure)markSaveStatus(gradeText('تعذر حفظ بعض النتائج — أعد المحاولة بزر حفظ النتائج','Certaines notes ne sont pas enregistrées. Réessayez avec Enregistrer.'),true);
+    else if(hasFailure&&drafts.some(r=>r.conflictValue!==undefined))markSaveStatus(gradeText('يوجد تعارض يحتاج مراجعتك','Un conflit nécessite votre choix'),true);
+    else if(hasFailure&&drafts.length&&globalThis.navigator?.onLine===false)markSaveStatus(gradeText(`الاتصال منقطع؛ ${drafts.length} درجة محفوظة على هذا الجهاز` ,`Hors connexion ; ${drafts.length} note(s) gardée(s) sur cet appareil`),true);
+    else if(hasFailure&&drafts.length)markSaveStatus(gradeText(`تعذر المزامنة؛ ${drafts.length} درجة محفوظة محليًا — اضغط حفظ النتائج للمحاولة` ,`Synchronisation impossible ; ${drafts.length} note(s) gardée(s) localement — appuyez sur Enregistrer`),true);
+    else if(hasFailure)markSaveStatus(gradeText('تعذر الحفظ — أعد المحاولة بزر حفظ النتائج','Échec de l’enregistrement — réessayez'),true);
     else markSaveStatus(gradeText('تم حفظ النتائج على الخادم','Notes enregistrées sur le serveur'),false);
    }
   }
@@ -237,20 +270,51 @@ function persistMarkCell(input){
  const max=Number(subject?.[3])>0?Number(subject[3]):20,raw=String(input.value??'').trim(),check=typeof window.nataijiValidateGradeValue==='function'?window.nataijiValidateGradeValue(raw,max):{ok:true,value:raw};
  if(check.ok===false){window.nataijiShowGradeValidationError?.(input,check);markSaveStatus(gradeText('صحح الدرجة غير الصالحة قبل الحفظ','Corrigez la note avant d’enregistrer'),true);return}
  // This listener runs in capture phase, before the input's change handler.
- const value=check.value,context=gradeContext(),payload={classId:context.classId,term:context.term,pupilKey,subjectId,value};
+ const value=check.value??'',context=gradeContext(),cellKey=gradeCellKey(context,pupilKey,subjectId),expectedValue=String(gradeQueuedValues.has(cellKey)?gradeQueuedValues.get(cellKey):(gradeExpectedValues.has(cellKey)?gradeExpectedValues.get(cellKey):(state.marks?.[i]?.[j]??''))),payload={classId:context.classId,term:context.term,pupilKey,subjectId,value,expectedValue};
+ gradeQueuedValues.set(cellKey,value);
  if(!state.marks[i])state.marks[i]=[];
  state.marks[i][j]=value;
- state.marksByTerm=state.marksByTerm||{};
- state.marksByTerm[context.term]=structuredClone(state.marks);
- const data=state.classData?.[context.classId];
- if(data){data.marksByTerm=data.marksByTerm||{};data.marksByTerm[context.term]=structuredClone(state.marks)}
+ state.marksByTerm=state.marksByTerm||{};state.marksByTerm[context.term]=structuredClone(state.marks);
+ const data=state.classData?.[context.classId];if(data){data.marksByTerm=data.marksByTerm||{};data.marksByTerm[context.term]=structuredClone(state.marks)}
+ const journal=getSchoolGradeJournal(),draft=journal?.stage(context,pupilKey,subjectId,expectedValue,value);
+ if(!journal?.available)markSaveStatus(gradeText('تعذر حفظ نسخة الدرجة على هذا الجهاز؛ أبق التطبيق مفتوحًا حتى يتصل الخادم','Impossible de garder une copie locale ; gardez l’application ouverte jusqu’au retour du réseau'),true);
  return queueGradeSave(context,()=>api('/api/mark',{method:'PUT',body:JSON.stringify(payload)}),()=>{
-  if(sameGradeContext(context))localStorage.setItem('nataiji-data',JSON.stringify(state));
+  if(draft)journal?.ack([{...draft,expected:expectedValue,value}]);
+  gradeExpectedValues.set(cellKey,value);if(gradeQueuedValues.get(cellKey)===value)gradeQueuedValues.delete(cellKey);
+  if(sameGradeContext(context))try{localStorage.setItem('nataiji-data',JSON.stringify(state))}catch{}
+ },error=>{
+  if(error.code==='mark_conflict'&&draft){const current=error.data?.currentValue??'';journal?.setConflict(draft,current);const latest=journal?.snapshot().find(r=>r.account===draft.account&&r.classId===draft.classId&&r.term===draft.term&&r.pupilKey===draft.pupilKey&&r.subjectId===draft.subjectId)||draft;showGradeConflict(latest,String(current))}
  });
 }
+async function flushSchoolGradeJournal(contextFilter=null){
+ let activeStateChanged=false;const journal=getSchoolGradeJournal();if(!journal?.available){if(sameGradeContext(contextFilter||gradeContext()))markSaveStatus(gradeText('تعذر قراءة مسودات الدرجات المحلية؛ لا تحذف بيانات التطبيق','Impossible de lire les brouillons locaux ; ne supprimez pas les données de l’application'),true);return false}
+ if(globalThis.navigator?.onLine===false){const ctx=contextFilter||gradeContext();if(sameGradeContext(ctx))markSaveStatus(gradeText('الاتصال منقطع؛ ستتم المحاولة عند عودته','Hors connexion ; nouvelle tentative au retour du réseau'),true);return false}
+ for(const row of journal.snapshot()){
+  if(row.account!==gradeAccount())continue;
+  if(contextFilter&&(row.classId!==String(contextFilter.classId)||row.term!==String(contextFilter.term)))continue;
+  if(row.conflictValue!==undefined){showGradeConflict(row,row.conflictValue);return false}
+  try{
+   await api('/api/mark',{method:'PUT',body:JSON.stringify({classId:row.classId,term:row.term,pupilKey:row.pupilKey,subjectId:row.subjectId,value:row.value,expectedValue:row.expected})});
+   journal.ack([row]);const cellKey=gradeCellKey({account:row.account,classId:row.classId,term:row.term},row.pupilKey,row.subjectId);gradeExpectedValues.set(cellKey,row.value);if(gradeQueuedValues.get(cellKey)===row.value)gradeQueuedValues.delete(cellKey);const newer=journal.snapshot().some(r=>r.account===row.account&&r.classId===row.classId&&r.term===row.term&&r.pupilKey===row.pupilKey&&r.subjectId===row.subjectId);if(!newer){updateLocalGrade(row,row.value,false);activeStateChanged=true}const key=gradeKey({account:row.account,classId:row.classId,term:row.term});
+   if(!rowsForGradeContext({account:row.account,classId:row.classId,term:row.term}).length)failedGradeSaves.delete(key);
+  }catch(error){
+   const key=gradeKey({account:row.account,classId:row.classId,term:row.term});failedGradeSaves.set(key,true);
+   if(error.code==='mark_conflict'){const current=String(error.data?.currentValue??'');journal.setConflict(row,current);showGradeConflict({...row,conflictValue:current},current)}
+   if(sameGradeContext({account:row.account,classId:row.classId,term:row.term}))markSaveStatus(error.code==='mark_conflict'?gradeText('يوجد تعارض يحتاج مراجعتك','Un conflit nécessite votre choix'):gradeText(`تعذر المزامنة؛ بقيت ${journal.snapshot().length} درجة محفوظة محليًا`,`Synchronisation impossible ; ${journal.snapshot().length} note(s) gardée(s) localement`),true);
+   return false;
+  }
+ }
+ if(activeStateChanged)render();
+ const ctx=contextFilter||gradeContext();if(sameGradeContext(ctx)){const left=rowsForGradeContext(ctx);if(!left.length){failedGradeSaves.delete(gradeKey(ctx));markSaveStatus(gradeText('تمت مزامنة الدرجات المحفوظة محليًا','Les notes locales sont synchronisées'),false)}}
+ return true;
+}
+window.addEventListener('online',()=>{void flushSchoolGradeJournal()});
+document.addEventListener('input',e=>{const el=e.target;if(!el?.matches?.('.mark,.mobile-mark'))return;const i=Number(el.dataset.i),j=Number(el.dataset.j),p=state.pupils?.[i],sub=state.subjects?.[j],pupilKey=String(p?.[7]||p?.[0]||''),subjectId=String(sub?.[4]||'');if(!pupilKey||!subjectId)return;const ctx=gradeContext(),id=gradeCellKey(ctx,pupilKey,subjectId);if(!gradeExpectedValues.has(id))gradeExpectedValues.set(id,String(state.marks?.[i]?.[j]??''))},true);
+document.addEventListener('input',e=>{const el=e.target;if(!el?.matches?.('.mark,.mobile-mark'))return;const i=Number(el.dataset.i),j=Number(el.dataset.j),p=state.pupils?.[i],sub=state.subjects?.[j],pupilKey=String(p?.[7]||p?.[0]||''),subjectId=String(sub?.[4]||'');if(!pupilKey||!subjectId)return;const max=Number(sub?.[3])>0?Number(sub[3]):20,check=typeof window.nataijiValidateGradeValue==='function'?window.nataijiValidateGradeValue(String(el.value??'').trim(),max):{ok:true,value:el.value};if(!check.ok)return;const ctx=gradeContext(),id=gradeCellKey(ctx,pupilKey,subjectId),expected=String(gradeQueuedValues.has(id)?gradeQueuedValues.get(id):(gradeExpectedValues.get(id)??(state.marks?.[i]?.[j]??''))),jrn=getSchoolGradeJournal();jrn?.stage(ctx,pupilKey,subjectId,expected,check.value);if(jrn?.available)markSaveStatus(gradeText('حُفظت المسودة على هذا الجهاز؛ جارٍ انتظار مزامنتها','Brouillon gardé sur cet appareil ; synchronisation en attente'),true);else markSaveStatus(gradeText('تعذر حفظ نسخة محلية؛ أبق التطبيق مفتوحًا حتى يتصل الخادم','Impossible de garder une copie locale ; gardez l’application ouverte jusqu’au retour du réseau'),true)},false);
 document.addEventListener('change',e=>{if(!manualGradeSaveActive&&e.target?.matches?.('.mark,.mobile-mark'))persistMarkCell(e.target)},true);
 window.addEventListener('beforeunload',e=>{
- if(pendingGradeSaves.size||failedGradeSaves.size){e.preventDefault();e.returnValue=''}
+ const focused=document.activeElement;if(focused?.matches?.('.mark,.mobile-mark'))focused.dispatchEvent(new Event('change',{bubbles:true}));
+ if(pendingGradeSaves.size){e.preventDefault();e.returnValue=''}
 });
 
 $('#saveGrades').onclick=async()=>{
@@ -270,11 +334,11 @@ $('#saveGrades').onclick=async()=>{
   await markCellSaveTail.catch(()=>{});
   while((pendingGradeSaves.get(key)||0)>0)await new Promise(r=>setTimeout(r,40));
   if(!sameGradeContext(context))return;
-  if(failedGradeSaves.has(key))throw new Error('cell_save_failed');
+  if(failedGradeSaves.has(key)||rowsForGradeContext(context).length){const synced=await flushSchoolGradeJournal(context);if(!synced||rowsForGradeContext(context).length)throw new Error('cell_save_failed');failedGradeSaves.delete(key)}
   localStorage.setItem('nataiji-data',JSON.stringify(state));
   markSaveStatus(gradeText('تم حفظ النتائج على الخادم','Notes enregistrées sur le serveur'),false);
  }catch(error){
-  if(sameGradeContext(context))markSaveStatus(gradeText('تعذر حفظ بعض النتائج — أعد تعديل الدرجة التي لم تُحفظ','Certaines notes ne sont pas enregistrées. Modifiez à nouveau la note concernée.'),true);
+  if(sameGradeContext(context)){const drafts=rowsForGradeContext(context);markSaveStatus(drafts.length?gradeText(`تعذر الاتصال؛ بقيت ${drafts.length} درجة محفوظة على هذا الجهاز`,`Connexion interrompue ; ${drafts.length} note(s) gardée(s) sur cet appareil`):gradeText('تعذر حفظ بعض النتائج — أعد المحاولة','Certaines notes ne sont pas enregistrées — réessayez'),true);}
  }finally{button.textContent=old;button.disabled=false}
 };
 $('#student').onchange=renderReports;const showResultBtn=$('#showResult');if(showResultBtn)showResultBtn.onclick=renderReports;$('#addStudent').onclick=addStudent;$('#settingsBtn').onclick=openSettings;$('#subjectsBtn').onclick=openSubjects;

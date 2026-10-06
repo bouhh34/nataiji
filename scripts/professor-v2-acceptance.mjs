@@ -147,7 +147,7 @@ try{
  await page.locator('#pv2ShareClass').click();
  await page.locator('.prof-class-code').waitFor({state:'visible',timeout:8000});
  const code=(await page.locator('.prof-class-code').innerText()).trim();
- check('shared class code has expected format',/^CL-[A-F0-9]{8}$/.test(code),code);
+ check('shared class code has strong expected format',/^CL-[A-F0-9]{32}$/.test(code),code);
  await page.locator('.professor-x').click();
 
  await page.locator('[data-class-grade]').filter({hasText:'الرياضيات'}).click();

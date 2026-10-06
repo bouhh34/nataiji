@@ -45,3 +45,10 @@
 @media screen{.professor-app input[aria-invalid=true]{border:2px solid #b32f2f!important;background:#fff4f2!important}}
 
 @media screen{.professor-toast{position:static!important;inset:auto!important;transform:none!important;display:none!important;opacity:1!important;margin:8px 0!important;width:auto!important;max-width:100%!important;border-radius:12px!important;box-shadow:none!important;padding:10px 12px!important;pointer-events:none}.professor-toast.show{display:block!important}}
+
+.grade-conflict-values{display:grid;gap:10px;margin:16px 0;padding:14px;border:1px solid #dbe5ec;border-radius:14px;background:#f5f9fc}
+.grade-conflict-values>div{display:flex;justify-content:space-between;gap:12px;align-items:center}
+.grade-conflict-values b{direction:ltr;unicode-bidi:isolate;color:#082b4b;font-size:1.15em}
+.grade-conflict-actions{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:16px}
+.grade-conflict-actions button{min-height:44px}
+@media(max-width:420px){.grade-conflict-actions{grid-template-columns:1fr}}

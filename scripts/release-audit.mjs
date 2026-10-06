@@ -15,6 +15,7 @@ const required = [
   'public/index.html','public/manifest.webmanifest','public/sw.js',
   'public/privacy.html','public/terms.html','public/release-100-v1.css','public/nataiji-final-visual-v1.css','public/nataiji-premium-v2.css','public/nataiji-premium-v2.js','public/nataiji-home-reference-v1.css','public/nataiji-home-reference-v1.js',
   'public/nataiji-brand-mark.png','capacitor.config.ts',
+  'public/school-grade-journal.js','src/postgres-ssl.js',
   '.github/workflows/mobile-android-release.yml',
   '.github/workflows/mobile-ios-appstore.yml',
   '.github/workflows/mobile-production-smoke.yml',
@@ -26,6 +27,8 @@ const index = read('public/index.html');
 const sw = read('public/sw.js');
 const server = read('src/server.js');
 const appJs = read('public/app.js');
+const gradeJournal = read('public/school-grade-journal.js');
+const postgresSsl = read('src/postgres-ssl.js');
 const capacitor = read('capacitor.config.ts');
 const pkg = JSON.parse(read('package.json'));
 const lockPkg = JSON.parse(read('package-lock.json'));
@@ -57,7 +60,12 @@ assert('terms page exists', exists('public/terms.html'));
 assert('account deletion web resource exists', exists('public/delete-account.html'));
 assert('PWA caches account deletion help', /\/delete-account\.html/.test(sw) && /\/info-pages\.css\?v=1/.test(sw));
 assert('privacy has public support and deletion links', /mailto:bahmedou596@gmail\.com/.test(read('public/privacy.html')) && /\/delete-account\.html/.test(read('public/privacy.html')));
-assert('PWA cache version current', /nataiji-shell-v102/.test(sw));
+assert('PWA cache version current', /nataiji-shell-v106/.test(sw));
+assert('PWA loads and caches school grade journal', /school-grade-journal\.js\?v=1/.test(index) && /school-grade-journal\.js\?v=1/.test(sw));
+assert('offline school grade journal is account scoped and conflict aware', /nataiji-school-grade-drafts-v1:/.test(gradeJournal) && /setConflict\(/.test(gradeJournal) && /rebase\(/.test(gradeJournal));
+assert('school grade changes compare server value before overwrite', /expectedValue/.test(appJs) && /mark_conflict/.test(server) && /pg_advisory_xact_lock/.test(server));
+assert('remote PostgreSQL certificate validation is enabled', /rejectUnauthorized:\s*true/.test(postgresSsl) && /DATABASE_SSL_CA/.test(postgresSsl) && /postgresConnectionString\(databaseUrl\)/.test(server));
+assert('school state save uses verified response without a second read', /r\.state\.saveRevision!==r\.revision/.test(appJs) && !/const check=await api\('\/api\/state'\)/.test(appJs.slice(appJs.indexOf('async function save('),appJs.indexOf('\n\nfunction calc'))));
 assert('PWA caches final mobile css', /release-100-v1\.css/.test(sw));
 assert('PWA caches final visual polish', /nataiji-final-visual-v1\.css/.test(sw));
 assert('PWA caches premium v2 layer', /nataiji-premium-v2\.css/.test(sw) && /nataiji-premium-v2\.js/.test(sw));
@@ -66,6 +74,10 @@ assert('PWA excludes API cache', /pathname\.startsWith\(['"]\/api\/['"]\)/.test(
 assert('auth copy avoids ambiguous temporary storage', !/وضع تخزين مؤقت|Mode de stockage temporaire/.test(read('public/auth-access-v2.js')));
 assert('French auth direction is explicit', /lang-fr \.auth-gate/.test(read('public/auth-access-v2.js')) || /lang-fr \.auth-gate/.test(read('public/interface-language-fix.js')));
 const authAccess = read('public/auth-access-v2.js');
+const professorV2 = read('public/professor-v2.js');
+assert('account setup has only teacher and professor paths', /data-profile-type=\"teacher\"/.test(professorV2) && /data-profile-type=\"professor\"/.test(professorV2) && !/data-profile-type=\"(?:admin|director|manager)\"/.test(professorV2));
+assert('teacher UI and reports do not present a school director role', !/مدير \/ صلاحيات كاملة|ملاحظات المدير|Observations du Directeur|<b>المدير<\/b>/.test(appJs + professorV2 + read('public/official-bilingual-v1.js') + read('public/two-students-a4-v1.js')));
+assert('teacher workspaces are not labeled as principal managed schools', /مساحاتي الدراسية/.test(authAccess) && !/مدارسي/.test(authAccess));
 assert('auth exposes Arabic French language switch', /data-auth-lang="ar"/.test(authAccess) && /data-auth-lang="fr"/.test(authAccess));
 assert('auth language switch updates direction immediately', /document\.documentElement\.dir=next==='fr'\?'ltr':'rtl'/.test(authAccess));
 const bilingualEditor = read('public/bilingual-data-editor-v1.js');
@@ -83,7 +95,7 @@ assert('third trimester bulletin keeps earlier-term results', /A pupil who has a
 assert('school structure uses exactly three fixed trimesters', /const FIXED_TERMS=\['الفصل الأول','الفصل الثاني','الفصل الثالث'\]/.test(structureManager) && !/id="addTerm"/.test(structureManager) && !/data-term-del/.test(structureManager));
 assert('structure modal localizes trimesters and standard classes', /TERM_FR/.test(structureManager) && /CLASS_FR/.test(structureManager) && /Trimestres et classes/.test(structureManager));
 const onboarding = read('public/onboarding-v1.js');
-assert('school form uses precise French school label', /Nom de l’école en français/.test(authAccess) && /Nom de l’école en français/.test(onboarding) && /Nom de l’école en français/.test(bilingualEditor));
+assert('school form uses precise French school label', /Nom de l’établissement en français/.test(authAccess) && /Nom de l’école en français/.test(onboarding) && /Nom de l’école en français/.test(bilingualEditor));
 assert('My Schools keeps Arabic and French school names synchronized', /schoolAr\.addEventListener\('input'.*schoolFr\.value=toFr/s.test(authAccess) && /schoolFr\.addEventListener\('input'.*schoolAr\.value=toAr/s.test(authAccess));
 assert('school create action is full width', /#auth2AddSchool\{width:100%!important/.test(adminUxPolish));
 assert('teacher invite labels grade access clearly', /الوصول إلى الدرجات/.test(authAccess) && /اختر «تعديل» أمام المواد/.test(authAccess));
@@ -135,7 +147,6 @@ assert('grade entry compacts filters and rows', /padding:11px!important;border-r
 assert('bulk grade save persists validated values', /normalizedMarks/.test(server));
 assert('manual grade save flushes autosave queue', /await markCellSaveTail\.catch/.test(appJs) && /pendingGradeSaves\.get\(key\)/.test(appJs));
 assert('manual grade save does not bulk-overwrite marks', !/\$\('#saveGrades'\)[\s\S]{0,2200}api\('\/api\/marks'/.test(appJs));
-const professorV2 = read('public/professor-v2.js');
 const professorV2Css = read('public/professor-v2.css');
 const professorCatalogSrc = read('src/professor-academic-catalog.js');
 assert('official Mauritanian professor catalog is wired', /MR-SECONDARY-OFFICIAL-2026-V4/.test(professorCatalogSrc) && /code:'7AS'/.test(professorCatalogSrc) && /technology_informatics/.test(professorCatalogSrc) && /branch\('A',29/.test(professorCatalogSrc) && /branch\('C',30/.test(professorCatalogSrc));
@@ -181,7 +192,7 @@ assert('collective PDF uses compact values and compact absence labels', /functio
 assert('professor absence stays labelled in documents', /if\(professorIsAbsent\(v\)\)return professorAbsentLabel\(student\)/.test(professorV2) && /professorReportTermAverage/.test(professorV2));
 assert('professor own lists refresh from server before display', /async function openMySubjectsList[\s\S]{0,240}await refreshProfile\(\)/.test(professorV2) && /async function openSubjectList[\s\S]{0,240}await refreshProfile\(\)/.test(professorV2));
 assert('professor PDF avoids visible about blank window', !/window\.open\('',\s*'_blank'\)/.test(professorV2) && /document\.createElement\('iframe'\)/.test(professorV2) && /contentWindow\?\.print/.test(professorV2));
-assert('professor official bulletin prints one student per A4 page', /official-student-bulletin-doc/.test(professorV2) && /singlePages:true/.test(professorV2) && /class=\"student-page\"/.test(professorV2) && /Observations du Directeur/.test(professorV2));
+assert('professor official bulletin prints one student per A4 page', /official-student-bulletin-doc/.test(professorV2) && /singlePages:true/.test(professorV2) && /class=\"student-page\"/.test(professorV2) && /Observations du professeur/.test(professorV2));
 assert('official bulletin enlarges header and student identity', /official-student-bulletin-doc \.official-head\{[^}]*font-size:10\.8pt/.test(professorV2) && /official-student-bulletin-doc \.student-name\{[^}]*font-size:12\.2pt/.test(professorV2));
 assert('student bulletin rebalances columns for readability', /test-head/.test(professorV2) && /test-cell/.test(professorV2) && /obs-head,.official-student-bulletin-doc \.secondary-bulletin-table \.observation-cell\{width:25%\}/.test(professorV2) && /discipline-head\{width:28%\}/.test(professorV2));
 assert('student bulletin text is enlarged throughout', /secondary-bulletin-table\{font-size:9\.5pt/.test(professorV2) && /td:not\(\.name\):not\(\.observation-cell\)\{font-size:10\.1pt/.test(professorV2) && /observation-cell \.dual-ar\{display:block;font-size:9\.3pt/.test(professorV2));
@@ -189,7 +200,7 @@ assert('student bulletin decision and signatures are easy to read', /official-bu
 assert('bulletin summary has more vertical space', /official-bulletin-summary>div\{min-height:14mm/.test(professorV2));
 assert('Arabic official header is balanced against French', /official-student-bulletin-doc \.official-ar\{font-size:11\.7pt/.test(professorV2) && /class-list-doc \.official-ar\{font-size:11\.5pt/.test(professorV2));
 assert('professor batch bulletin label says one student per A4', /كشوف التلاميذ الرسمية – طالب واحد لكل A4/.test(professorV2) && /Bulletins officiels – 1 élève par A4/.test(professorV2));
-assert('professor v2 cache-busted asset is current', /professor-v2\.js\?v=71/.test(index));
+assert('professor v2 cache-busted asset is current', /professor-v2\.js\?v=74/.test(index));
 assert('professor v2 stylesheet cache-busted asset is current', /professor-v2\.css\?v=47/.test(index));
 const ownerStaff = read('public/owner-staff-v1.js');
 assert('owner professor tools support official branches', /staffClassBranch/.test(ownerStaff) && /data-branch/.test(ownerStaff) && /subjectOptions\(catalog,level,branch\)/.test(ownerStaff));
@@ -203,6 +214,8 @@ assert('account password change exists', /\/api\/account\/password/.test(server)
 assert('account deletion exists', /app\.delete\('\/api\/account'/.test(server));
 assert('health endpoint exists', /app\.get\('\/health'/.test(server));
 assert('durable storage health reporting', /storage/.test(server) && /databaseOk/.test(server));
+assert('professor shared-class codes use 128-bit random values', /crypto\.randomBytes\(16\)\.toString\('hex'\)\.toUpperCase\(\)/.test(server) && /CL-\(\?:\[A-F0-9\]\{8\}\|\[A-F0-9\]\{32\}\)/.test(server));
+assert('professor class joining is rate limited', /app\.post\('\/api\/professor\/classes\/join',classJoinRate,auth/.test(server) && /classJoinRate=rateLimit\('class-join',10,15\*60\*1000\)/.test(server));
 assert('Capacitor package id', /appId:\s*'mr\.nataiji\.app'/.test(capacitor));
 assert('Capacitor HTTPS production url', /https:\/\/nataiji\.onrender\.com/.test(capacitor));
 assert('Android dependency present', Boolean(pkg.dependencies?.['@capacitor/android']));

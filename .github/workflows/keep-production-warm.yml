@@ -1,0 +1,30 @@
+name: Keep production ready for mobile startup
+
+on:
+  schedule:
+    # Render free instances can suspend after inactivity. A tiny health request
+    # every ten minutes keeps the first mobile WebView navigation responsive.
+    - cron: '*/10 * * * *'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: production-warmup
+  cancel-in-progress: true
+
+jobs:
+  warm-production:
+    runs-on: ubuntu-latest
+    timeout-minutes: 1
+    steps:
+      - name: Check production health
+        env:
+          HEALTH_URL: https://nataiji.onrender.com/health
+        run: |
+          curl --fail --silent --show-error \
+            --connect-timeout 10 --max-time 20 \
+            --retry 1 --retry-delay 1 \
+            --user-agent 'Nataiji-production-health-check' \
+            "$HEALTH_URL"
