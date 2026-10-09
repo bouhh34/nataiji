@@ -112,13 +112,36 @@ function renderStaff(root,overview,staff,tab){
  </div>`;
  qa('[data-staff-tab]',root).forEach(b=>b.onclick=()=>renderStaff(root,overview,staff,b.dataset.staffTab));
  const search=q('#staffSearch',root);search.oninput=()=>{const v=search.value.trim().toLowerCase();if(tab==='teacher'){qa('.staff-school-group',root).forEach(group=>group.style.display=group.textContent.toLowerCase().includes(v)?'':'none')}else qa('.staff-card',root).forEach(row=>row.style.display=row.textContent.toLowerCase().includes(v)?'':'none')};
- const reload=async()=>{const [o,st]=await Promise.all([api('/api/owner/overview'),api('/api/owner/staff')]);renderStaff(root,o,st,tab)};
+ const reload=async()=>{const st=await api('/api/owner/staff');renderStaff(root,{stats:st.stats||{}},st,tab)};
  qa('[data-staff-action]',root).forEach(b=>{b.onclick=()=>{const row=b.closest('.staff-card');runAccountAction(row.dataset.staffId,row.dataset.staffRole,b.dataset.staffAction,root,reload)}});
  qa('[data-prof-detail]',root).forEach(b=>b.onclick=()=>{const row=b.closest('.staff-card');professorDetail(row.dataset.staffId,reload)})
 }
 async function open(){
- if(!currentUser?.isSuperAdmin)return;const root=shell();
- try{const [overview,staff]=await Promise.all([api('/api/owner/overview'),api('/api/owner/staff')]);renderStaff(root,overview,staff,'professor')}catch{const el=q('.staff-loading',root);if(el)el.textContent=t('تعذر تحميل الطاقم التعليمي الآن.','Impossible de charger le personnel éducatif.')}
+ if(!currentUser?.isSuperAdmin)return;
+ const root=shell();let loading=false;
+ const load=async()=>{
+  if(loading||!root.isConnected)return;
+  loading=true;
+  const host=q('.staff-loading,.staff-content',root);
+  if(!host){loading=false;return}
+  host.outerHTML=`<div class="staff-loading" role="status" aria-live="polite">${t('جارٍ تحميل الطاقم التعليمي…','Chargement du personnel éducatif…')}</div>`;
+  try{
+   // One bounded, owner-only inventory request; do not block this view on /owner/overview.
+   const staff=await api('/api/owner/staff');
+   if(root.isConnected)renderStaff(root,{stats:staff.stats||{}},staff,'professor')
+  }catch(error){
+   const target=q('.staff-loading',root);
+   if(target&&root.isConnected){
+    const message=error?.status===401?t('انتهت الجلسة. سجّل الدخول مجددًا.','Votre session a expiré. Reconnectez-vous.'):
+     error?.status===403?t('هذا القسم متاح للمدير العام فقط.','Cette page est réservée au super administrateur.'):
+     t('تعذر تحميل الطاقم التعليمي. تحقق من الاتصال وأعد المحاولة.','Chargement impossible. Vérifiez la connexion puis réessayez.');
+    target.innerHTML=`<div class="staff-retry"><p>${message}</p><button type="button" class="primary" data-staff-retry>${t('إعادة المحاولة','Réessayer')}</button></div>`;
+    q('[data-staff-retry]',target)?.addEventListener('click',()=>void load())
+   }
+   console.warn('Owner staff request failed',error?.status||'network')
+  }finally{loading=false}
+ };
+ await load()
 }
 document.addEventListener('click',e=>{
  const b=e.target?.closest?.('#ownerDashboardBtn');if(!b||!currentUser?.isSuperAdmin)return;
@@ -128,6 +151,7 @@ document.addEventListener('click',e=>{
 const style=document.createElement('style');style.id='owner-staff-v1-style';style.textContent=`
 .owner-staff-modal .modal-card{width:min(980px,calc(100vw - 24px));max-width:980px;max-height:92vh;overflow:auto;background:linear-gradient(180deg,#fbfdff,#f4f8fc)}
 .owner-staff-modal .modal-head p{margin:4px 0 0;color:#657b8b;font-size:12px}.staff-loading{padding:38px;text-align:center;color:#607789}
+.staff-retry{display:grid;gap:12px;justify-items:center;padding:8px;text-align:center}.staff-retry p{margin:0;line-height:1.65}.staff-retry button{min-height:40px;padding:9px 22px;border-radius:9px;background:#087f69;color:#fff;border:0;font-weight:800}
 .staff-stats{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin:14px 0}.staff-stats article{display:grid;gap:3px;padding:13px;border:1px solid #dce7ef;border-radius:14px;background:#fff}.staff-stats strong{font-size:25px;color:#0b4a7d}.staff-stats span{font-size:11px;color:#607789}
 .staff-tabs{display:grid;grid-template-columns:1fr 1fr;gap:7px;background:#eaf1f6;border-radius:13px;padding:5px}.staff-tabs button{border:0;background:transparent;padding:11px;border-radius:9px;font-weight:800;color:#49677a}.staff-tabs button.on{background:#fff;color:#0d6d9f;box-shadow:0 2px 8px #17384d10}.staff-tabs b{margin-inline-start:5px}
 .staff-toolbar{display:flex;align-items:end;justify-content:space-between;gap:12px;margin:15px 0 9px}.staff-toolbar h3{margin:0}.staff-toolbar p{margin:3px 0 0;color:#647987;font-size:11px}.staff-toolbar input{width:min(280px,100%);border:1px solid #d4e0e7;border-radius:11px;padding:10px 12px;background:#fff}
