@@ -348,3 +348,5 @@ $('#importBtn').onclick=()=>$('#importFile').click();$('#importFile').onchange=e
 $$('[data-report]').forEach(b=>b.onclick=()=>showReport(b.dataset.report));$$('.report-print').forEach(b=>b.onclick=()=>printOnly(b.dataset.print));
 
 window.__nataijiBootPromise=showAuth('resume');
+
+// CI-only baseline marker; runtime behavior unchanged.
