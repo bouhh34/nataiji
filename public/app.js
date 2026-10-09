@@ -54,7 +54,7 @@ function renderCoreSelectors(){
  }
 }
 window.nataijiRenderCoreSelectors=renderCoreSelectors;
-function render(){state.marks=state.pupils.map((_,i)=>state.subjects.map((_,j)=>state.marks?.[i]?.[j]??''));const displayName=currentUser?.name||state.teacher;$('#teacherName').childNodes[0].nodeValue=displayName;$('#welcomeName').textContent=displayName;renderCoreSelectors();$('#subjectPicker').innerHTML=state.subjects.map((s,i)=>`<option value="${i}">${esc(s[0])}</option>`).join('');$('#scoreHead').innerHTML=`<tr><th>#</th><th>اسم التلميذ</th>${state.subjects.map(s=>`<th>${esc(s[0])}<br><small>/20</small></th>`).join('')}</tr>`;$('#scores').innerHTML=state.pupils.map((p,i)=>`<tr><td>${i+1}</td><td class="sticky-name">${esc(p[1])}</td>${state.subjects.map((_,j)=>`<td><input class="mark" inputmode="decimal" data-i="${i}" data-j="${j}" value="${state.marks[i][j]}"></td>`).join('')}</tr>`).join('');$('#list').innerHTML=state.pupils.map((p,i)=>`<tr><td>${i+1}</td><td>${esc(p[0])}</td><td>${esc(p[1])}</td><td>${esc(p[2])}</td><td>${esc(p[3])}</td></tr>`).join('');$('#student').innerHTML=state.pupils.map((p,i)=>`<option value="${i}">${esc(p[1])}</option>`).join('');bindMarks();renderMobileScores();renderDashboard();renderReports();applyPermissions()}
+function render(){state.marks=state.pupils.map((_,i)=>state.subjects.map((_,j)=>state.marks?.[i]?.[j]??''));const displayName=currentUser?.name||state.teacher;$('#teacherName').childNodes[0].nodeValue=displayName;$('#welcomeName').textContent=displayName;renderCoreSelectors();$('#subjectPicker').innerHTML=state.subjects.map((s,i)=>`<option value="${i}">${esc(s[0])}</option>`).join('');$('#scoreHead').innerHTML=`<tr><th>#</th><th>اسم التلميذ</th>${state.subjects.map(s=>`<th>${esc(s[0])}<br><small>/20</small></th>`).join('')}</tr>`;$('#scores').innerHTML=state.pupils.map((p,i)=>`<tr><td>${i+1}</td><td class="sticky-name">${esc(p[1])}</td>${state.subjects.map((_,j)=>`<td><input class="mark" inputmode="decimal" data-i="${i}" data-j="${j}" value="${state.marks[i][j]}"></td>`).join('')}</tr>`).join('');$('#list').innerHTML=state.pupils.map((p,i)=>`<tr><td>${i+1}</td><td>${esc(p[0])}</td><td>${esc(p[1])}</td><td>${esc(p[2])}</td><td>${esc(p[3])}</td></tr>`).join('');$('#student').innerHTML=state.pupils.map((p,i)=>`<option value="${i}">${esc(p[1])}</option>`).join('');bindMarks();renderMobileScores();renderDashboard();renderReports();applyPermissions();window.nataijiRenderStudentMobileCards?.();window.nataijiRefreshPupilToolbar?.()}
 function markDirty(){if($('#saveState')){$('#saveState').textContent='توجد تغييرات غير محفوظة';$('#saveState').classList.add('dirty')}}
 function cleanMark(v){if(v==='')return '';v=Number(v);if(!Number.isFinite(v))return '';return Math.max(0,Math.min(20,v))}
 function bindMarks(){$$('.mark').forEach(x=>x.oninput=e=>{const v=cleanMark(e.target.value);e.target.value=v;state.marks[+e.target.dataset.i][+e.target.dataset.j]=v;markDirty();renderDashboard()})}
@@ -169,22 +169,39 @@ function authError(code){return({bad_credentials:'البريد الإلكترو�
 function authMarkup(initialized){const setup=!initialized;const form=setup?`<form class="auth-form" id="authForm"><label>اسم المعلم<input name="name" autocomplete="name" required></label><label>البريد الإلكتروني<input name="email" type="email" autocomplete="email" required></label><label>كلمة المرور<input name="password" type="password" minlength="8" autocomplete="new-password" required></label><button class="auth-submit">إنشاء الحساب وبدء الاستخدام</button><p class="auth-error"></p></form>`:`<form class="auth-form" id="authForm"><label>البريد الإلكتروني<input name="email" type="email" autocomplete="email" required></label><label>كلمة المرور<input name="password" type="password" autocomplete="current-password" required></label><button class="auth-submit">تسجيل الدخول</button><p class="auth-error"></p></form>`;return `<div class="auth-box"><div class="auth-brand"><div class="mark">◆</div><h1>نتائجي</h1><p>${setup?'إعداد الحساب لأول مرة':'نظام النتائج المدرسية'}</p></div>${form}<div class="auth-storage"><span class="server-badge ${storageMode==='redis'?'':'local'}">${storageMode==='redis'?'متصل بخادم البيانات':'تعذر الاتصال بخادم البيانات — أعد المحاولة'}</span></div></div>`}
 async function showAuth(forceMode='login'){let status;try{status=await api('/api/auth/status')}catch{status={initialized:true,user:null,storage:'memory'}}storageMode=status.storage||'memory';if(status.user&&(!forceMode||forceMode==='resume')){currentUser=status.user;return startApp()}currentUser=null;let gate=$('.auth-gate');if(!gate){gate=document.createElement('div');gate.className='auth-gate';document.body.appendChild(gate)}gate.innerHTML=authMarkup(status.initialized);const form=gate.querySelector('#authForm');form.onsubmit=async e=>{e.preventDefault();const btn=form.querySelector('.auth-submit'),err=form.querySelector('.auth-error'),fd=Object.fromEntries(new FormData(form));btn.disabled=true;err.textContent='';try{const endpoint=status.initialized?'/api/auth/login':'/api/auth/register',res=await api(endpoint,{method:'POST',body:JSON.stringify(fd)});currentUser=res.user;gate.remove();await startApp()}catch(ex){err.textContent=authError(ex.code)}finally{btn.disabled=false}}}
 async function startApp(){
+ // Every class or workspace navigation invalidates older bootstrap responses.
+ const epoch=window.__nataijiStateViewEpoch=(window.__nataijiStateViewEpoch||0)+1;
+ const context=JSON.stringify([currentUser?.id,currentUser?.schoolId,currentUser?.activeSharedGrant]);
+ const isCurrent=()=>epoch===window.__nataijiStateViewEpoch&&context===JSON.stringify([currentUser?.id,currentUser?.schoolId,currentUser?.activeSharedGrant]);
  let remote=null,recoveredLocal=false,recoveryFailure=false;
  const beforeRemote=localState(),beforeScore=localStateDataCount(beforeRemote),activeLocalUser=localStorage.getItem('nataiji-active-user');
- try{const r=await api('/api/state');currentUser=r.user||currentUser;remote=r.state}catch(e){if(e.status===401){currentUser=null;return showAuth('login')}throw e}
+ try{const r=await api('/api/state');if(!isCurrent())return;currentUser=r.user||currentUser;remote=r.state}catch(e){if(!isCurrent())return;if(e.status===401){currentUser=null;return showAuth('login')}throw e}
  const sameAccount=!activeLocalUser||activeLocalUser===currentUser?.id,recoveryKey=recoveryStorageKey(currentUser?.id),storedRecovery=(()=>{try{return JSON.parse(localStorage.getItem(recoveryKey))}catch{return null}})(),candidate=localStateDataCount(storedRecovery)>beforeScore?storedRecovery:beforeRemote,candidateScore=localStateDataCount(candidate),remoteScore=localStateDataCount(remote);
  if(sameAccount&&candidateScore>0){
   try{localStorage.setItem(recoveryKey,JSON.stringify(candidate))}catch{}
   if(currentUser?.role==='admin'&&remoteScore===0){
    try{
     const rr=await api('/api/recovery/local-state',{method:'POST',body:JSON.stringify({state:candidate})});
-    if(rr?.ok){const fresh=await api('/api/state');remote=fresh.state;currentUser=fresh.user||currentUser;recoveredLocal=true}
+    if(rr?.ok){const fresh=await api('/api/state');if(!isCurrent())return;remote=fresh.state;currentUser=fresh.user||currentUser;recoveredLocal=true}
    }catch(e){if(!['recovery_target_not_empty','recovery_snapshot_empty'].includes(e.code))recoveryFailure=true}
   }
  }
- state=normalizeState(remote);if(currentUser?.role==='admin'&&!remote?.subjects){state.teacher=currentUser.name||state.teacher}
- try{const sr=await api('/api/subjects?classId='+encodeURIComponent(state.activeClassId||''));if(sr?.ok){state.subjects=structuredClone(sr.subjects||[]);if(state.classData?.[state.activeClassId])state.classData[state.activeClassId].subjects=structuredClone(state.subjects)}}catch{}
- try{localStorage.setItem('nataiji-data',JSON.stringify(state))}catch{}if(refresh)render();setView('home');
+ if(!isCurrent())return;
+ const nextState=normalizeState(remote);
+ if(currentUser?.role==='admin'&&!remote?.subjects)nextState.teacher=currentUser.name||nextState.teacher;
+ try{
+  const sr=await api('/api/subjects?classId='+encodeURIComponent(nextState.activeClassId||''));
+  if(!isCurrent())return;
+  // Discard subjects for another class: the authenticated state is authoritative.
+  if(sr?.ok&&String(sr.classId||'')===String(nextState.activeClassId||'')){
+   nextState.subjects=structuredClone(sr.subjects||[]);
+   if(nextState.classData?.[nextState.activeClassId])nextState.classData[nextState.activeClassId].subjects=structuredClone(nextState.subjects)
+  }
+ }catch(e){if(!isCurrent())return;console.warn('Subject refresh unavailable; retaining state snapshot',e)}
+ if(!isCurrent())return;
+ state=nextState;
+ try{localStorage.setItem('nataiji-data',JSON.stringify(state))}catch{}
+ render();setView('home');
  void flushSchoolGradeJournal();
  if(recoveredLocal)setTimeout(()=>modal('تم استرجاع البيانات',`<p><b>تم العثور على نسخة محلية محفوظة على هذا الجهاز واسترجاعها إلى الخادم بنجاح.</b></p><p>تحقق من الأقسام والتلاميذ والدرجات قبل إجراء أي تعديل جديد.</p>`),120);
  else if(recoveryFailure)setTimeout(()=>modal('نسخة استرجاع محفوظة',`<p>وجدت نسخة محلية قديمة وحفظتها على الجهاز، لكن لم أستطع استعادتها تلقائيًا إلى الخادم.</p><p>لا تمسح بيانات التطبيق أو المتصفح.</p>`),120)
