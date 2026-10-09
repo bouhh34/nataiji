@@ -57,6 +57,7 @@
       @media (prefers-reduced-motion: reduce) { #nataijiBootSplash span:after { animation: none; width: 100% } }
     </style>
     <script>
+      // A slow Render wakeup must never initiate another login while the session is being restored.
       window.setTimeout(() => {
         const root = document.documentElement;
         if (root.classList.contains('nataiji-auth-ready')) return;
@@ -65,12 +66,11 @@
           gate = document.createElement('div');
           gate.className = 'auth-gate';
           const fr = (localStorage.getItem("nataiji-lang") || "ar") === "fr";
-          gate.innerHTML = '<div class="auth-box"><div class="auth-brand"><img src="/nataiji-brand-mark.png" alt="" width="82" height="82"><h1>نتائجي</h1><p>' + (fr ? 'La connexion est lente. Réessayez.' : 'الاتصال بطيء، أعد المحاولة.') + '</p></div><button class="auth-submit" onclick="location.reload()">' + (fr ? 'Réessayer' : 'إعادة المحاولة') + '</button></div>';
+          gate.innerHTML = '<div class="auth-box"><div class="auth-brand"><img src="/nataiji-brand-mark.png" alt="" width="82" height="82"><h1>نتائجي</h1><p>' + (fr ? 'La connexion est lente. Votre session est en cours de vérification.' : 'الاتصال بطيء، وما زلنا نتحقق من جلستك.') + '</p></div><button class="auth-submit" onclick="location.reload()">' + (fr ? 'Réessayer' : 'إعادة المحاولة') + '</button></div>';
           document.body.appendChild(gate);
         }
         root.classList.add('nataiji-auth-ready');
-        try { Promise.resolve(window.showAuth?.('login')).catch(() => {}); } catch {}
-      }, 8000);
+      }, 18000);
     </script>
   </head>
   <body>
@@ -276,14 +276,14 @@
       ><button data-view="more">☷<span>المزيد</span></button>
     </nav>
     <script src="/school-grade-journal.js?v=1"></script>
-    <script src="/app.js?v=46"></script>
+    <script src="/app.js?v=47"></script>
     <script src="/app-stability-v1.js?v=5"></script>
     <script src="/structure-manager.js?v=23"></script>
     <script src="/onboarding-v1.js?v=7"></script>
     <script src="/professor-v1.js?v=1"></script>
     <script src="/grade-journal.js?v=1"></script>
     <script src="/professor-v2.js?v=74"></script>
-    <script src="/auth-access-v2.js?v=44"></script>
+    <script src="/auth-access-v2.js?v=45"></script>
     <script src="/owner-staff-v1.js?v=3"></script>
     <script src="/account-isolation.js?v=4"></script>
     <script src="/scoring-model-v2.js?v=8"></script>
