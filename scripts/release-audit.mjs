@@ -60,7 +60,7 @@ assert('terms page exists', exists('public/terms.html'));
 assert('account deletion web resource exists', exists('public/delete-account.html'));
 assert('PWA caches account deletion help', /\/delete-account\.html/.test(sw) && /\/info-pages\.css\?v=1/.test(sw));
 assert('privacy has public support and deletion links', /mailto:bahmedou596@gmail\.com/.test(read('public/privacy.html')) && /\/delete-account\.html/.test(read('public/privacy.html')));
-assert('PWA cache version current', /nataiji-shell-v108/.test(sw));
+assert('PWA cache version current', /nataiji-shell-v109/.test(sw));
 assert('PWA loads and caches school grade journal', /school-grade-journal\.js\?v=1/.test(index) && /school-grade-journal\.js\?v=1/.test(sw));
 assert('offline school grade journal is account scoped and conflict aware', /nataiji-school-grade-drafts-v1:/.test(gradeJournal) && /setConflict\(/.test(gradeJournal) && /rebase\(/.test(gradeJournal));
 assert('school grade changes compare server value before overwrite', /expectedValue/.test(appJs) && /mark_conflict/.test(server) && /pg_advisory_xact_lock/.test(server));
