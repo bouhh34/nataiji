@@ -688,23 +688,65 @@ async function ownerSchoolSummary(user,schoolId){
  }
  return{schoolId:sid,schoolName:schoolName||'مدرسة',schoolNameFr,ownerId:user.id,ownerName:user.name||'',ownerEmail:user.email||'',classCount,teacherCount:0}
 }
-app.get('/api/owner/staff',auth,ownerOnly,async(_req,res)=>{
- const idx=await getIndex(),teachers=[],professors=[],schools=[],users=[];
- for(const id of Object.values(idx)){const user=await ownerAccountById(id);if(user)users.push(user)}
- for(const user of users){
-  const role=String(user.baseRole||user.role);
-  if(role!=='professor')teachers.push(...await ownerTeacherMembershipsForUser(user));
-  if(role==='professor'){const view=await ownerProfessorView(user);professors.push({...view.account,schoolName:view.schoolName,year:view.year,classCount:view.classes.length,assignmentCount:view.assignments.length,linkedClassCount:view.classes.filter(x=>x.linkedProfessorCount>1).length,versionCount:view.versionCount})}
-  if(isOwnerRole(role)){
-   const owned=[...new Set(Array.isArray(user.ownedSchoolIds)&&user.ownedSchoolIds.length?user.ownedSchoolIds:(user.schoolId?[user.schoolId]:[]))];
-   for(const schoolId of owned)schools.push(await ownerSchoolSummary(user,schoolId))
+// Use bounded parallelism for owner inventory; never fetch pupils or raw marks in the staff list.
+async function ownerStaffBounded(items,limit,fn){
+ const results=new Array(items.length),workers=Math.min(Math.max(1,limit),items.length);let next=0;
+ await Promise.all(Array.from({length:workers},async()=>{
+  while(next<items.length){const i=next++;results[i]=await fn(items[i],i)}
+ }));
+ return results
+}
+async function ownerStaffProfessorSummaries(users){
+ if(!users.length)return [];
+ const ids=users.map(x=>String(x.id)),byId=new Map(),membersByClass=new Map(),versions=new Map();
+ if(pool){
+  // Explicit JSON projections: private marks and pupil rosters are not loaded by the owner listing.
+  const r=await pool.query(`SELECT user_id,data->>'schoolName' AS school_name,data->>'year' AS year,data->'classes' AS classes,data->'assignments' AS assignments FROM nataiji_professor_profiles WHERE user_id=ANY($1::text[])`,[ids]);
+  for(const x of r.rows)byId.set(String(x.user_id),x);
+  const classIds=[...new Set(r.rows.flatMap(x=>(Array.isArray(x.classes)?x.classes:[]).map(c=>String(c?.sharedClassId||'')).filter(Boolean)))];
+  if(classIds.length){
+   const m=await pool.query('SELECT class_id,user_id FROM nataiji_professor_class_members WHERE class_id=ANY($1::text[])',[classIds]);
+   for(const row of m.rows){const key=String(row.class_id),members=membersByClass.get(key)||new Set();members.add(String(row.user_id));membersByClass.set(key,members)}
   }
+  const v=await pool.query('SELECT user_id,count(*)::int AS n FROM nataiji_professor_profile_versions WHERE user_id=ANY($1::text[]) GROUP BY user_id',[ids]);
+  for(const x of v.rows)versions.set(String(x.user_id),Number(x.n)||0)
  }
- const byName=(a,b)=>String(a.name||a.schoolName||'').localeCompare(String(b.name||b.schoolName||''),'fr');
- const uniqueTeachers=[];const teacherKeys=new Set();
- for(const row of teachers){const key=String(row.id)+'|'+String(row.grantId||row.schoolId||'');if(teacherKeys.has(key))continue;teacherKeys.add(key);uniqueTeachers.push(row)}
- for(const school of schools)school.teacherCount=uniqueTeachers.filter(t=>String(t.schoolId)===String(school.schoolId)).length;
- res.json({ok:true,teachers:uniqueTeachers.sort(byName),schools:schools.sort(byName),professors:professors.sort(byName)})
+ return users.map(user=>{
+  const x=byId.get(String(user.id))||{},classes=Array.isArray(x.classes)?x.classes:[],assignments=Array.isArray(x.assignments)?x.assignments:[];
+  const linkedClassCount=classes.filter(c=>{const members=membersByClass.get(String(c?.sharedClassId||''));return !!members&&members.has(String(user.id))&&members.size>1}).length;
+  return{id:user.id,name:user.name||'',email:user.email||'',role:'professor',suspended:!!user.suspended,plan:user.plan||'free',
+   schoolName:String(x.school_name||''),year:String(x.year||''),classCount:classes.length,assignmentCount:assignments.length,
+   linkedClassCount,versionCount:versions.get(String(user.id))||0}
+ })
+}
+app.get('/api/owner/staff',auth,ownerOnly,async(_req,res)=>{
+ try{
+  const idx=await getIndex(),ids=[...new Set(Object.values(idx).map(String).filter(Boolean))];
+  const users=(await ownerStaffBounded(ids,5,ownerAccountById)).filter(Boolean);
+  const professorUsers=users.filter(u=>String(u.baseRole||u.role)==='professor');
+  const nonProfessors=users.filter(u=>String(u.baseRole||u.role)!=='professor');
+  const owned=[];
+  for(const user of users)if(isOwnerRole(user.baseRole||user.role)){
+   const schoolIds=[...new Set(Array.isArray(user.ownedSchoolIds)&&user.ownedSchoolIds.length?user.ownedSchoolIds:(user.schoolId?[user.schoolId]:[]))];
+   for(const schoolId of schoolIds)owned.push({user,schoolId})
+  }
+  const [memberships,professors,schools]=await Promise.all([
+   ownerStaffBounded(nonProfessors,4,ownerTeacherMembershipsForUser),
+   ownerStaffProfessorSummaries(professorUsers),
+   ownerStaffBounded(owned,4,item=>ownerSchoolSummary(item.user,item.schoolId))
+  ]);
+  const teachers=memberships.flat(),uniqueTeachers=[],seen=new Set();
+  for(const row of teachers){const key=String(row.id)+'|'+String(row.grantId||row.schoolId||'');if(seen.has(key))continue;seen.add(key);uniqueTeachers.push(row)}
+  const teachersBySchool=new Map();
+  for(const row of uniqueTeachers){const key=String(row.schoolId);teachersBySchool.set(key,(teachersBySchool.get(key)||0)+1)}
+  for(const school of schools)school.teacherCount=teachersBySchool.get(String(school.schoolId))||0;
+  const byName=(a,b)=>String(a.name||a.schoolName||'').localeCompare(String(b.name||b.schoolName||''),'fr');
+  res.json({ok:true,teachers:uniqueTeachers.sort(byName),schools:schools.sort(byName),professors:professors.sort(byName),
+   stats:{users:users.length,schools:schools.length,teachers:new Set(uniqueTeachers.map(t=>String(t.id))).size,professors:professors.length}})
+ }catch(e){
+  console.error('Owner staff inventory unavailable:',e?.message||'unknown error');
+  if(!res.headersSent)res.status(503).json({error:'staff_load_unavailable'})
+ }
 });
 app.get('/api/owner/professors/:id',auth,ownerOnly,async(req,res)=>{
  if(!pool)return res.status(503).json({error:'durable_storage_required'});const user=await ownerProfessorAccount(req.params.id);if(!user)return res.status(404).json({error:'professor_account_not_found'});
