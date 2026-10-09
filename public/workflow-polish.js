@@ -53,6 +53,7 @@ function pupils(){
   if(orderedRows.some((row,i)=>rows[i]!==row))q('#list').append(...orderedRows);
   setText(count,`${visible} / ${(s.pupils||[]).length} ${t('تلميذ','élèves')}`);
  }
+ window.nataijiRefreshPupilToolbar=filter;
  search.addEventListener('input',filter);sort.addEventListener('change',filter);
  const host=q('#mobileStudentCards');if(host)new MutationObserver(filter).observe(host,{childList:true});
  const list=q('#list');if(list)new MutationObserver(filter).observe(list,{childList:true});filter();
