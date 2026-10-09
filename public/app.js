@@ -171,7 +171,7 @@ async function showAuth(forceMode='login'){let status;try{status=await api('/api
 async function startApp(){
  let remote=null,recoveredLocal=false,recoveryFailure=false;
  const beforeRemote=localState(),beforeScore=localStateDataCount(beforeRemote),activeLocalUser=localStorage.getItem('nataiji-active-user');
- try{const r=await api('/api/state');currentUser=r.user||currentUser;remote=r.state}catch(e){if(e.status===401)return showAuth();throw e}
+ try{const r=await api('/api/state');currentUser=r.user||currentUser;remote=r.state}catch(e){if(e.status===401){currentUser=null;return showAuth('login')}throw e}
  const sameAccount=!activeLocalUser||activeLocalUser===currentUser?.id,recoveryKey=recoveryStorageKey(currentUser?.id),storedRecovery=(()=>{try{return JSON.parse(localStorage.getItem(recoveryKey))}catch{return null}})(),candidate=localStateDataCount(storedRecovery)>beforeScore?storedRecovery:beforeRemote,candidateScore=localStateDataCount(candidate),remoteScore=localStateDataCount(remote);
  if(sameAccount&&candidateScore>0){
   try{localStorage.setItem(recoveryKey,JSON.stringify(candidate))}catch{}
@@ -347,4 +347,5 @@ $('#printResult').onclick=()=>printOnly('student');$('#printList').onclick=()=>{
 $('#importBtn').onclick=()=>$('#importFile').click();$('#importFile').onchange=e=>{if(e.target.files[0])importCsv(e.target.files[0])};
 $$('[data-report]').forEach(b=>b.onclick=()=>showReport(b.dataset.report));$$('.report-print').forEach(b=>b.onclick=()=>printOnly(b.dataset.print));
 
-window.__nataijiBootPromise=showAuth('resume');
+// Authentication boot is owned by auth-access-v2.js; never start the legacy login in parallel.
+window.__nataijiBootPromise=Promise.resolve();
