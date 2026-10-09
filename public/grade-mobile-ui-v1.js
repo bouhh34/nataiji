@@ -215,3 +215,4 @@ window.addEventListener('DOMContentLoaded',()=>setTimeout(install,120));
 setTimeout(install,0);
 setTimeout(install,900);
 })();
+// CI-only grade UI baseline marker; no runtime behavior change.
