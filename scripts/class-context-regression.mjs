@@ -92,5 +92,5 @@ test('all class changes invalidate old boot responses and synchronous UI refresh
  assert.match(students,/window\.nataijiRenderStudentMobileCards=renderCards/);
  assert.match(workflow,/window\.nataijiRefreshPupilToolbar=filter/);
  assert.match(grades,/grade-subject-empty/);
- assert.doesNotMatch(source(app,'async function startApp(){',"\\n\\n$('[data-view]')"),/if\(refresh\)render\(\)/);
+ assert.doesNotMatch(source(app,'async function startApp(){',"$('[data-view]')"),/if\(refresh\)render\(\)/);
 });
