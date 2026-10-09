@@ -23,6 +23,7 @@ function fixture(handleStatus){
  const document={
   body:{appendChild(node){gate=node}},
   head:{appendChild(){}},
+  addEventListener(){},
   documentElement:{classList:{add(name){rootClasses.add(name)}}},
   createElement(tag){return tag==='style'?{textContent:''}:makeGate()},
   querySelector(selector){return selector==='.auth-gate'?gate:null},
@@ -99,5 +100,5 @@ test('the legacy boot and timeout no longer force the login screen',()=>{
  const app=fs.readFileSync(new URL('../public/app.js',import.meta.url),'utf8');
  assert.doesNotMatch(app,/__nataijiBootPromise\s*=\s*showAuth\('resume'\)/);
  assert.doesNotMatch(html,/window\.showAuth\?\.\('login'\)/);
- assert.match(html,/التحقق من جلستك/);
+ assert.match(html,/نتحقق من جلستك/);
 });
