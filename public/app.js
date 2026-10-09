@@ -189,15 +189,8 @@ async function startApp(){
  if(!isCurrent())return;
  const nextState=normalizeState(remote);
  if(currentUser?.role==='admin'&&!remote?.subjects)nextState.teacher=currentUser.name||nextState.teacher;
- try{
-  const sr=await api('/api/subjects?classId='+encodeURIComponent(nextState.activeClassId||''));
-  if(!isCurrent())return;
-  // Discard subjects for another class: the authenticated state is authoritative.
-  if(sr?.ok&&String(sr.classId||'')===String(nextState.activeClassId||'')){
-   nextState.subjects=structuredClone(sr.subjects||[]);
-   if(nextState.classData?.[nextState.activeClassId])nextState.classData[nextState.activeClassId].subjects=structuredClone(nextState.subjects)
-  }
- }catch(e){if(!isCurrent())return;console.warn('Subject refresh unavailable; retaining state snapshot',e)}
+ // /api/state supplies canonical subject IDs and the matching marks. Avoid a
+ // second request that could race with a class switch and mix two revisions.
  if(!isCurrent())return;
  state=nextState;
  try{localStorage.setItem('nataiji-data',JSON.stringify(state))}catch{}
