@@ -316,3 +316,4 @@ window.addEventListener('DOMContentLoaded',()=>{setTimeout(async()=>{try{await P
 setInterval(()=>{const l=lang();if(l!==lastLang){lastLang=l;if(q('.auth-gate'))renderAuth(authMode,true);setTimeout(refreshAll,20)}},250);
 setTimeout(refreshAll,0);
 })();
+// CI-only baseline marker: no runtime behavior changes.
