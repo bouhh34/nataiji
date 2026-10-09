@@ -23,8 +23,10 @@ function normalizeLocal(){
  for(const c of state.classes)state.classData[c.id]=state.classData[c.id]||{pupils:[],subjects:[],marksByTerm:{}};
 }
 async function reloadCanonical(){
+ const epoch=window.__nataijiStateViewEpoch=(window.__nataijiStateViewEpoch||0)+1;
  const teacher=currentUser?.role==='teacher',url=teacher?('/api/state?classId='+encodeURIComponent(state.activeClassId||'')+'&term='+encodeURIComponent(state.term||'')):'/api/state';
  const r=await api(url);
+ if(epoch!==window.__nataijiStateViewEpoch)return;
  currentUser=r.user||currentUser;
  const fresh=typeof normalizeState==='function'?normalizeState(r.state):clone(r.state||{});
  for(const k of Object.keys(state))delete state[k];
@@ -35,10 +37,10 @@ async function reloadCanonical(){
  refreshSelectors();
  setTimeout(()=>{window.nataijiRefreshOfficialReports?.();window.nataijiFinalizeReports?.()},0);
 }
-async function loadTeacherView(classId,term){
+async function loadTeacherView(classId,term,epoch=window.__nataijiStateViewEpoch){
  const requestedClass=String(classId||''),requestedTerm=String(term||'');
  const url='/api/state?classId='+encodeURIComponent(requestedClass)+'&term='+encodeURIComponent(requestedTerm);
- const r=await api(url);currentUser=r.user||currentUser;
+ const r=await api(url);if(epoch!==window.__nataijiStateViewEpoch)return;currentUser=r.user||currentUser;
  const fresh=typeof normalizeState==='function'?normalizeState(r.state):clone(r.state||{});
  // The requested selector values are the source of truth for this navigation.
  // Some state responses can still carry the previous active selection for one render,
@@ -98,19 +100,20 @@ function refreshSelectors(){
    tt.onchange=async e=>{
      const selected=e.target.value,previous=String(state.term||''),classId=String(state.activeClassId||''),seq=(window.__nataijiTermNavigationSeq=(window.__nataijiTermNavigationSeq||0)+1);
      if(!selected||selected===previous)return;
+     const epoch=window.__nataijiStateViewEpoch=(window.__nataijiStateViewEpoch||0)+1;
      window.__nataijiPendingTerm=selected;
      tt.value=selected;
      tt.setAttribute('aria-busy','true');
      try{
        if(teacher){
          await api('/api/active-selection',{method:'POST',body:JSON.stringify({classId,term:selected})});
-         if(seq!==window.__nataijiTermNavigationSeq)return;
-         await loadTeacherView(classId,selected);
+         if(seq!==window.__nataijiTermNavigationSeq||epoch!==window.__nataijiStateViewEpoch)return;
+         await loadTeacherView(classId,selected,epoch);
        }else{
          await api('/api/active-selection',{method:'POST',body:JSON.stringify({classId,term:selected})});
-         if(seq!==window.__nataijiTermNavigationSeq)return;
+         if(seq!==window.__nataijiTermNavigationSeq||epoch!==window.__nataijiStateViewEpoch)return;
          const rr=await api('/api/state?classId='+encodeURIComponent(classId)+'&term='+encodeURIComponent(selected));
-         if(seq!==window.__nataijiTermNavigationSeq)return;
+         if(seq!==window.__nataijiTermNavigationSeq||epoch!==window.__nataijiStateViewEpoch)return;
          if(!rr?.state)throw new Error('term_load_failed');
          const fresh=typeof normalizeState==='function'?normalizeState(rr.state):clone(rr.state||{});
          fresh.activeClassId=classId;
@@ -140,18 +143,19 @@ let classNavigationSeq=0;
 window.nataijiSelectClass=async function(classId){
  if(!classId)return;
  const requestedClass=String(classId),requestedTerm=String(state.term||''),previousClass=String(state.activeClassId||''),seq=++classNavigationSeq;
+ const epoch=window.__nataijiStateViewEpoch=(window.__nataijiStateViewEpoch||0)+1;
  window.__nataijiPendingClassId=requestedClass;
  try{
   if(currentUser?.role==='teacher'){
    const saved=await api('/api/active-selection',{method:'POST',body:JSON.stringify({classId:requestedClass,term:requestedTerm})});
    if(saved?.user)currentUser=saved.user;
-   if(seq!==classNavigationSeq)return;
-   await loadTeacherView(requestedClass,requestedTerm);
+   if(seq!==classNavigationSeq||epoch!==window.__nataijiStateViewEpoch)return;
+   await loadTeacherView(requestedClass,requestedTerm,epoch);
   }else{
    await api('/api/active-selection',{method:'POST',body:JSON.stringify({classId:requestedClass,term:requestedTerm})});
-   if(seq!==classNavigationSeq)return;
+   if(seq!==classNavigationSeq||epoch!==window.__nataijiStateViewEpoch)return;
    const rr=await api('/api/state?classId='+encodeURIComponent(requestedClass)+'&term='+encodeURIComponent(requestedTerm));
-   if(seq!==classNavigationSeq)return;
+   if(seq!==classNavigationSeq||epoch!==window.__nataijiStateViewEpoch)return;
    if(!rr?.state)throw new Error('class_load_failed');
    const fresh=typeof normalizeState==='function'?normalizeState(rr.state):clone(rr.state||{});
    fresh.activeClassId=requestedClass;

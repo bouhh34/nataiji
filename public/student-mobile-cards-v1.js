@@ -144,6 +144,7 @@ new MutationObserver(m=>{
   }
 }).observe(document.documentElement,{childList:true,subtree:true});
 
+window.nataijiRenderStudentMobileCards=renderCards;
 window.addEventListener('DOMContentLoaded',bind);
 window.addEventListener('storage',e=>{if(e.key==='nataiji-lang')schedule()});
 document.addEventListener('click',e=>{

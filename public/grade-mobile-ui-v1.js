@@ -60,7 +60,15 @@ function rowState(row,value){
 function renderCompactMobileScores(){
  const host=q('#mobileScores'),picker=q('#subjectPicker');if(!host||!picker||typeof state==='undefined')return;
  const j=Number(picker.value)||0,sub=state.subjects?.[j],m=maxOf(sub);
- if(!sub){host.innerHTML='';return}
+ if(!sub){
+  // A missing subject list is not evidence that the pupils or grades were deleted.
+  // Never offer fake/default subjects or silently submit an empty mark sheet.
+  const hasPupils=Array.isArray(state.pupils)&&state.pupils.length>0;
+  host.innerHTML='<div class="grade-subject-empty" role="status" aria-live="polite">'+
+   (fr()?(hasPupils?'Aucune matière enregistrée pour cette classe. Vérifiez les matières dans les paramètres.':'Aucune matière disponible. Vérifiez que la classe sélectionnée contient des élèves et des matières.'):(hasPupils?'لا توجد مواد مسجلة لهذا القسم حاليًا. تحقق من المواد في الإعدادات.':'لا توجد مواد متاحة. تأكد من اختيار القسم الصحيح ومن وجود تلاميذ ومواد.'))+
+   '</div>';
+  return
+ }
  const currentName=String(fr()?(sub?.[2]||sub?.[0]||''):(sub?.[0]||sub?.[2]||'')),maxLabel=fr()?'Note sur':'من';
  const iconKey=currentSubjectIconKey(`${sub?.[0]||''} ${sub?.[2]||currentName}`);
  host.innerHTML=`<div class="subject-title grade-subject-title">
