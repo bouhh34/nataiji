@@ -700,10 +700,16 @@ async function ownerStaffProfessorSummaries(users){
  if(!users.length)return [];
  const ids=users.map(x=>String(x.id)),byId=new Map(),membersByClass=new Map(),versions=new Map();
  if(pool){
-  // Explicit JSON projections: private marks and pupil rosters are not loaded by the owner listing.
-  const r=await pool.query(`SELECT user_id,data->>'schoolName' AS school_name,data->>'year' AS year,data->'classes' AS classes,data->'assignments' AS assignments FROM nataiji_professor_profiles WHERE user_id=ANY($1::text[])`,[ids]);
+  // Only return aggregate counts and shared IDs; neither student rosters nor marks leave PostgreSQL.
+  const r=await pool.query(`SELECT user_id,data->>'schoolName' AS school_name,data->>'year' AS year,
+   jsonb_array_length(CASE WHEN jsonb_typeof(data->'classes')='array' THEN data->'classes' ELSE '[]'::jsonb END) AS class_count,
+   jsonb_array_length(CASE WHEN jsonb_typeof(data->'assignments')='array' THEN data->'assignments' ELSE '[]'::jsonb END) AS assignment_count,
+   (SELECT coalesce(jsonb_agg(c.item->>'sharedClassId'),'[]'::jsonb)
+      FROM jsonb_array_elements(CASE WHEN jsonb_typeof(data->'classes')='array' THEN data->'classes' ELSE '[]'::jsonb END) AS c(item)
+      WHERE coalesce(c.item->>'sharedClassId','')<>'') AS shared_class_ids
+   FROM nataiji_professor_profiles WHERE user_id=ANY($1::text[])`,[ids]);
   for(const x of r.rows)byId.set(String(x.user_id),x);
-  const classIds=[...new Set(r.rows.flatMap(x=>(Array.isArray(x.classes)?x.classes:[]).map(c=>String(c?.sharedClassId||'')).filter(Boolean)))];
+  const classIds=[...new Set(r.rows.flatMap(x=>Array.isArray(x.shared_class_ids)?x.shared_class_ids.map(String):[]).filter(Boolean))];
   if(classIds.length){
    const m=await pool.query('SELECT class_id,user_id FROM nataiji_professor_class_members WHERE class_id=ANY($1::text[])',[classIds]);
    for(const row of m.rows){const key=String(row.class_id),members=membersByClass.get(key)||new Set();members.add(String(row.user_id));membersByClass.set(key,members)}
@@ -712,10 +718,10 @@ async function ownerStaffProfessorSummaries(users){
   for(const x of v.rows)versions.set(String(x.user_id),Number(x.n)||0)
  }
  return users.map(user=>{
-  const x=byId.get(String(user.id))||{},classes=Array.isArray(x.classes)?x.classes:[],assignments=Array.isArray(x.assignments)?x.assignments:[];
-  const linkedClassCount=classes.filter(c=>{const members=membersByClass.get(String(c?.sharedClassId||''));return !!members&&members.has(String(user.id))&&members.size>1}).length;
+  const x=byId.get(String(user.id))||{},sharedIds=Array.isArray(x.shared_class_ids)?x.shared_class_ids:[];
+  const linkedClassCount=sharedIds.filter(id=>{const members=membersByClass.get(String(id));return !!members&&members.has(String(user.id))&&members.size>1}).length;
   return{id:user.id,name:user.name||'',email:user.email||'',role:'professor',suspended:!!user.suspended,plan:user.plan||'free',
-   schoolName:String(x.school_name||''),year:String(x.year||''),classCount:classes.length,assignmentCount:assignments.length,
+   schoolName:String(x.school_name||''),year:String(x.year||''),classCount:Number(x.class_count)||0,assignmentCount:Number(x.assignment_count)||0,
    linkedClassCount,versionCount:versions.get(String(user.id))||0}
  })
 }
