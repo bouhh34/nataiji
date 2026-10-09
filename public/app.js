@@ -221,7 +221,21 @@ function getSchoolGradeJournal(){
 }
 function rowsForGradeContext(context){return(getSchoolGradeJournal()?.snapshot()||[]).filter(r=>r.account===context.account&&r.classId===String(context.classId)&&r.term===String(context.term))}
 function gradeCellKey(context,pupilKey,subjectId){return JSON.stringify([context.account,context.classId,context.term,pupilKey,subjectId])}
-function markSaveStatus(text,dirty=false){const el=$('#saveState');if(!el)return;el.textContent=text;el.classList.toggle('dirty',dirty)}
+function markSaveStatus(text,dirty=false){
+ const el=$('#saveState');if(!el)return;
+ el.textContent=text;el.classList.toggle('dirty',dirty);
+ // Keep real conflicts visible and actionable after the original dialog is dismissed.
+ if(/تعارض|conflit/i.test(text)){
+  const row=rowsForGradeContext(gradeContext()).find(r=>r.conflictValue!==undefined);
+  if(row){
+   const review=document.createElement('button');
+   review.type='button';review.className='grade-conflict-review';
+   review.textContent=gradeText('مراجعة التعارض','Examiner le conflit');
+   review.onclick=()=>showGradeConflict(row,String(row.conflictValue??''));
+   el.appendChild(review);
+  }
+ }
+}
 function updateLocalGrade(row,value,refresh=true){
  if(row.account!==gradeAccount())return;
  const id=gradeCellKey({account:row.account,classId:row.classId,term:row.term},row.pupilKey,row.subjectId);gradeExpectedValues.set(id,String(value??''));gradeQueuedValues.delete(id);
@@ -240,7 +254,13 @@ function showGradeConflict(row,currentValue){
  const title=gradeText('تعارض في درجة محفوظة','Conflit sur une note enregistrée');
  const dialog=modal(title,`<p>${gradeText('حُفظت درجة مختلفة على الخادم. اختر الدرجة التي تريد اعتمادها.','Une note différente a été enregistrée sur le serveur. Choisissez celle à conserver.')}</p><p><b>${esc(student?.[1]||row.pupilKey)} — ${esc(subject?.[0]||row.subjectId)}</b></p><div class="grade-conflict-values"><div>${gradeText('على الخادم','Sur le serveur')}: <b>${esc(currentValue||'—')}</b></div><div>${gradeText('على هذا الجهاز','Sur cet appareil')}: <b>${esc(row.value||'—')}</b></div></div><div class="grade-conflict-actions"><button type="button" class="secondary use-server">${gradeText('اعتماد درجة الخادم','Garder la note du serveur')}</button><button type="button" class="primary keep-device">${gradeText('اعتماد درجة هذا الجهاز','Garder la note de cet appareil')}</button></div>`);
  activeGradeConflictDialog=dialog;
- dialog.querySelector('.use-server').onclick=()=>{j.discard(row);updateLocalGrade(row,String(currentValue??''));dialog.remove();activeGradeConflictDialog=null;failedGradeSaves.delete(gradeKey({account:row.account,classId:row.classId,term:row.term}));markSaveStatus(gradeText('تم اعتماد الدرجة المحفوظة على الخادم','La note du serveur a été conservée'),false)};
+ dialog.querySelector('.use-server').onclick=()=>{
+  j.discard(row);updateLocalGrade(row,String(currentValue??''));dialog.remove();activeGradeConflictDialog=null;
+  const context={account:row.account,classId:row.classId,term:row.term},remaining=rowsForGradeContext(context);
+  if(!remaining.length){failedGradeSaves.delete(gradeKey(context));markSaveStatus(gradeText('تم اعتماد درجة الخادم؛ لا توجد مسودات معلقة','La note du serveur est conservée ; aucun brouillon en attente'),false)}
+  else if(remaining.some(r=>r.conflictValue!==undefined))markSaveStatus(gradeText('يوجد تعارض يحتاج مراجعتك','Un conflit nécessite votre choix'),true);
+  else markSaveStatus(gradeText(`بقيت ${remaining.length} درجة في انتظار المزامنة`,`${remaining.length} note(s) en attente de synchronisation`),true)
+ };
  dialog.querySelector('.keep-device').onclick=async()=>{j.rebase(row,String(currentValue??''));dialog.remove();activeGradeConflictDialog=null;await flushSchoolGradeJournal({account:row.account,classId:row.classId,term:row.term})};
 }
 function queueGradeSave(context,operation,onSaved,onFailed){
@@ -262,10 +282,11 @@ function queueGradeSave(context,operation,onSaved,onFailed){
    if(sameGradeContext(context)){
     const hasFailure=failedGradeSaves.has(key),drafts=rowsForGradeContext(context);
     if(remaining)markSaveStatus(gradeText('جارٍ حفظ النتائج…','Enregistrement des notes…'),true);
-    else if(hasFailure&&drafts.some(r=>r.conflictValue!==undefined))markSaveStatus(gradeText('يوجد تعارض يحتاج مراجعتك','Un conflit nécessite votre choix'),true);
+    else if(drafts.some(r=>r.conflictValue!==undefined))markSaveStatus(gradeText('يوجد تعارض يحتاج مراجعتك','Un conflit nécessite votre choix'),true);
     else if(hasFailure&&drafts.length&&globalThis.navigator?.onLine===false)markSaveStatus(gradeText(`الاتصال منقطع؛ ${drafts.length} درجة محفوظة على هذا الجهاز` ,`Hors connexion ; ${drafts.length} note(s) gardée(s) sur cet appareil`),true);
     else if(hasFailure&&drafts.length)markSaveStatus(gradeText(`تعذر المزامنة؛ ${drafts.length} درجة محفوظة محليًا — اضغط حفظ النتائج للمحاولة` ,`Synchronisation impossible ; ${drafts.length} note(s) gardée(s) localement — appuyez sur Enregistrer`),true);
     else if(hasFailure)markSaveStatus(gradeText('تعذر الحفظ — أعد المحاولة بزر حفظ النتائج','Échec de l’enregistrement — réessayez'),true);
+    else if(drafts.length)markSaveStatus(gradeText(`جارٍ انتظار مزامنة ${drafts.length} درجة`,`En attente de synchronisation de ${drafts.length} note(s)`),true);
     else markSaveStatus(gradeText('تم حفظ النتائج على الخادم','Notes enregistrées sur le serveur'),false);
    }
   }
@@ -321,6 +342,20 @@ async function flushSchoolGradeJournal(contextFilter=null){
 window.addEventListener('online',()=>{void flushSchoolGradeJournal()});
 document.addEventListener('input',e=>{const el=e.target;if(!el?.matches?.('.mark,.mobile-mark'))return;const i=Number(el.dataset.i),j=Number(el.dataset.j),p=state.pupils?.[i],sub=state.subjects?.[j],pupilKey=String(p?.[7]||p?.[0]||''),subjectId=String(sub?.[4]||'');if(!pupilKey||!subjectId)return;const ctx=gradeContext(),id=gradeCellKey(ctx,pupilKey,subjectId);if(!gradeExpectedValues.has(id))gradeExpectedValues.set(id,String(state.marks?.[i]?.[j]??''))},true);
 document.addEventListener('input',e=>{const el=e.target;if(!el?.matches?.('.mark,.mobile-mark'))return;const i=Number(el.dataset.i),j=Number(el.dataset.j),p=state.pupils?.[i],sub=state.subjects?.[j],pupilKey=String(p?.[7]||p?.[0]||''),subjectId=String(sub?.[4]||'');if(!pupilKey||!subjectId)return;const max=Number(sub?.[3])>0?Number(sub[3]):20,check=typeof window.nataijiValidateGradeValue==='function'?window.nataijiValidateGradeValue(String(el.value??'').trim(),max):{ok:true,value:el.value};if(!check.ok)return;const ctx=gradeContext(),id=gradeCellKey(ctx,pupilKey,subjectId),expected=String(gradeQueuedValues.has(id)?gradeQueuedValues.get(id):(gradeExpectedValues.get(id)??(state.marks?.[i]?.[j]??''))),jrn=getSchoolGradeJournal();jrn?.stage(ctx,pupilKey,subjectId,expected,check.value);if(jrn?.available)markSaveStatus(gradeText('حُفظت المسودة على هذا الجهاز؛ جارٍ انتظار مزامنتها','Brouillon gardé sur cet appareil ; synchronisation en attente'),true);else markSaveStatus(gradeText('تعذر حفظ نسخة محلية؛ أبق التطبيق مفتوحًا حتى يتصل الخادم','Impossible de garder une copie locale ; gardez l’application ouverte jusqu’au retour du réseau'),true)},false);
+// Absence buttons commit the local mark BEFORE dispatching "change". Capture the
+// previous server baseline first or a blank -> absent edit becomes a false 409.
+document.addEventListener('click',e=>{
+ const button=e.target?.closest?.('[data-page="grades"] .absent-btn');if(!button)return;
+ const row=button.closest?.('.compact-score-row,.score-row');
+ const input=row?.querySelector?.('.mobile-mark,.mark');if(!input)return;
+ const i=Number(input.dataset.i),j=Number(input.dataset.j);
+ const pupil=state.pupils?.[i],subject=state.subjects?.[j];
+ const pupilKey=String(pupil?.[7]||pupil?.[0]||''),subjectId=String(subject?.[4]||'');
+ if(!pupilKey||!subjectId)return;
+ const id=gradeCellKey(gradeContext(),pupilKey,subjectId);
+ if(!gradeExpectedValues.has(id)&&!gradeQueuedValues.has(id))
+  gradeExpectedValues.set(id,String(state.marks?.[i]?.[j]??''));
+},true);
 document.addEventListener('change',e=>{if(!manualGradeSaveActive&&e.target?.matches?.('.mark,.mobile-mark'))persistMarkCell(e.target)},true);
 window.addEventListener('beforeunload',e=>{
  const focused=document.activeElement;if(focused?.matches?.('.mark,.mobile-mark'))focused.dispatchEvent(new Event('change',{bubbles:true}));
@@ -348,7 +383,10 @@ $('#saveGrades').onclick=async()=>{
   localStorage.setItem('nataiji-data',JSON.stringify(state));
   markSaveStatus(gradeText('تم حفظ النتائج على الخادم','Notes enregistrées sur le serveur'),false);
  }catch(error){
-  if(sameGradeContext(context)){const drafts=rowsForGradeContext(context);markSaveStatus(drafts.length?gradeText(`تعذر الاتصال؛ بقيت ${drafts.length} درجة محفوظة على هذا الجهاز`,`Connexion interrompue ; ${drafts.length} note(s) gardée(s) sur cet appareil`):gradeText('تعذر حفظ بعض النتائج — أعد المحاولة','Certaines notes ne sont pas enregistrées — réessayez'),true);}
+  if(sameGradeContext(context)){const drafts=rowsForGradeContext(context);
+   const conflict=drafts.some(r=>r.conflictValue!==undefined);
+   markSaveStatus(conflict?gradeText('يوجد تعارض يحتاج مراجعتك','Un conflit nécessite votre choix'):(drafts.length?gradeText(`تعذر المزامنة؛ بقيت ${drafts.length} درجة محفوظة محليًا`,`Synchronisation impossible ; ${drafts.length} note(s) gardée(s) localement`):gradeText('تعذر حفظ بعض النتائج — أعد المحاولة','Certaines notes ne sont pas enregistrées — réessayez')),true);
+  }
  }finally{button.textContent=old;button.disabled=false}
 };
 $('#student').onchange=renderReports;const showResultBtn=$('#showResult');if(showResultBtn)showResultBtn.onclick=renderReports;$('#addStudent').onclick=addStudent;$('#settingsBtn').onclick=openSettings;$('#subjectsBtn').onclick=openSubjects;

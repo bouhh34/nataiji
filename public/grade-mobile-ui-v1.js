@@ -161,6 +161,7 @@ document.addEventListener('change',e=>{
 },true);
 
 const css=document.createElement('style');css.id='nataiji-grade-mobile-v1-style';css.textContent=`
+.grade-conflict-review{display:inline-flex;align-items:center;justify-content:center;margin-inline-start:10px;padding:6px 10px;border:1px solid #bb8625;border-radius:9px;background:#fffdf6;color:#78500b;font:inherit;font-weight:800;cursor:pointer}
 @media(max-width:760px){
  [data-page="grades"] .card{padding:12px 12px 16px!important}
  [data-page="grades"] .section-head{margin-bottom:9px!important;align-items:center!important}

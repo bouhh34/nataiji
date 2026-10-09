@@ -11,11 +11,12 @@ function fixture(){
  const button={textContent:'Save',disabled:false};
  const student={value:'0'};
  const state={activeClassId:'class-a',term:'term-1',pupils:[['1','Pupil','','','','','','pupil-1']],subjects:[['Subject',1,'Subject',30,'subject-1']],marks:[[5]],marksByTerm:{},classData:{'class-a':{}}};
- const document={documentElement:{lang:'ar'},activeElement:null,querySelector:()=>null,addEventListener(){},createElement(){return {}}};
+ const events={};
+ const document={documentElement:{lang:'ar'},activeElement:null,querySelector:()=>null,addEventListener(name,callback){events[name]=callback},createElement(){return {textContent:'',type:'',onclick:null}}};
  const window={addEventListener(){},nataijiFindInvalidMark(){return false},nataijiValidateGradeValue(raw,max){const n=Number(raw);return raw===''?{ok:true,value:''}:raw==='غائب'?{ok:true,value:raw,absent:true}:{ok:Number.isFinite(n)&&n>=0&&n<=max,value:n}}};
  const ctx=vm.createContext({state,currentUser:{id:'owner',schoolId:'school'},document,window,structuredClone,console,Event,syncBusy:false,setTimeout,localStorage:{setItem(){}},renderReports(){},$:s=>s==='#saveState'?status:s==='#student'?student:button,api:async(url,options)=>{requests.push({url,...JSON.parse(options.body)});return await new Promise((resolve,reject)=>deferred.push({resolve,reject}))}});
  vm.runInContext(code,ctx);
- return {ctx,state,status,button,requests,deferred,edit(value){ctx.input={value,dataset:{i:'0',j:'0'},classList:{contains:()=>false}};return vm.runInContext('persistMarkCell(input)',ctx)}};
+ return {ctx,state,status,button,requests,deferred,events,edit(value){ctx.input={value,dataset:{i:'0',j:'0'},classList:{contains:()=>false}};return vm.runInContext('persistMarkCell(input)',ctx)}};
 }
 const tick=()=>new Promise(resolve=>setImmediate(resolve));
 test('capture-phase save uses entered value instead of old state',async()=>{
@@ -44,4 +45,28 @@ test('queued saves are not sent under a different account',async()=>{
 });
 test('manual save waits for queued single-cell writes and preserves failure',async()=>{
  const f=fixture();const cell=f.edit('10');await tick();const confirm=f.button.onclick();assert.equal(f.requests.length,1);f.deferred[0].reject(new Error('offline'));await cell;await confirm;assert.equal(f.requests.length,1);assert.equal(f.status.classList.dirty,true);
+});
+
+test('absence button snapshots the previous mark before mobile UI mutates state',async()=>{
+ const f=fixture();
+ const input={dataset:{i:'0',j:'0'}};
+ const row={querySelector:()=>input};
+ const button={closest:selector=>selector.includes('data-page=')?button:row};
+ assert.equal(typeof f.events.click,'function','capture listener for absence button must exist');
+ f.events.click({target:button});
+ f.state.marks[0][0]='غائب';// final-grade-entry commits BEFORE emitting change
+ const job=f.edit('غائب');await tick();
+ assert.equal(f.requests.length,1);
+ assert.equal(f.requests[0].expectedValue,'5','must compare with saved grade before button click');
+ assert.equal(f.requests[0].value,'غائب');
+ f.deferred[0].resolve({ok:true});await job;
+});
+
+test('retry with identical saved mark is idempotent but distinct concurrent values still conflict',()=>{
+ const server=fs.readFileSync(new URL('../src/server.js',import.meta.url),'utf8');
+ const segment=server.slice(server.indexOf("app.put('/api/mark'"),server.indexOf("app.put('/api/marks'"));
+ assert.match(segment,/if\(String\(current\)===String\(v\)\)/);
+ assert.match(segment,/alreadySaved:true/);
+ assert.match(segment,/res\.status\(409\)\.json\(\{error:'mark_conflict'/);
+ assert.ok(segment.indexOf('alreadySaved:true')<segment.indexOf("mark_conflict"));
 });
