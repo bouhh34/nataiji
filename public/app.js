@@ -254,7 +254,13 @@ function showGradeConflict(row,currentValue){
  const title=gradeText('تعارض في درجة محفوظة','Conflit sur une note enregistrée');
  const dialog=modal(title,`<p>${gradeText('حُفظت درجة مختلفة على الخادم. اختر الدرجة التي تريد اعتمادها.','Une note différente a été enregistrée sur le serveur. Choisissez celle à conserver.')}</p><p><b>${esc(student?.[1]||row.pupilKey)} — ${esc(subject?.[0]||row.subjectId)}</b></p><div class="grade-conflict-values"><div>${gradeText('على الخادم','Sur le serveur')}: <b>${esc(currentValue||'—')}</b></div><div>${gradeText('على هذا الجهاز','Sur cet appareil')}: <b>${esc(row.value||'—')}</b></div></div><div class="grade-conflict-actions"><button type="button" class="secondary use-server">${gradeText('اعتماد درجة الخادم','Garder la note du serveur')}</button><button type="button" class="primary keep-device">${gradeText('اعتماد درجة هذا الجهاز','Garder la note de cet appareil')}</button></div>`);
  activeGradeConflictDialog=dialog;
- dialog.querySelector('.use-server').onclick=()=>{j.discard(row);updateLocalGrade(row,String(currentValue??''));dialog.remove();activeGradeConflictDialog=null;failedGradeSaves.delete(gradeKey({account:row.account,classId:row.classId,term:row.term}));markSaveStatus(gradeText('تم اعتماد الدرجة المحفوظة على الخادم','La note du serveur a été conservée'),false)};
+ dialog.querySelector('.use-server').onclick=()=>{
+  j.discard(row);updateLocalGrade(row,String(currentValue??''));dialog.remove();activeGradeConflictDialog=null;
+  const context={account:row.account,classId:row.classId,term:row.term},remaining=rowsForGradeContext(context);
+  if(!remaining.length){failedGradeSaves.delete(gradeKey(context));markSaveStatus(gradeText('تم اعتماد درجة الخادم؛ لا توجد مسودات معلقة','La note du serveur est conservée ; aucun brouillon en attente'),false)}
+  else if(remaining.some(r=>r.conflictValue!==undefined))markSaveStatus(gradeText('يوجد تعارض يحتاج مراجعتك','Un conflit nécessite votre choix'),true);
+  else markSaveStatus(gradeText(`بقيت ${remaining.length} درجة في انتظار المزامنة`,`${remaining.length} note(s) en attente de synchronisation`),true)
+ };
  dialog.querySelector('.keep-device').onclick=async()=>{j.rebase(row,String(currentValue??''));dialog.remove();activeGradeConflictDialog=null;await flushSchoolGradeJournal({account:row.account,classId:row.classId,term:row.term})};
 }
 function queueGradeSave(context,operation,onSaved,onFailed){
