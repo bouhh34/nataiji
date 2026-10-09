@@ -60,7 +60,7 @@ assert('terms page exists', exists('public/terms.html'));
 assert('account deletion web resource exists', exists('public/delete-account.html'));
 assert('PWA caches account deletion help', /\/delete-account\.html/.test(sw) && /\/info-pages\.css\?v=1/.test(sw));
 assert('privacy has public support and deletion links', /mailto:bahmedou596@gmail\.com/.test(read('public/privacy.html')) && /\/delete-account\.html/.test(read('public/privacy.html')));
-assert('PWA cache version current', /nataiji-shell-v108/.test(sw));
+assert('PWA cache version current', /nataiji-shell-v109/.test(sw));
 assert('PWA loads and caches school grade journal', /school-grade-journal\.js\?v=1/.test(index) && /school-grade-journal\.js\?v=1/.test(sw));
 assert('offline school grade journal is account scoped and conflict aware', /nataiji-school-grade-drafts-v1:/.test(gradeJournal) && /setConflict\(/.test(gradeJournal) && /rebase\(/.test(gradeJournal));
 assert('school grade changes compare server value before overwrite', /expectedValue/.test(appJs) && /mark_conflict/.test(server) && /pg_advisory_xact_lock/.test(server));
@@ -204,7 +204,7 @@ assert('professor v2 cache-busted asset is current', /professor-v2\.js\?v=74/.te
 assert('professor v2 stylesheet cache-busted asset is current', /professor-v2\.css\?v=47/.test(index));
 const ownerStaff = read('public/owner-staff-v1.js');
 assert('owner professor tools support official branches', /staffClassBranch/.test(ownerStaff) && /data-branch/.test(ownerStaff) && /subjectOptions\(catalog,level,branch\)/.test(ownerStaff));
-assert('owner staff cache-busted asset is current', /owner-staff-v1\.js\?v=3/.test(index));
+assert('owner staff cache-busted asset is current', /owner-staff-v1\.js\?v=4/.test(index));
 assert('secure cookie enabled', /httpOnly:true/.test(server) && /sameSite:'lax'/.test(server));
 assert('origin protection enabled', /cross_site_request_blocked/.test(server));
 assert('CSP enabled', /Content-Security-Policy/.test(server));
