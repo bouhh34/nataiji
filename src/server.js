@@ -1049,6 +1049,13 @@ app.put('/api/mark',auth,async(req,res)=>{
   // Serialize compare-and-set grade writes by their stable record identity.
   await client.query('SELECT pg_advisory_xact_lock(hashtext($1),hashtext($2))',[req.user.schoolId,JSON.stringify([classId,term,pupilKey,subjectId])]);
   const current=(await client.query('SELECT value FROM nataiji_marks WHERE school_id=$1 AND class_id=$2 AND term=$3 AND pupil_key=$4 AND subject_id=$5',[req.user.schoolId,classId,term,pupilKey,subjectId])).rows[0]?.value??'';
+  // A timed-out response may be retried after the first write actually committed.
+  // A byte-identical target value is already saved; acknowledge it without
+  // reporting a false conflict or overwriting a newer, different grade.
+  if(String(current)===String(v)){
+   await client.query('COMMIT');
+   return res.json({ok:true,classId,term,pupilKey,subjectId,value:v,alreadySaved:true,savedAt:new Date().toISOString()});
+  }
   if(Object.hasOwn(req.body||{},'expectedValue')&&String(req.body.expectedValue??'')!==String(current)){
    await client.query('ROLLBACK');
    return res.status(409).json({error:'mark_conflict',currentValue:String(current)});
