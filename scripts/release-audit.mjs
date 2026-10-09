@@ -204,7 +204,7 @@ assert('professor v2 cache-busted asset is current', /professor-v2\.js\?v=74/.te
 assert('professor v2 stylesheet cache-busted asset is current', /professor-v2\.css\?v=47/.test(index));
 const ownerStaff = read('public/owner-staff-v1.js');
 assert('owner professor tools support official branches', /staffClassBranch/.test(ownerStaff) && /data-branch/.test(ownerStaff) && /subjectOptions\(catalog,level,branch\)/.test(ownerStaff));
-assert('owner staff cache-busted asset is current', /owner-staff-v1\.js\?v=3/.test(index));
+assert('owner staff cache-busted asset is current', /owner-staff-v1\.js\?v=4/.test(index));
 assert('secure cookie enabled', /httpOnly:true/.test(server) && /sameSite:'lax'/.test(server));
 assert('origin protection enabled', /cross_site_request_blocked/.test(server));
 assert('CSP enabled', /Content-Security-Policy/.test(server));
