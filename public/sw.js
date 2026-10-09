@@ -1,4 +1,4 @@
-const CACHE = "nataiji-shell-v107";
+const CACHE = "nataiji-shell-v108";
 const ASSETS = [
   "/",
   "/privacy.html",
@@ -29,9 +29,9 @@ const ASSETS = [
   "/vendor/feather.min.js",
   "/luxury-ui-v1.js?v=6",
   "/school-grade-journal.js?v=1",
-  "/app.js?v=47",
+  "/app.js?v=48",
   "/app-stability-v1.js?v=5",
-  "/structure-manager.js?v=23",
+  "/structure-manager.js?v=24",
   "/onboarding-v1.js?v=7",
   "/professor-v1.js?v=1",
   "/grade-journal.js?v=1",
@@ -47,8 +47,8 @@ const ASSETS = [
   "/class-report-layout-v2.js?v=10",
   "/two-students-a4-v1.js?v=18",
   "/app-power-v1.js?v=14",
-  "/student-mobile-cards-v1.js?v=2",
-  "/grade-mobile-ui-v1.js?v=10",
+  "/student-mobile-cards-v1.js?v=3",
+  "/grade-mobile-ui-v1.js?v=11",
   "/report-mobile-preview-v1.js?v=3",
   "/report-final-polish-v1.js?v=11",
   "/student-pdf-number-direction-v1.js?v=1",
@@ -56,7 +56,7 @@ const ASSETS = [
   "/interface-language-fix.js?v=12",
   "/premium-subject-locale-v1.js?v=5",
   "/commercial-foundation-v1.js?v=2",
-  "/workflow-polish.js?v=2",
+  "/workflow-polish.js?v=3",
   "/nataiji-premium-v2.js?v=5",
   "/nataiji-home-reference-v1.js?v=2",
   "/more-page-v1.js?v=7"
