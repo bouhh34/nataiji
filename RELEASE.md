@@ -1,26 +1,36 @@
-# Nataiji v1.0.0 RC2
+# Nataiji v1.0.0 RC3
 
-Release candidate frozen on 2026-10-03.
+Closed-testing candidate prepared on 2026-10-11 from main after user confirmation.
 
 ## Identity
 - Product: نتائجي | Nataiji
-- Package version: 1.0.0-rc.2
-- Capacitor app ID: mr.nataiji.app
-- Production URL: https://nataiji.onrender.com
-- PWA display mode: standalone
-- Primary language: Arabic, with French interface support
+- Version: 1.0.0-rc.3
+- Android package: mr.nataiji.app
+- Android versionCode: 3; verify highest uploaded code in Play before upload.
+- Target SDK: 36
+- Website: https://nataiji.onrender.com
+- Existing signing secrets required; no replacement signing key.
 
-## Release policy
-This RC is feature-frozen. Only release-blocking bugs, security fixes, data-integrity fixes, and critical compatibility fixes should be merged before v1.0.0.
+## Validation
+Run `npm run release:check`. GitHub Actions builds and signs the AAB from this commit.
 
-## Validation gate
-Run:
-```
-npm run release:check
-```
+## Changes
+- Student imports from PDF, photos and camera, with Gemini transcription.
+- Review source names before saving editable Arabic and French names.
+- Official Koutoubi books by year and preparation links.
+- Download option remains visible for installed users.
+- Session restoration, class-response guards and account-scoped grade drafts.
 
-Android release builds inherit versionName from package.json and use versionCode 2 by default for RC2.
-iOS RC2 uses marketing version 1.0.0 and build number 1.
+## Known limits
+- Capacitor loads the HTTPS website; fresh launch/login requires network. Complete offline roster editing is not implemented.
+- Same-name pupils can be distinct; names do not establish identity. Repeated imports require review against existing pupils.
+- Transliteration is an editable suggestion, not legal spelling.
+- Physical Android install/upgrade, camera, PDF print/share, offline restart and two-device synchronization remain acceptance tasks.
+- User confirmed successful Gemini extraction on 2026-10-11; no accuracy percentage claimed.
+- Play Console upload, highest versionCode, store declarations and tester requirements require Console access.
 
-## Weak-connection and account improvements
-Professor grade changes are stored in per-account local drafts before verified delta batches are sent. Drafts survive navigation, reconnect and authenticated reload; fresh login still needs Internet. Concurrent-device changes require review. Export/import restores pending grade drafts without replacing school structure. Sessions can be revoked from account settings with the current password. Invalid grades are rejected explicitly.
+## Open pull requests excluded from this candidate
+- #93: educational staff modal timeout and retry.
+- #46: unified professor class reports.
+- #40: mobile acceptance absence contrast.
+These branches are not automatically merged into the release.
