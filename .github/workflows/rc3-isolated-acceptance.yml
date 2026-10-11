@@ -1,0 +1,57 @@
+name: RC3 isolated acceptance
+on:
+  push:
+    branches: [main]
+    paths: ['.github/workflows/rc3-isolated-acceptance.yml']
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  isolated-api:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_USER: nataiji_test
+          POSTGRES_PASSWORD: isolated_ci_only
+          POSTGRES_DB: nataiji_test
+        ports: ['5432:5432']
+        options: >-
+          --health-cmd "pg_isready -U nataiji_test"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: npm ci --no-audit --no-fund
+      - name: Start isolated server
+        env:
+          DATABASE_URL: postgres://nataiji_test:isolated_ci_only@127.0.0.1:5432/nataiji_test
+          REDIS_URL: ''
+          NODE_ENV: development
+          PORT: '3221'
+          SUPER_ADMIN_EMAIL: isolated-release@example.com
+        run: |
+          npm start > /tmp/nataiji-isolated.log 2>&1 &
+          for i in $(seq 1 40); do
+            curl -fsS http://127.0.0.1:3221/health && exit 0
+            sleep 1
+          done
+          exit 1
+      - name: Account, grades, sharing and isolation acceptance
+        env:
+          NATAIJI_BASE_URL: http://127.0.0.1:3221
+        run: node scripts/mobile-production-smoke.mjs
+      - name: Install isolated browser test dependencies
+        run: |
+          npm install --no-save --package-lock=false playwright
+          npx playwright install --with-deps chromium
+      - name: Mobile UI acceptance
+        env:
+          NATAIJI_TEST_URL: http://127.0.0.1:3221
+        run: node scripts/ui-mobile-acceptance.mjs
