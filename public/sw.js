@@ -1,5 +1,6 @@
-const CACHE = "nataiji-shell-v109";
+const CACHE = "nataiji-shell-v110";
 const ASSETS = [
+  "/student-import.js?v=1",
   "/",
   "/privacy.html",
   "/delete-account.html",
@@ -35,7 +36,7 @@ const ASSETS = [
   "/onboarding-v1.js?v=7",
   "/professor-v1.js?v=1",
   "/grade-journal.js?v=1",
-  "/professor-v2.js?v=74",
+  "/professor-v2.js?v=75",
   "/auth-access-v2.js?v=45",
   "/owner-staff-v1.js?v=3",
   "/account-isolation.js?v=4",
@@ -77,7 +78,7 @@ self.addEventListener('fetch', event=>{
   if(request.method!=='GET'||url.origin!==location.origin) return;
   if(url.pathname.startsWith('/api/')||url.pathname==='/health') return;
   const navigation=request.mode==='navigate' && shellPages.has(url.pathname);
-  if(!navigation&&!assetPaths.has(url.pathname)) return;
+  if(!navigation&&!assetPaths.has(url.pathname)&&!url.pathname.startsWith('/vendor/student-import/')) return;
   const cachePromise=caches.open(CACHE);
   const cachedPromise=cachePromise.then(cache=>cache.match(request));
   let networkPromise;

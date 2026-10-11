@@ -5,3 +5,5 @@ ios/
 .env.*
 *.log
 .DS_Store
+
+public/vendor/student-import/
