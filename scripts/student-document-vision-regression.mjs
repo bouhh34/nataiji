@@ -28,7 +28,7 @@ test('Gemini takes priority and preserves original names with structured image i
   assert.equal(url,'https://generativelanguage.googleapis.com/v1beta/models/gemini-3.1-flash-lite:generateContent');
   assert.equal(options.headers['x-goog-api-key'],'gemini-test-key');assert.equal(options.headers.Authorization,undefined);
   const request=JSON.parse(options.body);assert.deepEqual(request.contents[0].parts[0].inlineData,{mimeType:'image/jpeg',data:'/9j/'});
-  assert.equal(request.generationConfig.responseMimeType,'application/json');assert.deepEqual(request.generationConfig.responseJsonSchema.required,['names']);
+  assert.equal(request.generationConfig.responseMimeType,'application/json');assert.deepEqual(request.generationConfig.responseSchema.required,['names']);
   return {ok:true,json:async()=>({candidates:[{finishReason:'STOP',content:{parts:[{thought:true,text:'ignore internal thought'},{text:JSON.stringify({names})}]}}]})};
  }});assert.deepEqual(result.names,names);
 });

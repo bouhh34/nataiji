@@ -1,9 +1,9 @@
-const CACHE = "nataiji-shell-v121";
+const CACHE = "nataiji-shell-v122";
 const ASSETS = [
   "/koutoubi-resources.css?v=1",
   "/koutoubi-catalog.js?v=1",
   "/koutoubi-resources.js?v=1",
-  "/student-import.js?v=8",
+  "/student-import.js?v=9",
   "/",
   "/privacy.html",
   "/delete-account.html",
