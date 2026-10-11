@@ -627,6 +627,7 @@ function renderMore(){
  el.innerHTML=`<div class="professor-shell prof-more-reference">${topbar('','')}
   <section class="prof-more-reference-hero"><div><small>${tr('المزيد','Plus')}</small><h1>${tr('الإعدادات والأدوات','Paramètres et outils')}</h1><p>${tr('جميع الخيارات المهمة لحسابك في مكان واحد.','Toutes les options importantes de votre compte au même endroit.')}</p></div><span class="prof-more-hero-icon">${professorMoreIcon('settings')}</span></section>
   <section class="prof-more-list">
+   ${row('profMoreKoutoubi','books',tr('التحضير والكتب','Préparations et manuels'),tr('كتبي الرسمي • الكتب حسب السنة وأدلة المدرس','Koutoubi officiel • Manuels par année et guides'))}
    ${row('profMoreBackup','shield',tr('نسخة احتياطية ومسودات','Sauvegarde et brouillons'),tr('تنزيل بياناتك ومراجعة المزامنة','Télécharger vos données et vérifier la synchronisation'))}
    ${row('profMoreAccount','account',tr('إعدادات الحساب','Paramètres du compte'),tr('الملف الشخصي، كلمة المرور وتفضيلات الحساب','Profil, mot de passe et préférences du compte'))}
    ${row('profMoreSettings','school',tr('إعدادات المؤسسة','Paramètres de l’établissement'),tr('معلومات المؤسسة والجهات الرسمية','Informations de l’établissement et autorités officielles'))}
