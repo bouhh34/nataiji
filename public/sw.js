@@ -1,4 +1,4 @@
-const CACHE = "nataiji-shell-v110";
+const CACHE = "nataiji-shell-v111";
 const ASSETS = [
   "/student-import.js?v=1",
   "/",
@@ -43,7 +43,7 @@ const ASSETS = [
   "/scoring-model-v2.js?v=8",
   "/annual-results-v1.js?v=23",
   "/final-grade-entry.js?v=11",
-  "/bilingual-data-editor-v1.js?v=24",
+  "/bilingual-data-editor-v1.js?v=25",
   "/official-bilingual-v1.js?v=14",
   "/class-report-layout-v2.js?v=10",
   "/two-students-a4-v1.js?v=18",
