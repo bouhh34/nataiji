@@ -2,7 +2,7 @@ name: RC3 isolated acceptance
 on:
   push:
     branches: [main]
-    paths: ['.github/workflows/rc3-isolated-acceptance.yml']
+    paths: ['.github/workflows/rc3-isolated-acceptance.yml', 'scripts/ui-mobile-acceptance.mjs']
   workflow_dispatch:
 permissions:
   contents: read

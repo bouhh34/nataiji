@@ -30,8 +30,8 @@ try{
   await page.locator('#auth2Form input[name="password"]').fill('MobileQA-9021');
   await page.locator('#auth2Form .auth-submit').click();
 
-  await page.locator('[data-profile-type="teacher"]').waitFor({state:'visible',timeout:12000});
-  await page.locator('[data-profile-type="teacher"]').click();
+  await page.locator('[data-profile-type="teacher"], #nataijiOnboarding').first().waitFor({state:'visible',timeout:12000});
+  if(await page.locator('[data-profile-type="teacher"]').isVisible()) await page.locator('[data-profile-type="teacher"]').click();
   await page.locator('#nataijiOnboarding').waitFor({state:'visible',timeout:12000});
   await page.locator('#nwSchool').fill('مدرسة الاختبار');
   await page.locator('#nwSchoolFr').fill('École de test');
