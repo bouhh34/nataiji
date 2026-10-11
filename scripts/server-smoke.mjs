@@ -53,9 +53,11 @@ try{
   if(missingApi.status!==404||!(missingApi.headers.get('content-type')||'').includes('application/json'))throw new Error('missing API must return JSON 404');
   const missingScript=await fetch(base+'/missing-script.js');
   if(missingScript.status!==404)throw new Error('missing script must not receive the HTML shell');
+  await request('/api/student-document/status',401);
   const owner=client(),member=client(),memberEmail='teacher.smoke@example.com';
   const ownerRegistration=await owner.request('/api/auth/register',{method:'POST',body:{name:'Owner Smoke',email:ownerEmail,password:'OwnerPass-9021',school:'Owner school'},expected:201});
   if(!ownerRegistration.user?.isSuperAdmin||ownerRegistration.user?.name!=='Ahmedou bembe')throw new Error('configured super admin was not created correctly');
+  const visionStatus=await owner.request('/api/student-document/status');if(typeof visionStatus.available!=='boolean')throw new Error('invalid vision capability status');
   await member.request('/api/auth/register',{method:'POST',body:{name:'Teacher Smoke',email:memberEmail,password:'TeacherPass-9021',school:'Teacher school'},expected:201});
   await member.request('/api/auth/logout',{method:'POST',body:{}});member.clear();
   await member.request('/api/auth/login',{method:'POST',body:{email:memberEmail,password:'TeacherPass-9021'}});

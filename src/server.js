@@ -1,3 +1,4 @@
+import {visionConfigured,recognizeStudentDocument} from './student-document-vision.js';
 import {importedPupilRows} from './student-roster-import.js';
 import express from 'express';
 import {staticDelivery} from './static-delivery.js';
@@ -15,7 +16,7 @@ const app=express();
 const __dirname=path.dirname(fileURLToPath(import.meta.url));
 app.disable('x-powered-by');
 app.set('trust proxy',1);
-app.use(express.json({limit:'1mb'}));
+app.use((req,res,next)=>req.path==='/api/student-document/recognize'?next():express.json({limit:'1mb'})(req,res,next));
 app.use('/api',(req,res,next)=>{res.setHeader('Cache-Control','no-store, no-cache, must-revalidate, proxy-revalidate');res.setHeader('Pragma','no-cache');res.setHeader('Expires','0');next()});
 app.use('/api',(req,res,next)=>{if(['GET','HEAD','OPTIONS'].includes(req.method))return next();const origin=req.get('origin');if(origin){try{const o=new URL(origin),h=req.get('host');if(o.host!==h)return res.status(403).json({error:'cross_site_request_blocked'})}catch{return res.status(403).json({error:'cross_site_request_blocked'})}}next()});
 app.use((req,res,next)=>{res.setHeader('X-Content-Type-Options','nosniff');res.setHeader('X-Frame-Options','DENY');res.setHeader('X-DNS-Prefetch-Control','off');res.setHeader('X-Permitted-Cross-Domain-Policies','none');res.setHeader('Referrer-Policy','same-origin');res.setHeader('Permissions-Policy','camera=(), microphone=(), geolocation=()');res.setHeader('Cross-Origin-Opener-Policy','same-origin');res.setHeader('Cross-Origin-Resource-Policy','same-origin');res.setHeader('Content-Security-Policy',"default-src 'self'; base-uri 'self'; object-src 'none'; frame-ancestors 'none'; form-action 'self'; img-src 'self' data: blob:; font-src 'self' data:; style-src 'self' 'unsafe-inline'; script-src 'self' 'unsafe-inline' 'wasm-unsafe-eval'; connect-src 'self'; worker-src 'self' blob:; frame-src 'self' blob:; manifest-src 'self'");if(process.env.NODE_ENV==='production')res.setHeader('Strict-Transport-Security','max-age=31536000; includeSubDomains');next()});
@@ -972,6 +973,11 @@ app.post('/api/subjects/normalize-primary',auth,async(req,res)=>{
  const client=await pool.connect();
  try{await client.query('BEGIN');const sourceIds=mergeRows.map(r=>String(r.subject_id)),mq=await client.query('SELECT term,pupil_key,subject_id,value FROM nataiji_marks WHERE school_id=$1 AND class_id=$2 AND subject_id=ANY($3::text[])',[req.user.schoolId,classId,sourceIds]),groups=new Map();for(const row of mq.rows){const k=String(row.term)+'\u0000'+String(row.pupil_key);if(!groups.has(k))groups.set(k,{term:row.term,pupil:row.pupil_key,values:[]});groups.get(k).values.push(row.value)}await client.query('DELETE FROM nataiji_marks WHERE school_id=$1 AND class_id=$2 AND subject_id=ANY($3::text[])',[req.user.schoolId,classId,sourceIds]);const mergedId=target.find(x=>x.sourceIds.length>1)?.id;if(mergedId)for(const g of groups.values()){const value=primaryMergedValue(g.values);if(value!=='')await client.query('INSERT INTO nataiji_marks(school_id,class_id,term,pupil_key,subject_id,value,updated_at) VALUES($1,$2,$3,$4,$5,$6,now()) ON CONFLICT(school_id,class_id,term,pupil_key,subject_id) DO UPDATE SET value=EXCLUDED.value,updated_at=now()',[req.user.schoolId,classId,g.term,g.pupil,mergedId,value])}await client.query('DELETE FROM nataiji_subjects WHERE school_id=$1 AND class_id=$2',[req.user.schoolId,classId]);for(let i=0;i<target.length;i++)await client.query('INSERT INTO nataiji_subjects(school_id,class_id,subject_id,data,position) VALUES($1,$2,$3,$4::jsonb,$5)',[req.user.schoolId,classId,target[i].id,JSON.stringify(target[i].data),i]);await client.query('INSERT INTO nataiji_migrations(school_id,class_id,resource) VALUES($1,$2,$3) ON CONFLICT DO NOTHING',[req.user.schoolId,classId,'primary-subjects-v2']);await client.query('COMMIT')}catch(e){await client.query('ROLLBACK');console.error('primary subject normalization failed',req.user.schoolId,classId,e);return res.status(500).json({error:'subject_normalization_failed'})}finally{client.release()}
  const q=await pool.query('SELECT subject_id,data FROM nataiji_subjects WHERE school_id=$1 AND class_id=$2 ORDER BY position,updated_at',[req.user.schoolId,classId]);res.json({ok:true,changed:true,subjects:subjectRows(q.rows)})
+});
+app.get('/api/student-document/status',auth,(_req,res)=>res.json({available:visionConfigured(),provider:'OpenAI'}));
+const studentVisionRate=rateLimit('student-vision',20,60*60*1000);
+app.post('/api/student-document/recognize',auth,studentVisionRate,express.json({limit:'3mb'}),async(req,res)=>{
+ try{res.json(await recognizeStudentDocument(req.body?.image))}catch(err){res.status(err.status||502).json({error:err.status?err.message:'vision_unavailable'})}
 });
 app.post('/api/pupils/import',auth,async(req,res)=>{
  if(!pool)return res.status(503).json({error:'durable_storage_required'});
