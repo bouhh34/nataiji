@@ -15,5 +15,9 @@ test('preserves source script, order, homonyms and uncertainty without storing r
 });
 test('rejects malformed provider output and handles provider failure',async()=>{
  await assert.rejects(recognizeStudentDocument(image,{env,fetchImpl:async()=>reply([{text:'invented\nsecond row',uncertain:false}])}),/vision_invalid_result/);
- await assert.rejects(recognizeStudentDocument(image,{env,fetchImpl:async()=>({ok:false,status:429})}),/vision_busy/);
+ await assert.rejects(recognizeStudentDocument(image,{env,fetchImpl:async()=>({ok:false,status:429,json:async()=>({error:{code:'rate_limit_exceeded'}})})}),/vision_busy/);
+});
+
+test('billing failures are distinct from temporary rate limits and invalid credentials',async()=>{
+ for(const [status,code,expected] of [[429,'insufficient_quota','vision_quota'],[401,'invalid_api_key','vision_invalid_key'],[403,'permission_denied','vision_access_denied']])await assert.rejects(recognizeStudentDocument(image,{env,fetchImpl:async()=>({ok:false,status,json:async()=>({error:{code}})})}),new RegExp(expected));
 });
