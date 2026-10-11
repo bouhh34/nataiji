@@ -21,3 +21,19 @@ test('rejects malformed provider output and handles provider failure',async()=>{
 test('billing failures are distinct from temporary rate limits and invalid credentials',async()=>{
  for(const [status,code,expected] of [[429,'insufficient_quota','vision_quota'],[401,'invalid_api_key','vision_invalid_key'],[403,'permission_denied','vision_access_denied']])await assert.rejects(recognizeStudentDocument(image,{env,fetchImpl:async()=>({ok:false,status,json:async()=>({error:{code}})})}),new RegExp(expected));
 });
+
+test('Gemini takes priority and preserves original names with structured image input',async()=>{
+ const names=[{text:'مولاي أعمر',uncertain:false},{text:'Mariem Sidi',uncertain:true}];
+ const result=await recognizeStudentDocument(image,{env:{...env,GEMINI_API_KEY:'gemini-test-key'},fetchImpl:async(url,options)=>{
+  assert.equal(url,'https://generativelanguage.googleapis.com/v1beta/models/gemini-3.1-flash-lite:generateContent');
+  assert.equal(options.headers['x-goog-api-key'],'gemini-test-key');assert.equal(options.headers.Authorization,undefined);
+  const request=JSON.parse(options.body);assert.deepEqual(request.contents[0].parts[0].inlineData,{mimeType:'image/jpeg',data:'/9j/'});
+  assert.equal(request.generationConfig.responseMimeType,'application/json');assert.deepEqual(request.generationConfig.responseJsonSchema.required,['names']);
+  return {ok:true,json:async()=>({candidates:[{finishReason:'STOP',content:{parts:[{thought:true,text:'ignore internal thought'},{text:JSON.stringify({names})}]}}]})};
+ }});assert.deepEqual(result.names,names);
+});
+test('Gemini quota, invalid key and truncated output cannot masquerade as names',async()=>{
+ const geminiEnv={GEMINI_API_KEY:'test-key'};
+ for(const [status,error,expected] of [[429,{status:'RESOURCE_EXHAUSTED'},'vision_quota'],[400,{details:[{reason:'API_KEY_INVALID'}]},'vision_invalid_key']])await assert.rejects(recognizeStudentDocument(image,{env:geminiEnv,fetchImpl:async()=>({ok:false,status,json:async()=>({error})})}),new RegExp(expected));
+ await assert.rejects(recognizeStudentDocument(image,{env:geminiEnv,fetchImpl:async()=>({ok:true,json:async()=>({candidates:[{finishReason:'MAX_TOKENS'}]})})}),/vision_incomplete/);
+});
