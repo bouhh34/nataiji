@@ -37,3 +37,7 @@ test('Gemini quota, invalid key and truncated output cannot masquerade as names'
  for(const [status,error,expected] of [[429,{status:'RESOURCE_EXHAUSTED'},'vision_quota'],[400,{details:[{reason:'API_KEY_INVALID'}]},'vision_invalid_key']])await assert.rejects(recognizeStudentDocument(image,{env:geminiEnv,fetchImpl:async()=>({ok:false,status,json:async()=>({error})})}),new RegExp(expected));
  await assert.rejects(recognizeStudentDocument(image,{env:geminiEnv,fetchImpl:async()=>({ok:true,json:async()=>({candidates:[{finishReason:'MAX_TOKENS'}]})})}),/vision_incomplete/);
 });
+test('unavailable default Gemini model retries once with compatible Flash',async()=>{
+ let calls=0;const names=[{text:'محمد محمدن',uncertain:false}];
+ const result=await recognizeStudentDocument(image,{env:{GEMINI_API_KEY:'test'},fetchImpl:async url=>{calls++;if(calls===1)return {ok:false,status:404};assert.match(url,/gemini-2.5-flash:generateContent$/);return {ok:true,json:async()=>({candidates:[{finishReason:'STOP',content:{parts:[{text:JSON.stringify({names})}]}}]})}}});assert.equal(calls,2);assert.deepEqual(result.names,names);
+});
