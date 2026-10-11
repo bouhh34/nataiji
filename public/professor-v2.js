@@ -555,7 +555,6 @@ function openProfessorSupport(){
 }
 
 async function openProfessorInstall(){
- if(!professorIsWebsite())return;
  if(professorInstallPrompt){
   try{professorInstallPrompt.prompt();const choice=await professorInstallPrompt.userChoice;if(choice?.outcome==='accepted')professorInstallPrompt=null;return}catch{}
  }
@@ -563,6 +562,7 @@ async function openProfessorInstall(){
  const m=modal(tr('تحميل التطبيق','Installer l’application'),`<div class="prof-info-sheet">
   <span class="prof-info-icon install">${professorMoreIcon('install')}</span>
   <h3>${tr('تحميل تطبيق نتائجي','Installer Nataiji')}</h3>
+  <a class="prof-support-link" href="/download.html" target="_blank" rel="noopener">${tr('فتح صفحة تحميل التطبيق — Android وiPhone','Ouvrir la page de téléchargement — Android et iPhone')}</a>
   <p>${ios?tr('في Safari اضغط زر المشاركة ثم اختر «إضافة إلى الشاشة الرئيسية».','Dans Safari, touchez Partager puis « Sur l’écran d’accueil ».'):tr('إذا ظهر خيار «تثبيت التطبيق» في المتصفح استخدمه، أو اختر «إضافة إلى الشاشة الرئيسية».','Utilisez « Installer l’application » si votre navigateur le propose, sinon choisissez « Ajouter à l’écran d’accueil ».')}</p>
   <button class="primary professor-x-inline">${tr('فهمت','Compris')}</button>
  </div>`);q('.professor-x-inline',m.wrap).onclick=m.close
@@ -638,7 +638,7 @@ function renderMore(){
    ${row('profMoreShare','share',tr('مشاركة نتائجي','Partager Nataiji'),tr('شارك التطبيق مع زملائك عبر الهاتف أو الرابط','Partagez l’application avec vos collègues ou par lien'),'share')}
    ${row('profMorePrivacy','shield',tr('سياسة البرنامج','Politique de l’application'),tr('شروط الاستخدام وحماية البيانات','Conditions d’utilisation et protection des données'))}
    ${row('profMoreSupport','chat',tr('الدعم والملاحظات','Support et commentaires'),tr('تواصل مع إدارة نتائجي عبر WhatsApp أو البريد','Contactez Nataiji par WhatsApp ou e-mail'))}
-   ${professorIsWebsite()?row('profMoreInstall','install',tr('تحميل التطبيق','Installer l’application'),tr('تحميل نتائجي أو إضافته إلى الشاشة الرئيسية','Installer Nataiji ou l’ajouter à l’écran d’accueil')):''}
+   ${row('profMoreInstall','install',tr('تحميل التطبيق','Installer l’application'),tr('تحميل نتائجي أو إضافته إلى الشاشة الرئيسية','Installer Nataiji ou l’ajouter à l’écran d’accueil'))}
    ${row('profMoreLogout','logout',tr('تسجيل الخروج','Déconnexion'),tr('إنهاء الجلسة الحالية','Fermer la session actuelle'),'logout')}
    ${row('profMoreDelete','trash',tr('حذف الحساب','Supprimer le compte'),tr('حذف حسابك وجميع بياناته نهائيًا','Supprimer définitivement votre compte et ses données'),'danger')}
   </section>
