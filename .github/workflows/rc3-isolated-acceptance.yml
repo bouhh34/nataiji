@@ -35,7 +35,7 @@ jobs:
           REDIS_URL: ''
           NODE_ENV: development
           PORT: '3221'
-          SUPER_ADMIN_EMAIL: isolated-release@example.com
+          SUPER_ADMIN_EMAIL: mobile.owner@example.com
         run: |
           npm start > /tmp/nataiji-isolated.log 2>&1 &
           for i in $(seq 1 40); do
@@ -55,3 +55,11 @@ jobs:
         env:
           NATAIJI_TEST_URL: http://127.0.0.1:3221
         run: node scripts/ui-mobile-acceptance.mjs
+      - name: Save genuine test screenshots
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: nataiji-rc3-test-screenshots
+          path: release-screenshots/
+          if-no-files-found: ignore
+          retention-days: 14

@@ -1,4 +1,6 @@
 import { chromium } from 'playwright';
+import fs from 'node:fs';
+fs.mkdirSync('release-screenshots',{recursive:true});
 
 const base=process.env.NATAIJI_TEST_URL||'http://127.0.0.1:3221';
 const browser=await chromium.launch({headless:true});
@@ -28,6 +30,8 @@ try{
   await page.locator('#auth2Form input[name="password"]').fill('MobileQA-9021');
   await page.locator('#auth2Form .auth-submit').click();
 
+  await page.locator('[data-profile-type="teacher"]').waitFor({state:'visible',timeout:12000});
+  await page.locator('[data-profile-type="teacher"]').click();
   await page.locator('#nataijiOnboarding').waitFor({state:'visible',timeout:12000});
   await page.locator('#nwSchool').fill('مدرسة الاختبار');
   await page.locator('#nwSchoolFr').fill('École de test');
@@ -43,6 +47,7 @@ try{
   await page.locator('#nwFinish').click();
   await page.locator('#nwHome').waitFor({state:'visible',timeout:15000});
   await page.locator('#nwHome').click();
+  await page.screenshot({path:'release-screenshots/home-ar.png',fullPage:false});
 
   await page.locator('[data-page="home"] .welcome').waitFor({state:'visible',timeout:10000});
   const hero=page.locator('[data-page="home"] .welcome');
@@ -288,13 +293,15 @@ try{
   await installCard.waitFor({state:'visible',timeout:3000});
   const installText=(await installCard.innerText()).trim();
   const installIcon=await installCard.locator('b svg').count();
-  check('French install card is fully localized with canonical icon',/Installer Nataiji/.test(installText)&&!/[؀-ۿ]/.test(installText)&&installIcon===1,JSON.stringify({installText,installIcon}));
+  check('French install card is fully localized with canonical icon',/Télécharger l’application/.test(installText)&&!/[؀-ۿ]/.test(installText)&&installIcon===1,JSON.stringify({installText,installIcon}));
 
+  await page.screenshot({path:'release-screenshots/more-fr.png',fullPage:false});
   console.log('\nNataiji mobile UI acceptance finished.');
   if(failures.length){
     console.error(failures.join('\n'));
     process.exitCode=1;
   }
 }finally{
+  await page.screenshot({path:'release-screenshots/last-state.png',fullPage:false}).catch(()=>{});
   await browser.close();
 }
