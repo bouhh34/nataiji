@@ -203,10 +203,26 @@ try{
   const joinIcon=await page.locator('#joinInviteBtn b svg').count();
   check('Sharing cards keep canonical icons',sharesIcon===1&&joinIcon===1,JSON.stringify({sharesIcon,joinIcon}));
 
+  // Exercise the actual blank-NNS bilingual editor instead of seeding every row via API.
+  await page.locator('.bottom-nav button[data-view="students"]').click();
+  await page.locator('#addStudent').click();
+  await page.locator('#bi-ar').fill('تلميذ جديد محفوظ');
+  await page.locator('#bi-fr').fill('New Saved Student');
+  await page.locator('.nataiji-bi-editor .bi-save').click();
+  await page.locator('#bi-ar').waitFor({state:'hidden',timeout:12000});
+  await page.waitForTimeout(700);
+  const newPupil=await page.evaluate(async()=>{const r=await fetch('/api/pupils?classId='+encodeURIComponent(state.activeClassId));const d=await r.json();return{row:d.pupils?.find(p=>p[1]==='تلميذ جديد محفوظ'),notice:document.querySelector('#saveState')?.textContent||''}});
+  check('new blank-NNS student is durable without a false roster save failure',!!newPupil.row?.[7]&&!newPupil.notice.includes('تعذر تثبيت لائحة'),JSON.stringify(newPupil));
+
   await page.locator('.bottom-nav button[data-view="reports"]').click();
   await page.locator('[data-page="reports"]').waitFor({state:'visible',timeout:7000});
   const reportGuard=await page.evaluate(()=>{const backup=structuredClone(state.marks||[]);try{state.marks=[];const ok=renderReports();return{ok:ok!==false,rows:document.querySelectorAll('#sheet tr').length,classRows:document.querySelectorAll('#paperResults tbody tr').length,officialText:(document.querySelector('#officialSheet')?.textContent||'').trim().slice(0,240)}}catch(error){return{ok:false,error:String(error?.message||error)}}finally{state.marks=backup;try{renderReports()}catch{}}});
   check('reports survive a partial teacher mark matrix without a blank page',reportGuard.ok&&reportGuard.rows>0&&reportGuard.classRows>0&&reportGuard.officialText.length>20,JSON.stringify(reportGuard));
+  await page.locator('#reportExtraTools button').first().click();
+  await page.waitForTimeout(120);
+  const expanded=await page.locator('.report-expanded-paper').evaluate(el=>{const r=el.getBoundingClientRect(),f=el.parentElement.getBoundingClientRect();return{left:r.left,right:r.right,frameLeft:f.left,frameRight:f.right,text:el.textContent.length}});
+  check('expanded report fits the full A4 width on a mobile screen',expanded.left>=expanded.frameLeft-2&&expanded.right<=expanded.frameRight+2&&expanded.text>20,JSON.stringify(expanded));
+  await page.locator('.report-expanded .preview-close').click();
   const reportTabs=page.locator('[data-page="reports"] .report-tabs');
   const rb=await reportTabs.boundingBox();
   const tabBoxes=await reportTabs.locator('button').evaluateAll(btns=>btns.map(b=>{const r=b.getBoundingClientRect();return{x:r.x,y:r.y,width:r.width,height:r.height,right:r.right}}));
