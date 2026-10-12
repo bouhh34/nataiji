@@ -30,7 +30,7 @@ function card(a,type){
   <header><div class="staff-avatar">${professor?'🎓':'👨‍🏫'}</div><div class="staff-identity"><b>${esc(a.name||t('دون اسم','Sans nom'))}</b><small dir="ltr">${esc(a.email||'')}</small></div><div class="staff-badges"><em class="staff-role ${type}">${roleLabel(type)}</em>${statusBadge(a)}</div></header>
   <div class="staff-card-meta">
    <span><small>${t('المؤسسة','Établissement')}</small><b>${esc(a.schoolName||t('غير محددة','Non défini'))}</b></span>
-   ${professor?`<span><small>${t('الأقسام','Classes')}</small><b>${Number(a.classCount||0)}</b></span><span><small>${t('المواد','Matières')}</small><b>${Number(a.assignmentCount||0)}</b></span><span><small>${t('أقسام مشتركة','Classes liées')}</small><b>${Number(a.linkedClassCount||0)}</b></span>`:`<span><small>${t('الأقسام المخولة','Classes autorisées')}</small><b>${Number(a.classCount||0)}</b></span>`}
+   ${professor?`<span><small>${t('الأقسام','Classes')}</small><b>${Number(a.classCount||0)}</b></span><span><small>${t('المواد','Matières')}</small><b>${Number(a.assignmentCount||0)}</b></span><span><small>${t('أقسام مشتركة','Classes liées')}</small><b>${Number(a.linkedClassCount||0)}</b></span>`:`<span><small>${t('الأقسام المخولة','Classes autorisées')}</small><b>${Number(a.classCount||0)}</b></span><span><small>${t('المدارس','Écoles')}</small><b>${Number(a.schoolCount||0)}</b></span>`}
   </div>
   <footer>${professor?`<button class="primary" data-prof-detail>${t('فتح ملف الأستاذ','Ouvrir le dossier')}</button>`:''}${accountActions(a)}</footer>
  </article>`
@@ -39,14 +39,19 @@ async function runAccountAction(id,role,action,root,reload){
  const button=q(`[data-staff-id="${CSS.escape(id)}"] [data-staff-action="${action}"]`,root);if(button)button.disabled=true;
  try{
   if(action==='delete'){
-   const msg=role==='professor'?t('سيُحذف حساب الأستاذ وملفه فقط. لن تُحذف مدرسة أو بيانات حسابات أخرى. المتابعة؟','Le compte et le dossier du professeur seront supprimés sans supprimer une école ni les données des autres comptes. Continuer ?'):t('سيُحذف حساب المعلم فقط ولن تُحذف المدرسة. المتابعة؟','Le compte enseignant sera supprimé sans supprimer l’école. Continuer ?');
+   let msg=role==='professor'?t('سيُحذف حساب الأستاذ وملفه فقط. لن تُحذف مدرسة أو بيانات حسابات أخرى. المتابعة؟','Le compte et le dossier du professeur seront supprimés sans supprimer une école ni les données des autres comptes. Continuer ?'):t('سيُحذف حساب المعلم فقط ولن تُحذف المدرسة. المتابعة؟','Le compte enseignant sera supprimé sans supprimer l’école. Continuer ?');
+   if(role==='teacher'){
+    const preview=await api('/api/owner/accounts/'+encodeURIComponent(id)+'/deletion-preview');
+    if(!preview.canDelete){alert(t('لا يمكن حذف الحساب لأن مدارسه مرتبطة بحسابات أخرى. لم تُحذف أي بيانات.','Suppression impossible : ses écoles sont liées à d’autres comptes. Aucune donnée supprimée.'));return}
+    msg=t('حذف حساب المعلم: ','Supprimer le compte enseignant : ')+preview.account.name+' ('+preview.account.email+').\n'+(preview.schools.length?t('ستُحذف مدارسه الخاصة وبيانات أقسامها وتلاميذها وموادها ودرجاتها وإعداداتها: ','Ses écoles privées et leurs classes, élèves, matières, notes et paramètres seront supprimés : ')+preview.schools.map(s=>s.schoolName).join('، '):t('سيُحذف الحساب ووصوله المشترك فقط؛ ستبقى المدارس وبياناتها.','Seuls le compte et ses accès partagés seront supprimés ; les écoles et leurs données seront conservées.'))+'\n'+t('ستُلغى الجلسات وإمكانية الدخول والاسترداد. الحذف نهائي. هل تؤكد؟','Les sessions, la connexion et la récupération seront invalidées. Suppression définitive. Confirmer ?');
+   }
    if(!confirm(msg)){if(button)button.disabled=false;return}
    await api('/api/owner/accounts/'+encodeURIComponent(id),{method:'DELETE',body:JSON.stringify({confirm:'DELETE'})});await reload();return
   }
   const r=await api('/api/owner/accounts/'+encodeURIComponent(id)+'/action',{method:'POST',body:JSON.stringify({action})});
   if(action==='reset_code')modal(t('رمز استعادة كلمة المرور','Code de récupération'),`<p>${t('أرسل هذا الرمز لصاحب الحساب. صالح لمدة 30 دقيقة.','Envoyez ce code au titulaire. Il est valable 30 minutes.')}</p><div class="owner-reset-code" dir="ltr">${esc(r.code)}</div>`);
   else await reload()
- }catch(e){if(button)button.disabled=false;alert(t('تعذر تنفيذ العملية.','Impossible d’effectuer l’opération.'))}
+ }catch(e){alert(e.code==='account_school_shared'?t('لا يمكن الحذف: المدرسة مرتبطة بحساب آخر. لم تُحذف أي بيانات.','Suppression impossible : école liée à un autre compte. Aucune donnée supprimée.'):t('تعذر تنفيذ العملية.','Impossible d’effectuer l’opération.'))}finally{if(button?.isConnected)button.disabled=false}
 }
 function curriculumOptions(catalog,selected=''){
  return (catalog?.levels||[]).map(l=>`<option value="${esc(l.code)}" ${l.code===selected?'selected':''}>${esc(l.code)} — ${esc(fr()?l.fr:l.ar)}</option>`).join('')
@@ -89,29 +94,16 @@ function addAssignmentModal(catalog,classes,onSave){
  clsSel.onchange=sync;subSel.onchange=syncSub;sync();
  q('#staffAssignmentSave',x).onclick=async()=>{const classId=clsSel.value,subjectKey=subSel.value==='__other__'?'':subSel.value,subject=subSel.value==='__other__'?q('#staffCustomSubject',x).value.trim():'',coefficient=subSel.value==='__other__'?Number(q('#staffManualCoef',x).value):undefined,msg=q('.message',x);if(subSel.value==='__other__'&&!subject){msg.textContent=t('اكتب اسم المادة.','Saisissez le nom de la matière.');return}try{await onSave({classId,subjectKey,subject,coefficient});x.remove()}catch(e){msg.textContent=e.code==='professor_assignment_exists'?t('هذه المادة موجودة بالفعل في القسم.','Cette matière existe déjà dans la classe.'):t('تعذر إضافة المادة.','Impossible d’ajouter la matière.')}}
 }
-function teacherSchoolGroups(staff){
- const teachers=Array.isArray(staff?.teachers)?staff.teachers:[],schools=Array.isArray(staff?.schools)?staff.schools:[],used=new Set(),groups=[];
- for(const school of schools){
-  const rows=teachers.filter(a=>String(a.schoolId||'')===String(school.schoolId||''));rows.forEach(a=>used.add(String(a.id)+'|'+String(a.grantId||a.schoolId||'')));
-  groups.push(`<section class="staff-school-group" data-school-id="${esc(school.schoolId||'')}">
-   <header class="staff-school-head"><div class="staff-school-icon">🏫</div><div><b>${esc(school.schoolName||t('مدرسة','École'))}</b>${school.schoolNameFr?`<small>${esc(school.schoolNameFr)}</small>`:''}<small>${t('الحساب المسؤول','Compte responsable')}: ${esc(school.ownerName||'—')} · <span dir="ltr">${esc(school.ownerEmail||'')}</span></small></div><div class="staff-school-counts"><span><strong>${Number(school.teacherCount||rows.length)}</strong><small>${t('معلمون','Enseignants')}</small></span><span><strong>${Number(school.classCount||0)}</strong><small>${t('أقسام','Classes')}</small></span></div></header>
-   <div class="staff-school-teachers">${rows.map(a=>card(a,'teacher')).join('')||`<div class="staff-empty compact">${t('لا يوجد معلمون مرتبطون بهذه المدرسة بعد.','Aucun enseignant lié à cette école pour le moment.')}</div>`}</div>
-  </section>`)
- }
- const orphans=teachers.filter(a=>!used.has(String(a.id)+'|'+String(a.grantId||a.schoolId||'')));
- if(orphans.length)groups.push(`<section class="staff-school-group"><header class="staff-school-head"><div class="staff-school-icon">👨‍🏫</div><div><b>${t('معلمون غير مرتبطين بمدرسة ظاهرة','Enseignants sans école visible')}</b><small>${t('حسابات معلم قديمة أو صلاحيات لم تعد مرتبطة بمدرسة في القائمة.','Anciens comptes enseignants ou accès sans école visible.')}</small></div></header><div class="staff-school-teachers">${orphans.map(a=>card(a,'teacher')).join('')}</div></section>`);
- return groups.join('')||`<div class="staff-empty">${t('لا توجد مدارس أو حسابات معلمين بعد.','Aucune école ni aucun compte enseignant pour le moment.')}</div>`
-}
 function renderStaff(root,overview,staff,tab){
- const host=q('.staff-loading,.staff-content',root);if(!host)return;const s=overview.stats||{},items=tab==='professor'?staff.professors:staff.teachers,body=tab==='professor'?(items.map(a=>card(a,tab)).join('')||`<div class="staff-empty">${t('لا توجد حسابات في هذا القسم.','Aucun compte dans cette catégorie.')}</div>`):teacherSchoolGroups(staff);
+ const host=q('.staff-loading,.staff-content',root);if(!host)return;const s=overview.stats||{},items=tab==='professor'?staff.professors:staff.teachers,body=items.map(a=>card(a,tab)).join('')||`<div class="staff-empty">${t('لا توجد حسابات في هذا القسم.','Aucun compte dans cette catégorie.')}</div>`;
  host.outerHTML=`<div class="staff-content">
-  <div class="staff-stats"><article><strong>${Number(s.teachers||0)}</strong><span>${t('المعلمون','Enseignants')}</span></article><article><strong>${Number(s.professors||0)}</strong><span>${t('الأساتذة','Professeurs')}</span></article><article><strong>${Number(s.schools||0)}</strong><span>${t('المدارس','Écoles')}</span></article><article><strong>${Number(s.users||0)}</strong><span>${t('الحسابات','Comptes')}</span></article></div>
+  <div class="staff-stats"><article><strong>${staff.teachers.length}</strong><span>${t('المعلمون','Enseignants')}</span></article><article><strong>${Number(s.professors||0)}</strong><span>${t('الأساتذة','Professeurs')}</span></article><article><strong>${Number(s.schools||0)}</strong><span>${t('المدارس','Écoles')}</span></article><article><strong>${Number(s.users||0)}</strong><span>${t('الحسابات','Comptes')}</span></article></div>
   <div class="staff-tabs"><button data-staff-tab="teacher" class="${tab==='teacher'?'on':''}">👨‍🏫 ${t('المعلمون','Enseignants')} <b>${staff.teachers.length}</b></button><button data-staff-tab="professor" class="${tab==='professor'?'on':''}">🎓 ${t('الأساتذة','Professeurs')} <b>${staff.professors.length}</b></button></div>
-  <div class="staff-toolbar"><div><h3>${tab==='professor'?t('الأساتذة','Professeurs'):t('المدارس والمعلمون','Écoles et enseignants')}</h3><p>${tab==='professor'?t('المواد والأقسام والمعاملات وحالة الربط، دون عرض الدرجات الخام.','Matières, classes, coefficients et liaisons, sans afficher les notes brutes.'):t('كل مدرسة تظهر هنا ومعها المعلمون المرتبطون بها وصلاحياتهم.','Chaque école apparaît ici avec ses enseignants liés et leurs accès.')}</p></div><input id="staffSearch" type="search" placeholder="${t('بحث بالمدرسة أو المعلم أو البريد…','Rechercher école, enseignant ou e-mail…')}"></div>
+  <div class="staff-toolbar"><div><h3>${tab==='professor'?t('الأساتذة','Professeurs'):t('المعلمون','Enseignants')}</h3><p>${tab==='professor'?t('المواد والأقسام والمعاملات وحالة الربط، دون عرض الدرجات الخام.','Matières, classes, coefficients et liaisons, sans afficher les notes brutes.'):t('حسابات المعلمين وحالتها، مع الاحتفاظ بمدارسهم وأقسامهم وصلاحياتهم.','Comptes enseignants et leur état, avec leurs écoles, classes et accès conservés.')}</p></div><input id="staffSearch" type="search" placeholder="${t('بحث بالمدرسة أو المعلم أو البريد…','Rechercher école, enseignant ou e-mail…')}"></div>
   <div class="staff-list">${body}</div>
  </div>`;
  qa('[data-staff-tab]',root).forEach(b=>b.onclick=()=>renderStaff(root,overview,staff,b.dataset.staffTab));
- const search=q('#staffSearch',root);search.oninput=()=>{const v=search.value.trim().toLowerCase();if(tab==='teacher'){qa('.staff-school-group',root).forEach(group=>group.style.display=group.textContent.toLowerCase().includes(v)?'':'none')}else qa('.staff-card',root).forEach(row=>row.style.display=row.textContent.toLowerCase().includes(v)?'':'none')};
+ const search=q('#staffSearch',root);search.oninput=()=>{const v=search.value.trim().toLowerCase();qa('.staff-card',root).forEach(row=>row.style.display=row.textContent.toLowerCase().includes(v)?'':'none')};
  const reload=async()=>{const [o,st]=await Promise.all([api('/api/owner/overview'),api('/api/owner/staff')]);renderStaff(root,o,st,tab)};
  qa('[data-staff-action]',root).forEach(b=>{b.onclick=()=>{const row=b.closest('.staff-card');runAccountAction(row.dataset.staffId,row.dataset.staffRole,b.dataset.staffAction,root,reload)}});
  qa('[data-prof-detail]',root).forEach(b=>b.onclick=()=>{const row=b.closest('.staff-card');professorDetail(row.dataset.staffId,reload)})

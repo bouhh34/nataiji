@@ -6,6 +6,7 @@ on:
       - 'src/**'
       - 'public/owner-staff-v1.js'
       - 'scripts/owner-staff-acceptance.mjs'
+      - 'scripts/owner-teacher-accounts-acceptance.mjs'
       - '.github/workflows/owner-staff-acceptance.yml'
   workflow_dispatch:
 
@@ -41,6 +42,10 @@ jobs:
         run: |
           node --check src/server.js
           node --check public/owner-staff-v1.js
+      - name: Run teacher account management acceptance
+        env:
+          DATABASE_URL: postgresql://postgres:owner_staff_password@127.0.0.1:5432/nataiji_owner_staff
+        run: node scripts/owner-teacher-accounts-acceptance.mjs
       - name: Run owner staff acceptance
         env:
           DATABASE_URL: postgresql://postgres:owner_staff_password@127.0.0.1:5432/nataiji_owner_staff

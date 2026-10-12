@@ -629,16 +629,16 @@ app.delete('/api/professor/classes/:localClassId/link',auth,async(req,res)=>{
 });
 app.get('/api/owner/overview',auth,ownerOnly,async(_req,res)=>{
  const idx=await getIndex(),accounts=[],users=[];let schools=0;
- for(const [email,id] of Object.entries(idx)){
+ for(const id of new Set(Object.values(idx))){
   const raw=await storeGet(userKey(id));if(!raw)continue;
   try{
    const u=JSON.parse(raw),baseRole=String(u.baseRole||u.role),owned=[...new Set(Array.isArray(u.ownedSchoolIds)?u.ownedSchoolIds:(isOwnerRole(baseRole)&&u.schoolId?[u.schoolId]:[]))];
    users.push(u);if(isOwnerRole(baseRole))schools+=owned.length;
-   accounts.push({id:u.id,name:u.name||'',email,role:baseRole==='owner'?'owner':baseRole==='teacher'?'teacher':baseRole==='professor'?'professor':'admin',schools:isOwnerRole(baseRole)?owned.length:0,suspended:!!u.suspended,plan:u.plan||'free'})
+   accounts.push({id:u.id,name:u.name||'',email:u.email||'',role:baseRole==='owner'?'owner':baseRole==='teacher'?'teacher':baseRole==='professor'?'professor':'admin',schools:isOwnerRole(baseRole)?owned.length:0,suspended:!!u.suspended,plan:u.plan||'free'})
   }catch{}
  }
  const teacherIds=new Set();
- for(const u of users){const role=String(u.baseRole||u.role);if(role==='professor')continue;const memberships=await ownerTeacherMembershipsForUser(u);if(memberships.length)teacherIds.add(String(u.id))}
+ for(const u of users){if(isManagedTeacherAccount(u))teacherIds.add(String(u.id))}
  res.json({ok:true,stats:{users:accounts.length,schools,superAdmins:accounts.filter(x=>x.role==='owner').length,teacherAccounts:accounts.filter(x=>x.role==='admin').length,teachers:teacherIds.size,professors:accounts.filter(x=>x.role==='professor').length},accounts:accounts.sort((a,b)=>String(a.name).localeCompare(String(b.name),'fr'))})
 });
 async function ownerAccountById(id){
@@ -666,6 +666,13 @@ async function ownerSchoolName(schoolId,fallback=''){
  if(pool){const q=await pool.query('SELECT data FROM nataiji_school_settings WHERE school_id=$1',[schoolId]);const d=q.rows[0]?.data||{};return String(d.school||fallback||'')}
  return String(fallback||'')
 }
+function isManagedTeacherAccount(user){return ['admin','teacher'].includes(String(user?.baseRole||user?.role||''))}
+async function ownerTeacherAccountSummary(user){
+ const memberships=await ownerTeacherMembershipsForUser(user),owned=ownedSchoolIdsForDeletion(user),schools=[];
+ for(const sid of owned)schools.push(await ownerSchoolSummary(user,sid));
+ for(const m of memberships)if(m.schoolId&&!schools.some(s=>s.schoolId===m.schoolId))schools.push({schoolId:m.schoolId,schoolName:m.schoolName,classCount:m.classCount});
+ return{...await ownerTeacherSummary(user),schoolName:schools.map(s=>s.schoolName).filter(Boolean).join(' · '),schoolCount:schools.length,classCount:schools.reduce((n,s)=>n+Number(s.classCount||0),0),memberships};
+}
 async function ownerTeacherSummary(user,grant=null){
  const schoolId=String(grant?.schoolId||user.schoolId||''),schoolName=await ownerSchoolName(schoolId,grant?.schoolName||''),classAccess=grant?.classAccess&&typeof grant.classAccess==='object'?grant.classAccess:null;
  return{id:user.id,grantId:String(grant?.grantId||''),name:user.name||'',assignedName:String(grant?.teacherName||''),email:user.email||'',role:'teacher',suspended:!!user.suspended,plan:user.plan||'free',schoolName,schoolId,classCount:classAccess?Object.keys(classAccess).length:(Array.isArray(user.classIds)?user.classIds.length:0),permissions:grant?cleanPermissions(grant.permissions):cleanPermissions(user.permissions)}
@@ -692,10 +699,10 @@ async function ownerSchoolSummary(user,schoolId){
 }
 app.get('/api/owner/staff',auth,ownerOnly,async(_req,res)=>{
  const idx=await getIndex(),teachers=[],professors=[],schools=[],users=[];
- for(const id of Object.values(idx)){const user=await ownerAccountById(id);if(user)users.push(user)}
+ for(const id of new Set(Object.values(idx))){const user=await ownerAccountById(id);if(user)users.push(user)}
  for(const user of users){
   const role=String(user.baseRole||user.role);
-  if(role!=='professor')teachers.push(...await ownerTeacherMembershipsForUser(user));
+  if(isManagedTeacherAccount(user))teachers.push(await ownerTeacherAccountSummary(user));
   if(role==='professor'){const view=await ownerProfessorView(user);professors.push({...view.account,schoolName:view.schoolName,year:view.year,classCount:view.classes.length,assignmentCount:view.assignments.length,linkedClassCount:view.classes.filter(x=>x.linkedProfessorCount>1).length,versionCount:view.versionCount})}
   if(isOwnerRole(role)){
    const owned=[...new Set(Array.isArray(user.ownedSchoolIds)&&user.ownedSchoolIds.length?user.ownedSchoolIds:(user.schoolId?[user.schoolId]:[]))];
@@ -705,7 +712,7 @@ app.get('/api/owner/staff',auth,ownerOnly,async(_req,res)=>{
  const byName=(a,b)=>String(a.name||a.schoolName||'').localeCompare(String(b.name||b.schoolName||''),'fr');
  const uniqueTeachers=[];const teacherKeys=new Set();
  for(const row of teachers){const key=String(row.id)+'|'+String(row.grantId||row.schoolId||'');if(teacherKeys.has(key))continue;teacherKeys.add(key);uniqueTeachers.push(row)}
- for(const school of schools)school.teacherCount=uniqueTeachers.filter(t=>String(t.schoolId)===String(school.schoolId)).length;
+ for(const school of schools)school.teacherCount=uniqueTeachers.filter(t=>String(t.schoolId)===String(school.schoolId)||t.memberships.some(m=>String(m.schoolId)===String(school.schoolId))).length;
  res.json({ok:true,teachers:uniqueTeachers.sort(byName),schools:schools.sort(byName),professors:professors.sort(byName)})
 });
 app.get('/api/owner/professors/:id',auth,ownerOnly,async(req,res)=>{
@@ -777,7 +784,26 @@ app.post('/api/auth/forgot-password',forgotPasswordRate,async(req,res)=>{const e
 app.post('/api/auth/reset-password',resetPasswordRate,async(req,res)=>{const token=String(req.body?.token||''),password=String(req.body?.password||'');if(token.length<20||password.length<8||password.length>256)return res.status(400).json({error:'invalid_input'});const raw=await storeGet(resetKey(token));if(!raw)return res.status(400).json({error:'invalid_or_expired_reset'});const {userId}=JSON.parse(raw),uRaw=await storeGet(userKey(userId));if(!uRaw){await storeDel(resetKey(token));return res.status(400).json({error:'invalid_or_expired_reset'})}const user=JSON.parse(uRaw),hp=hashPassword(password);user.salt=hp.salt;user.passwordHash=hp.hash;user.sessionVersion=(Number(user.sessionVersion)||0)+1;await storeSet(userKey(user.id),JSON.stringify(user));await storeDel(resetKey(token));res.json({ok:true})});
 app.post('/api/auth/reset-with-code',resetPasswordRate,async(req,res)=>{const code=String(req.body?.code||'').trim().toUpperCase(),password=String(req.body?.password||'');if(!/^NT-[A-Z0-9]{8}$/.test(code)||password.length<8||password.length>256)return res.status(400).json({error:'invalid_input'});const key=resetCodeKey(code),raw=await storeGet(key);if(!raw)return res.status(400).json({error:'invalid_or_expired_reset'});const {userId}=JSON.parse(raw),uRaw=await storeGet(userKey(userId));if(!uRaw){await storeDel(key);return res.status(400).json({error:'invalid_or_expired_reset'})}const user=JSON.parse(uRaw),hp=hashPassword(password);user.salt=hp.salt;user.passwordHash=hp.hash;user.sessionVersion=(Number(user.sessionVersion)||0)+1;await storeSet(userKey(user.id),JSON.stringify(user));await storeDel(key);res.json({ok:true})});
 app.post('/api/owner/accounts/:id/action',auth,ownerOnly,async(req,res)=>{const id=String(req.params.id||''),action=String(req.body?.action||''),raw=await storeGet(userKey(id));if(!raw)return res.status(404).json({error:'account_not_found'});const user=JSON.parse(raw);if(String(user.baseRole||user.role)==='owner')return res.status(403).json({error:'owner_account_protected'});if(action==='suspend'||action==='activate'){user.suspended=action==='suspend';user.sessionVersion=(Number(user.sessionVersion)||0)+1;await storeSet(userKey(id),JSON.stringify(user));return res.json({ok:true,suspended:user.suspended})}if(action==='reset_code'){const code='NT-'+crypto.randomBytes(4).toString('hex').toUpperCase();await storeSet(resetCodeKey(code),JSON.stringify({userId:id,createdAt:Date.now()}),RESET_TTL);return res.json({ok:true,code,expiresInMinutes:30})}return res.status(400).json({error:'invalid_action'})});
-app.delete('/api/owner/accounts/:id',auth,ownerOnly,async(req,res)=>{const id=String(req.params.id||''),confirm=String(req.body?.confirm||'').trim();if(confirm!=='DELETE')return res.status(400).json({error:'delete_confirmation_required'});const raw=await storeGet(userKey(id));if(!raw)return res.status(404).json({error:'account_not_found'});const user=JSON.parse(raw);if(String(user.baseRole||user.role)==='owner')return res.status(403).json({error:'owner_account_protected'});const owned=ownedSchoolIdsForDeletion(user);if(pool){const client=await pool.connect();try{await client.query('BEGIN');for(const schoolId of owned)for(const table of ['nataiji_marks','nataiji_pupils','nataiji_subjects','nataiji_class_settings','nataiji_migrations','nataiji_school_settings','nataiji_structure'])await client.query('DELETE FROM '+table+' WHERE school_id=$1',[schoolId]);await cleanupProfessorSharing(id,client);await client.query('COMMIT')}catch(e){await client.query('ROLLBACK');throw e}finally{client.release()}}const idx=await getIndex();for(const [email,userId] of Object.entries(idx))if(userId===id)delete idx[email];await setIndex(idx);for(const schoolId of owned)await storeDel(schoolKey(schoolId));await storeDel(ownerGrantsKey(id));await storeDel(userKey(id));res.json({ok:true,deletedSchools:owned.length})});
+async function ownerDeletionPreview(user){
+ const owned=ownedSchoolIdsForDeletion(user),idx=await getIndex();let shared=false;
+ for(const id of new Set(Object.values(idx))){
+  if(String(id)===String(user.id))continue;
+  const other=await ownerAccountById(id);if(!other)continue;
+  const references=[String(other.schoolId||''),...ownedSchoolIdsForDeletion(other),...Object.values(other.sharedGrants||{}).map(g=>String(g.schoolId||''))];
+  if(references.some(sid=>owned.includes(sid)))shared=true;
+ }
+ // Live grants also protect a school if the recipient is missing from the index.
+ let grants=[];try{grants=JSON.parse(await storeGet(ownerGrantsKey(user.id))||'[]')}catch{}
+ for(const id of grants){const raw=await storeGet(grantKey(id));if(!raw)continue;const g=JSON.parse(raw);if(!g.revoked&&owned.includes(String(g.schoolId))&&await ownerAccountById(g.recipientId))shared=true}
+ const schools=[];for(const sid of owned)schools.push(await ownerSchoolSummary(user,sid));
+ return{ok:true,account:{id:user.id,name:user.name||'',email:user.email||''},canDelete:!shared,schools,reason:shared?'account_school_shared':''};
+}
+app.get('/api/owner/accounts/:id/deletion-preview',auth,ownerOnly,async(req,res)=>{
+ const user=await ownerAccountById(req.params.id);if(!user)return res.status(404).json({error:'account_not_found'});
+ if(!isManagedTeacherAccount(user))return res.status(403).json({error:'forbidden'});
+ res.json(await ownerDeletionPreview(user));
+});
+app.delete('/api/owner/accounts/:id',auth,ownerOnly,async(req,res)=>{const id=String(req.params.id||''),confirm=String(req.body?.confirm||'').trim();if(confirm!=='DELETE')return res.status(400).json({error:'delete_confirmation_required'});const raw=await storeGet(userKey(id));if(!raw)return res.status(404).json({error:'account_not_found'});const user=JSON.parse(raw);if(String(user.baseRole||user.role)==='owner')return res.status(403).json({error:'owner_account_protected'});if(isManagedTeacherAccount(user)&&!(await ownerDeletionPreview(user)).canDelete)return res.status(409).json({error:'account_school_shared'});const owned=ownedSchoolIdsForDeletion(user);if(pool){const client=await pool.connect();try{await client.query('BEGIN');for(const schoolId of owned)for(const table of ['nataiji_marks','nataiji_pupils','nataiji_subjects','nataiji_class_settings','nataiji_migrations','nataiji_school_settings','nataiji_structure'])await client.query('DELETE FROM '+table+' WHERE school_id=$1',[schoolId]);await cleanupProfessorSharing(id,client);await client.query('COMMIT')}catch(e){await client.query('ROLLBACK');throw e}finally{client.release()}}const idx=await getIndex();for(const [email,userId] of Object.entries(idx))if(userId===id)delete idx[email];await setIndex(idx);for(const schoolId of owned)await storeDel(schoolKey(schoolId));await storeDel(ownerGrantsKey(id));await storeDel(userKey(id));res.json({ok:true,deletedSchools:owned.length})});
 app.post('/api/invites',auth,adminOnly,async(req,res)=>{
  const raw=await storeGet(schoolKey(req.user.schoolId)),school=ensureSchoolModel(raw?JSON.parse(raw):{}),permissions=cleanPermissions(req.body?.permissions);
  if(!permissions.length)return res.status(400).json({error:'invalid_permissions'});
