@@ -7,7 +7,7 @@
 .lang-fr #studentReport .report-actions{direction:ltr!important}
 .report-expanded{position:fixed;inset:0;z-index:200;background:#edf3f4;padding:16px;overflow:auto}
 .report-expanded>.preview-close{position:sticky;top:0;z-index:1;min-height:44px;padding:10px 20px;border:0;border-radius:10px;background:#082b4b;color:#fff}
-.report-expanded>.official-sheet,.report-expanded>.paper{transform:none!important;width:185mm!important;max-width:none!important;margin:15px auto!important;background:white!important;direction:rtl!important}
+.report-expanded-frame{position:relative;width:100%;margin:15px 0;overflow:hidden;direction:ltr}.report-expanded-paper{position:absolute!important;top:0!important;left:50%!important;width:185mm!important;min-width:185mm!important;max-width:none!important;margin:0!important;transform:translateX(-50%) scale(var(--expanded-scale,1))!important;transform-origin:top center!important;background:white!important;direction:rtl!important}
 .report-share-note{font-size:12px;color:#627780;line-height:1.5}
 button:focus-visible,a:focus-visible{outline:3px solid #cda849;outline-offset:3px}
 @media(min-width:761px){#gradeNavigation{display:none}.student-table tbody{display:table-row-group}}

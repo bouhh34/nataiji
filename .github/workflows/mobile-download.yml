@@ -42,7 +42,7 @@ jobs:
       - run: npm ci --no-audit --no-fund
       - run: npx cap add android
       - run: npm run mobile:assets:android
-      - run: npx cap sync android
+      - run: npx cap sync android && node scripts/prepare-android-print.mjs
       - name: Apply RC version metadata
         run: |
           VERSION_NAME="$(node -e "const p=require('./package.json'); process.stdout.write(p.version)")"

@@ -87,7 +87,7 @@ jobs:
         run: npm run mobile:assets:android
 
       - name: Sync web and native configuration
-        run: npx cap sync android
+        run: npx cap sync android && node scripts/prepare-android-print.mjs
 
       - name: Verify Android package and API target
         run: |

@@ -146,6 +146,7 @@ function requestNativePrintCleanup(){
  if(document.hasFocus()&&elapsed>1200)finishNativePrintLifecycle()
 }
 window.nataijiArmPrintLifecycle=armNativePrintLifecycle;
+window.nataijiFinishPrintLifecycle=finishNativePrintLifecycle;
 window.addEventListener('beforeprint',()=>{if(!nativePrintStartedAt)armNativePrintLifecycle()});
 window.addEventListener('afterprint',requestNativePrintCleanup);
 window.addEventListener('focus',()=>{if(nativePrintCleanupPending)setTimeout(finishNativePrintLifecycle,160)});
