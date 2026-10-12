@@ -142,7 +142,8 @@ try{
   let firstRow=page.locator('.compact-score-row').first();
   let absentButton=firstRow.locator('.absent-btn');
   let absentInput=firstRow.locator('.mobile-mark');
-  const inactiveAbsentStyle=await absentButton.evaluate(el=>({pressed:el.getAttribute('aria-pressed'),background:getComputedStyle(el).backgroundColor,border:getComputedStyle(el).borderTopColor,color:getComputedStyle(el).color}));
+  await page.waitForFunction(()=>{const el=document.querySelector('.compact-score-row .absent-btn');return el?.isConnected&&getComputedStyle(el).backgroundColor!==''});
+  const inactiveAbsentStyle=await page.evaluate(()=>{const el=document.querySelector('.compact-score-row .absent-btn');return{pressed:el.getAttribute('aria-pressed'),background:getComputedStyle(el).backgroundColor,border:getComputedStyle(el).borderTopColor,color:getComputedStyle(el).color}});
   check('inactive absence control is visually neutral',inactiveAbsentStyle.pressed==='false'&&inactiveAbsentStyle.background==='rgb(255, 255, 255)',JSON.stringify(inactiveAbsentStyle));
   const saveAbsentResponse=page.waitForResponse(r=>r.url().includes('/api/mark')&&r.request().method()==='PUT'&&r.status()===200,{timeout:10000});
   await absentButton.click();
@@ -211,7 +212,7 @@ try{
   await page.locator('.nataiji-bi-editor .bi-save').click();
   await page.locator('#bi-ar').waitFor({state:'hidden',timeout:12000});
   await page.waitForTimeout(700);
-  const newPupil=await page.evaluate(async()=>{const r=await fetch('/api/pupils?classId='+encodeURIComponent(state.activeClassId));const d=await r.json();return{row:d.pupils?.find(p=>p[1]==='تلميذ جديد محفوظ'),notice:document.querySelector('#saveState')?.textContent||''}});
+  const newPupil=await page.evaluate(async()=>{const r=await fetch('/api/state?classId='+encodeURIComponent(state.activeClassId));const d=await r.json();return{status:r.status,classId:d.state?.activeClassId,row:d.state?.pupils?.find(p=>p[1]==='تلميذ جديد محفوظ'),notice:document.querySelector('#saveState')?.textContent||''}});
   check('new blank-NNS student is durable without a false roster save failure',!!newPupil.row?.[7]&&!newPupil.notice.includes('تعذر تثبيت لائحة'),JSON.stringify(newPupil));
 
   await page.locator('.bottom-nav button[data-view="reports"]').click();

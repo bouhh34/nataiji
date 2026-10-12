@@ -18,9 +18,9 @@ window.nataijiVerifyPupils=async function(){
  const userId=String(currentUser.id),schoolId=String(currentUser.schoolId||''),grantId=String(currentUser.activeSharedGrant||''),classId=String(state.activeClassId||'');
  if(!classId)return false;
  const expected=structuredClone(state.pupils||[]);
- const r=await api('/api/pupils?classId='+encodeURIComponent(classId));
+ const r=await api('/api/state?classId='+encodeURIComponent(classId));
  if(String(currentUser?.id)!==userId||String(currentUser?.schoolId||'')!==schoolId||String(currentUser?.activeSharedGrant||'')!==grantId||String(state?.activeClassId||'')!==classId)return false;
- if(!r?.ok||JSON.stringify(expected)!==JSON.stringify(r.pupils||[]))throw new Error('pupil_save_not_verified');
+ if(!r?.state||String(r.state.activeClassId||'')!==classId||JSON.stringify(expected)!==JSON.stringify(r.state.pupils||[]))throw new Error('pupil_save_not_verified');
  return true;
 };
 })();
