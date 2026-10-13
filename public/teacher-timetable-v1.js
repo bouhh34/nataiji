@@ -34,8 +34,13 @@
   function init(){
     const nav=document.querySelector('#sideNav'),main=document.querySelector('main');if(!nav||!main||document.getElementById('teacherTimetable'))return;
     const btn=document.createElement('button');btn.dataset.view='timetable';btn.textContent='▦ استعمال الزمن';nav.appendChild(btn);
+    const grid=document.querySelector('[data-page="more"] .settings-grid');
+    const moreBtn=document.createElement('button');moreBtn.type='button';moreBtn.id='teacherTimetableMoreBtn';moreBtn.className='menu-card';moreBtn.innerHTML='<b>استعمال الزمن / Emploi du temps</b><span>الجدول الرسمي وتخصيص حصص القسم • طباعة PDF</span>';
+    if(grid)grid.prepend(moreBtn);
     const section=document.createElement('section');section.className='view hidden';section.dataset.page='timetable';section.id='teacherTimetable';main.appendChild(section);
-    btn.addEventListener('click',()=>{setView('timetable');load()});
+    const openTimetable=()=>{setView('timetable');load()};
+    btn.addEventListener('click',openTimetable);
+    moreBtn.addEventListener('click',openTimetable);
     document.querySelector('#classTop')?.addEventListener('change',()=>{if(!section.classList.contains('hidden'))load()});
   }
   if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',init);else init();
