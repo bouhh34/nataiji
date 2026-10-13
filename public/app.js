@@ -4,13 +4,23 @@ const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&
 let state=structuredClone(DEFAULT),currentUser=null,storageMode='memory',syncBusy=false;
 
 async function api(url,options={}){
- const method=String(options.method||'GET').toUpperCase(),controller=new AbortController();
- const timer=setTimeout(()=>controller.abort(),method==='GET'?15000:30000);
+ const method=String(options.method||'GET').toUpperCase();
+ // Restoring a session may need to wait for the server to wake up on a mobile connection.
+ // Retry only this read: never replay a login, grade save, or other mutation.
+ const sessionStatus=method==='GET'&&url==='/api/auth/status';
+ for(let attempt=0;;attempt++){
+ const controller=new AbortController();
+ const timer=setTimeout(()=>controller.abort(),sessionStatus?45000:method==='GET'?15000:30000);
  try{
   const r=await fetch(url,{credentials:'same-origin',cache:method==='GET'?'no-store':'no-cache',...options,signal:options.signal||controller.signal,headers:{'Content-Type':'application/json','Cache-Control':'no-cache',...(options.headers||{})}});
-  let data={};try{data=await r.json()}catch{}
+  let data={};try{data=await r.json()}catch{if(sessionStatus&&r.ok)throw Object.assign(new Error('invalid_response'),{code:'invalid_response'})}
   if(!r.ok){const e=new Error(data.error||'request_failed');e.code=data.error||'request_failed';e.status=r.status;e.data=data;throw e}return data
+ }catch(error){
+  if(!sessionStatus||attempt>=1||options.signal?.aborted||error.status&&![502,503,504].includes(error.status))throw error;
+  clearTimeout(timer);
+  await new Promise(resolve=>setTimeout(resolve,1500));
  }finally{clearTimeout(timer)}
+ }
 }
 function localState(){try{return JSON.parse(localStorage.getItem('nataiji-data'))}catch{return null}}
 function localStateDataCount(s){
