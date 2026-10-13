@@ -8,14 +8,14 @@
   const safe=v=>String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;','"':'&quot;',"'":'&#39;'}[c]));
   const clone=v=>JSON.parse(JSON.stringify(v));
   let grade='1',working=null,changed=false;
-  const currentClass=()=>String(document.querySelector('#classTop')?.value||state?.activeClassId||state?.classCode||'default');
+  const currentClass=()=>String(state?.activeClassId||document.querySelector('#classTop')?.value||state?.classCode||'default');
   const key=()=>currentClass();
   function guessGrade(){const cls=selectorClasses().find(c=>String(c.id)===currentClass());const name=String(cls?.name||state.className||'');const m=name.match(/(?:^|\D)([1-6])(?:\D|$)/);return m?.[1]||'1'}
   function saved(){return state?.teacherTimetables?.[key()]||null}
   function load(){const record=saved();grade=String(record?.grade||guessGrade());working=clone(record?.days||templates[grade]);changed=false;draw()}
   function draw(){
     const root=document.getElementById('teacherTimetable');if(!root)return;
-    const lang=document.documentElement.lang==='fr';
+
     root.innerHTML=`<div class="section-head"><h2>استعمال الزمن | Emploi du temps</h2></div>
       <div class="tt-actions"><label>السنة <select id="ttGrade">${[1,2,3,4,5,6].map(n=>`<option value="${n}" ${grade===String(n)?'selected':''}>${n}</option>`).join('')}</select></label>
       <button type="button" id="ttOfficial">استعادة الجدول الرسمي</button>
