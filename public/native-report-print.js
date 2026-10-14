@@ -17,6 +17,7 @@ let busy=false;
 const originalPrint=window.print;
 function finish(){
  busy=false;
+ document.documentElement?.removeAttribute?.('data-nataiji-native-print');
  if(typeof window.nataijiFinishPrintLifecycle==='function')window.nataijiFinishPrintLifecycle();
  else{delete document.body.dataset.print;document.body.classList.remove('print-two-a4');window.dispatchEvent(new Event('nataiji-print-finished'))}
 }
@@ -34,6 +35,8 @@ window.nataijiPrintDocument=async function({html,title='Nataiji',landscape=false
 if(native())window.print=function(){
  if(!supported()){failed();return}
  if(busy)return;busy=true;
+ // Native WebView can include the app's dark background in the PDF page; isolate print roots.
+ document.documentElement?.setAttribute?.('data-nataiji-native-print','');
  return window.Capacitor.nativePromise('NataijiPrint','print',{landscape:landscapeForCurrentPrint()}).catch(error=>{console.error('Native printing failed',error);failed()});
 };
 })();
