@@ -1,6 +1,9 @@
 package mr.nataiji.app;
 
 import android.content.Context;
+import android.graphics.Color;
+import android.graphics.drawable.ColorDrawable;
+import android.graphics.drawable.Drawable;
 import android.os.Bundle;
 import android.os.CancellationSignal;
 import android.os.ParcelFileDescriptor;
@@ -18,8 +21,33 @@ import com.getcapacitor.annotation.CapacitorPlugin;
 public class NataijiPrintPlugin extends Plugin {
     private boolean printing = false;
     private WebView documentView;
+    private WebView activePrintView;
+    private Drawable previousPrintDrawable;
+    private Integer previousPrintColor;
+
+    // Capacitor's dark WebView background can bleed into PDF page margins on Android.
+    // Keep the rendered print surface white, then restore the app's original appearance.
+    private void prepareWhitePrintSurface(WebView view) {
+        activePrintView = view;
+        Drawable prior = view.getBackground();
+        previousPrintColor = prior instanceof ColorDrawable ? ((ColorDrawable) prior).getColor() : null;
+        previousPrintDrawable = previousPrintColor == null ? prior : null;
+        view.setBackgroundColor(Color.WHITE);
+    }
+
+    private void restorePrintSurface() {
+        if (activePrintView != null && activePrintView != documentView) {
+            if (previousPrintColor != null) activePrintView.setBackgroundColor(previousPrintColor);
+            else if (previousPrintDrawable != null) activePrintView.setBackground(previousPrintDrawable);
+            else activePrintView.setBackgroundColor(Color.rgb(8, 43, 75));
+        }
+        activePrintView = null;
+        previousPrintDrawable = null;
+        previousPrintColor = null;
+    }
 
     private void finish() {
+        restorePrintSurface();
         printing = false;
         if (documentView != null) {
             documentView.destroy();
@@ -32,6 +60,7 @@ public class NataijiPrintPlugin extends Plugin {
         try {
             PrintManager manager = (PrintManager) getActivity().getSystemService(Context.PRINT_SERVICE);
             if (manager == null) throw new IllegalStateException("Printing is unavailable");
+            prepareWhitePrintSurface(view);
             PrintDocumentAdapter delegate = view.createPrintDocumentAdapter(title);
             PrintDocumentAdapter adapter = new PrintDocumentAdapter() {
                 @Override public void onStart() { delegate.onStart(); }
@@ -78,6 +107,7 @@ public class NataijiPrintPlugin extends Plugin {
             try {
                 // A dedicated WebView prints the professor document, never the app dashboard or a hidden iframe.
                 documentView = new WebView(getActivity());
+                documentView.setBackgroundColor(Color.WHITE);
                 documentView.getSettings().setJavaScriptEnabled(false);
                 documentView.getSettings().setAllowFileAccess(false);
                 documentView.getSettings().setAllowContentAccess(false);
@@ -99,6 +129,7 @@ public class NataijiPrintPlugin extends Plugin {
 
     @Override
     protected void handleOnDestroy() {
+        restorePrintSurface();
         if (documentView != null) { documentView.destroy(); documentView = null; }
     }
 }
