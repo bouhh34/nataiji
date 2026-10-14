@@ -16,7 +16,7 @@ function fixture(){
  const window={addEventListener(){},nataijiFindInvalidMark(){return false},nataijiValidateGradeValue(raw,max){const n=Number(raw);return raw===''?{ok:true,value:''}:/^(غائب|غائبة|abs|absent|absente)$/i.test(raw)?{ok:true,value:raw,absent:true}:{ok:Number.isFinite(n)&&n>=0&&n<=max,value:n}}};
  const ctx=vm.createContext({state,currentUser:{id:'owner',schoolId:'school'},document,window,structuredClone,console,Event,syncBusy:false,setTimeout,localStorage:{setItem(){}},renderReports(){},$:s=>s==='#saveState'?status:s==='#student'?student:button,api:async(url,options)=>{requests.push({url,...JSON.parse(options.body)});return await new Promise((resolve,reject)=>deferred.push({resolve,reject}))}});
  vm.runInContext(code,ctx);
- return {ctx,state,status,button,requests,deferred,events,edit(value){ctx.input={value,dataset:{i:'0',j:'0'},classList:{contains:()=>false}};return vm.runInContext('persistMarkCell(input)',ctx)}};
+ return {ctx,state,status,button,requests,deferred,events,edit(value,lastValid){ctx.input={value,dataset:{i:'0',j:'0',...(lastValid===undefined?{}:{lastValid})},classList:{contains:()=>false}};return vm.runInContext('persistMarkCell(input)',ctx)}};
 }
 const tick=()=>new Promise(resolve=>setImmediate(resolve));
 test('capture-phase save uses entered value instead of old state',async()=>{
@@ -79,5 +79,12 @@ test('French Abs is only a display token, never an overwrite of an existing save
 test('New French Abs maps to canonical female absence before API persistence',async()=>{
  const f=fixture();f.state.pupils[0][2]='أنثى';f.state.marks[0][0]='';
  const job=f.edit('Abs');await tick();assert.equal(f.requests[0].value,'غائبة');
+ f.deferred[0].resolve({ok:true});await job;
+});
+
+test('absence button preserves the previous server value as optimistic concurrency baseline',async()=>{
+ const f=fixture();f.state.marks[0][0]='غائب'; // UI click already changed local state before capture-phase save.
+ const job=f.edit('Abs','5');await tick();
+ assert.equal(f.requests[0].value,'غائب');assert.equal(f.requests[0].expectedValue,'5');
  f.deferred[0].resolve({ok:true});await job;
 });
