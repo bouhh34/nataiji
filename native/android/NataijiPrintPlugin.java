@@ -62,7 +62,7 @@ public class NataijiPrintPlugin extends Plugin {
         getActivity().runOnUiThread(() -> {
             if (printing) { call.reject("Printing is already active", "print_busy"); return; }
             printing = true;
-            startPrint(getBridge().getWebView(), "Nataiji", false, call);
+            startPrint(getBridge().getWebView(), "Nataiji", call.getBoolean("landscape", false), call);
         });
     }
 

@@ -6,11 +6,13 @@ window.__nataijiFinalGradeEntryV4=true;
 const q=(s,r=document)=>r.querySelector(s);
 const qa=(s,r=document)=>[...r.querySelectorAll(s)];
 const isFr=()=>localStorage.getItem('nataiji-lang')==='fr';
-const isAbsent=v=>/^(غائب|غائبة|absent|absente|a)$/i.test(String(v??'').trim());
+const isAbsent=v=>/^(غائب|غائبة|absent|absente|abs|a)$/i.test(String(v??'').trim());
 const maxFor=j=>{const n=Number(state?.subjects?.[j]?.[3]);return Number.isFinite(n)&&n>0?n:20};
 const totalMax=()=>{const n=(state?.subjects||[]).reduce((a,_,j)=>a+maxFor(j),0);return n>0?n:200};
 const female=i=>{const p=state?.pupils?.[i]||[],g=String(p?.[2]??p?.[6]??p?.gender??'').trim().toLowerCase();return /أنثى|انثى|female|féminin|feminin|fille/.test(g)};
 const absenceLabel=(i,fr=false)=>female(i)?(fr?'Absente':'غائبة'):(fr?'Absent':'غائب');
+// Presentation-only abbreviation for French mark entry; reports retain full wording.
+const markDisplay=v=>isFr()&&isAbsent(v)?'Abs':v;
 const rowFor=i=>state?.marks?.[i]||[];
 const allAbsent=i=>!!state?.subjects?.length&&state.subjects.every((_,j)=>isAbsent(rowFor(i)[j]));
 const numeric=v=>isAbsent(v)?0:(Number.isFinite(Number(v))?Number(v):0);
@@ -63,10 +65,10 @@ function commitEntry(input,final=false){
  const raw=String(input.value??'').trim(),check=validateGradeValue(raw,maxFor(j));
  if(!check.ok)return showGradeValidationError(input,check);
  clearGradeValidationError(input);
- let value=check.value;if(check.absent)value=absenceLabel(i);
+ let value=check.value;if(check.absent)value=isAbsent(state.marks[i][j])?state.marks[i][j]:absenceLabel(i);
  input.classList.toggle('absent-mark',isAbsent(value));
  if(!final&&!check.absent)return true;
- state.marks[i][j]=value;input.value=value;input.dataset.lastValid=String(value??'');
+ state.marks[i][j]=value;input.value=markDisplay(value);input.dataset.lastValid=String(value??'');
  try{markDirty()}catch{}try{renderDashboard()}catch{}scheduleReports();
  return true
 }
@@ -83,7 +85,8 @@ function enhanceInputs(){
  qa('input.mark[data-i][data-j],input.mobile-mark[data-i][data-j]').forEach(input=>{
   const i=Number(input.dataset.i),j=Number(input.dataset.j);
   input.inputMode='decimal';input.enterKeyHint='next';if(input.dataset.lastValid===undefined)input.dataset.lastValid=String(state?.marks?.[i]?.[j]??'');
-  input.placeholder=isFr()?'Note ou Absent':'درجة أو غائب';
+  input.placeholder=isFr()?'Note ou Abs':'درجة أو غائب';
+  if(isFr()&&isAbsent(state?.marks?.[i]?.[j])&&document.activeElement!==input)input.value='Abs';
   input.oninput=()=>commitEntry(input,false);
   input.onchange=()=>commitEntry(input,true);
   input.onblur=()=>commitEntry(input,true);
@@ -95,7 +98,7 @@ function enhanceInputs(){
   const buttonHost=compactRow?.querySelector?.('.score-controls')||input.parentElement;
   let b=buttonHost?.querySelector?.('.absent-btn')||compactRow?.querySelector?.('.absent-btn');
   if(!b&&buttonHost){b=document.createElement('button');b.type='button';b.className='absent-btn';buttonHost.appendChild(b)}
-  if(b){const syncPressed=()=>b.setAttribute('aria-pressed',isAbsent(input.value)?'true':'false');b.textContent=absenceLabel(i);syncPressed();b.onclick=e=>{e.preventDefault();e.stopPropagation();if(isAbsent(input.value)){input.value='';commitEntry(input,true);syncPressed();input.dispatchEvent(new Event('change',{bubbles:true}));input.focus()}else{input.value=absenceLabel(i);commitEntry(input,true);syncPressed();input.dispatchEvent(new Event('change',{bubbles:true}))}}}
+  if(b){const syncPressed=()=>b.setAttribute('aria-pressed',isAbsent(input.value)?'true':'false');b.textContent=isFr()?'Abs':absenceLabel(i);syncPressed();b.onclick=e=>{e.preventDefault();e.stopPropagation();if(isAbsent(input.value)){input.value='';commitEntry(input,true);syncPressed();input.dispatchEvent(new Event('change',{bubbles:true}));input.focus()}else{input.value=absenceLabel(i);commitEntry(input,true);syncPressed();input.dispatchEvent(new Event('change',{bubbles:true}))}}}
  })
 }
 try{
@@ -166,8 +169,10 @@ const style=document.createElement('style');style.id='nataiji-final-grade-entry-
  body[data-print="portal"][data-portal-type="list"] #printPortal h2{font-size:22pt!important;margin:5mm 0!important}
  body[data-print="portal"][data-portal-type="list"] #printPortal table{font-size:11.5pt!important}
  body[data-print="portal"][data-portal-type="list"] #printPortal th,body[data-print="portal"][data-portal-type="list"] #printPortal td{height:9.5mm!important;padding:1.2mm 1.5mm!important}
- body[data-print="portal"][data-portal-type="class"] #printPortal{width:287mm!important;max-width:287mm!important;margin:0!important}
- body[data-print="portal"][data-portal-type="class"] #printPortal .portal-paper{width:287mm!important;max-width:287mm!important;padding:4mm!important}
+ body[data-print="portal"][data-portal-type="class"] #printPortal{width:202mm!important;max-width:202mm!important;margin:0!important}
+ body[data-print="portal"][data-portal-type="class"] #printPortal .portal-paper{width:202mm!important;max-width:202mm!important;padding:4mm!important}
+ body[data-print="portal"][data-portal-type="class"][data-nataiji-class-wide="1"] #printPortal{width:287mm!important;max-width:287mm!important}
+ body[data-print="portal"][data-portal-type="class"][data-nataiji-class-wide="1"] #printPortal .portal-paper{width:287mm!important;max-width:287mm!important}
  body[data-print="portal"][data-portal-type="class"] #printPortal table{font-size:8.6pt!important;line-height:1.18!important;table-layout:auto!important}
  body[data-print="portal"][data-portal-type="class"] #printPortal th,body[data-print="portal"][data-portal-type="class"] #printPortal td{height:7mm!important;padding:.9mm .75mm!important}
  body[data-print="portal"][data-portal-type="class"] #printPortal h2{font-size:20pt!important;margin:3mm 0 4mm!important}
@@ -178,7 +183,7 @@ document.head.appendChild(style);
 function forcePageOrientation(){
  if(document.body.dataset.print==='portal'&&document.body.dataset.portalType==='class'){
   let s=q('#final-page-orientation');if(!s){s=document.createElement('style');s.id='final-page-orientation';document.head.appendChild(s)}
-  s.textContent='@page{size:297mm 210mm;margin:5mm}'
+  s.textContent=(state?.subjects?.length||0)>=10?'@page{size:A4 landscape;margin:5mm}':'@page{size:A4 portrait;margin:4mm}'
  }else q('#final-page-orientation')?.remove()
 }
 window.addEventListener('beforeprint',()=>{forcePageOrientation();patchReportsNow()});

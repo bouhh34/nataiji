@@ -9,7 +9,7 @@ function fixture(cap){
  if(cap?.nativePromise)cap.nativePromise=async(...args)=>{calls.push(args);return{}};
  const ctx=vm.createContext({window,alert:t=>alerts.push(t),console,localStorage:{getItem:()=>null},document:{body:{dataset:{},classList:{remove(){}}}},Event});
  vm.runInContext(source,ctx);
- return{window,events,original,calls,alerts,get printCalls(){return printCalls},get finishes(){return finishes}};
+ return{window,ctx,events,original,calls,alerts,get printCalls(){return printCalls},get finishes(){return finishes}};
 }
 const nativeCap=()=>({isNativePlatform:()=>true,getPlatform:()=>'android',PluginHeaders:[{name:'NataijiPrint'}],nativePromise:()=>{}});
 test('web browser printing retains its original print function',async()=>{const f=fixture();assert.equal(f.window.print,f.original);assert.equal(await f.window.nataijiPrintDocument({html:'<p>School</p>'}),false)});
@@ -39,4 +39,47 @@ test('every professor report routes its assembled HTML through the native bridge
   const ctx=vm.createContext({window:{Capacitor:{isNativePlatform:()=>true},nataijiPrintDocument:args=>{output=args}},document:{createElement:()=>frame,body:{appendChild(){}}},fr:()=>false,esc:s=>String(s??''),professorOfficialHeader:()=>'<header>School</header>',professorSignatures:()=>'<footer>Signature</footer>'});
   vm.runInContext(fn,ctx);ctx.printProfessorDocument('كشف','<p>مريم — 16 / 20</p>',opts);assert.equal(removed,1);assert.ok(output.html.includes('Signature'));assert.equal(output.landscape,!!opts.landscape);assert.ok(output.html.includes('مريم'));
  }
+});
+
+// Regression: timetable paper orientation must never spill into pupil/class bulletins.
+test('timetable landscape uses a named print page, preserving portrait RC4 reports',()=>{
+ const timetable=fs.readFileSync(new URL('../public/teacher-timetable-v1.css',import.meta.url),'utf8');
+ const batch=fs.readFileSync(new URL('../public/two-students-a4-v1.js',import.meta.url),'utf8');
+ assert.match(timetable,/@page\s+nataiji-timetable\s*\{\s*size:A4 landscape/i);
+ assert.match(timetable,/#teacherTimetable\{page:nataiji-timetable!important\}/);
+ assert.doesNotMatch(timetable,/@page\s*\{\s*size:A4 landscape/i);
+ assert.match(batch,/@page\s*\{\s*size:A4 portrait/i);
+});
+test('class report portal keeps portrait width for up to nine subjects and landscape for ten or more',()=>{
+ const code=fs.readFileSync(new URL('../public/final-grade-entry.js',import.meta.url),'utf8');
+ assert.match(code,/data-portal-type="class"\] #printPortal\{width:202mm/);
+ assert.match(code,/data-nataiji-class-wide="1"\] #printPortal\{width:287mm/);
+ assert.match(code,/state\?\.subjects\?\.length\|\|0\)>=10\?'@page\{size:A4 landscape/);
+});
+test('French Abs appears only in grade entry while report wording remains unchanged',()=>{
+ const mobile=fs.readFileSync(new URL('../public/grade-mobile-ui-v1.js',import.meta.url),'utf8');
+ const grade=fs.readFileSync(new URL('../public/final-grade-entry.js',import.meta.url),'utf8');
+ assert.match(mobile,/if\(fr\(\)\)return 'Abs'/);
+ assert.match(mobile,/value="\$\{esc\(displayMark\(value\)\)\}"/);
+ assert.match(grade,/const markDisplay=v=>isFr\(\)&&isAbsent\(v\)\?'Abs':v/);
+ assert.match(grade,/fr\?'Absente':'غائبة'/);
+});
+
+test('Android print orientation follows actual document, never the unrelated timetable CSS',async()=>{
+ const f=fixture(nativeCap());f.ctx.state={subjects:Array.from({length:12},(_,i)=>['Subject '+i])};
+ f.ctx.document.body.dataset.print='class';await f.window.print();
+ assert.equal(f.calls[0][2].landscape,true);
+ f.events['nataiji-native-print-finished']();
+ f.ctx.document.body.dataset.print='student';await f.window.print();
+ assert.equal(f.calls[1][2].landscape,false);
+ f.events['nataiji-native-print-finished']();
+ f.ctx.document.body.dataset.print='class';f.ctx.state.subjects.length=8;await f.window.print();
+ assert.equal(f.calls[2][2].landscape,false);
+ f.events['nataiji-native-print-finished']();
+ f.ctx.document.querySelector=()=>({});await f.window.print();
+ assert.equal(f.calls[3][2].landscape,true);
+});
+test('Android plugin accepts print landscape instead of forcing portrait',()=>{
+ const java=fs.readFileSync(new URL('../native/android/NataijiPrintPlugin.java',import.meta.url),'utf8');
+ assert.match(java,/startPrint\(getBridge\(\)\.getWebView\(\), "Nataiji", call\.getBoolean\("landscape", false\), call\)/);
 });
