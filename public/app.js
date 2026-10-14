@@ -317,7 +317,7 @@ function persistMarkCell(input){
  const gender=String(pupil?.[2]??pupil?.[6]??pupil?.gender??'').trim().toLowerCase();
  const canonicalAbsent=/أنثى|انثى|female|féminin|feminin|fille/.test(gender)?'غائبة':'غائب';
  const normalizedValue=check.absent?(previousAbsent?previousMark:canonicalAbsent):(check.value??'');
- const value=normalizedValue,context=gradeContext(),cellKey=gradeCellKey(context,pupilKey,subjectId),expectedValue=String(gradeQueuedValues.has(cellKey)?gradeQueuedValues.get(cellKey):(gradeExpectedValues.has(cellKey)?gradeExpectedValues.get(cellKey):(state.marks?.[i]?.[j]??''))),payload={classId:context.classId,term:context.term,pupilKey,subjectId,value,expectedValue};
+ const value=normalizedValue,context=gradeContext(),cellKey=gradeCellKey(context,pupilKey,subjectId),expectedValue=String(gradeQueuedValues.has(cellKey)?gradeQueuedValues.get(cellKey):(gradeExpectedValues.has(cellKey)?gradeExpectedValues.get(cellKey):(input.dataset.lastValid!==undefined?input.dataset.lastValid:(state.marks?.[i]?.[j]??'')))),payload={classId:context.classId,term:context.term,pupilKey,subjectId,value,expectedValue};
  gradeQueuedValues.set(cellKey,value);
  if(!state.marks[i])state.marks[i]=[];
  state.marks[i][j]=value;
