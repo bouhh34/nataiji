@@ -7,7 +7,7 @@ const q=(s,r=document)=>r.querySelector(s);
 const qa=(s,r=document)=>[...r.querySelectorAll(s)];
 const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const fr=()=>localStorage.getItem('nataiji-lang')==='fr';
-const absent=v=>/^(غائب|غائبة|absent|absente|a)$/i.test(String(v??'').trim());
+const absent=v=>/^(غائب|غائبة|absent|absente|abs|a)$/i.test(String(v??'').trim());
 const maxOf=s=>{const n=Number(s?.[3]);return Number.isFinite(n)&&n>0?n:20};
 const normalizeSubject=v=>String(v||'').normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase();
 const currentSubjectIconKey=v=>{
@@ -37,9 +37,11 @@ const currentSubjectIconMarkup=key=>{
 };
 function absentLabel(i){
  const p=state?.pupils?.[i]||[],g=String(p?.[2]??p?.[6]??p?.gender??'').trim().toLowerCase(),female=/أنثى|انثى|female|féminin|feminin|fille/.test(g);
- if(fr())return female?'Absente':'Absent';
+ if(fr())return 'Abs';
  return female?'غائبة':'غائب'
 }
+function storedAbsence(i){const p=state?.pupils?.[i]||[],g=String(p?.[2]??p?.[6]??p?.gender??'').trim().toLowerCase();return /أنثى|انثى|female|féminin|feminin|fille/.test(g)?'غائبة':'غائب'}
+const displayMark=value=>fr()&&absent(value)?'Abs':(value??'');
 function validate(raw,max){
  if(typeof window.nataijiValidateGradeValue==='function')return window.nataijiValidateGradeValue(raw,max);
  const s=String(raw??'').trim();
@@ -81,7 +83,7 @@ function renderCompactMobileScores(){
      <span class="score-student"><b dir="${fr()?'ltr':'rtl'}">${i+1}. ${esc(pupilName)}</b>${nns?`<small>${esc(nns)}</small>`:''}</span>
      <div class="score-controls">
        <div class="score-field" dir="ltr">
-         <input class="mobile-mark" inputmode="decimal" min="0" max="${m}" step="0.1" data-i="${i}" data-j="${j}" value="${esc(value)}" placeholder="—" aria-label="${esc(pupilName+' — '+currentName)}">
+         <input class="mobile-mark" inputmode="decimal" min="0" max="${m}" step="0.1" data-i="${i}" data-j="${j}" value="${esc(displayMark(value))}" placeholder="—" aria-label="${esc(pupilName+' — '+currentName)}">
          <em dir="ltr">/${m}</em>
        </div>
        <button type="button" class="absent-btn compact-absent" data-absent-i="${i}" aria-pressed="${absent(value)?'true':'false'}">${esc(absentLabel(i))}</button>
@@ -109,9 +111,9 @@ function renderCompactMobileScores(){
        const check=validate(input.value,m);
        if(!check.ok){row.classList.add('is-invalid');return}
        row.classList.remove('is-invalid');
-       const value=check.absent?absentLabel(i):check.value;
+       const value=check.absent?(absent(state.marks?.[i]?.[j])?state.marks[i][j]:storedAbsence(i)):check.value;
        if(state.marks?.[i])state.marks[i][j]=value;
-       input.value=value;input.dataset.lastValid=String(value??'');
+       input.value=displayMark(value);input.dataset.lastValid=String(value??'');
        try{markDirty()}catch{}try{renderDashboard()}catch{}
        rowState(row,value)
      });
@@ -131,8 +133,8 @@ function renderCompactMobileScores(){
          input.focus();
          return
        }
-       const value=absentLabel(i);
-       input.value=value;
+       const value=absent(state.marks?.[i]?.[j])?state.marks[i][j]:storedAbsence(i);
+       input.value=displayMark(value);
        if(state.marks?.[i])state.marks[i][j]=value;
        try{markDirty()}catch{}
        try{renderDashboard()}catch{}
