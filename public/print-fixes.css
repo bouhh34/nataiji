@@ -41,3 +41,35 @@
   body[data-print="batch"] .batch-page.two footer{display:flex!important;position:absolute!important;right:9mm!important;left:9mm!important;bottom:1.8mm!important;height:8.5mm!important;justify-content:space-between!important;align-items:flex-start!important;font-size:7.2pt!important;margin:0!important;padding:0 2mm!important;visibility:visible!important;background:#fff!important}
   body[data-print="batch"] .batch-page.two footer b{display:block!important;min-width:29mm!important;text-align:center!important}
 }
+
+/* Native Android WebView only: keep the dark app chrome outside PDF paper.
+   Chrome and home-screen PWA do not set this attribute and remain unchanged. */
+@media print {
+  html[data-nataiji-native-print],
+  html[data-nataiji-native-print] body,
+  html[data-nataiji-native-print] body.print-two-a4,
+  html[data-nataiji-native-print] .app-shell,
+  html[data-nataiji-native-print] main,
+  html[data-nataiji-native-print] #twoStudentsA4,
+  html[data-nataiji-native-print] #twoStudentsA4 .ta-page,
+  html[data-nataiji-native-print] #officialSheet,
+  html[data-nataiji-native-print] #printBatch,
+  html[data-nataiji-native-print] #printBatch .batch-page,
+  html[data-nataiji-native-print] #printBatch .batch-sheet,
+  html[data-nataiji-native-print] #printPortal,
+  html[data-nataiji-native-print] #printPortal .portal-paper {
+    background:#fff!important;
+    background-image:none!important;
+    box-shadow:none!important;
+    filter:none!important;
+  }
+  html[data-nataiji-native-print] #twoStudentsA4 .ta-page {
+    border:0!important;
+    outline:0!important;
+  }
+  html[data-nataiji-native-print] #twoStudentsA4 .ta-half {
+    background:#fff!important;
+    background-image:none!important;
+    box-shadow:none!important;
+  }
+}
