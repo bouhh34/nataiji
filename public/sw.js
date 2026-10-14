@@ -1,6 +1,6 @@
-const CACHE = "nataiji-shell-v133";
+const CACHE = "nataiji-shell-v134";
 const ASSETS = [
-  "/native-report-print.js?v=3",
+  "/native-report-print.js?v=4",
   "/koutoubi-resources.css?v=1",
   "/koutoubi-catalog.js?v=1",
   "/koutoubi-resources.js?v=1",
