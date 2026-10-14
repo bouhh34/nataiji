@@ -169,8 +169,10 @@ const style=document.createElement('style');style.id='nataiji-final-grade-entry-
  body[data-print="portal"][data-portal-type="list"] #printPortal h2{font-size:22pt!important;margin:5mm 0!important}
  body[data-print="portal"][data-portal-type="list"] #printPortal table{font-size:11.5pt!important}
  body[data-print="portal"][data-portal-type="list"] #printPortal th,body[data-print="portal"][data-portal-type="list"] #printPortal td{height:9.5mm!important;padding:1.2mm 1.5mm!important}
- body[data-print="portal"][data-portal-type="class"] #printPortal{width:287mm!important;max-width:287mm!important;margin:0!important}
- body[data-print="portal"][data-portal-type="class"] #printPortal .portal-paper{width:287mm!important;max-width:287mm!important;padding:4mm!important}
+ body[data-print="portal"][data-portal-type="class"] #printPortal{width:202mm!important;max-width:202mm!important;margin:0!important}
+ body[data-print="portal"][data-portal-type="class"] #printPortal .portal-paper{width:202mm!important;max-width:202mm!important;padding:4mm!important}
+ body[data-print="portal"][data-portal-type="class"][data-nataiji-class-wide="1"] #printPortal{width:287mm!important;max-width:287mm!important}
+ body[data-print="portal"][data-portal-type="class"][data-nataiji-class-wide="1"] #printPortal .portal-paper{width:287mm!important;max-width:287mm!important}
  body[data-print="portal"][data-portal-type="class"] #printPortal table{font-size:8.6pt!important;line-height:1.18!important;table-layout:auto!important}
  body[data-print="portal"][data-portal-type="class"] #printPortal th,body[data-print="portal"][data-portal-type="class"] #printPortal td{height:7mm!important;padding:.9mm .75mm!important}
  body[data-print="portal"][data-portal-type="class"] #printPortal h2{font-size:20pt!important;margin:3mm 0 4mm!important}
@@ -181,7 +183,7 @@ document.head.appendChild(style);
 function forcePageOrientation(){
  if(document.body.dataset.print==='portal'&&document.body.dataset.portalType==='class'){
   let s=q('#final-page-orientation');if(!s){s=document.createElement('style');s.id='final-page-orientation';document.head.appendChild(s)}
-  s.textContent='@page{size:297mm 210mm;margin:5mm}'
+  s.textContent=(state?.subjects?.length||0)>=10?'@page{size:A4 landscape;margin:5mm}':'@page{size:A4 portrait;margin:4mm}'
  }else q('#final-page-orientation')?.remove()
 }
 window.addEventListener('beforeprint',()=>{forcePageOrientation();patchReportsNow()});
