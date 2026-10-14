@@ -4,6 +4,15 @@ if(window.__nataijiNativeReportPrint)return;
 window.__nataijiNativeReportPrint=true;
 function native(){const c=window.Capacitor;return c?.isNativePlatform?.()===true||c?.getPlatform?.()==='android'||c?.getPlatform?.()==='ios'}
 function supported(){const c=window.Capacitor;return typeof c?.nativePromise==='function'&&(c?.isPluginAvailable?.('NataijiPrint')===true||Array.isArray(c?.PluginHeaders)&&c.PluginHeaders.some(p=>p.name==='NataijiPrint'))}
+function landscapeForCurrentPrint(){
+ const type=document.body?.dataset?.print||'';
+ if(document.querySelector?.('#teacherTimetable:not(.hidden)'))return true;
+ if(type==='class'||(type==='portal'&&document.body?.dataset?.portalType==='class')){
+  const count=typeof state==='object'&&Array.isArray(state?.subjects)?state.subjects.length:0;
+  return count>=10;
+ }
+ return false;
+}
 let busy=false;
 const originalPrint=window.print;
 function finish(){
@@ -25,6 +34,6 @@ window.nataijiPrintDocument=async function({html,title='Nataiji',landscape=false
 if(native())window.print=function(){
  if(!supported()){failed();return}
  if(busy)return;busy=true;
- return window.Capacitor.nativePromise('NataijiPrint','print',{}).catch(error=>{console.error('Native printing failed',error);failed()});
+ return window.Capacitor.nativePromise('NataijiPrint','print',{landscape:landscapeForCurrentPrint()}).catch(error=>{console.error('Native printing failed',error);failed()});
 };
 })();
