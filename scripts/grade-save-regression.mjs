@@ -13,7 +13,7 @@ function fixture(){
  const state={activeClassId:'class-a',term:'term-1',pupils:[['1','Pupil','','','','','','pupil-1']],subjects:[['Subject',1,'Subject',30,'subject-1']],marks:[[5]],marksByTerm:{},classData:{'class-a':{}}};
  const events={};
  const document={documentElement:{lang:'ar'},activeElement:null,querySelector:()=>null,addEventListener(name,callback){events[name]=callback},createElement(){return {textContent:'',type:'',onclick:null}}};
- const window={addEventListener(){},nataijiFindInvalidMark(){return false},nataijiValidateGradeValue(raw,max){const n=Number(raw);return raw===''?{ok:true,value:''}:raw==='غائب'?{ok:true,value:raw,absent:true}:{ok:Number.isFinite(n)&&n>=0&&n<=max,value:n}}};
+ const window={addEventListener(){},nataijiFindInvalidMark(){return false},nataijiValidateGradeValue(raw,max){const n=Number(raw);return raw===''?{ok:true,value:''}:/^(غائب|غائبة|abs|absent|absente)$/i.test(raw)?{ok:true,value:raw,absent:true}:{ok:Number.isFinite(n)&&n>=0&&n<=max,value:n}}};
  const ctx=vm.createContext({state,currentUser:{id:'owner',schoolId:'school'},document,window,structuredClone,console,Event,syncBusy:false,setTimeout,localStorage:{setItem(){}},renderReports(){},$:s=>s==='#saveState'?status:s==='#student'?student:button,api:async(url,options)=>{requests.push({url,...JSON.parse(options.body)});return await new Promise((resolve,reject)=>deferred.push({resolve,reject}))}});
  vm.runInContext(code,ctx);
  return {ctx,state,status,button,requests,deferred,events,edit(value){ctx.input={value,dataset:{i:'0',j:'0'},classList:{contains:()=>false}};return vm.runInContext('persistMarkCell(input)',ctx)}};
@@ -69,4 +69,15 @@ test('retry with identical saved mark is idempotent but distinct concurrent valu
  assert.match(segment,/alreadySaved:true/);
  assert.match(segment,/res\.status\(409\)\.json\(\{error:'mark_conflict'/);
  assert.ok(segment.indexOf('alreadySaved:true')<segment.indexOf("mark_conflict"));
+});
+
+test('French Abs is only a display token, never an overwrite of an existing saved Arabic absence',async()=>{
+ const f=fixture();f.state.marks[0][0]='غائب';const job=f.edit('Abs');await tick();
+ assert.equal(f.requests[0].value,'غائب');assert.equal(f.state.marks[0][0],'غائب');
+ f.deferred[0].resolve({ok:true});await job;
+});
+test('New French Abs maps to canonical female absence before API persistence',async()=>{
+ const f=fixture();f.state.pupils[0][2]='أنثى';f.state.marks[0][0]='';
+ const job=f.edit('Abs');await tick();assert.equal(f.requests[0].value,'غائبة');
+ f.deferred[0].resolve({ok:true});await job;
 });
