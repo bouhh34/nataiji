@@ -312,7 +312,12 @@ function persistMarkCell(input){
  const max=Number(subject?.[3])>0?Number(subject[3]):20,raw=String(input.value??'').trim(),check=typeof window.nataijiValidateGradeValue==='function'?window.nataijiValidateGradeValue(raw,max):{ok:true,value:raw};
  if(check.ok===false){window.nataijiShowGradeValidationError?.(input,check);markSaveStatus(gradeText('صحح الدرجة غير الصالحة قبل الحفظ','Corrigez la note avant d’enregistrer'),true);return}
  // This listener runs in capture phase, before the input's change handler.
- const value=check.value??'',context=gradeContext(),cellKey=gradeCellKey(context,pupilKey,subjectId),expectedValue=String(gradeQueuedValues.has(cellKey)?gradeQueuedValues.get(cellKey):(gradeExpectedValues.has(cellKey)?gradeExpectedValues.get(cellKey):(state.marks?.[i]?.[j]??''))),payload={classId:context.classId,term:context.term,pupilKey,subjectId,value,expectedValue};
+ const previousMark=state.marks?.[i]?.[j]??'';
+ const previousAbsent=/^(غائب|غائبة|absent|absente|abs|a)$/i.test(String(previousMark).trim());
+ const gender=String(pupil?.[2]??pupil?.[6]??pupil?.gender??'').trim().toLowerCase();
+ const canonicalAbsent=/أنثى|انثى|female|féminin|feminin|fille/.test(gender)?'غائبة':'غائب';
+ const normalizedValue=check.absent?(previousAbsent?previousMark:canonicalAbsent):(check.value??'');
+ const value=normalizedValue,context=gradeContext(),cellKey=gradeCellKey(context,pupilKey,subjectId),expectedValue=String(gradeQueuedValues.has(cellKey)?gradeQueuedValues.get(cellKey):(gradeExpectedValues.has(cellKey)?gradeExpectedValues.get(cellKey):(state.marks?.[i]?.[j]??''))),payload={classId:context.classId,term:context.term,pupilKey,subjectId,value,expectedValue};
  gradeQueuedValues.set(cellKey,value);
  if(!state.marks[i])state.marks[i]=[];
  state.marks[i][j]=value;
