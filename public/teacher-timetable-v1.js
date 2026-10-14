@@ -10,7 +10,7 @@
   let grade='1',working=null,changed=false,selectedDay=0;
   const currentClass=()=>String(state?.activeClassId||document.querySelector('#classTop')?.value||state?.classCode||'default');
   const key=()=>currentClass();
-  function guessGrade(){const cls=selectorClasses().find(c=>String(c.id)===currentClass());const name=String(cls?.name||state.className||'');const m=name.match(/(?:^|\D)([1-6])(?:\D|$)/);return m?.[1]||'1'}
+  function guessGrade(){const cls=selectorClasses().find(c=>String(c.id)===currentClass());const name=String(cls?.name||state.className||'');const m=name.match(/(?:^|\D)([1-6])\s*(?:AF|AP|ème|e|السنة|ابتدائية)?(?:\D|$)/i);return m?.[1]||'1'}
   function saved(){return state?.teacherTimetables?.[key()]||null}
   function load(){const record=saved();grade=String(record?.grade||guessGrade());working=clone(record?.days||templates[grade]);changed=false;draw()}
   function draw(){
@@ -23,7 +23,7 @@
       <button type="button" id="ttPrint">طباعة / PDF</button></div>
       <p class="tt-note">القسم: ${safe(document.querySelector('#classTop')?.selectedOptions?.[0]?.textContent||state.className||'القسم الحالي')} — ${safe(state.year||'')} · الاستراحة 15 دقيقة بعد الحصة السادسة (السنوات 1–4)، وبعد الخامسة (السنوات 5–6).</p>
       <div class="tt-day-picker"><label for="ttDay">اليوم</label><select id="ttDay">${DAYS.map((d,i)=>`<option value="${i}" ${selectedDay===i?'selected':''}>${d}</option>`).join('')}</select></div>
-      <div class="tt-scroll"><table class="tt-table"><thead><tr><th>الحصة</th>${DAYS.map(d=>`<th>${d}</th>`).join('')}</tr></thead><tbody>
+      <div class="tt-scroll"><table class="tt-table"><thead><tr><th>الحصة</th>${DAYS.map((d,i)=>`<th data-tt-day="${i}">${d}</th>`).join('')}</tr></thead><tbody>
       ${Array.from({length:Math.max(...working.map(d=>d.length))},(_,i)=>`<tr><th>${i+1}${i===(Number(grade)>=5?5:6)?'<small>بعد الاستراحة</small>':''}</th>${working.map((day,d)=>{const c=day[i];return `<td data-tt-day="${d}">${c?`<input aria-label="المادة ${DAYS[d]} ${i+1}" data-day="${d}" data-slot="${i}" data-field="subject" value="${safe(c.subject)}"><label>دقائق <input type="number" min="1" max="180" data-day="${d}" data-slot="${i}" data-field="minutes" value="${c.minutes}"></label>`:'—'}</td>`}).join('')}</tr>`).join('')}
       </tbody></table></div><p id="ttStatus" role="status">${changed?'تغييرات غير محفوظة':''}</p>`;
     root.dataset.selectedDay=String(selectedDay);
