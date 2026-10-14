@@ -83,3 +83,14 @@ test('Android plugin accepts print landscape instead of forcing portrait',()=>{
  const java=fs.readFileSync(new URL('../native/android/NataijiPrintPlugin.java',import.meta.url),'utf8');
  assert.match(java,/startPrint\(getBridge\(\)\.getWebView\(\), "Nataiji", call\.getBoolean\("landscape", false\), call\)/);
 });
+
+test('Android-only white print page isolation does not affect Chrome or installed web app',()=>{
+ const native=fs.readFileSync(new URL('../public/native-report-print.js',import.meta.url),'utf8');
+ const css=fs.readFileSync(new URL('../public/print-fixes.css',import.meta.url),'utf8');
+ assert.match(native,/document\.documentElement\?\.setAttribute\?\.\('data-nataiji-native-print',''\)/);
+ assert.match(native,/document\.documentElement\?\.removeAttribute\?\.\('data-nataiji-native-print'\)/);
+ assert.match(css,/html\[data-nataiji-native-print\] #twoStudentsA4 \.ta-page/);
+ assert.match(css,/html\[data-nataiji-native-print\] #officialSheet/);
+ assert.match(css,/background:#fff!important/);
+ assert.doesNotMatch(css,/body\s*\{[^}]*data-nataiji-native-print/);
+});
