@@ -94,3 +94,15 @@ test('Android-only white print page isolation does not affect Chrome or installe
  assert.match(css,/background:#fff!important/);
  assert.doesNotMatch(css,/body\s*\{[^}]*data-nataiji-native-print/);
 });
+
+test('Android PDF print paints white before creating adapter and restores native background after print',()=>{
+ const java=fs.readFileSync(new URL('../native/android/NataijiPrintPlugin.java',import.meta.url),'utf8');
+ const start=java.slice(java.indexOf('private void startPrint('),java.indexOf('    @PluginMethod'));
+ assert.ok(start.indexOf('prepareWhitePrintSurface(view);')>=0);
+ assert.ok(start.indexOf('prepareWhitePrintSurface(view);')<start.indexOf('view.createPrintDocumentAdapter(title)'));
+ assert.match(java,/view\.setBackgroundColor\(Color\.WHITE\)/);
+ assert.match(java,/documentView\.setBackgroundColor\(Color\.WHITE\)/);
+ assert.match(java,/private void finish\(\)\s*\{\s*restorePrintSurface\(\)/);
+ assert.match(java,/private void restorePrintSurface\(\)[\s\S]*activePrintView\.setBackgroundColor\(previousPrintColor\)/);
+ assert.match(java,/onFinish\(\)[\s\S]*getActivity\(\)\.runOnUiThread\(\(\) -> finish\(\)\)/);
+});
