@@ -820,14 +820,72 @@ function openClass(id){
  </article>`}).join('');
  const sharedBanner=l?(l.role==='owner'?`<div class="prof-shared-banner"><b>🔗 ${tr('أنت مسؤول هذا القسم المشترك','Vous êtes responsable de cette classe partagée')}</b><span>${professorCount(l.memberCount)} · ${tr('أنت تدير قائمة التلاميذ، وكل أستاذ يدير مادته ودرجاته فقط.','Vous gérez la liste des élèves ; chaque professeur gère uniquement sa matière et ses notes.')}</span></div>`:`<div class="prof-shared-banner"><b>🔗 ${tr('أنت مرتبط بقسم موحد','Vous êtes lié à une classe unifiée')}</b><span>${professorCount(l.memberCount)} · ${tr('قائمة التلاميذ يديرها مسؤول القسم؛ أضف مادتك ودرجاتك وستظهر تلقائيًا في النتائج الموحدة.','La liste des élèves est gérée par le responsable ; ajoutez votre matière et vos notes, elles apparaîtront automatiquement dans les résultats unifiés.')}</span></div>`):'';
  el.innerHTML=`<div class="professor-shell">${topbar(profClass(cls.name),tr('إدارة القسم','Gestion de la classe'))}<section class="prof-page-head"><div><button id="pv2BackClasses" class="prof-back-inline">‹ ${tr('الأقسام','Classes')}</button><h1>${esc(profClass(cls.name))}</h1><p>${(cls.students||[]).length} ${tr('تلميذ','élève(s)')} · ${subs.length} ${tr('مواد عندي','matière(s) à moi')}</p></div><div>${l?`<button class="primary" id="pv2ClassResults">▤ ${tr('النتائج الجماعية','Résultats collectifs')}</button>`:''}<button id="pv2AddClassSubject">+ ${tr('مادة','Matière')}</button>${l?`<button id="pv2ManageMembers">${tr('المشاركون والمغادرة','Participants et départ')}</button>`:''}<button id="pv2ShareClass">🔗 ${l?tr('رمز القسم','Code de classe'):tr('إنشاء رمز القسم','Créer le code')}</button></div></section>${sharedBanner}<div class="prof-v2-layout prof-student-layout"><section class="professor-content prof-student-roster-card">
-  <div class="prof-student-roster-head"><div><small>${tr('القسم الحالي','Classe actuelle')}</small><h2>${tr('لائحة التلاميذ','Liste des élèves')}</h2><p>${esc(classDisplayName(cls))}</p></div>${canManageRoster?`<button type="button" id="pv2ImportStudents">${tr('رفع PDF أو صورة','Importer PDF / photo')}</button><button class="primary prof-add-student" id="pv2AddStudent"><span>♙＋</span>${tr('إضافة تلميذ','Ajouter un élève')}</button>`:''}</div>
+  <div class="prof-student-roster-head"><div><small>${tr('القسم الحالي','Classe actuelle')}</small><h2>${tr('لائحة التلاميذ','Liste des élèves')}</h2><p>${esc(classDisplayName(cls))}</p></div>${canManageRoster?`${!l&&duplicatedProfessorCalls(cls)?`<button type="button" id="pv2RepairCalls">${tr('تصحيح رقم النداء','Corriger N° d’appel')}</button>`:''}${!l&&(profile.classes||[]).some(c=>c.id!==id&&!c.sharedClassId&&!linkFor(c.id))?`<button type="button" id="pv2CopyPupils">${tr('ترحيل الأسماء','Copier les élèves')}</button>`:''}<button type="button" id="pv2ImportStudents">${tr('رفع PDF أو صورة','Importer PDF / photo')}</button><button class="primary prof-add-student" id="pv2AddStudent"><span>♙＋</span>${tr('إضافة تلميذ','Ajouter un élève')}</button>`:''}</div>
   <div class="prof-student-toolbar"><label class="prof-student-search"><span>⌕</span><input id="profStudentSearch" type="search" autocomplete="off" placeholder="${tr('بحث بالاسم أو الرقم المدرسي','Rechercher par nom ou NNS')}"></label><select id="profStudentSort" aria-label="${tr('ترتيب التلاميذ','Trier les élèves')}"><option value="call">${tr('رقم النداء','N° d’appel')}</option><option value="name">${tr('الاسم','Nom')}</option></select><small id="profStudentCount">${(cls.students||[]).length} / ${(cls.students||[]).length} ${tr('تلميذ','élève(s)')}</small></div>
   <div class="prof-student-list">${studentCards||`<div class="professor-empty compact"><p>${canManageRoster?tr('لا يوجد تلاميذ بعد.','Aucun élève pour le moment.'):tr('لا توجد أسماء في القائمة الموحدة بعد. ينتظر هذا القسم أن يضيف منشئ الرمز التلاميذ.','La liste unifiée est encore vide. Le créateur du code doit ajouter les élèves.')}</p></div>`}</div>
  </section><aside class="prof-side-card"><h2>${tr('موادي في هذا القسم','Mes matières dans cette classe')}</h2><div class="prof-subject-chip-list">${subs.map(a=>`<button data-class-grade="${esc(a.id)}"><b>${esc(profSubject(a.subject))} <small>· ${tr('معامل','coef.')} ${coefficientOf(a)}</small></b><span>›</span></button>`).join('')||`<p class="prof-muted">${tr('لم تضف مادة بعد.','Aucune matière ajoutée.')}</p>`}</div></aside></div>${nav('students')}</div>`;
- bindTop(el);bindNav(el);q('#pv2BackClasses',el).onclick=()=>{currentView='students';renderClasses()};q('#pv2ClassResults',el)?.addEventListener('click',()=>renderResults(id,1));if(canManageRoster){q('#pv2AddStudent',el).onclick=()=>addStudent(id,()=>openClass(id));q('#pv2ImportStudents',el).onclick=()=>importStudents(id);}q('#pv2AddClassSubject',el).onclick=()=>openAssignment(id);q('#pv2ManageMembers',el)?.addEventListener('click',()=>openClassMembers(id));q('#pv2ShareClass',el).onclick=()=>shareClass(id);qa('[data-class-grade]',el).forEach(b=>b.onclick=()=>openGrades(b.dataset.classGrade));
+ bindTop(el);bindNav(el);q('#pv2BackClasses',el).onclick=()=>{currentView='students';renderClasses()};q('#pv2ClassResults',el)?.addEventListener('click',()=>renderResults(id,1));if(canManageRoster){q('#pv2AddStudent',el).onclick=()=>addStudent(id,()=>openClass(id));q('#pv2ImportStudents',el).onclick=()=>importStudents(id);q('#pv2CopyPupils',el)?.addEventListener('click',()=>copyProfessorPupils(id));q('#pv2RepairCalls',el)?.addEventListener('click',()=>repairProfessorCalls(id));}q('#pv2AddClassSubject',el).onclick=()=>openAssignment(id);q('#pv2ManageMembers',el)?.addEventListener('click',()=>openClassMembers(id));q('#pv2ShareClass',el).onclick=()=>shareClass(id);qa('[data-class-grade]',el).forEach(b=>b.onclick=()=>openGrades(b.dataset.classGrade));
  const applyRosterView=()=>{const cards=qa('[data-prof-student-card]',el),query=String(q('#profStudentSearch',el)?.value||'').trim().toLowerCase(),mode=q('#profStudentSort',el)?.value||'call',list=q('.prof-student-list',el);cards.sort((a,b)=>mode==='name'?String(a.dataset.name||'').localeCompare(String(b.dataset.name||''),fr()?'fr':'ar',{sensitivity:'base'}):(Number(a.dataset.call)||0)-(Number(b.dataset.call)||0)).forEach(card=>list?.appendChild(card));let shown=0;cards.forEach(card=>{const visible=!query||String(card.dataset.search||'').includes(query);card.hidden=!visible;if(visible)shown++});const count=q('#profStudentCount',el);if(count)count.textContent=`${shown} / ${cards.length} ${tr('تلميذ','élève(s)')}`};
  q('#profStudentSearch',el)?.addEventListener('input',applyRosterView);q('#profStudentSort',el)?.addEventListener('change',applyRosterView);applyRosterView();
  if(canManageRoster){qa('[data-edit-student]',el).forEach(b=>b.onclick=()=>editStudent(id,b.dataset.editStudent,()=>openClass(id)));qa('[data-remove-student]',el).forEach(b=>b.onclick=async()=>{const sid=b.dataset.removeStudent;if(!confirm(tr('حذف هذا التلميذ من القسم الموحد؟ سيختفي من قائمة جميع الأساتذة المرتبطين.','Supprimer cet élève de la classe unifiée ? Il disparaîtra de la liste de tous les professeurs liés.')))return;cls.students=cls.students.filter(s=>s.id!==sid);for(const a of subs)delete profile.marks?.[a.id]?.[sid];await saveProfile(tr('تم تحديث قائمة القسم الموحدة','Liste unifiée mise à jour'));openClass(id)})}
+}
+function duplicatedProfessorCalls(cls){
+ const used=new Set();let repeated=0;
+ for(const student of cls?.students||[]){
+  const n=Number(student.callNumber);
+  if(!Number.isInteger(n)||n<1)continue;
+  if(used.has(n))repeated++;else used.add(n)
+ }
+ return repeated
+}
+async function repairProfessorCalls(classId){
+ if(linkFor(classId)){toast(tr('لا يمكن تصحيح ترقيم القسم المشترك من هنا.','Cette action est désactivée pour les classes partagées.'));return}
+ const cls=classById(classId),repeated=duplicatedProfessorCalls(cls);
+ if(!cls||!repeated||!confirm(tr('تصحيح أرقام النداء المكررة دون تغيير الأسماء أو النتائج؟','Corriger les numéros en double sans toucher aux noms ni aux notes ?')))return;
+ try{if(!await flushGradeAutosave())throw Error('drafts_pending');await refreshProfile()}catch{toast(tr('تعذر تحديث بيانات القسم؛ حاول بعد اتصال الإنترنت.','Impossible d’actualiser la classe. Réessayez avec Internet.'));return}
+ const fresh=classById(classId);if(!fresh||linkFor(classId))return;
+ const snapshot=structuredClone(profile),used=new Set(),broken=[];
+ for(const student of fresh.students||[]){
+  const n=Number(student.callNumber);
+  if(Number.isInteger(n)&&n>0&&n<=9999&&!used.has(n))used.add(n);
+  else broken.push(student)
+ }
+ for(const student of broken){let n=1;while(used.has(n))n++;student.callNumber=n;used.add(n)}
+ try{await saveProfile(tr('تم تصحيح أرقام النداء','Numéros corrigés'));openClass(classId)}
+ catch{profile=normalize(snapshot);toast(tr('تعذر تصحيح الترقيم؛ بقيت البيانات السابقة محفوظة.','Correction impossible. Les anciennes données restent intactes.'))}
+}
+async function copyProfessorPupils(classId){
+ if(linkFor(classId))return;
+ try{if(!await flushGradeAutosave())throw Error('drafts_pending');await refreshProfile()}catch{toast(tr('تحتاج إلى اتصال بالإنترنت قبل النقل.','Une connexion Internet est nécessaire pour la copie.'));return}
+ const src=classById(classId),targets=(profile.classes||[]).filter(c=>c.id!==classId&&!c.sharedClassId&&!linkFor(c.id));
+ if(!src||!targets.length){toast(tr('أنشئ القسم الجديد أولًا.','Créez d’abord la nouvelle classe.'));return}
+ const m=modal(tr('ترحيل أسماء التلاميذ','Copier les élèves'),`<p>${tr('تُنسخ الأسماء فقط. تبقى النتائج في القسم الأصلي، ولا تُنقل الدرجات.','Seules les identités sont copiées. Les notes restent dans la classe d’origine.')}</p>
+ <label>${tr('القسم الجديد','Classe cible')}<select id="pv2CopyTarget">${targets.map(c=>`<option value="${esc(c.id)}">${esc(classDisplayName(c))}</option>`).join('')}</select></label>
+ <label><input id="pv2CopyAll" type="checkbox" checked> ${tr('اختيار الجميع','Tout sélectionner')}</label>
+ <div style="max-height:35vh;overflow:auto;display:grid;gap:7px;margin:12px 0">${(src.students||[]).map(student=>`<label><input type="checkbox" data-copy-student="${esc(student.id)}" checked> ${esc(profStudentNamePair(student).ar||student.name)}</label>`).join('')}</div>
+ <button class="primary" id="pv2CopyGo">${tr('نسخ الأسماء','Copier les noms')}</button><p class="professor-msg" role="status"></p>`);
+ const selections=qa('[data-copy-student]',m.wrap);
+ q('#pv2CopyAll',m.wrap).onchange=e=>selections.forEach(input=>{input.checked=e.target.checked});
+ q('#pv2CopyGo',m.wrap).onclick=async e=>{
+  const selected=new Set(selections.filter(x=>x.checked).map(x=>x.dataset.copyStudent)),target=q('#pv2CopyTarget',m.wrap).value,msg=q('.professor-msg',m.wrap),dest=classById(target);
+  if(!selected.size){msg.textContent=tr('اختر تلميذًا واحدًا على الأقل.','Sélectionnez au moins un élève.');return}
+  if(!dest||dest.id===src.id||linkFor(dest.id)){msg.textContent=tr('القسم المستهدف غير متاح.','Classe cible indisponible.');return}
+  const normalizeName=v=>String(v||'').trim().normalize('NFKC').toLowerCase();
+  const names=new Set((dest.students||[]).map(st=>normalizeName(st.name))),nns=new Set((dest.students||[]).map(st=>String(st.nns||'')).filter(Boolean)),added=[];
+  const snapshot=structuredClone(profile);
+  for(const st of src.students||[]){
+   if(!selected.has(st.id))continue;
+   if(names.has(normalizeName(st.name))||st.nns&&nns.has(String(st.nns)))continue;
+   if((dest.students?.length||0)+added.length>=800){msg.textContent=tr('القسم الجديد مكتمل (800 تلميذ).','Classe complète (800 élèves).');return}
+   added.push(st);names.add(normalizeName(st.name));if(st.nns)nns.add(String(st.nns))
+  }
+  if(!added.length){msg.textContent=tr('جميع الأسماء المحددة موجودة في القسم الجديد.','Les élèves sélectionnés sont déjà présents.');return}
+  if(!confirm(tr('نسخ '+added.length+' اسمًا دون درجات، مع حفظ نتائج القسم الأصلي؟','Copier '+added.length+' élève(s) sans notes, en conservant les anciens résultats ?')))return;
+  e.currentTarget.disabled=true;msg.textContent=tr('جارٍ الحفظ…','Enregistrement…');
+  for(const st of added){dest.students=dest.students||[];dest.students.push({...structuredClone(st),id:uid(),callNumber:nextProfessorCallNumber(dest)})}
+  try{await saveProfile(tr('تم نسخ الأسماء دون درجات','Élèves copiés sans notes'));m.close();openClass(classId)}
+  catch{profile=normalize(snapshot);msg.textContent=tr('فشل النسخ؛ بقيت النتائج والأسماء السابقة محفوظة.','Copie échouée. Les données initiales restent intactes.');e.currentTarget.disabled=false}
+ };
 }
 function nextProfessorCallNumber(cls){
  const used=new Set((cls?.students||[]).map(s=>Number(s?.callNumber)).filter(n=>Number.isInteger(n)&&n>0));let n=1;while(used.has(n))n++;return n
