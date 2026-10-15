@@ -81,7 +81,7 @@ assert('teacher workspaces are not labeled as principal managed schools', /مس�
 assert('auth exposes Arabic French language switch', /data-auth-lang="ar"/.test(authAccess) && /data-auth-lang="fr"/.test(authAccess));
 assert('auth language switch updates direction immediately', /document\.documentElement\.dir=next==='fr'\?'ltr':'rtl'/.test(authAccess));
 const bilingualEditor = read('public/bilingual-data-editor-v1.js');
-assert('paired Arabic French fields sync live both ways', /const fromAr=\(\)=>/.test(bilingualEditor) && /f\.value=arToFr\(a\.value\)/.test(bilingualEditor) && /const fromFr=\(\)=>/.test(bilingualEditor) && /a\.value=frToAr\(f\.value\)/.test(bilingualEditor) && /a\.addEventListener\('input'.*fromAr\(\)/.test(bilingualEditor) && /f\.addEventListener\('input'.*fromFr\(\)/.test(bilingualEditor));
+assert('paired Arabic French fields sync live both ways and respect manual French', /const fromAr=\(\)=>/.test(bilingualEditor) && /f\.value=generate\(a\.value\)/.test(bilingualEditor) && /const fromFr=\(\)=>/.test(bilingualEditor) && /a\.value=frToAr\(f\.value\)/.test(bilingualEditor) && /a\.addEventListener\('input'.*fromAr\(\)/.test(bilingualEditor) && /f\.addEventListener\('input'.*fromFr\(\)/.test(bilingualEditor) && /frManual/.test(bilingualEditor));
 assert('new subject starts with blank bilingual names and max score', /draft\.push\(\['',1,'','',''\]\)/.test(bilingualEditor));
 const adminUxPolish = read('public/admin-ux-polish-v1.js');
 assert('new blank subject opens immediately', /const isNew=!String\(ar\?\.value\|\|''\)\.trim\(\)/.test(adminUxPolish));
@@ -200,7 +200,7 @@ assert('student bulletin decision and signatures are easy to read', /official-bu
 assert('bulletin summary has more vertical space', /official-bulletin-summary>div\{min-height:14mm/.test(professorV2));
 assert('Arabic official header is balanced against French', /official-student-bulletin-doc \.official-ar\{font-size:11\.7pt/.test(professorV2) && /class-list-doc \.official-ar\{font-size:11\.5pt/.test(professorV2));
 assert('professor batch bulletin label says one student per A4', /كشوف التلاميذ الرسمية – طالب واحد لكل A4/.test(professorV2) && /Bulletins officiels – 1 élève par A4/.test(professorV2));
-assert('professor v2 cache-busted asset is current', /professor-v2\\.js\\?v=81/.test(index));
+assert('professor v2 cache-busted asset is current', /professor-v2\.js\?v=81/.test(index));
 assert('professor v2 stylesheet cache-busted asset is current', /professor-v2\.css\?v=48/.test(index));
 const ownerStaff = read('public/owner-staff-v1.js');
 assert('owner professor tools support official branches', /staffClassBranch/.test(ownerStaff) && /data-branch/.test(ownerStaff) && /subjectOptions\(catalog,level,branch\)/.test(ownerStaff));
