@@ -1,6 +1,7 @@
 import {preserveArchivedAssignments,snapshotDepartingResults} from './professor-collaboration.js';
 import {visionConfigured,visionProvider,recognizeStudentDocument} from './student-document-vision.js';
 import {importedPupilRows} from './student-roster-import.js';
+import {repairCalls,planPupilCopy} from './pupil-roster-tools.js';
 import express from 'express';
 import {staticDelivery} from './static-delivery.js';
 import path from 'node:path';
@@ -1084,6 +1085,59 @@ const studentVisionRate=rateLimit('student-vision',20,60*60*1000);
 app.post('/api/student-document/recognize',auth,studentVisionRate,express.json({limit:'3mb'}),async(req,res)=>{
  try{res.json(await recognizeStudentDocument(req.body?.image))}catch(err){res.status(err.status||502).json({error:err.status?err.message:'vision_unavailable'})}
 });
+// No destructive move: copy only pupil identities. Source pupils and marks remain intact.
+app.post('/api/pupils/copy',auth,async(req,res)=>{
+ if(!pool)return res.status(503).json({error:'durable_storage_required'});
+ if(req.user.role!=='admin'&&!(req.user.role==='teacher'&&new Set(req.user.permissions||[]).has('pupils')))return res.status(403).json({error:'forbidden'});
+ const st=await loadDurableSchoolStructure(req.user.schoolId);
+ const sourceClassId=String(req.body?.sourceClassId||''),targetClassId=String(req.body?.targetClassId||'');
+ const selection=req.body?.pupilKeys;
+ if(!sourceClassId||!targetClassId||sourceClassId===targetClassId||!Array.isArray(selection)||!selection.length||selection.length>800||selection.some(key=>typeof key!=='string'||!key||key.length>160))return res.status(400).json({error:'invalid_selection'});
+ if(!st.classes.some(c=>String(c.id)===sourceClassId)||!st.classes.some(c=>String(c.id)===targetClassId))return res.status(400).json({error:'invalid_class'});
+ for(const classId of [sourceClassId,targetClassId]){
+  const allowed=resolveTeacherMutationClass(req.user,st,classId);
+  if(!allowed.ok||allowed.classId!==classId)return res.status(403).json({error:'forbidden_class'});
+ }
+ const client=await pool.connect();
+ try{
+  await client.query('BEGIN');
+  for(const classId of [sourceClassId,targetClassId].sort())await client.query('SELECT pg_advisory_xact_lock(hashtext($1),hashtext($2))',[req.user.schoolId,'roster:'+classId]);
+  const source=await client.query('SELECT nns,data,position FROM nataiji_pupils WHERE school_id=$1 AND class_id=$2 ORDER BY position,updated_at FOR UPDATE',[req.user.schoolId,sourceClassId]);
+  const dest=await client.query('SELECT nns,data,position FROM nataiji_pupils WHERE school_id=$1 AND class_id=$2 ORDER BY position,updated_at FOR UPDATE',[req.user.schoolId,targetClassId]);
+  const plan=planPupilCopy(source.rows,dest.rows,selection,()=>crypto.randomUUID());
+  let position=dest.rows.reduce((max,row)=>Math.max(max,Number(row.position)||0),-1)+1;
+  for(const row of plan.copies){
+   await client.query('INSERT INTO nataiji_pupils(school_id,class_id,nns,data,position) VALUES($1,$2,$3,$4::jsonb,$5)',[req.user.schoolId,targetClassId,row.nns,JSON.stringify(row.data),position++]);
+  }
+  if(plan.copies.length)await client.query('INSERT INTO nataiji_migrations(school_id,class_id,resource) VALUES($1,$2,$3) ON CONFLICT DO NOTHING',[req.user.schoolId,targetClassId,'pupils']);
+  await client.query('COMMIT');
+  return res.json({ok:true,copied:plan.copies.length,skipped:plan.skipped,sourceClassId,targetClassId});
+ }catch(error){
+  await client.query('ROLLBACK').catch(()=>{});
+  if(['invalid_selection','pupil_not_found','class_capacity'].includes(error.message))return res.status(400).json({error:error.message});
+  if(error.code==='23505')return res.status(409).json({error:'duplicate_pupil_retry'});
+  throw error
+ }finally{client.release()}
+});
+// Repairs call numbers only; original identities, grades and order are not changed.
+app.post('/api/pupils/repair-calls',auth,async(req,res)=>{
+ if(!pool)return res.status(503).json({error:'durable_storage_required'});
+ if(req.user.role!=='admin'&&!(req.user.role==='teacher'&&new Set(req.user.permissions||[]).has('pupils')))return res.status(403).json({error:'forbidden'});
+ const st=await loadDurableSchoolStructure(req.user.schoolId),classId=String(req.body?.classId||'');
+ const access=resolveTeacherMutationClass(req.user,st,classId);
+ if(!classId||!st.classes.some(c=>String(c.id)===classId)||!access.ok||access.classId!==classId)return res.status(403).json({error:'forbidden_class'});
+ const client=await pool.connect();
+ try{
+  await client.query('BEGIN');
+  await client.query('SELECT pg_advisory_xact_lock(hashtext($1),hashtext($2))',[req.user.schoolId,'roster:'+classId]);
+  const rows=(await client.query('SELECT nns,data FROM nataiji_pupils WHERE school_id=$1 AND class_id=$2 ORDER BY position,updated_at FOR UPDATE',[req.user.schoolId,classId])).rows;
+  const changes=repairCalls(rows);
+  for(const row of changes)await client.query("UPDATE nataiji_pupils SET data=jsonb_set(data,'{5}',to_jsonb($4::integer),true),updated_at=now() WHERE school_id=$1 AND class_id=$2 AND nns=$3",[req.user.schoolId,classId,row.key,row.call]);
+  await client.query('COMMIT');
+  return res.json({ok:true,classId,corrected:changes.length});
+ }catch(error){await client.query('ROLLBACK').catch(()=>{});throw error}finally{client.release()}
+});
+
 app.post('/api/pupils/import',auth,async(req,res)=>{
  if(!pool)return res.status(503).json({error:'durable_storage_required'});
  if(req.user.role!=='admin'&&!new Set(req.user.permissions||[]).has('pupils'))return res.status(403).json({error:'forbidden'});
