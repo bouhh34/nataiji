@@ -881,10 +881,10 @@ async function copyProfessorPupils(classId){
   }
   if(!added.length){msg.textContent=tr('جميع الأسماء المحددة موجودة في القسم الجديد.','Les élèves sélectionnés sont déjà présents.');return}
   if(!confirm(tr('نسخ '+added.length+' اسمًا دون درجات، مع حفظ نتائج القسم الأصلي؟','Copier '+added.length+' élève(s) sans notes, en conservant les anciens résultats ?')))return;
-  e.currentTarget.disabled=true;msg.textContent=tr('جارٍ الحفظ…','Enregistrement…');
+  const button=e.currentTarget;button.disabled=true;msg.textContent=tr('جارٍ الحفظ…','Enregistrement…');
   for(const st of added){dest.students=dest.students||[];dest.students.push({...structuredClone(st),id:uid(),callNumber:nextProfessorCallNumber(dest)})}
   try{await saveProfile(tr('تم نسخ الأسماء دون درجات','Élèves copiés sans notes'));m.close();openClass(classId)}
-  catch{profile=normalize(snapshot);msg.textContent=tr('فشل النسخ؛ بقيت النتائج والأسماء السابقة محفوظة.','Copie échouée. Les données initiales restent intactes.');e.currentTarget.disabled=false}
+  catch{profile=normalize(snapshot);msg.textContent=tr('فشل النسخ؛ بقيت النتائج والأسماء السابقة محفوظة.','Copie échouée. Les données initiales restent intactes.');button.disabled=false}
  };
 }
 function nextProfessorCallNumber(cls){
