@@ -32,7 +32,8 @@ export function planPupilCopy(source,target,selectedKeys,newId){
   const p=structuredClone(row.data),nns=String(p?.[0]||'').trim(),name=normPupilName(p?.[1]);
   if(!name||nns&&ids.has(nns)||names.has(name)){skipped++;continue}
   if(target.length+output.length>=800)throw Error('class_capacity');
-  const key=nns||'auto-'+newId();
+  // New destination identity must never reconnect orphaned marks from an older pupil.
+  const key='auto-'+newId();
   const call=nextFreeCall(usedCalls);if(call>9999)throw Error('class_capacity');
   usedCalls.add(call);p[5]=call;p[7]=key;output.push({nns:key,data:p});
   if(nns)ids.add(nns);names.add(name)
