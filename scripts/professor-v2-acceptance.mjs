@@ -27,6 +27,9 @@ async function registerProfessor(name,email){
  await page.locator('[data-profile-type="professor"]').waitFor({state:'visible',timeout:12000});
  await page.locator('[data-profile-type="professor"]').click();
  await page.locator('.prof-reference-hero').waitFor({state:'visible',timeout:12000});
+ await completeInstitutionSetup();
+}
+async function completeInstitutionSetup(){
  await page.locator('#pv2Wilaya').waitFor({state:'visible'});
  check('new professor sees institution setup without inspection',await page.locator('#pv2Inspection').count()===0);
  await page.locator('#pv2SaveSettings').click();
@@ -209,6 +212,7 @@ try{
  await page.locator('[data-profile-type="professor"]').waitFor({state:'visible',timeout:12000});
  await page.locator('[data-profile-type="professor"]').click();
  await page.locator('#profJoinClass').waitFor({state:'visible',timeout:12000});
+ await completeInstitutionSetup();
 
  await page.locator('#profJoinClass').click();
  await page.locator('#pv2JoinCode').fill(code);
