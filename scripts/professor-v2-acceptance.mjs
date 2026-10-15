@@ -198,7 +198,7 @@ try{
  await page.locator('#pv2JoinNow').click();
  await page.locator('.prof-class-card').waitFor({state:'visible',timeout:10000});
  const cardText=await page.locator('.prof-class-card').first().innerText();
- check('second professor joins same class',cardText.includes('2AS-A') && /2\s+أساتذة|2\s+professeurs/.test(cardText),cardText);
+ check('second professor joins same class',cardText.includes('2AS-A') && /أستاذان|2\s+أساتذة|2\s+professeurs/.test(cardText),cardText);
 
  await page.locator('[data-manage-class]').first().click();
  check('shared roster is visible to second professor',await page.locator('.prof-student-row').count()===1,await page.locator('.prof-student-row').first().innerText());

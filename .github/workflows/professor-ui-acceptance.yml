@@ -71,6 +71,7 @@ jobs:
         run: |
           node scripts/professor-v2-acceptance.mjs
           node scripts/professor-offline-acceptance.mjs
+          node scripts/professor-collaboration-acceptance.mjs
       - name: Upload store screenshot previews
         if: always()
         uses: actions/upload-artifact@v4

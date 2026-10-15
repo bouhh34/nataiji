@@ -1,3 +1,4 @@
+import {preserveArchivedAssignments,snapshotDepartingResults} from './professor-collaboration.js';
 import {visionConfigured,visionProvider,recognizeStudentDocument} from './student-document-vision.js';
 import {importedPupilRows} from './student-roster-import.js';
 import express from 'express';
@@ -66,7 +67,7 @@ function cleanProfessorProfile(input){
  for(const raw of (Array.isArray(src.assignments)?src.assignments:[]).slice(0,160)){
   const id=String(raw?.id||crypto.randomUUID()).trim().slice(0,120),subject=String(raw?.subject||'').trim().slice(0,120),classId=String(raw?.classId||'').trim().slice(0,120),subjectKey=normalizeProfessorSubjectKey(raw?.subjectKey||subject),rawCoefficient=Number(raw?.coefficient),manualCoefficient=Number.isFinite(rawCoefficient)&&rawCoefficient>0&&rawCoefficient<=20?Math.round(rawCoefficient*100)/100:1;if(!id||!subject||!classIds.has(classId)||assignmentIds.has(id))continue;
   const cls=classById.get(classId),official=officialProfessorCoefficient(cls?.levelCode,subjectKey||subject,cls?.branchCode),coefficient=official??manualCoefficient,coefficientSource=official!=null?'official':String(raw?.coefficientSource||'manual')==='official'?'manual':'manual';
-  assignmentIds.add(id);assignments.push({id,subject,classId,subjectKey,coefficient,coefficientSource})
+  assignmentIds.add(id);assignments.push({id,subject,classId,subjectKey,coefficient,coefficientSource,...(raw.archived===true?{archived:true}:{})})
  }
  const marks={},srcMarks=src.marks&&typeof src.marks==='object'?src.marks:{},classMap=new Map(classes.map(x=>[x.id,new Set(x.students.map(s=>s.id))]));
  const cleanMark=v=>{const raw=String(v??'').trim(),s=raw.replace(',','.');if(s==='')return'';if(/^(ABSENT|غائب|غائبة|absent|absente|a)$/i.test(raw))return'ABSENT';const n=Number(s);return Number.isFinite(n)?String(Math.max(0,Math.min(20,n))):''};
@@ -145,7 +146,7 @@ async function professorSharedSubjectConflict(userId,beforeInput,nextInput){
  const candidateByShared=new Map();
  for(const cls of next.classes||[]){
   const sharedClassId=String(cls.sharedClassId||'');if(!sharedClassId)continue;
-  for(const a of (next.assignments||[]).filter(x=>String(x.classId)===String(cls.id))){
+  for(const a of (next.assignments||[]).filter(x=>!x.archived&&String(x.classId)===String(cls.id))){
    const old=beforeById.get(String(a.id)),oldClass=old?before.classes.find(x=>String(x.id)===String(old.classId)):null;
    const unchanged=old&&String(old.classId)===String(a.classId)&&String(oldClass?.sharedClassId||'')===sharedClassId&&professorSubjectIdentity(old)===professorSubjectIdentity(a);
    if(unchanged)continue;
@@ -157,7 +158,7 @@ async function professorSharedSubjectConflict(userId,beforeInput,nextInput){
   const memberRows=(await pool.query(`SELECT p.user_id,p.data FROM nataiji_professor_class_members m JOIN nataiji_professor_profiles p ON p.user_id=m.user_id WHERE m.class_id=$1 AND m.user_id<>$2`,[sharedClassId,userId])).rows;
   for(const member of memberRows){
    const other=cleanProfessorProfile(member.data||{}),otherClassIds=new Set((other.classes||[]).filter(x=>String(x.sharedClassId||'')===sharedClassId).map(x=>String(x.id)));
-   const taken=new Set((other.assignments||[]).filter(a=>otherClassIds.has(String(a.classId))).map(professorSubjectIdentity));
+   const taken=new Set((other.assignments||[]).filter(a=>!a.archived&&otherClassIds.has(String(a.classId))).map(professorSubjectIdentity));
    for(const candidate of candidates)if(taken.has(candidate.identity))return{sharedClassId,classId:String(candidate.classId),subject:String(candidate.assignment.subject||''),subjectKey:String(candidate.assignment.subjectKey||''),ownerUserId:String(member.user_id)}
   }
  }
@@ -165,11 +166,11 @@ async function professorSharedSubjectConflict(userId,beforeInput,nextInput){
 }
 async function professorAggregatedResults(userId,localClassId,term){
  const requester=await loadProfessorProfile(userId),local=requester.classes.find(x=>String(x.id)===String(localClassId));if(!local)return null;
- const sharedClassId=String(local.sharedClassId||''),members=[];
+ const sharedClassId=String(local.sharedClassId||''),members=[];let roomArchives=[];
  let className=String(local.name||''),students=Array.isArray(local.students)?structuredClone(local.students):[],canonicalLevelCode=String(local.levelCode||inferProfessorLevelCode(local.name)||'').toUpperCase(),canonicalBranchCode=normalizeProfessorBranchCode(local.branchCode||'');
  if(sharedClassId){
   const membership=await pool.query('SELECT 1 FROM nataiji_professor_class_members WHERE class_id=$1 AND user_id=$2',[sharedClassId,userId]);if(!membership.rowCount)return null;
-  const room=await pool.query('SELECT data FROM nataiji_professor_classrooms WHERE class_id=$1',[sharedClassId]);if(room.rowCount){const d=room.rows[0].data||{};className=String(d.name||className);students=Array.isArray(d.students)?d.students.map(s=>professorStudentData(s)).filter(s=>s.id&&s.name):students;canonicalLevelCode=String(d.levelCode||canonicalLevelCode||inferProfessorLevelCode(className)||'').toUpperCase();canonicalBranchCode=normalizeProfessorBranchCode(d.branchCode||canonicalBranchCode||'')}
+  const room=await pool.query('SELECT data FROM nataiji_professor_classrooms WHERE class_id=$1',[sharedClassId]);if(room.rowCount){const d=room.rows[0].data||{};roomArchives=Array.isArray(d.resultArchives)?d.resultArchives:[];className=String(d.name||className);students=Array.isArray(d.students)?d.students.map(s=>professorStudentData(s)).filter(s=>s.id&&s.name):students;canonicalLevelCode=String(d.levelCode||canonicalLevelCode||inferProfessorLevelCode(className)||'').toUpperCase();canonicalBranchCode=normalizeProfessorBranchCode(d.branchCode||canonicalBranchCode||'')}
   const rows=(await pool.query('SELECT user_id FROM nataiji_professor_class_members WHERE class_id=$1 ORDER BY joined_at,user_id',[sharedClassId])).rows;for(const row of rows)members.push(String(row.user_id))
  }else members.push(String(userId));
  const subjects=[],levelCode=canonicalLevelCode,branchCode=canonicalBranchCode;
@@ -182,8 +183,12 @@ async function professorAggregatedResults(userId,localClassId,term){
    const spec=professorSubjectFor(levelCode,normalizedKey||a.subject,branchCode);
    if(!spec?.official)continue;
    const coefficient=Number(spec.coefficient),marks=p.marks?.[a.id]&&typeof p.marks[a.id]==='object'?p.marks[a.id]:{};
-   subjects.push({key:memberId+':'+a.id,subject:String(spec.ar||a.subject||''),subjectKey:String(spec.key||normalizedKey||a.subjectKey||''),coefficient,coefficientSource:'official',ownerUserId:memberId,own:memberId===String(userId),marks})
+   subjects.push({key:memberId+':'+a.id,subject:String(spec.ar||a.subject||''),subjectKey:String(spec.key||normalizedKey||a.subjectKey||''),coefficient,coefficientSource:'official',ownerUserId:memberId,own:memberId===String(userId),archived:!!a.archived,marks})
   }
+ }
+ for(const entry of roomArchives){
+  const a=entry.assignment||{},spec=professorSubjectFor(canonicalLevelCode,a.subjectKey||a.subject,canonicalBranchCode);if(!spec?.official)continue;
+  subjects.push({key:'archive:'+entry.key,subject:spec.ar,subjectKey:spec.key,coefficient:Number(spec.coefficient),coefficientSource:'official',ownerUserId:String(entry.userId),own:false,archived:true,marks:entry.marks||{}})
  }
  const levelCatalog=professorCatalog().levels.find(x=>String(x.code)===levelCode),branchCatalog=(levelCatalog?.branches||[]).find(x=>String(x.code)===branchCode),orderedSubjects=branchCatalog?.subjects?.length?branchCatalog.subjects:(levelCatalog?.subjects||[]),subjectOrder=new Map(orderedSubjects.map((s,i)=>[String(s.key),i]));
  const mergeMarks=(primary={},secondary={})=>{
@@ -205,7 +210,7 @@ async function professorAggregatedResults(userId,localClassId,term){
   const key=normalizeProfessorSubjectKey(subject.subjectKey||subject.subject);if(!key)continue;
   const previous=collectedByKey.get(key),count=x=>Object.keys(x?.marks||{}).length;
   if(!previous){collectedByKey.set(key,subject);continue}
-  const preferred=count(subject)>count(previous)?subject:previous,other=preferred===subject?previous:subject;
+  const preferred=!!subject.archived!==!!previous.archived?(subject.archived?previous:subject):(count(subject)>count(previous)?subject:previous),other=preferred===subject?previous:subject;
   collectedByKey.set(key,{...preferred,marks:mergeMarks(preferred.marks,other.marks)})
  }
  const officialSubjects=orderedSubjects.map(spec=>{
@@ -257,6 +262,7 @@ async function saveProfessorProfile(userId,input,{syncShared=true}={}){
  try{
   await client.query('BEGIN');
   const previous=await client.query('SELECT data FROM nataiji_professor_profiles WHERE user_id=$1 FOR UPDATE',[userId]),before=previous.rowCount?cleanProfessorProfile(previous.rows[0].data||{}):emptyProfessorProfile();
+  profile=preserveArchivedAssignments(before,profile);
   if(previous.rowCount){
    const beforeJson=JSON.stringify(before),nextJson=JSON.stringify(profile);
    if(beforeJson!==nextJson)await archiveProfessorProfileVersion(userId,client,'before-save',before)
@@ -271,10 +277,12 @@ async function saveProfessorProfile(userId,input,{syncShared=true}={}){
    // even when their device still has an older local copy of the class.
    if(row.role==='owner'&&sharedChanged){
     const sharedData=professorSharedClassData(cls);
-    await client.query('UPDATE nataiji_professor_classrooms SET data=$2::jsonb,updated_at=now() WHERE class_id=$1',[sharedClassId,JSON.stringify(sharedData)])
+    await client.query('UPDATE nataiji_professor_classrooms SET data=$2::jsonb,updated_at=now() WHERE class_id=$1',[sharedClassId,JSON.stringify({...roomData,...sharedData})])
    }else applyProfessorSharedClassData(cls,roomData)
   }
-  profile=cleanProfessorProfile(profile);
+  // Restore surviving marks after the authoritative shared roster has been applied.
+  // A stale former owner must not drop grades by sending an empty local roster.
+  profile=preserveProfessorMarks(before,profile);
   await client.query('INSERT INTO nataiji_professor_profiles(user_id,data,updated_at) VALUES($1,$2::jsonb,now()) ON CONFLICT(user_id) DO UPDATE SET data=EXCLUDED.data,updated_at=now()',[userId,JSON.stringify(profile)]);
   await client.query('COMMIT')
  }catch(e){await client.query('ROLLBACK');throw e}finally{client.release()}
@@ -479,7 +487,9 @@ app.get('/api/professor/profile',auth,async(req,res)=>{
 });
 app.put('/api/professor/profile',auth,async(req,res)=>{
  if(req.user.role!=='professor')return res.status(403).json({error:'forbidden'});if(!pool)return res.status(503).json({error:'durable_storage_required'});
- const before=await loadProfessorProfile(req.user.id),candidate=preserveProfessorMarks(before,req.body?.profile),conflict=await professorSharedSubjectConflict(req.user.id,before,candidate);
+ const before=await loadProfessorProfile(req.user.id),candidate=preserveArchivedAssignments(before,preserveProfessorMarks(before,req.body?.profile));
+ if(before.classes.some(c=>c.sharedClassId&&!candidate.classes.some(n=>n.id===c.id))||before.assignments.some(a=>before.classes.some(c=>c.id===a.classId&&c.sharedClassId)&&!candidate.assignments.some(n=>n.id===a.id)))return res.status(409).json({error:'use_collaboration_actions'});
+ const conflict=await professorSharedSubjectConflict(req.user.id,before,candidate);
  if(conflict)return res.status(409).json({error:'shared_subject_taken',subject:conflict.subject,subjectKey:conflict.subjectKey,sharedClassId:conflict.sharedClassId});
  let profile=await saveProfessorProfile(req.user.id,candidate),classLinks=await professorClassLinks(profile,req.user.id);profile=cleanProfessorProfile(profile);res.json({ok:true,profile,classLinks})
 });
@@ -505,7 +515,7 @@ app.put('/api/professor/assignments/:assignmentId/grades',auth,async(req,res)=>{
   const locked=await client.query('SELECT data FROM nataiji_professor_profiles WHERE user_id=$1 FOR UPDATE',[req.user.id]);
   if(!locked.rowCount){await client.query('ROLLBACK');return res.status(404).json({error:'professor_profile_not_found'})}
   const before=cleanProfessorProfile(locked.rows[0].data||{}),assignment=before.assignments.find(x=>String(x.id)===assignmentId);
-  if(!assignment){await client.query('ROLLBACK');return res.status(404).json({error:'professor_assignment_not_found'})}
+  if(!assignment||assignment.archived){await client.query('ROLLBACK');return res.status(404).json({error:'professor_assignment_not_found'})}
   const cls=before.classes.find(x=>String(x.id)===String(assignment.classId));
   if(!cls){await client.query('ROLLBACK');return res.status(404).json({error:'professor_class_not_found'})}
   if(String(cls.sharedClassId||'')){
@@ -561,7 +571,7 @@ app.put('/api/professor/assignments/:assignmentId/students/:studentId/grades',au
   const locked=await client.query('SELECT data FROM nataiji_professor_profiles WHERE user_id=$1 FOR UPDATE',[req.user.id]);
   if(!locked.rowCount){await client.query('ROLLBACK');return res.status(404).json({error:'professor_profile_not_found'})}
   const before=cleanProfessorProfile(locked.rows[0].data||{}),assignment=before.assignments.find(x=>String(x.id)===assignmentId);
-  if(!assignment){await client.query('ROLLBACK');return res.status(404).json({error:'professor_assignment_not_found'})}
+  if(!assignment||assignment.archived){await client.query('ROLLBACK');return res.status(404).json({error:'professor_assignment_not_found'})}
   const cls=before.classes.find(x=>String(x.id)===String(assignment.classId));
   if(!cls){await client.query('ROLLBACK');return res.status(404).json({error:'professor_class_not_found'})}
   if(String(cls.sharedClassId||'')){
@@ -611,21 +621,87 @@ app.post('/api/professor/classes/:localClassId/share',auth,async(req,res)=>{
 app.post('/api/professor/classes/join',classJoinRate,auth,async(req,res)=>{
  if(req.user.role!=='professor')return res.status(403).json({error:'forbidden'});if(!pool)return res.status(503).json({error:'durable_storage_required'});
  const code=String(req.body?.code||'').trim().toUpperCase(),requestedLocalId=String(req.body?.localClassId||'').trim();if(!/^CL-(?:[A-F0-9]{8}|[A-F0-9]{32})$/.test(code))return res.status(400).json({error:'invalid_class_code'});
- const cq=await pool.query('SELECT class_id,owner_user_id,data FROM nataiji_professor_classrooms WHERE join_code=$1',[code]);if(!cq.rowCount)return res.status(404).json({error:'invalid_class_code'});
- const shared=cq.rows[0],data=shared.data&&typeof shared.data==='object'?shared.data:{},profile=await loadProfessorProfile(req.user.id);let cls=requestedLocalId?profile.classes.find(x=>x.id===requestedLocalId):null;
- const existing=profile.classes.find(x=>x.sharedClassId===shared.class_id);if(existing)cls=existing;
- if(cls?.sharedClassId&&cls.sharedClassId!==shared.class_id)return res.status(409).json({error:'professor_class_already_linked'});
- if(!cls){const joinedName=String(data.name||'قسم').trim().slice(0,120)||'قسم';cls={id:crypto.randomUUID(),name:joinedName,levelCode:['1AS','2AS','3AS','5AS','6AS','7AS'].includes(String(data.levelCode||'').toUpperCase())?String(data.levelCode).toUpperCase():inferProfessorLevelCode(joinedName),branchCode:normalizeProfessorBranchCode(String(data.branchCode||'').trim().slice(0,40)),students:[],sharedClassId:shared.class_id};profile.classes.push(cls)}
- cls.sharedClassId=shared.class_id;cls.name=String(data.name||cls.name||'قسم').trim().slice(0,120)||cls.name;cls.levelCode=['1AS','2AS','3AS','5AS','6AS','7AS'].includes(String(data.levelCode||'').toUpperCase())?String(data.levelCode).toUpperCase():(cls.levelCode||inferProfessorLevelCode(cls.name));cls.branchCode=normalizeProfessorBranchCode(String(data.branchCode||cls.branchCode||'').trim().slice(0,40));cls.students=Array.isArray(data.students)?data.students.map(s=>professorStudentData(s)).filter(s=>s.id&&s.name):[];
- const client=await pool.connect();
- try{await client.query('BEGIN');await client.query('INSERT INTO nataiji_professor_class_members(class_id,user_id,role) VALUES($1,$2,$3) ON CONFLICT DO NOTHING',[shared.class_id,req.user.id,shared.owner_user_id===req.user.id?'owner':'member']);await client.query('INSERT INTO nataiji_professor_profiles(user_id,data,updated_at) VALUES($1,$2::jsonb,now()) ON CONFLICT(user_id) DO UPDATE SET data=EXCLUDED.data,updated_at=now()',[req.user.id,JSON.stringify(cleanProfessorProfile(profile))]);await client.query('COMMIT')}catch(e){await client.query('ROLLBACK');throw e}finally{client.release()}
- const clean=cleanProfessorProfile(profile),links=await professorClassLinks(clean,req.user.id);res.json({ok:true,profile:clean,classLinks:links,localClassId:cls.id,sharedClassId:shared.class_id})
+ await loadProfessorProfile(req.user.id);const client=await pool.connect();let profile,cls,shared;
+ try{
+  await client.query('BEGIN');
+  const locked=await client.query('SELECT data FROM nataiji_professor_profiles WHERE user_id=$1 FOR UPDATE',[req.user.id]);profile=cleanProfessorProfile(locked.rows[0]?.data||{});
+  const cq=await client.query('SELECT class_id,owner_user_id,data FROM nataiji_professor_classrooms WHERE join_code=$1 FOR UPDATE',[code]);
+  if(!cq.rowCount){await client.query('ROLLBACK');return res.status(404).json({error:'invalid_class_code'})}
+  shared=cq.rows[0];const data=shared.data&&typeof shared.data==='object'?shared.data:{};
+  if((data.removedUserIds||[]).includes(String(req.user.id))){await client.query('ROLLBACK');return res.status(403).json({error:'shared_membership_removed'})}
+  cls=requestedLocalId?profile.classes.find(x=>x.id===requestedLocalId):null;
+  const existing=profile.classes.find(x=>x.sharedClassId===shared.class_id);if(existing)cls=existing;
+  if(cls?.sharedClassId&&cls.sharedClassId!==shared.class_id){await client.query('ROLLBACK');return res.status(409).json({error:'professor_class_already_linked'})}
+  await archiveProfessorProfileVersion(req.user.id,client,'before-join',profile);
+  if(!cls){cls={id:crypto.randomUUID(),name:'قسم',students:[],sharedClassId:shared.class_id};profile.classes.push(cls)}
+  applyProfessorSharedClassData(cls,data);cls.sharedClassId=shared.class_id;
+  await client.query('INSERT INTO nataiji_professor_class_members(class_id,user_id,role) VALUES($1,$2,$3) ON CONFLICT DO NOTHING',[shared.class_id,req.user.id,shared.owner_user_id===req.user.id?'owner':'member']);
+  await client.query('UPDATE nataiji_professor_profiles SET data=$2::jsonb,updated_at=now() WHERE user_id=$1',[req.user.id,JSON.stringify(cleanProfessorProfile(profile))]);await client.query('COMMIT');
+ }catch(e){await client.query('ROLLBACK');throw e}finally{client.release()}
+ const clean=cleanProfessorProfile(profile),classLinks=await professorClassLinks(clean,req.user.id);res.json({ok:true,profile:clean,classLinks,localClassId:cls.id,sharedClassId:shared.class_id})
 });
+// Collaboration mutations lock the profile first, then the room, like profile saves.
+async function detachProfessorFromClass(actorId,targetId,localClassId){
+ const client=await pool.connect();
+ try{
+  await client.query('BEGIN');
+  const locked=await client.query('SELECT data FROM nataiji_professor_profiles WHERE user_id=$1 FOR UPDATE',[targetId]);
+  const profile=cleanProfessorProfile(locked.rows[0]?.data||{}),cls=profile.classes.find(c=>c.id===localClassId),sharedId=cls?.sharedClassId;
+  if(!sharedId)throw Object.assign(Error('professor_class_not_found'),{status:404});
+  const room=(await client.query('SELECT owner_user_id,data FROM nataiji_professor_classrooms WHERE class_id=$1 FOR UPDATE',[sharedId])).rows[0];
+  const members=(await client.query('SELECT user_id,role FROM nataiji_professor_class_members WHERE class_id=$1 ORDER BY joined_at,user_id',[sharedId])).rows;
+  if(!room||!members.some(m=>m.user_id===targetId)||!members.some(m=>m.user_id===actorId)||(actorId!==targetId&&room.owner_user_id!==actorId))throw Object.assign(Error('forbidden'),{status:403});
+  if(room.owner_user_id===targetId&&members.length>1)throw Object.assign(Error('owner_cannot_leave_shared_class'),{status:409});
+  await archiveProfessorProfileVersion(targetId,client,'before-detach',profile);
+  const data=snapshotDepartingResults(room.data,profile,targetId,sharedId);
+  if(actorId!==targetId)data.removedUserIds=[...new Set([...(data.removedUserIds||[]),targetId])];
+  await client.query('UPDATE nataiji_professor_classrooms SET data=$2::jsonb,updated_at=now() WHERE class_id=$1',[sharedId,JSON.stringify(data)]);
+  // Keep a private local copy; the collective keeps its own frozen results.
+  for(const c of profile.classes)if(c.sharedClassId===sharedId){applyProfessorSharedClassData(c,room.data);c.sharedClassId=''}
+  await client.query('UPDATE nataiji_professor_profiles SET data=$2::jsonb,updated_at=now() WHERE user_id=$1',[targetId,JSON.stringify(profile)]);
+  await client.query('DELETE FROM nataiji_professor_class_members WHERE class_id=$1 AND user_id=$2',[sharedId,targetId]);
+  if(members.length===1)await client.query('UPDATE nataiji_professor_classrooms SET join_code=$2 WHERE class_id=$1',[sharedId,professorJoinCode()]);
+  await client.query('COMMIT');return profile;
+ }catch(e){await client.query('ROLLBACK');throw e}finally{client.release()}
+}
 app.delete('/api/professor/classes/:localClassId/link',auth,async(req,res)=>{
  if(req.user.role!=='professor')return res.status(403).json({error:'forbidden'});if(!pool)return res.status(503).json({error:'durable_storage_required'});
- const localClassId=String(req.params.localClassId||''),profile=await loadProfessorProfile(req.user.id),cls=profile.classes.find(x=>x.id===localClassId);if(!cls)return res.status(404).json({error:'professor_class_not_found'});const sharedClassId=String(cls.sharedClassId||'');if(!sharedClassId)return res.json({ok:true,profile,classLinks:await professorClassLinks(profile,req.user.id)});
- const owner=await pool.query('SELECT owner_user_id FROM nataiji_professor_classrooms WHERE class_id=$1',[sharedClassId]),count=await pool.query('SELECT count(*)::int AS n FROM nataiji_professor_class_members WHERE class_id=$1',[sharedClassId]);if(owner.rows[0]?.owner_user_id===req.user.id&&Number(count.rows[0]?.n||0)>1)return res.status(409).json({error:'owner_cannot_leave_shared_class'});
- await pool.query('DELETE FROM nataiji_professor_class_members WHERE class_id=$1 AND user_id=$2',[sharedClassId,req.user.id]);if(owner.rows[0]?.owner_user_id===req.user.id){await pool.query('DELETE FROM nataiji_professor_classrooms WHERE class_id=$1',[sharedClassId])}cls.sharedClassId='';await saveProfessorProfile(req.user.id,profile,{syncShared:false});res.json({ok:true,profile:cleanProfessorProfile(profile),classLinks:await professorClassLinks(profile,req.user.id)})
+ try{const profile=await detachProfessorFromClass(req.user.id,req.user.id,String(req.params.localClassId));res.json({ok:true,profile,classLinks:await professorClassLinks(profile,req.user.id)})}catch(e){if(e.status)return res.status(e.status).json({error:e.message});throw e}
+});
+app.post('/api/professor/assignments/:assignmentId/archive',auth,async(req,res)=>{
+ if(req.user.role!=='professor')return res.status(403).json({error:'forbidden'});if(!pool)return res.status(503).json({error:'durable_storage_required'});
+ const client=await pool.connect();let profile;
+ try{await client.query('BEGIN');const row=await client.query('SELECT data FROM nataiji_professor_profiles WHERE user_id=$1 FOR UPDATE',[req.user.id]);profile=cleanProfessorProfile(row.rows[0]?.data||{});
+  const a=profile.assignments.find(a=>a.id===String(req.params.assignmentId));if(!a){await client.query('ROLLBACK');return res.status(404).json({error:'professor_assignment_not_found'})}
+  if(req.body?.restore===true&&profile.assignments.some(x=>!x.archived&&x.id!==a.id&&x.classId===a.classId&&professorSubjectIdentity(x)===professorSubjectIdentity(a))){await client.query('ROLLBACK');return res.status(409).json({error:'shared_subject_taken'})}
+  if(req.body?.restore===true){const candidate=structuredClone(profile);candidate.assignments.find(x=>x.id===a.id).archived=false;const conflict=await professorSharedSubjectConflict(req.user.id,{...profile,assignments:profile.assignments.filter(x=>x.id!==a.id)},candidate);if(conflict){await client.query('ROLLBACK');return res.status(409).json({error:'shared_subject_taken'})}}
+  await archiveProfessorProfileVersion(req.user.id,client,'before-assignment-archive',profile);a.archived=req.body?.restore!==true;
+  await client.query('UPDATE nataiji_professor_profiles SET data=$2::jsonb,updated_at=now() WHERE user_id=$1',[req.user.id,JSON.stringify(profile)]);await client.query('COMMIT');
+ }catch(e){await client.query('ROLLBACK');throw e}finally{client.release()}
+ res.json({ok:true,profile,classLinks:await professorClassLinks(profile,req.user.id)})
+});
+app.get('/api/professor/classes/:localClassId/members',auth,async(req,res)=>{
+ if(req.user.role!=='professor')return res.status(403).json({error:'forbidden'});if(!pool)return res.status(503).json({error:'durable_storage_required'});
+ const profile=await loadProfessorProfile(req.user.id),links=await professorClassLinks(profile,req.user.id),link=links[String(req.params.localClassId)];if(!link)return res.status(403).json({error:'forbidden'});
+ const rows=(await pool.query('SELECT m.user_id,m.role,p.data FROM nataiji_professor_class_members m LEFT JOIN nataiji_professor_profiles p ON p.user_id=m.user_id WHERE m.class_id=$1 ORDER BY m.joined_at,m.user_id',[link.sharedClassId])).rows;
+ const members=[];for(const row of rows){const userRaw=await storeGet(userKey(row.user_id));let user={};try{user=JSON.parse(userRaw||'{}')}catch{}const p=cleanProfessorProfile(row.data||{}),ids=new Set(p.classes.filter(c=>c.sharedClassId===link.sharedClassId).map(c=>c.id));members.push({userId:row.user_id,name:user.name||'أستاذ',role:row.role,own:row.user_id===req.user.id,subjects:p.assignments.filter(a=>!a.archived&&ids.has(a.classId)).map(a=>({subject:a.subject,subjectKey:a.subjectKey}))})}
+ res.json({ok:true,members,role:link.role})
+});
+app.post('/api/professor/classes/:localClassId/owner',auth,async(req,res)=>{
+ if(req.user.role!=='professor')return res.status(403).json({error:'forbidden'});if(!pool)return res.status(503).json({error:'durable_storage_required'});
+ const p=await loadProfessorProfile(req.user.id),cls=p.classes.find(c=>c.id===String(req.params.localClassId)),target=String(req.body?.userId||'');if(!cls?.sharedClassId)return res.status(404).json({error:'professor_class_not_found'});
+ const client=await pool.connect();try{await client.query('BEGIN');const room=(await client.query('SELECT owner_user_id FROM nataiji_professor_classrooms WHERE class_id=$1 FOR UPDATE',[cls.sharedClassId])).rows[0];
+  const member=await client.query('SELECT 1 FROM nataiji_professor_class_members WHERE class_id=$1 AND user_id=$2',[cls.sharedClassId,target]);
+  if(room?.owner_user_id!==req.user.id||!member.rowCount){await client.query('ROLLBACK');return res.status(403).json({error:'forbidden'})}
+  await client.query("UPDATE nataiji_professor_class_members SET role=CASE WHEN user_id=$2 THEN 'owner' ELSE 'member' END WHERE class_id=$1",[cls.sharedClassId,target]);
+  await client.query('UPDATE nataiji_professor_classrooms SET owner_user_id=$2,updated_at=now() WHERE class_id=$1',[cls.sharedClassId,target]);await client.query('COMMIT');res.json({ok:true})
+ }catch(e){await client.query('ROLLBACK');throw e}finally{client.release()}
+});
+app.delete('/api/professor/classes/:localClassId/members/:userId',auth,async(req,res)=>{
+ if(req.user.role!=='professor')return res.status(403).json({error:'forbidden'});if(!pool)return res.status(503).json({error:'durable_storage_required'});
+ const p=await loadProfessorProfile(req.user.id),cls=p.classes.find(c=>c.id===String(req.params.localClassId)),target=String(req.params.userId);if(!cls?.sharedClassId||target===req.user.id)return res.status(403).json({error:'forbidden'});
+ const targetProfile=await loadProfessorProfile(target),targetClass=targetProfile.classes.find(c=>c.sharedClassId===cls.sharedClassId);if(!targetClass)return res.status(404).json({error:'professor_class_not_found'});
+ try{await detachProfessorFromClass(req.user.id,target,targetClass.id);res.json({ok:true})}catch(e){if(e.status)return res.status(e.status).json({error:e.message});throw e}
 });
 app.get('/api/owner/overview',auth,ownerOnly,async(_req,res)=>{
  const idx=await getIndex(),accounts=[],users=[];let schools=0;
