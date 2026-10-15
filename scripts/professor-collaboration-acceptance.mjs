@@ -4,8 +4,12 @@ const base=process.env.NATAIJI_TEST_URL||'http://127.0.0.1:3222';
 if(!['127.0.0.1','localhost'].includes(new URL(base).hostname))throw Error('Collaboration acceptance requires a local disposable server');
 async function account(i){let cookie='';const call=async(path,method='GET',body,expected=200)=>{const r=await fetch(base+path,{method,headers:{'content-type':'application/json',...(cookie?{cookie}:{})},...(body===undefined?{}:{body:JSON.stringify(body)})});if(r.headers.get('set-cookie'))cookie=r.headers.get('set-cookie').split(';')[0];const data=await r.json();assert.equal(r.status,expected,`${method} ${path}: ${JSON.stringify(data)}`);return data};const reg=await call('/api/auth/register','POST',{name:'Collaboration QA '+i,email:`collaboration.${i}@example.com`,password:'Collaboration-9021'},201);await call('/api/account/profile-type','POST',{type:'professor'});return {call,id:reg.user.id,getCookie:()=>cookie}}
 const owner=await account(1),member=await account(2),outsider=await account(3);
-const initial={year:'2026-2027',classes:[{id:'owner-class',name:'1AS',levelCode:'1AS',students:[{id:'student',name:'أحمد',callNumber:1}]}],assignments:[{id:'math',classId:'owner-class',subject:'الرياضيات',subjectKey:'math',coefficient:6}],marks:{}};
+const initial={wilaya:'لبراكنة',wilayaFr:'Brakna',district:'مال',districtFr:'Mâl',onboardingComplete:true,inspection:'legacy preserved',year:'2026-2027',classes:[{id:'owner-class',name:'1AS',levelCode:'1AS',students:[{id:'student',name:'أحمد',callNumber:1}]}],assignments:[{id:'math',classId:'owner-class',subject:'الرياضيات',subjectKey:'math',coefficient:6}],marks:{}};
 await owner.call('/api/professor/profile','PUT',{profile:initial});
+const legacy={...initial};for(const key of ['wilaya','wilayaFr','district','districtFr','onboardingComplete'])delete legacy[key];
+const kept=(await owner.call('/api/professor/profile','PUT',{profile:legacy})).profile;
+assert.equal(kept.wilaya,'لبراكنة');assert.equal(kept.districtFr,'Mâl');assert.equal(kept.onboardingComplete,true);assert.equal(kept.inspection,'legacy preserved');
+
 const grade=(who,id,test,exam)=>who.call(`/api/professor/assignments/${id}/students/student/grades`,'PUT',{term:1,test,exam});
 await grade(owner,'math','14','16');
 const share=await owner.call('/api/professor/classes/owner-class/share','POST',{},201),joined=await member.call('/api/professor/classes/join','POST',{code:share.code}),memberClass=joined.localClassId;

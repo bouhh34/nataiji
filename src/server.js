@@ -83,7 +83,7 @@ function cleanProfessorProfile(input){
   }
   marks[a.id]=out
  }
- return{schoolName:String(src.schoolName||'').trim().slice(0,160),schoolNameFr:String(src.schoolNameFr||'').trim().slice(0,160),region:String(src.region||'').trim().slice(0,160),regionFr:String(src.regionFr||'').trim().slice(0,160),inspection:String(src.inspection||'').trim().slice(0,160),inspectionFr:String(src.inspectionFr||'').trim().slice(0,160),schoolNns:String(src.schoolNns||'').trim().slice(0,80),year:String(src.year||'').trim().slice(0,40),classes,assignments,marks}
+ return{wilaya:String(src.wilaya||'').trim().slice(0,160),wilayaFr:String(src.wilayaFr||'').trim().slice(0,160),district:String(src.district||'').trim().slice(0,160),districtFr:String(src.districtFr||'').trim().slice(0,160),onboardingComplete:src.onboardingComplete===true,schoolName:String(src.schoolName||'').trim().slice(0,160),schoolNameFr:String(src.schoolNameFr||'').trim().slice(0,160),region:String(src.region||'').trim().slice(0,160),regionFr:String(src.regionFr||'').trim().slice(0,160),inspection:String(src.inspection||'').trim().slice(0,160),inspectionFr:String(src.inspectionFr||'').trim().slice(0,160),schoolNns:String(src.schoolNns||'').trim().slice(0,80),year:String(src.year||'').trim().slice(0,40),classes,assignments,marks}
 }
 function preserveProfessorMarks(beforeInput,candidateInput){
  const before=cleanProfessorProfile(beforeInput),candidate=cleanProfessorProfile(candidateInput),beforeAssignments=new Map(before.assignments.map(a=>[String(a.id),a])),classStudents=new Map(candidate.classes.map(c=>[String(c.id),new Set((c.students||[]).map(st=>String(st.id)))]));
@@ -487,7 +487,10 @@ app.get('/api/professor/profile',auth,async(req,res)=>{
 });
 app.put('/api/professor/profile',auth,async(req,res)=>{
  if(req.user.role!=='professor')return res.status(403).json({error:'forbidden'});if(!pool)return res.status(503).json({error:'durable_storage_required'});
- const before=await loadProfessorProfile(req.user.id),candidate=preserveArchivedAssignments(before,preserveProfessorMarks(before,req.body?.profile));
+ const before=await loadProfessorProfile(req.user.id),incoming={...(req.body?.profile||{})};
+ // Older cached clients do not know these fields; preserve them when omitted.
+ for(const key of ['wilaya','wilayaFr','district','districtFr','onboardingComplete'])if(!Object.hasOwn(incoming,key))incoming[key]=before[key];
+ const candidate=preserveArchivedAssignments(before,preserveProfessorMarks(before,incoming));
  if(before.classes.some(c=>c.sharedClassId&&!candidate.classes.some(n=>n.id===c.id))||before.assignments.some(a=>before.classes.some(c=>c.id===a.classId&&c.sharedClassId)&&!candidate.assignments.some(n=>n.id===a.id)))return res.status(409).json({error:'use_collaboration_actions'});
  const conflict=await professorSharedSubjectConflict(req.user.id,before,candidate);
  if(conflict)return res.status(409).json({error:'shared_subject_taken',subject:conflict.subject,subjectKey:conflict.subjectKey,sharedClassId:conflict.sharedClassId});

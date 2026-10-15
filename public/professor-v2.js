@@ -33,7 +33,7 @@ function showLegacy(){
  q('.app-shell')?.style.removeProperty('display');q('.bottom-nav')?.style.removeProperty('display');q('#nataijiProfessorRoot')?.remove()
 }
 function root(){let el=q('#nataijiProfessorRoot');if(!el){el=document.createElement('main');el.id='nataijiProfessorRoot';el.className='professor-app professor-v2';document.body.appendChild(el)}return el}
-function normalize(p){const x=p&&typeof p==='object'?structuredClone(p):{};x.schoolName=String(x.schoolName||'');x.schoolNameFr=String(x.schoolNameFr||'');x.region=String(x.region||'');x.regionFr=String(x.regionFr||'');x.inspection=String(x.inspection||'');x.inspectionFr=String(x.inspectionFr||'');x.schoolNns=String(x.schoolNns||'');x.year=String(x.year||'');x.classes=Array.isArray(x.classes)?x.classes:[];x.assignments=Array.isArray(x.assignments)?x.assignments:[];x.marks=x.marks&&typeof x.marks==='object'?x.marks:{};return x}
+function normalize(p){const x=p&&typeof p==='object'?structuredClone(p):{};x.schoolName=String(x.schoolName||'');x.schoolNameFr=String(x.schoolNameFr||'');x.region=String(x.region||'');x.regionFr=String(x.regionFr||'');x.inspection=String(x.inspection||'');x.inspectionFr=String(x.inspectionFr||'');for(const key of ['wilaya','wilayaFr','district','districtFr'])x[key]=String(x[key]||'');x.onboardingComplete=x.onboardingComplete===true;x.schoolNns=String(x.schoolNns||'');x.year=String(x.year||'');x.classes=Array.isArray(x.classes)?x.classes:[];x.assignments=Array.isArray(x.assignments)?x.assignments:[];x.marks=x.marks&&typeof x.marks==='object'?x.marks:{};return x}
 
 const PROF_SUBJECT_FR={
  'التربية الإسلامية':'Éducation islamique','اللغة العربية':'Langue arabe','العربية':'Langue arabe','الرياضيات':'Mathématiques',
@@ -687,20 +687,26 @@ function renderMore(){
  q('#profMoreDelete',el).onclick=openProfessorDeleteAccount
 }
 
-function openSettings(){
+function needsProfessorOnboarding(){return !profile.onboardingComplete&&!profile.classes.length&&!profile.assignments.length&&!profile.schoolName.trim()}
+function profPlacePair(key){const ar=String(profile[key]||'').trim();return{ar,fr:String(profile[key+'Fr']||'').trim()||profTranslit(ar)}}
+function openSettings(onboarding=false){
+ onboarding=onboarding===true;
  const generatedSchoolFr=profile.schoolNameFr||profSchoolFrAuto(profile.schoolName);
- const m=modal(tr('إعدادات الأستاذ','Paramètres du professeur'),`<div class="prof-link-explain"><b>${tr('بيانات الكشوف الرسمية','Informations des relevés officiels')}</b><p>${tr('ستظهر هذه البيانات في كشف التلميذ ولائحة القسم. اسم المؤسسة بالفرنسية يُنشأ تلقائيًا: إعدادية = Collège، ثانوية = Lycée، مدرسة = École.','Ces informations apparaîtront sur les bulletins et listes. Le nom français est généré automatiquement : إعدادية = Collège, ثانوية = Lycée, مدرسة = École.')}</p></div><label>${tr('اسم المؤسسة','Établissement')}<input id="pv2School" value="${esc(profile.schoolName)}" maxlength="160"></label><label>${tr('اسم المؤسسة بالفرنسية','Établissement en français')}<input id="pv2SchoolFr" value="${esc(generatedSchoolFr)}" maxlength="160"><small>${tr('يُحدّث تلقائيًا ما لم تعدّله يدويًا.','Mis à jour automatiquement sauf modification manuelle.')}</small></label><label>${tr('الإدارة الجهوية للتربية','Direction régionale de l’Éducation')}<input id="pv2Region" value="${esc(profile.region)}" maxlength="160"></label><label>${tr('الإدارة الجهوية بالفرنسية (اختياري — تُولد تلقائيًا إذا تُركت فارغة)','Direction régionale en français (facultatif — générée automatiquement si vide)')}<input id="pv2RegionFr" value="${esc(profile.regionFr)}" maxlength="160"></label><label>${tr('المفتشية','Inspection')}<input id="pv2Inspection" value="${esc(profile.inspection)}" maxlength="160"></label><label>${tr('المفتشية بالفرنسية (اختياري — تُولد تلقائيًا إذا تُركت فارغة)','Inspection en français (facultatif — générée automatiquement si vide)')}<input id="pv2InspectionFr" value="${esc(profile.inspectionFr)}" maxlength="160"></label><label>${tr('الرقم المدرسي للمؤسسة (اختياري)','N° scolaire de l’établissement (facultatif)')}<input id="pv2SchoolNns" value="${esc(profile.schoolNns)}" maxlength="80" dir="ltr"></label><label>${tr('السنة الدراسية','Année scolaire')}<input id="pv2Year" value="${esc(profile.year)}" maxlength="40" dir="ltr" placeholder="2026-2027"></label><button class="primary" id="pv2SaveSettings">${tr('حفظ','Enregistrer')}</button><p class="professor-msg"></p>`);
+ const m=modal(onboarding?tr('استكمال بيانات المؤسسة','Compléter les informations de l’établissement'):tr('إعدادات الأستاذ','Paramètres du professeur'),`<div class="prof-link-explain"><b>${tr('بيانات الكشوف الرسمية','Informations des relevés officiels')}</b><p>${tr('ستظهر هذه البيانات في كشف التلميذ ولائحة القسم. اسم المؤسسة بالفرنسية يُنشأ تلقائيًا: إعدادية = Collège، ثانوية = Lycée، مدرسة = École.','Ces informations apparaîtront sur les bulletins et listes. Le nom français est généré automatiquement : إعدادية = Collège, ثانوية = Lycée, مدرسة = École.')}</p></div><label>${tr('اسم المؤسسة','Établissement')}<input id="pv2School" value="${esc(profile.schoolName)}" maxlength="160"></label><label>${tr('اسم المؤسسة بالفرنسية','Établissement en français')}<input id="pv2SchoolFr" value="${esc(generatedSchoolFr)}" maxlength="160"><small>${tr('يُحدّث تلقائيًا ما لم تعدّله يدويًا.','Mis à jour automatiquement sauf modification manuelle.')}</small></label><label>${tr('الإدارة الجهوية للتربية','Direction régionale de l’Éducation')}<input id="pv2Region" value="${esc(profile.region)}" maxlength="160"></label><label>${tr('الإدارة الجهوية بالفرنسية (اختياري — تُولد تلقائيًا إذا تُركت فارغة)','Direction régionale en français (facultatif — générée automatiquement si vide)')}<input id="pv2RegionFr" value="${esc(profile.regionFr)}" maxlength="160"></label><label>${tr('الولاية','Wilaya')}<input id="pv2Wilaya" value="${esc(profile.wilaya)}" maxlength="160"></label><label>${tr('الولاية بالفرنسية (اختياري)','Wilaya en français (facultatif)')}<input id="pv2WilayaFr" value="${esc(profile.wilayaFr)}" maxlength="160"></label><label>${tr('المقاطعة','Moughataa')}<input id="pv2District" value="${esc(profile.district)}" maxlength="160"></label><label>${tr('المقاطعة بالفرنسية (اختياري)','Moughataa en français (facultatif)')}<input id="pv2DistrictFr" value="${esc(profile.districtFr)}" maxlength="160"></label><label>${tr('الرقم المدرسي للمؤسسة (اختياري)','N° scolaire de l’établissement (facultatif)')}<input id="pv2SchoolNns" value="${esc(profile.schoolNns)}" maxlength="80" dir="ltr"></label><label>${tr('السنة الدراسية','Année scolaire')}<input id="pv2Year" value="${esc(profile.year)}" maxlength="40" dir="ltr" placeholder="2026-2027"></label><button class="primary" id="pv2SaveSettings">${tr('حفظ','Enregistrer')}</button><p class="professor-msg"></p>`);
  const schoolAr=q('#pv2School',m.wrap),schoolFr=q('#pv2SchoolFr',m.wrap);
  let schoolFrManual=!!String(profile.schoolNameFr||'').trim();
  schoolAr.addEventListener('input',()=>{if(!schoolFrManual)schoolFr.value=profSchoolFrAuto(schoolAr.value)});
  schoolFr.addEventListener('input',()=>{schoolFrManual=schoolFr.value.trim()!==''});
  q('#pv2SaveSettings',m.wrap).onclick=async()=>{
   const b=q('#pv2SaveSettings',m.wrap),msg=q('.professor-msg',m.wrap);b.disabled=true;
+  if(onboarding){const missing=['pv2School','pv2Region','pv2Wilaya','pv2District'].map(id=>q('#'+id,m.wrap)).find(input=>!input.value.trim());if(missing){msg.textContent=tr('أكمل المؤسسة والإدارة الجهوية والولاية والمقاطعة.','Renseignez l’établissement, la direction régionale, la wilaya et la moughataa.');missing.focus();b.disabled=false;return}}
+  const previous=structuredClone(profile);
   profile.schoolName=schoolAr.value.trim();profile.schoolNameFr=schoolFr.value.trim()||profSchoolFrAuto(profile.schoolName);
   profile.region=q('#pv2Region',m.wrap).value.trim();profile.regionFr=q('#pv2RegionFr',m.wrap).value.trim();
-  profile.inspection=q('#pv2Inspection',m.wrap).value.trim();profile.inspectionFr=q('#pv2InspectionFr',m.wrap).value.trim();
+  for(const key of ['Wilaya','District']){const field=key.toLowerCase();profile[field]=q('#pv2'+key,m.wrap).value.trim();profile[field+'Fr']=q('#pv2'+key+'Fr',m.wrap).value.trim()}
+  if(onboarding)profile.onboardingComplete=true;
   profile.schoolNns=q('#pv2SchoolNns',m.wrap).value.trim();profile.year=q('#pv2Year',m.wrap).value.trim();
-  try{await saveProfile(tr('تم حفظ الإعدادات','Paramètres enregistrés'));m.close();renderCurrent()}catch{msg.textContent=tr('تعذر الحفظ','Enregistrement impossible')}finally{b.disabled=false}
+  try{await saveProfile(tr('تم حفظ الإعدادات','Paramètres enregistrés'));m.close();renderCurrent()}catch{profile=normalize(previous);msg.textContent=tr('تعذر الحفظ، أعد المحاولة.','Enregistrement impossible, réessayez.')}finally{b.disabled=false}
  }
 }
 function openAssignment(preselectClass='',forcedMode=''){
@@ -1060,7 +1066,7 @@ function professorCurriculumNoticePair(data){
 }
 function dualReportLabel(ar,fr){return `<span class="dual-ar" dir="rtl" lang="ar">${esc(ar)}</span><span class="dual-fr" dir="ltr" lang="fr">${esc(fr)}</span>`}
 function professorOfficialHeader(className='',term=1){
- const school=profSchoolPair(),region=profRegionPair(),inspection=profInspectionPair(),cls=profClassPair(className),t=professorTermPair(term);
+ const school=profSchoolPair(),region=profRegionPair(),wilaya=profPlacePair('wilaya'),district=profPlacePair('district'),cls=profClassPair(className),t=professorTermPair(term);
  const nns=String(profile.schoolNns||'').trim(),year=String(profile.year||'').trim();
  return `<header class="official-head">
   <section class="official-side official-fr" dir="ltr" lang="fr">
@@ -1068,7 +1074,8 @@ function professorOfficialHeader(className='',term=1){
    <strong>Honneur - Fraternité - Justice</strong>
    <span>Ministère de l’Éducation et de la Réforme du Système Éducatif</span>
    ${region.fr?`<span>Direction régionale : <b>${esc(region.fr)}</b></span>`:''}
-   ${inspection.fr?`<span>Inspection : <b>${esc(inspection.fr)}</b></span>`:''}
+   ${wilaya.fr?`<span>Wilaya : <b>${esc(wilaya.fr)}</b></span>`:''}
+   ${district.fr?`<span>Moughataa : <b>${esc(district.fr)}</b></span>`:''}
    ${school.fr?`<span>Établissement : <b>${esc(school.fr)}</b></span>`:''}
    ${nns?`<span>N° scolaire : <b dir="ltr">${esc(nns)}</b></span>`:''}
    ${year?`<span>Année scolaire : <b dir="ltr">${esc(year)}</b></span>`:''}
@@ -1081,7 +1088,8 @@ function professorOfficialHeader(className='',term=1){
    <strong>شرف - إخاء - عدل</strong>
    <span>وزارة التربية وإصلاح النظام التعليمي</span>
    ${region.ar?`<span>الإدارة الجهوية: <b>${esc(region.ar)}</b></span>`:''}
-   ${inspection.ar?`<span>المفتشية: <b>${esc(inspection.ar)}</b></span>`:''}
+   ${wilaya.ar?`<span>الولاية: <b>${esc(wilaya.ar)}</b></span>`:''}
+   ${district.ar?`<span>المقاطعة: <b>${esc(district.ar)}</b></span>`:''}
    ${school.ar?`<span>المؤسسة: <b>${esc(school.ar)}</b></span>`:''}
    ${nns?`<span>الرقم المدرسي: <b dir="ltr">${esc(nns)}</b></span>`:''}
    ${year?`<span>السنة الدراسية: <b dir="ltr">${esc(year)}</b></span>`:''}
@@ -1240,7 +1248,7 @@ function chooseAccountType(user){
  hideLegacy();const el=root();el.innerHTML=`<div class="professor-choice"><div class="professor-choice-card"><img src="/nataiji-brand-mark.png" width="76" height="76" alt=""><small>${tr('إعداد الحساب لأول مرة','Configuration initiale')}</small><h1>${tr('كيف ستستخدم نتائجي؟','Comment utiliserez-vous Nataiji ?')}</h1><p>${tr('اختر مرة واحدة نوع حسابك. نظام المعلمين الحالي يبقى كما هو.','Choisissez une seule fois votre type de compte. Le système actuel des enseignants reste inchangé.')}</p><div class="professor-choice-grid"><button data-profile-type="teacher"><span>👨‍🏫</span><b>${tr('معلم','Enseignant')}</b><small>${tr('النظام الحالي للأقسام والفصول والنتائج','Système actuel des classes, trimestres et résultats')}</small></button><button data-profile-type="professor" class="featured"><span>🎓</span><b>${tr('أستاذ','Professeur')}</b><small>${tr('عدة مواد وأقسام، اختبار واحد وامتحان واحد لكل فصل','Plusieurs matières/classes, une interrogation et une composition par trimestre')}</small></button></div><p class="professor-choice-msg"></p></div></div>`;
  qa('[data-profile-type]',el).forEach(b=>b.onclick=async()=>{qa('[data-profile-type]',el).forEach(x=>x.disabled=true);const type=b.dataset.profileType,msg=q('.professor-choice-msg',el);try{const r=await api('/api/account/profile-type',{method:'POST',body:JSON.stringify({type})});currentUser=r.user;if(type==='professor')return renderProfessor(r.user);showLegacy();return startApp()}catch{msg.textContent=tr('تعذر حفظ الاختيار. أعد المحاولة.','Impossible d’enregistrer le choix. Réessayez.');qa('[data-profile-type]',el).forEach(x=>x.disabled=false)}});return true
 }
-async function renderProfessor(user){professorUser=user;gradeJournal=new NataijiGradeJournal(localStorage,user.id);syncError=null;syncProfessorLanguage();hideLegacy();const el=root();el.innerHTML=`<div class="professor-loading"><img src="/nataiji-brand-mark.png" width="64" height="64" alt=""><p>${tr('جاري تجهيز فضاء الأستاذ…','Préparation de l’espace professeur…')}</p></div>`;try{await refreshProfile();currentView='home';renderHome();if(gradeJournal.rows.size)void flushGradeAutosave()}catch{el.innerHTML=`<div class="professor-loading"><h2>${tr('تعذر تحميل حساب الأستاذ','Impossible de charger le compte professeur')}</h2><button class="primary" onclick="location.reload()">${tr('إعادة المحاولة','Réessayer')}</button></div>`}}
+async function renderProfessor(user){professorUser=user;gradeJournal=new NataijiGradeJournal(localStorage,user.id);syncError=null;syncProfessorLanguage();hideLegacy();const el=root();el.innerHTML=`<div class="professor-loading"><img src="/nataiji-brand-mark.png" width="64" height="64" alt=""><p>${tr('جاري تجهيز فضاء الأستاذ…','Préparation de l’espace professeur…')}</p></div>`;try{await refreshProfile();currentView='home';renderHome();if(needsProfessorOnboarding())openSettings(true);if(gradeJournal.rows.size)void flushGradeAutosave()}catch{el.innerHTML=`<div class="professor-loading"><h2>${tr('تعذر تحميل حساب الأستاذ','Impossible de charger le compte professeur')}</h2><button class="primary" onclick="location.reload()">${tr('إعادة المحاولة','Réessayer')}</button></div>`}}
 async function logout(){
  if(gradeJournal?.rows.size&&!confirm(tr('توجد مسودات لم تصل للخادم. ستبقى على هذا الجهاز لحسابك حتى تسجل الدخول مجددًا. هل تريد الخروج؟','Des brouillons restent sur cet appareil pour ce compte jusqu’à votre prochaine connexion. Se déconnecter ?')))return;
  try{await api('/api/auth/logout',{method:'POST',body:'{}'})}catch(e){if(![401,403].includes(e.status)){toast(tr('تعذر إنهاء الجلسة. اتصل بالإنترنت ثم أعد المحاولة.','Impossible de fermer la session. Reconnectez-vous à Internet et réessayez.'));return}}
