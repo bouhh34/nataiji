@@ -12,7 +12,7 @@ test('all application entrypoint scripts download without blocking the HTML pars
  assert.ok(scripts.length>=35);
  assert.ok(scripts.every(attributes=>/\bdefer\b/.test(attributes)));
  const names=scripts.map(attributes=>attributes.match(/src="([^"]+)"/)?.[1]);
- for(const [first,second] of [['/app.js?v=52','/auth-access-v2.js?v=45'],['/grade-journal.js?v=1','/professor-v2.js?v=81'],['/auth-access-v2.js?v=45','/luxury-ui-v1.js?v=6']]){
+ for(const [first,second] of [['/app.js?v=52','/auth-access-v2.js?v=45'],['/grade-journal.js?v=1','/professor-v2.js?v=82'],['/auth-access-v2.js?v=45','/luxury-ui-v1.js?v=6']]){
   assert.ok(names.indexOf(first)>=0&&names.indexOf(second)>names.indexOf(first),first+' should precede '+second);
  }
  const cacheAssets=JSON.parse(sw.match(/const ASSETS = ([\s\S]*?);/)[1]);
