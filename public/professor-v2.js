@@ -859,7 +859,7 @@ async function copyProfessorPupils(classId){
  try{if(!await flushGradeAutosave())throw Error('drafts_pending');await refreshProfile()}catch{toast(tr('تحتاج إلى اتصال بالإنترنت قبل النقل.','Une connexion Internet est nécessaire pour la copie.'));return}
  const src=classById(classId),targets=(profile.classes||[]).filter(c=>c.id!==classId&&!c.sharedClassId&&!linkFor(c.id));
  if(!src||!targets.length){toast(tr('أنشئ القسم الجديد أولًا.','Créez d’abord la nouvelle classe.'));return}
- const m=modal(tr('ترحيل أسماء التلاميذ','Copier les élèves'),`<p>${tr('تُنسخ الأسماء فقط. تبقى النتائج في القسم الأصلي، ولا تُنقل الدرجات.','Seules les identités sont copiées. Les notes restent dans la classe d’origine.')}</p>
+ const m=modal(tr('ترحيل أسماء التلاميذ','Copier les élèves'),`<p>${tr('تُنسخ الأسماء فقط، وتبقى النتائج في القسم الأصلي. لا يُنشأ أرشيف لسنة جديدة؛ احتفظ بكشوف السنة السابقة قبل تغيير السنة.','Seules les identités sont copiées. Les notes restent dans la classe d’origine.')}</p>
  <label>${tr('القسم الجديد','Classe cible')}<select id="pv2CopyTarget">${targets.map(c=>`<option value="${esc(c.id)}">${esc(classDisplayName(c))}</option>`).join('')}</select></label>
  <label><input id="pv2CopyAll" type="checkbox" checked> ${tr('اختيار الجميع','Tout sélectionner')}</label>
  <div style="max-height:35vh;overflow:auto;display:grid;gap:7px;margin:12px 0">${(src.students||[]).map(student=>`<label><input type="checkbox" data-copy-student="${esc(student.id)}" checked> ${esc(profStudentNamePair(student).ar||student.name)}</label>`).join('')}</div>
