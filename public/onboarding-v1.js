@@ -22,12 +22,9 @@ function arToFr(v){let z=String(v||'').trim();if(!z)return'';if(AR_FR[z])return 
 function normFr(v){return String(v||'').trim().toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'')}
 function frWordToAr(w){let x=normFr(w);const exact=FR_AR[x];if(exact)return exact;x=x.replace(/ch/g,'ش').replace(/kh/g,'خ').replace(/gh/g,'غ').replace(/ou/g,'و').replace(/th/g,'ث').replace(/ph/g,'ف').replace(/dj/g,'ج').replace(/sh/g,'ش');const m={a:'ا',b:'ب',c:'ك',d:'د',e:'',f:'ف',g:'غ',h:'ه',i:'ي',j:'ج',k:'ك',l:'ل',m:'م',n:'ن',o:'و',p:'ب',q:'ق',r:'ر',s:'س',t:'ت',u:'و',v:'ف',w:'و',x:'كس',y:'ي',z:'ز'};let o='';for(const ch of x)o+=m[ch]??ch;return o}
 function frToAr(v){let z=String(v||'').trim();if(!z)return'';const exact=FR_AR[normFr(z)];if(exact)return exact;return z.split(/\s+/).map(frWordToAr).join(' ')}
-function bindBiPair(arSel,frSel){
- const a=q(arSel),f=q(frSel);if(!a||!f)return;
- if(a.value.trim()&&!f.value.trim())f.value=arToFr(a.value);
- else if(f.value.trim()&&!a.value.trim())a.value=frToAr(f.value);
- a.addEventListener('input',()=>{f.value=arToFr(a.value)});
- f.addEventListener('input',()=>{a.value=frToAr(f.value)});
+function bindBiPair(arSel,frSel,toFrench=arToFr){
+  const a=q(arSel),f=q(frSel);if(!a||!f)return;
+  window.nataijiBilingualUtils.bindPair({ar:a,fr:f,toFr:toFrench,toAr:frToAr});
 }
 let open=false,draft={};
 function shouldOpen(){
@@ -61,7 +58,7 @@ function step1(){
  <div class="nw-two"><label>المفتشية بمقاطعة <input id="nwInspection" value="${E(draft.inspection)}" placeholder="مثال: مال"><small class="nw-hint">اكتب اسم المقاطعة فقط</small></label><label>Inspection – Moughataa de <input id="nwInspectionFr" dir="ltr" value="${E(draft.inspectionFr)}" placeholder="Ex. Mâl"><small class="nw-hint">Traduction/transcription automatique modifiable</small></label></div>
  <label>السنة الدراسية <input id="nwYear" dir="ltr" value="${E(draft.year)}" placeholder="2026 - 2027"></label>
  <p class="nw-error"></p>`,`<div class="nw-actions"><button class="primary" id="nwNext1">التالي</button></div>`);
- bindBiPair('#nwSchool','#nwSchoolFr');bindBiPair('#nwRegion','#nwRegionFr');bindBiPair('#nwInspection','#nwInspectionFr');
+ bindBiPair('#nwSchool','#nwSchoolFr',v=>window.nataijiBilingualUtils.schoolToFr(v,arToFr));bindBiPair('#nwRegion','#nwRegionFr');bindBiPair('#nwInspection','#nwInspectionFr');
  q('#nwNext1').onclick=async()=>{const btn=q('#nwNext1'),err=q('.nw-error'),school=q('#nwSchool').value.trim(),year=q('#nwYear').value.trim()||defaultAcademicYear();q('#nwYear').value=year;if(!school){err.textContent='اسم المدرسة مطلوب.';q('#nwSchool').focus();return}Object.assign(draft,{school,schoolFr:q('#nwSchoolFr').value.trim(),region:q('#nwRegion').value.trim(),regionFr:q('#nwRegionFr').value.trim(),inspection:q('#nwInspection').value.trim(),inspectionFr:q('#nwInspectionFr').value.trim(),year});btn.disabled=true;err.textContent='جارٍ تثبيت بيانات المدرسة…';try{await api('/api/settings',{method:'PUT',body:JSON.stringify({...draft,classId:''})});Object.assign(state,{school:draft.school,schoolFr:draft.schoolFr,region:draft.region,regionFr:draft.regionFr,inspection:draft.inspection,inspectionFr:draft.inspectionFr,year:draft.year});localStorage.setItem('nataiji-data',JSON.stringify(state));step2()}catch(e){btn.disabled=false;err.textContent='تعذر حفظ البيانات على الخادم. حاول مرة أخرى.'}}
 }
 function step2(){
