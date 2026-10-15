@@ -16,13 +16,14 @@ test('copy selected pupils into destination without changing source or grades',(
  const source=[row('auto-a','أحمد',3),row('school-12','فاطمة',4,'school-12')];
  const target=[row('other','آخر',1)];
  const before=structuredClone(source),destBefore=structuredClone(target),marks={student:'auto-a',value:'17'};
- const plan=planPupilCopy(source,target,['auto-a','school-12'],()=> 'uuid-1');
+ let serial=0;const plan=planPupilCopy(source,target,['auto-a','school-12'],()=> 'uuid-'+(++serial));
  assert.equal(plan.copies.length,2);
  assert.equal(plan.skipped,0);
  assert.equal(plan.copies[0].nns,'auto-uuid-1');
  assert.equal(plan.copies[0].data[0],'');
  assert.equal(plan.copies[0].data[1],'أحمد');
- assert.equal(plan.copies[1].nns,'school-12');
+ assert.equal(plan.copies[1].nns,'auto-uuid-2');
+ assert.equal(plan.copies[1].data[0],'school-12');
  assert.deepEqual(plan.copies.map(x=>x.data[5]),[2,3]);
  assert.deepEqual(source,before);assert.deepEqual(target,destBefore);
  assert.deepEqual(marks,{student:'auto-a',value:'17'});
