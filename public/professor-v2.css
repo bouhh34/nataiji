@@ -7575,3 +7575,4 @@ html.nataiji-professor-mode body{background:#f4f7f6;min-height:100vh;overflow-x:
  .nataiji-professor-mode .prof-compact-subject-card .prof-luxe-subject-top{padding:6px!important}
  .nataiji-professor-mode .prof-compact-subject-card h3{font-size:17px!important;margin:5px 0!important}
 }
+@media screen{.nataiji-professor-mode .prof-class-subject-group .prof-assignment-list[hidden]{display:none!important}}
