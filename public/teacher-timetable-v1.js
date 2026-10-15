@@ -31,8 +31,26 @@
     root.querySelector('#ttGrade').onchange=e=>{if(changed&&!confirm('سيتم تجاهل التغييرات غير المحفوظة. متابعة؟')){e.target.value=grade;return}grade=e.target.value;working=clone(templates[grade]);changed=true;draw()};
     root.querySelector('#ttOfficial').onclick=()=>{if(confirm('استعادة الجدول الرسمي لهذه السنة؟ لن تتغير النسخة المحفوظة حتى تضغط حفظ.')){working=clone(templates[grade]);changed=true;draw()}};
     root.querySelector('#ttSave').onclick=async()=>{const b=root.querySelector('#ttSave');b.disabled=true;try{state.teacherTimetables={...(state.teacherTimetables||{}),[key()]:{grade,days:clone(working)}};await save(true);changed=false;root.querySelector('#ttStatus').textContent='تم حفظ الجدول';}catch(e){root.querySelector('#ttStatus').textContent='تعذر الحفظ: تحقق من الاتصال ثم حاول مجددًا'}finally{b.disabled=false}};
-    root.querySelector('#ttPrint').onclick=()=>window.print();
+    root.querySelector('#ttPrint').onclick=()=>printTimetable(root);
     root.querySelectorAll('[data-field]').forEach(el=>el.oninput=()=>{const d=Number(el.dataset.day),i=Number(el.dataset.slot);working[d][i][el.dataset.field]=el.dataset.field==='minutes'?Math.max(1,Math.min(180,Number(el.value)||1)):el.value;changed=true;root.querySelector('#ttStatus').textContent='تغييرات غير محفوظة'});
+  }
+  function timetableDocument(root){
+    const note=root.querySelector('.tt-note')?.textContent||'';
+    const rows=Array.from({length:Math.max(...working.map(d=>d.length))},(_,i)=>`<tr><th>${i+1}</th>${working.map(day=>{const c=day[i];return `<td>${c?`<div dir="auto">${safe(c.subject)}</div><small>${safe(c.minutes)} دقيقة / min</small>`:'—'}</td>`}).join('')}</tr>`).join('');
+    return `<!doctype html><html lang="ar" dir="rtl"><head><meta charset="utf-8"><title>استعمال الزمن</title><style>
+      @page{size:A4 landscape;margin:8mm}*{box-sizing:border-box}html,body{margin:0;padding:0;background:#fff;color:#111;font-family:Arial,Tahoma,sans-serif}
+      h1{text-align:center;font-size:16pt;margin:0 0 2mm}p{font-size:9pt;margin:0 0 3mm;line-height:1.4}
+      table{width:100%;border-collapse:collapse;table-layout:fixed;font-size:10pt}th,td{border:1px solid #84949d;padding:1.2mm;text-align:center;vertical-align:middle;overflow-wrap:anywhere;line-height:1.2}thead th{background:#eaf3f3;height:8mm}th:first-child{width:9%}tbody tr{height:12mm;break-inside:avoid}td small{display:block;font-size:8pt;margin-top:1mm}thead{display:table-header-group}table{break-inside:avoid}*{-webkit-print-color-adjust:exact;print-color-adjust:exact}
+    </style></head><body><h1>استعمال الزمن | Emploi du temps</h1><p>${safe(note)}</p><table><thead><tr><th>الحصة</th>${DAYS.map(d=>`<th>${safe(d)}</th>`).join('')}</tr></thead><tbody>${rows}</tbody></table></body></html>`;
+  }
+  function printTimetable(root){
+    const html=timetableDocument(root);
+    if(window.nataijiPrintDocument&&window.Capacitor?.isNativePlatform?.()){
+      void window.nataijiPrintDocument({html,title:'استعمال الزمن | Emploi du temps',landscape:true});return;
+    }
+    const frame=document.createElement('iframe');frame.style.cssText='position:fixed;width:1px;height:1px;bottom:0;left:0;border:0';frame.title='طباعة استعمال الزمن';
+    frame.onload=async()=>{await frame.contentDocument.fonts?.ready;frame.contentWindow.addEventListener('afterprint',()=>frame.remove(),{once:true});frame.contentWindow.focus();frame.contentWindow.print()};
+    frame.srcdoc=html;document.body.appendChild(frame);
   }
   function init(){
     const nav=document.querySelector('#sideNav'),main=document.querySelector('main');if(!nav||!main||document.getElementById('teacherTimetable'))return;
