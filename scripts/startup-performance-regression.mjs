@@ -7,20 +7,20 @@ const read=path=>fs.readFileSync(new URL('../public/'+path,import.meta.url),'utf
 const html=read('index.html'),app=read('app.js'),sw=read('sw.js');
 
 test('all application entrypoint scripts download without blocking the HTML parser, in dependency order',()=>{
- const scripts=[...html.matchAll(/<script\\b([^>]*)><\\/script>/g)]
-  .map(match=>match[1]).filter(attributes=>/\\bsrc=/.test(attributes));
+ const scripts=[...html.matchAll(/<script\b([^>]*)><\/script>/g)]
+  .map(match=>match[1]).filter(attributes=>/\bsrc=/.test(attributes));
  assert.ok(scripts.length>=35);
- assert.ok(scripts.every(attributes=>/\\bdefer\\b/.test(attributes)));
+ assert.ok(scripts.every(attributes=>/\bdefer\b/.test(attributes)));
  const names=scripts.map(attributes=>attributes.match(/src="([^"]+)"/)?.[1]);
  for(const [first,second] of [['/app.js?v=52','/auth-access-v2.js?v=45'],['/grade-journal.js?v=1','/professor-v2.js?v=81'],['/auth-access-v2.js?v=45','/luxury-ui-v1.js?v=6']]){
   assert.ok(names.indexOf(first)>=0&&names.indexOf(second)>names.indexOf(first),first+' should precede '+second);
  }
- const cacheAssets=JSON.parse(sw.match(/const ASSETS = ([\\s\\S]*?);/)[1]);
+ const cacheAssets=JSON.parse(sw.match(/const ASSETS = ([\s\S]*?);/)[1]);
  for(const name of names)assert.ok(cacheAssets.includes(name),'offline shell missing '+name);
 });
 
 test('ranking remains equal to the historical competition ranking, including ties',()=>{
- const source=app.slice(app.indexOf('function ranks(){'),app.indexOf('\\nfunction setView('));
+ const source=app.slice(app.indexOf('function ranks(){'),app.indexOf('\nfunction setView('));
  assert.ok(source.startsWith('function ranks(){'));
  const run=values=>Array.from(vm.runInNewContext('const state={pupils:values.map(()=>({}))}; const calc=i=>({avg:values[i]}); '+source+';ranks()', {values}));
  for(const values of [[],[0],[10,10,10],[0,10,10,16,0,17],Array.from({length:600},(_,i)=>((i*73)%41)/2)]){
@@ -29,8 +29,8 @@ test('ranking remains equal to the historical competition ranking, including tie
 });
 
 test('reports are prepared on demand and still rendered before printing',()=>{
- assert.match(app,/if\\(!document\\.querySelector\\('\\[data-page="reports"\\]'\\)\\?\\.classList\\.contains\\('hidden'\\)\\)renderReports\\(\\)/);
- assert.match(app,/if\\(name==='reports'\\)renderReports\\(\\)/);
+ assert.match(app,/if\(!document\.querySelector\('\[data-page="reports"\]'\)\?\.classList\.contains\('hidden'\)\)renderReports\(\)/);
+ assert.match(app,/if\(name==='reports'\)renderReports\(\)/);
  const print=app.slice(app.indexOf('function printOnly('),app.indexOf('function importCsv('));
  assert.ok(print.includes('renderReports();'));
 });
