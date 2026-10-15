@@ -619,15 +619,24 @@ app.post('/api/professor/classes/:localClassId/share',auth,async(req,res)=>{
 app.post('/api/professor/classes/join',classJoinRate,auth,async(req,res)=>{
  if(req.user.role!=='professor')return res.status(403).json({error:'forbidden'});if(!pool)return res.status(503).json({error:'durable_storage_required'});
  const code=String(req.body?.code||'').trim().toUpperCase(),requestedLocalId=String(req.body?.localClassId||'').trim();if(!/^CL-(?:[A-F0-9]{8}|[A-F0-9]{32})$/.test(code))return res.status(400).json({error:'invalid_class_code'});
- const cq=await pool.query('SELECT class_id,owner_user_id,data FROM nataiji_professor_classrooms WHERE join_code=$1',[code]);if(!cq.rowCount)return res.status(404).json({error:'invalid_class_code'});
- const shared=cq.rows[0],data=shared.data&&typeof shared.data==='object'?shared.data:{};if((data.removedUserIds||[]).includes(String(req.user.id)))return res.status(403).json({error:'shared_membership_removed'});const profile=await loadProfessorProfile(req.user.id);let cls=requestedLocalId?profile.classes.find(x=>x.id===requestedLocalId):null;
- const existing=profile.classes.find(x=>x.sharedClassId===shared.class_id);if(existing)cls=existing;
- if(cls?.sharedClassId&&cls.sharedClassId!==shared.class_id)return res.status(409).json({error:'professor_class_already_linked'});
- if(!cls){const joinedName=String(data.name||'قسم').trim().slice(0,120)||'قسم';cls={id:crypto.randomUUID(),name:joinedName,levelCode:['1AS','2AS','3AS','5AS','6AS','7AS'].includes(String(data.levelCode||'').toUpperCase())?String(data.levelCode).toUpperCase():inferProfessorLevelCode(joinedName),branchCode:normalizeProfessorBranchCode(String(data.branchCode||'').trim().slice(0,40)),students:[],sharedClassId:shared.class_id};profile.classes.push(cls)}
- cls.sharedClassId=shared.class_id;cls.name=String(data.name||cls.name||'قسم').trim().slice(0,120)||cls.name;cls.levelCode=['1AS','2AS','3AS','5AS','6AS','7AS'].includes(String(data.levelCode||'').toUpperCase())?String(data.levelCode).toUpperCase():(cls.levelCode||inferProfessorLevelCode(cls.name));cls.branchCode=normalizeProfessorBranchCode(String(data.branchCode||cls.branchCode||'').trim().slice(0,40));cls.students=Array.isArray(data.students)?data.students.map(s=>professorStudentData(s)).filter(s=>s.id&&s.name):[];
- const client=await pool.connect();
- try{await client.query('BEGIN');await client.query('INSERT INTO nataiji_professor_class_members(class_id,user_id,role) VALUES($1,$2,$3) ON CONFLICT DO NOTHING',[shared.class_id,req.user.id,shared.owner_user_id===req.user.id?'owner':'member']);await client.query('INSERT INTO nataiji_professor_profiles(user_id,data,updated_at) VALUES($1,$2::jsonb,now()) ON CONFLICT(user_id) DO UPDATE SET data=EXCLUDED.data,updated_at=now()',[req.user.id,JSON.stringify(cleanProfessorProfile(profile))]);await client.query('COMMIT')}catch(e){await client.query('ROLLBACK');throw e}finally{client.release()}
- const clean=cleanProfessorProfile(profile),links=await professorClassLinks(clean,req.user.id);res.json({ok:true,profile:clean,classLinks:links,localClassId:cls.id,sharedClassId:shared.class_id})
+ await loadProfessorProfile(req.user.id);const client=await pool.connect();let profile,cls,shared;
+ try{
+  await client.query('BEGIN');
+  const locked=await client.query('SELECT data FROM nataiji_professor_profiles WHERE user_id=$1 FOR UPDATE',[req.user.id]);profile=cleanProfessorProfile(locked.rows[0]?.data||{});
+  const cq=await client.query('SELECT class_id,owner_user_id,data FROM nataiji_professor_classrooms WHERE join_code=$1 FOR UPDATE',[code]);
+  if(!cq.rowCount){await client.query('ROLLBACK');return res.status(404).json({error:'invalid_class_code'})}
+  shared=cq.rows[0];const data=shared.data&&typeof shared.data==='object'?shared.data:{};
+  if((data.removedUserIds||[]).includes(String(req.user.id))){await client.query('ROLLBACK');return res.status(403).json({error:'shared_membership_removed'})}
+  cls=requestedLocalId?profile.classes.find(x=>x.id===requestedLocalId):null;
+  const existing=profile.classes.find(x=>x.sharedClassId===shared.class_id);if(existing)cls=existing;
+  if(cls?.sharedClassId&&cls.sharedClassId!==shared.class_id){await client.query('ROLLBACK');return res.status(409).json({error:'professor_class_already_linked'})}
+  await archiveProfessorProfileVersion(req.user.id,client,'before-join',profile);
+  if(!cls){cls={id:crypto.randomUUID(),name:'قسم',students:[],sharedClassId:shared.class_id};profile.classes.push(cls)}
+  applyProfessorSharedClassData(cls,data);cls.sharedClassId=shared.class_id;
+  await client.query('INSERT INTO nataiji_professor_class_members(class_id,user_id,role) VALUES($1,$2,$3) ON CONFLICT DO NOTHING',[shared.class_id,req.user.id,shared.owner_user_id===req.user.id?'owner':'member']);
+  await client.query('UPDATE nataiji_professor_profiles SET data=$2::jsonb,updated_at=now() WHERE user_id=$1',[req.user.id,JSON.stringify(cleanProfessorProfile(profile))]);await client.query('COMMIT');
+ }catch(e){await client.query('ROLLBACK');throw e}finally{client.release()}
+ const clean=cleanProfessorProfile(profile),classLinks=await professorClassLinks(clean,req.user.id);res.json({ok:true,profile:clean,classLinks,localClassId:cls.id,sharedClassId:shared.class_id})
 });
 // Collaboration mutations lock the profile first, then the room, like profile saves.
 async function detachProfessorFromClass(actorId,targetId,localClassId){
