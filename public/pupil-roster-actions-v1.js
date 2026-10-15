@@ -70,7 +70,7 @@ function bind(){
  if(!wrap.querySelector('#rosterCopyBtn')){
   const b=document.createElement('button');b.type='button';b.id='rosterCopyBtn';b.textContent=tr('نقل / ترحيل الأسماء','Copier / transférer les élèves');b.onclick=copyModal;wrap.appendChild(b)
  }
- const copy=wrap.querySelector('#rosterCopyBtn');copy.hidden=!state.pupils.length||!schoolClasses().length;
+ const copy=wrap.querySelector('#rosterCopyBtn');const hideCopy=!state.pupils.length||!schoolClasses().length;if(copy.hidden!==hideCopy)copy.hidden=hideCopy;
  const copyLabel=tr('نقل / ترحيل الأسماء','Copier / transférer les élèves');if(copy.textContent!==copyLabel)copy.textContent=copyLabel;
  let repairButton=wrap.querySelector('#rosterRepairCalls');
  if(duplicates()){
