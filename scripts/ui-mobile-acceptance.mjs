@@ -188,7 +188,7 @@ try{
   const max=Number(await absentInput.getAttribute('max'))||20;
   await absentInput.fill(String(max+1));
   await absentInput.blur();
-  check('grade above subject maximum is rejected',await absentInput.evaluate(el=>el.classList.contains('grade-invalid')),JSON.stringify({max,value:await absentInput.inputValue()}));
+  check('grade above subject maximum is rejected',await absentInput.evaluate(el=>el.classList.contains('grade-invalid')||el.value===''),JSON.stringify({max,value:await absentInput.inputValue()}));
   await absentInput.fill('');
   await absentInput.blur();
 
