@@ -7554,3 +7554,24 @@ html.nataiji-professor-mode body{background:#f4f7f6;min-height:100vh;overflow-x:
     font-size:10.5px!important
   }
 }
+
+/* Keep the final action reachable above native/PWA navigation on every professor view. */
+@media screen{
+ html.nataiji-professor-mode{scroll-padding-bottom:calc(150px + env(safe-area-inset-bottom,0px))}
+ .nataiji-professor-mode #nataijiProfessorRoot .professor-shell{padding-bottom:calc(170px + env(safe-area-inset-bottom,0px))!important}
+ .nataiji-professor-mode .professor-nav{bottom:calc(12px + env(safe-area-inset-bottom,0px))!important}
+ .nataiji-professor-mode .professor-shell button{scroll-margin-bottom:170px}
+ .nataiji-professor-mode .prof-archive-action{grid-column:1/-1;min-height:44px;color:#8b3636!important;background:#fff!important;border:1px solid #e0baba!important;font-size:13px!important}
+ .nataiji-professor-mode .prof-archive-panel,.nataiji-professor-mode .prof-collective-completion{background:#fff;border:1px solid #d2dfdc;border-radius:16px;padding:16px;margin:14px 0}
+ .nataiji-professor-mode .prof-archive-panel summary{cursor:pointer;font-weight:700;min-height:44px}
+ .nataiji-professor-mode .prof-archive-panel>div,.nataiji-professor-mode .prof-collective-completion p{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;padding:8px 0}
+ .nataiji-professor-mode .prof-archive-panel button{min-height:44px}
+ .nataiji-professor-mode .prof-member-row{border:1px solid #d2dfdc;border-radius:12px;padding:14px;margin:12px 0}
+ .nataiji-professor-mode .prof-member-row small{display:block;color:#526668;font-size:13px;line-height:1.6}
+ .nataiji-professor-mode .prof-member-row button{min-height:44px;margin:4px;white-space:normal}
+ .nataiji-professor-mode .prof-current-term{font-size:14px;font-weight:700;line-height:1.6;color:#204e53}
+ .nataiji-professor-mode .prof-card-meta.compact>span,.nataiji-professor-mode .prof-luxe-class-title p{font-size:12px!important;color:#53696c!important}
+ .nataiji-professor-mode .prof-compact-subject-card{padding:12px!important}
+ .nataiji-professor-mode .prof-compact-subject-card .prof-luxe-subject-top{padding:6px!important}
+ .nataiji-professor-mode .prof-compact-subject-card h3{font-size:17px!important;margin:5px 0!important}
+}
