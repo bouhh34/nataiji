@@ -19,15 +19,22 @@ const AR_FR={
 const FR_AR=Object.fromEntries(Object.entries(AR_FR).map(([a,f])=>[String(f).toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,''),a]));
 const AR_CHAR={'ا':'a','أ':'a','إ':'i','آ':'a','ب':'b','ت':'t','ث':'th','ج':'j','ح':'h','خ':'kh','د':'d','ذ':'dh','ر':'r','ز':'z','س':'s','ش':'ch','ص':'s','ض':'d','ط':'t','ظ':'z','ع':'a','غ':'gh','ف':'f','ق':'q','ك':'k','ل':'l','م':'m','ن':'n','ه':'h','ة':'a','و':'ou','ؤ':'ou','ي':'i','ى':'a','ئ':'i','ء':''};
 function arToFr(v){let z=String(v||'').trim();if(!z)return'';if(AR_FR[z])return AR_FR[z];for(const [a,f] of Object.entries(AR_FR).sort((x,y)=>y[0].length-x[0].length))z=z.replaceAll(a,f);if(!/[\u0600-\u06ff]/.test(z))return z;return z.split(/\s+/).map(w=>{let o='';for(const ch of w)o+=AR_CHAR[ch]??ch;return o?o[0].toUpperCase()+o.slice(1):o}).join(' ')}
+const SCHOOL_NUMBERS_FR={'واحد':1,'واحدة':1,'اثنان':2,'اثنين':2,'ثلاثة':3,'أربعة':4,'اربعة':4,'خمسة':5,'ستة':6,'سبعة':7,'ثمانية':8,'تسعة':9,'عشرة':10};
+function schoolToFr(v){const raw=String(v||'').trim(),match=raw.match(/^(?:المدرسة|مدرسة|الإعدادية|الاعدادية|إعدادية|اعدادية|الثانوية|ثانوية)(?=\s|$)/u);if(!match)return arToFr(raw);
+ const prefix=/مدرسة/.test(match[0])?'École':/عدادية/.test(match[0])?'Collège':'Lycée',rest=raw.slice(match[0].length).trim();if(!rest)return prefix;
+ const number=rest.match(/^رقم\s+(.+)$/u);if(number){const value=number[1].trim().replace(/[٠-٩۰-۹]/g,ch=>{const n='٠١٢٣٤٥٦٧٨٩'.indexOf(ch);return String(n>=0?n:'۰۱۲۳۴۵۶۷۸۹'.indexOf(ch))});const n=/^\d+$/.test(value)?value:SCHOOL_NUMBERS_FR[value];if(n!=null)return prefix+' n° '+n}
+ return prefix+' '+arToFr(rest)}
 function normFr(v){return String(v||'').trim().toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'')}
 function frWordToAr(w){let x=normFr(w);const exact=FR_AR[x];if(exact)return exact;x=x.replace(/ch/g,'ش').replace(/kh/g,'خ').replace(/gh/g,'غ').replace(/ou/g,'و').replace(/th/g,'ث').replace(/ph/g,'ف').replace(/dj/g,'ج').replace(/sh/g,'ش');const m={a:'ا',b:'ب',c:'ك',d:'د',e:'',f:'ف',g:'غ',h:'ه',i:'ي',j:'ج',k:'ك',l:'ل',m:'م',n:'ن',o:'و',p:'ب',q:'ق',r:'ر',s:'س',t:'ت',u:'و',v:'ف',w:'و',x:'كس',y:'ي',z:'ز'};let o='';for(const ch of x)o+=m[ch]??ch;return o}
 function frToAr(v){let z=String(v||'').trim();if(!z)return'';const exact=FR_AR[normFr(z)];if(exact)return exact;return z.split(/\s+/).map(frWordToAr).join(' ')}
-function bindBiPair(arSel,frSel){
- const a=q(arSel),f=q(frSel);if(!a||!f)return;
- if(a.value.trim()&&!f.value.trim())f.value=arToFr(a.value);
- else if(f.value.trim()&&!a.value.trim())a.value=frToAr(f.value);
- a.addEventListener('input',()=>{f.value=arToFr(a.value)});
- f.addEventListener('input',()=>{a.value=frToAr(f.value)});
+function bindBiPair(arSel,frSel,generate=arToFr){
+ const a=q(arSel),f=q(frSel);if(!a||!f)return{reset(){}};
+ let arManual=!!a.value.trim(),frManual=!!f.value.trim()&&f.value.trim()!==generate(a.value);
+ if(a.value.trim()&&!f.value.trim())f.value=generate(a.value);
+ else if(f.value.trim()&&!a.value.trim()){a.value=frToAr(f.value);arManual=false}
+ a.addEventListener('input',()=>{arManual=!!a.value.trim();if(!frManual)f.value=generate(a.value)});
+ f.addEventListener('input',()=>{frManual=!!f.value.trim();if(!arManual)a.value=frToAr(f.value)});
+ return{reset(){frManual=false;f.value=generate(a.value)}}
 }
 let open=false,draft={};
 function shouldOpen(){
@@ -60,8 +67,8 @@ function step1(){
  <div class="nw-two"><label>الإدارة الجهوية للتربية بولاية <input id="nwRegion" value="${E(draft.region)}" placeholder="مثال: لبراكنة"><small class="nw-hint">اكتب اسم الولاية فقط</small></label><label>Direction régionale de l’Éducation – Wilaya de <input id="nwRegionFr" dir="ltr" value="${E(draft.regionFr)}" placeholder="Ex. Brakna"><small class="nw-hint">Traduction/transcription automatique modifiable</small></label></div>
  <div class="nw-two"><label>المفتشية بمقاطعة <input id="nwInspection" value="${E(draft.inspection)}" placeholder="مثال: مال"><small class="nw-hint">اكتب اسم المقاطعة فقط</small></label><label>Inspection – Moughataa de <input id="nwInspectionFr" dir="ltr" value="${E(draft.inspectionFr)}" placeholder="Ex. Mâl"><small class="nw-hint">Traduction/transcription automatique modifiable</small></label></div>
  <label>السنة الدراسية <input id="nwYear" dir="ltr" value="${E(draft.year)}" placeholder="2026 - 2027"></label>
- <p class="nw-error"></p>`,`<div class="nw-actions"><button class="primary" id="nwNext1">التالي</button></div>`);
- bindBiPair('#nwSchool','#nwSchoolFr');bindBiPair('#nwRegion','#nwRegionFr');bindBiPair('#nwInspection','#nwInspectionFr');
+ <button type="button" id="nwRegenerateFrench">إعادة التوليد من العربية / Régénérer le français</button><p class="nw-error"></p>`,`<div class="nw-actions"><button class="primary" id="nwNext1">التالي</button></div>`);
+ const schoolPairs=[bindBiPair('#nwSchool','#nwSchoolFr',schoolToFr),bindBiPair('#nwRegion','#nwRegionFr'),bindBiPair('#nwInspection','#nwInspectionFr')];q('#nwRegenerateFrench').onclick=()=>schoolPairs.forEach(p=>p.reset());
  q('#nwNext1').onclick=async()=>{const btn=q('#nwNext1'),err=q('.nw-error'),school=q('#nwSchool').value.trim(),year=q('#nwYear').value.trim()||defaultAcademicYear();q('#nwYear').value=year;if(!school){err.textContent='اسم المدرسة مطلوب.';q('#nwSchool').focus();return}Object.assign(draft,{school,schoolFr:q('#nwSchoolFr').value.trim(),region:q('#nwRegion').value.trim(),regionFr:q('#nwRegionFr').value.trim(),inspection:q('#nwInspection').value.trim(),inspectionFr:q('#nwInspectionFr').value.trim(),year});btn.disabled=true;err.textContent='جارٍ تثبيت بيانات المدرسة…';try{await api('/api/settings',{method:'PUT',body:JSON.stringify({...draft,classId:''})});Object.assign(state,{school:draft.school,schoolFr:draft.schoolFr,region:draft.region,regionFr:draft.regionFr,inspection:draft.inspection,inspectionFr:draft.inspectionFr,year:draft.year});localStorage.setItem('nataiji-data',JSON.stringify(state));step2()}catch(e){btn.disabled=false;err.textContent='تعذر حفظ البيانات على الخادم. حاول مرة أخرى.'}}
 }
 function step2(){
