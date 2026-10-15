@@ -70,14 +70,22 @@ function profSubjectFr(v){const raw=String(v||'').trim();return PROF_SUBJECT_FR[
 function profSubject(v){const raw=String(v||'').trim();return fr()?profSubjectFr(raw):raw}
 function profClassFr(v){const raw=String(v||'').trim();const map={'السنة الأولى ابتدائية':'1re année primaire','السنة الثانية ابتدائية':'2e année primaire','السنة الثالثة ابتدائية':'3e année primaire','السنة الرابعة ابتدائية':'4e année primaire','السنة الخامسة ابتدائية':'5e année primaire','السنة السادسة ابتدائية':'6e année primaire'};return map[raw]||(/^[0-9A-Z-]+$/i.test(raw)?raw:profTranslit(raw))}
 function profClass(v){const raw=String(v||'').trim();return fr()?profClassFr(raw):raw}
+const PROF_SCHOOL_NUMBERS={'واحد':1,'واحدة':1,'اثنان':2,'اثنين':2,'اثنتان':2,'اثنتين':2,'ثلاثة':3,'ثلاث':3,'أربعة':4,'اربعة':4,'أربع':4,'خمسة':5,'خمس':5,'ستة':6,'ست':6,'سبعة':7,'سبع':7,'ثمانية':8,'ثمان':8,'تسعة':9,'تسع':9,'عشرة':10,'عشر':10};
+function profSchoolSuffixFr(v){
+ const raw=String(v||'').trim(),match=raw.match(/^(?:رقم|عدد|نمرة|نمبر|numéro|n[°ºo.]?)\s*(.*)$/iu);
+ if(!match)return profTranslit(raw);
+ const value=String(match[1]||'').trim().replace(/[٠-٩۰-۹]/g,ch=>{const ar='٠١٢٣٤٥٦٧٨٩'.indexOf(ch);return String(ar>=0?ar:'۰۱۲۳۴۵۶۷۸۹'.indexOf(ch))});
+ const normalized=value.replace(/[ًٌٍَُِّْـ]/g,''),number=/^\d+$/.test(normalized)?normalized:PROF_SCHOOL_NUMBERS[normalized];
+ return number!=null?'n° '+number:'n° '+profTranslit(value)
+}
 function profSchoolFrAuto(v){
  const raw=String(v||'').trim();if(!raw)return'';
  const rules=[
-  [/^(?:الإعدادية|الاعدادية|إعدادية|اعدادية)\s*/u,'Collège'],
-  [/^(?:الثانوية|ثانوية)\s*/u,'Lycée'],
-  [/^(?:المدرسة|مدرسة)\s*/u,'École']
+  [/^(?:الإعدادية|الاعدادية|إعدادية|اعدادية)(?=\s|\d|$)/u,'Collège'],
+  [/^(?:الثانوية|ثانوية)(?=\s|\d|$)/u,'Lycée'],
+  [/^(?:المدرسة|مدرسة)(?=\s|\d|$)/u,'École']
  ];
- for(const [re,prefix] of rules)if(re.test(raw)){const rest=raw.replace(re,'').trim();return prefix+(rest?' '+profTranslit(rest):'')}
+ for(const [re,prefix] of rules)if(re.test(raw)){const rest=raw.replace(re,'').trim();return prefix+(rest?' '+profSchoolSuffixFr(rest):'')}
  return profTranslit(raw)
 }
 function profSchool(){return fr()?(profile.schoolNameFr||profSchoolFrAuto(profile.schoolName)):profile.schoolName}
@@ -692,18 +700,25 @@ function profPlacePair(key){const ar=String(profile[key]||'').trim();return{ar,f
 function openSettings(onboarding=false){
  onboarding=onboarding===true;
  const generatedSchoolFr=profile.schoolNameFr||profSchoolFrAuto(profile.schoolName);
- const m=modal(onboarding?tr('استكمال بيانات المؤسسة','Compléter les informations de l’établissement'):tr('إعدادات الأستاذ','Paramètres du professeur'),`<div class="prof-link-explain"><b>${tr('بيانات الكشوف الرسمية','Informations des relevés officiels')}</b><p>${tr('ستظهر هذه البيانات في كشف التلميذ ولائحة القسم. اسم المؤسسة بالفرنسية يُنشأ تلقائيًا: إعدادية = Collège، ثانوية = Lycée، مدرسة = École.','Ces informations apparaîtront sur les bulletins et listes. Le nom français est généré automatiquement : إعدادية = Collège, ثانوية = Lycée, مدرسة = École.')}</p></div><label>${tr('اسم المؤسسة','Établissement')}<input id="pv2School" value="${esc(profile.schoolName)}" maxlength="160"></label><label>${tr('اسم المؤسسة بالفرنسية','Établissement en français')}<input id="pv2SchoolFr" value="${esc(generatedSchoolFr)}" maxlength="160"><small>${tr('يُحدّث تلقائيًا ما لم تعدّله يدويًا.','Mis à jour automatiquement sauf modification manuelle.')}</small></label><label>${tr('الإدارة الجهوية للتربية','Direction régionale de l’Éducation')}<input id="pv2Region" value="${esc(profile.region)}" maxlength="160"></label><label>${tr('الإدارة الجهوية بالفرنسية (اختياري — تُولد تلقائيًا إذا تُركت فارغة)','Direction régionale en français (facultatif — générée automatiquement si vide)')}<input id="pv2RegionFr" value="${esc(profile.regionFr)}" maxlength="160"></label><label>${tr('الولاية','Wilaya')}<input id="pv2Wilaya" value="${esc(profile.wilaya)}" maxlength="160"></label><label>${tr('الولاية بالفرنسية (اختياري)','Wilaya en français (facultatif)')}<input id="pv2WilayaFr" value="${esc(profile.wilayaFr)}" maxlength="160"></label><label>${tr('المقاطعة','Moughataa')}<input id="pv2District" value="${esc(profile.district)}" maxlength="160"></label><label>${tr('المقاطعة بالفرنسية (اختياري)','Moughataa en français (facultatif)')}<input id="pv2DistrictFr" value="${esc(profile.districtFr)}" maxlength="160"></label><label>${tr('الرقم المدرسي للمؤسسة (اختياري)','N° scolaire de l’établissement (facultatif)')}<input id="pv2SchoolNns" value="${esc(profile.schoolNns)}" maxlength="80" dir="ltr"></label><label>${tr('السنة الدراسية','Année scolaire')}<input id="pv2Year" value="${esc(profile.year)}" maxlength="40" dir="ltr" placeholder="2026-2027"></label><button class="primary" id="pv2SaveSettings">${tr('حفظ','Enregistrer')}</button><p class="professor-msg"></p>`);
- const schoolAr=q('#pv2School',m.wrap),schoolFr=q('#pv2SchoolFr',m.wrap);
- let schoolFrManual=!!String(profile.schoolNameFr||'').trim();
- schoolAr.addEventListener('input',()=>{if(!schoolFrManual)schoolFr.value=profSchoolFrAuto(schoolAr.value)});
- schoolFr.addEventListener('input',()=>{schoolFrManual=schoolFr.value.trim()!==''});
+ const m=modal(onboarding?tr('استكمال بيانات المؤسسة','Compléter les informations de l’établissement'):tr('إعدادات الأستاذ','Paramètres du professeur'),`<div class="prof-link-explain"><b>${tr('بيانات الكشوف الرسمية','Informations des relevés officiels')}</b><p>${tr('ستظهر هذه البيانات في كشف التلميذ ولائحة القسم. اسم المؤسسة بالفرنسية يُنشأ تلقائيًا: إعدادية = Collège، ثانوية = Lycée، مدرسة = École.','Ces informations apparaîtront sur les bulletins et listes. Le nom français est généré automatiquement : إعدادية = Collège, ثانوية = Lycée, مدرسة = École.')}</p></div><label>${tr('اسم المؤسسة','Établissement')}<input id="pv2School" value="${esc(profile.schoolName)}" maxlength="160"></label><label>${tr('اسم المؤسسة بالفرنسية','Établissement en français')}<input id="pv2SchoolFr" value="${esc(generatedSchoolFr)}" maxlength="160"><small>${tr('يُحدّث تلقائيًا ما لم تعدّله يدويًا.','Mis à jour automatiquement sauf modification manuelle.')}</small></label><label>${tr('الإدارة الجهوية للتربية بولاية (اكتب اسم الولاية فقط)','Direction régionale de l’Éducation (saisissez uniquement la wilaya)')}<input id="pv2Region" value="${esc(profile.region)}" maxlength="160"></label><label>${tr('الإدارة الجهوية بالفرنسية (اختياري — تُولد تلقائيًا إذا تُركت فارغة)','Direction régionale en français (facultatif — générée automatiquement si vide)')}<input id="pv2RegionFr" value="${esc(profile.regionFr)}" maxlength="160"></label><label>${tr('المقاطعة','Moughataa')}<input id="pv2District" value="${esc(profile.district)}" maxlength="160"></label><label>${tr('المقاطعة بالفرنسية (اختياري)','Moughataa en français (facultatif)')}<input id="pv2DistrictFr" value="${esc(profile.districtFr)}" maxlength="160"></label><label>${tr('الرقم المدرسي للمؤسسة (اختياري)','N° scolaire de l’établissement (facultatif)')}<input id="pv2SchoolNns" value="${esc(profile.schoolNns)}" maxlength="80" dir="ltr"></label><label>${tr('السنة الدراسية','Année scolaire')}<input id="pv2Year" value="${esc(profile.year)}" maxlength="40" dir="ltr" placeholder="2026-2027"></label><button type="button" id="pv2RegenerateFrench">${tr('إعادة التوليد من العربية','Régénérer le français depuis l’arabe')}</button><button class="primary" id="pv2SaveSettings">${tr('حفظ','Enregistrer')}</button><p class="professor-msg"></p>`);
+ // Keep manually corrected French values; regenerating is always an explicit user action.
+ const pairs=[['School','schoolName',profSchoolFrAuto],['Region','region',profTranslit],['District','district',profTranslit]].map(([id,key,generate])=>{
+  const ar=q('#pv2'+id,m.wrap),frInput=q('#pv2'+id+'Fr',m.wrap),previous=String(profile[key+'Fr']||'').trim();
+  let manual=!!previous&&previous!==generate(profile[key]);
+  if(!previous)frInput.value=generate(ar.value);
+  ar.addEventListener('input',()=>{if(!manual)frInput.value=generate(ar.value)});
+  frInput.addEventListener('input',()=>{manual=!!frInput.value.trim()});
+  return{ar,frInput,generate,reset(){manual=false;frInput.value=generate(ar.value)}}
+ });
+ q('#pv2RegenerateFrench',m.wrap).onclick=()=>{pairs.forEach(p=>p.reset());q('.professor-msg',m.wrap).textContent=tr('تم تحديث الاقتراحات دون حفظ؛ راجعها ثم احفظ.','Suggestions actualisées sans enregistrement ; vérifiez puis enregistrez.')};
+ const schoolAr=pairs[0].ar,schoolFr=pairs[0].frInput;
  q('#pv2SaveSettings',m.wrap).onclick=async()=>{
   const b=q('#pv2SaveSettings',m.wrap),msg=q('.professor-msg',m.wrap);b.disabled=true;
-  if(onboarding){const missing=['pv2School','pv2Region','pv2Wilaya','pv2District'].map(id=>q('#'+id,m.wrap)).find(input=>!input.value.trim());if(missing){msg.textContent=tr('أكمل المؤسسة والإدارة الجهوية والولاية والمقاطعة.','Renseignez l’établissement, la direction régionale, la wilaya et la moughataa.');missing.focus();b.disabled=false;return}}
+  if(onboarding){const missing=['pv2School','pv2Region','pv2District'].map(id=>q('#'+id,m.wrap)).find(input=>!input.value.trim());if(missing){msg.textContent=tr('أكمل المؤسسة وولاية الإدارة الجهوية والمقاطعة.','Renseignez l’établissement, la wilaya de la direction régionale et la moughataa.');missing.focus();b.disabled=false;return}}
   const previous=structuredClone(profile);
   profile.schoolName=schoolAr.value.trim();profile.schoolNameFr=schoolFr.value.trim()||profSchoolFrAuto(profile.schoolName);
-  profile.region=q('#pv2Region',m.wrap).value.trim();profile.regionFr=q('#pv2RegionFr',m.wrap).value.trim();
-  for(const key of ['Wilaya','District']){const field=key.toLowerCase();profile[field]=q('#pv2'+key,m.wrap).value.trim();profile[field+'Fr']=q('#pv2'+key+'Fr',m.wrap).value.trim()}
+  profile.region=pairs[1].ar.value.trim();profile.regionFr=pairs[1].frInput.value.trim()||pairs[1].generate(profile.region);
+  profile.district=pairs[2].ar.value.trim();profile.districtFr=pairs[2].frInput.value.trim()||pairs[2].generate(profile.district);
   if(onboarding)profile.onboardingComplete=true;
   profile.schoolNns=q('#pv2SchoolNns',m.wrap).value.trim();profile.year=q('#pv2Year',m.wrap).value.trim();
   try{await saveProfile(tr('تم حفظ الإعدادات','Paramètres enregistrés'));m.close();renderCurrent()}catch{profile=normalize(previous);msg.textContent=tr('تعذر الحفظ، أعد المحاولة.','Enregistrement impossible, réessayez.')}finally{b.disabled=false}
@@ -1066,15 +1081,14 @@ function professorCurriculumNoticePair(data){
 }
 function dualReportLabel(ar,fr){return `<span class="dual-ar" dir="rtl" lang="ar">${esc(ar)}</span><span class="dual-fr" dir="ltr" lang="fr">${esc(fr)}</span>`}
 function professorOfficialHeader(className='',term=1){
- const school=profSchoolPair(),region=profRegionPair(),wilaya=profPlacePair('wilaya'),district=profPlacePair('district'),cls=profClassPair(className),t=professorTermPair(term);
+ const school=profSchoolPair(),region=profRegionPair(),district=profPlacePair('district'),cls=profClassPair(className),t=professorTermPair(term);
  const nns=String(profile.schoolNns||'').trim(),year=String(profile.year||'').trim();
  return `<header class="official-head">
   <section class="official-side official-fr" dir="ltr" lang="fr">
    <b class="official-strong">République Islamique de Mauritanie</b>
    <strong>Honneur - Fraternité - Justice</strong>
    <span>Ministère de l’Éducation et de la Réforme du Système Éducatif</span>
-   ${region.fr?`<span>Direction régionale : <b>${esc(region.fr)}</b></span>`:''}
-   ${wilaya.fr?`<span>Wilaya : <b>${esc(wilaya.fr)}</b></span>`:''}
+   ${region.fr?`<span>Direction régionale de l’Éducation : <b>${esc(region.fr)}</b></span>`:''}
    ${district.fr?`<span>Moughataa : <b>${esc(district.fr)}</b></span>`:''}
    ${school.fr?`<span>Établissement : <b>${esc(school.fr)}</b></span>`:''}
    ${nns?`<span>N° scolaire : <b dir="ltr">${esc(nns)}</b></span>`:''}
@@ -1087,8 +1101,7 @@ function professorOfficialHeader(className='',term=1){
    <b class="official-strong">الجمهورية الإسلامية الموريتانية</b>
    <strong>شرف - إخاء - عدل</strong>
    <span>وزارة التربية وإصلاح النظام التعليمي</span>
-   ${region.ar?`<span>الإدارة الجهوية: <b>${esc(region.ar)}</b></span>`:''}
-   ${wilaya.ar?`<span>الولاية: <b>${esc(wilaya.ar)}</b></span>`:''}
+   ${region.ar?`<span>الإدارة الجهوية للتربية بولاية: <b>${esc(region.ar)}</b></span>`:''}
    ${district.ar?`<span>المقاطعة: <b>${esc(district.ar)}</b></span>`:''}
    ${school.ar?`<span>المؤسسة: <b>${esc(school.ar)}</b></span>`:''}
    ${nns?`<span>الرقم المدرسي: <b dir="ltr">${esc(nns)}</b></span>`:''}
