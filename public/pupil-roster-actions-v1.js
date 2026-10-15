@@ -28,7 +28,7 @@ function copyModal(){
  const classes=schoolClasses();
  if(!classes.length){alert(tr('أضف القسم الجديد أولًا من «الفصول الدراسية والأقسام». لن يتم حذف أي تلميذ أو نتيجة.','Créez d’abord la classe cible. Aucun élève ni note ne sera supprimé.'));return}
  const p=modal(tr('نسخ التلاميذ إلى قسم آخر','Copier les élèves vers une autre classe'),`
-  <p>${tr('انسخ الأسماء فقط، مع إبقاء التلاميذ ونتائجهم في القسم الأصلي. اختر القسم الجديد والتلاميذ.','Copie des identités uniquement : les élèves et leurs notes restent dans la classe source. Choisissez la destination et les élèves.')}</p>
+  <p>${tr('انسخ الأسماء فقط إلى قسم موجود، وتبقى نتائج القسم الأصلي كما هي. هذه العملية لا تُنشئ أرشيفًا لسنة دراسية جديدة؛ احتفظ بكشوف السنة السابقة قبل تغييرها.','Copie des identités uniquement : les élèves et leurs notes restent dans la classe source. Choisissez la destination et les élèves.')}</p>
   <label>${tr('القسم الجديد','Classe cible')}<select id="rosterDest">${classes.map(c=>`<option value="${esc(c.id)}">${esc(c.name||c.code||c.id)}</option>`).join('')}</select></label>
   <label class="roster-all"><input id="rosterAll" type="checkbox" checked> ${tr('اختيار الجميع','Tout sélectionner')}</label>
   <div class="roster-check-list">${(state.pupils||[]).map((x,i)=>`<label><input type="checkbox" data-pupil-key="${esc(x?.[7]||x?.[0]||'')}" checked> <span>${esc(x?.[1]||'—')}</span></label>`).join('')}</div>
