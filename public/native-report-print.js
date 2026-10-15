@@ -13,6 +13,19 @@ function landscapeForCurrentPrint(){
  }
  return false;
 }
+// Print reports on a fresh white WebView, avoiding the installed app WebView's
+// native navy canvas. Keep the existing report markup and print styles intact.
+function isolatedReport(){
+ const type=document.body?.dataset?.print||'';
+ const selector=type==='two-a4'?'#twoStudentsA4':type==='batch'?'#printBatch':type==='portal'?'#printPortal':null;
+ const root=selector?document.querySelector?.(selector):null;
+ if(!root?.outerHTML)return null;
+ const head=Array.from(document.head.querySelectorAll('style,link[rel="stylesheet"]')).map(el=>el.outerHTML).join('');
+ const attrs=Array.from(document.body.attributes).map(a=>` ${a.name}="${String(a.value).replace(/&/g,'&amp;').replace(/"/g,'&quot;')}"`).join('');
+ return '<!doctype html><html data-nataiji-native-print lang="ar" dir="rtl"><head><meta charset="utf-8"><base href="'+location.origin+'/"></head><body></body></html>'
+  .replace('</head>',head+'<style>@media print{html,body{background:#fff!important}}</style></head>')
+  .replace('<body></body>','<body'+attrs+'>'+root.outerHTML+'</body>');
+}
 let busy=false;
 const originalPrint=window.print;
 function finish(){
@@ -37,6 +50,7 @@ if(native())window.print=function(){
  if(busy)return;busy=true;
  // Native WebView can include the app's dark background in the PDF page; isolate print roots.
  document.documentElement?.setAttribute?.('data-nataiji-native-print','');
- return window.Capacitor.nativePromise('NataijiPrint','print',{landscape:landscapeForCurrentPrint()}).catch(error=>{console.error('Native printing failed',error);failed()});
+ const html=isolatedReport(),landscape=landscapeForCurrentPrint();
+ return window.Capacitor.nativePromise('NataijiPrint',html?'printHtml':'print',html?{html,title:'Nataiji',landscape}:{landscape}).catch(error=>{console.error('Native printing failed',error);failed()});
 };
 })();

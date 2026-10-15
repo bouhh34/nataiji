@@ -94,3 +94,32 @@ test('Android-only white print page isolation does not affect Chrome or installe
  assert.match(css,/background:#fff!important/);
  assert.doesNotMatch(css,/body\s*\{[^}]*data-nataiji-native-print/);
 });
+
+test('Android two-up reports use a separate white document and preserve report markup',async()=>{
+ const f=fixture(nativeCap()),report='<div id="twoStudentsA4"><article class="ta-page">كشف الدرجات 14.30 / 20</article></div>';
+ f.ctx.document.body.dataset.print='two-a4';
+ f.ctx.document.body.attributes=[{name:'class',value:'print-two-a4'},{name:'data-print',value:'two-a4'}];
+ f.ctx.document.querySelector=s=>s==='#twoStudentsA4'?{outerHTML:report}:null;
+ f.ctx.document.head={querySelectorAll:()=>[{outerHTML:'<style>@media print{.ta-page{height:288mm}}</style>'}]};
+ f.ctx.location={origin:'https://nataiji.onrender.com'};
+ await f.window.print();
+ assert.equal(f.calls[0][1],'printHtml');
+ const args=f.calls[0][2];assert.equal(args.landscape,false);
+ assert.ok(args.html.includes(report));assert.ok(args.html.includes('data-nataiji-native-print'));
+ assert.ok(args.html.includes('class="print-two-a4"'));assert.ok(args.html.includes('height:288mm'));
+ assert.ok(args.html.includes('<base href="https://nataiji.onrender.com/">'));
+ assert.equal(f.finishes,0);f.events['nataiji-native-print-finished']();assert.equal(f.finishes,1);
+});
+
+test('all six timetable templates print full saved cells in an isolated compact document',()=>{
+ const source=fs.readFileSync(new URL('../public/teacher-timetable-v1.js',import.meta.url),'utf8');
+ const instrumented=source.replace('  function init(){',`  window.makeTestDocument=g=>{working=clone(templates[g]);working[0][0].subject='اختبار <مخصص>';return timetableDocument({querySelector:()=>({textContent:'القسم 2AF — 2026–2027'})})};\n  function init(){`);
+ const ctx=vm.createContext({window:{},document:{readyState:'loading',addEventListener(){}}});vm.runInContext(instrumented,ctx);
+ for(let grade=1;grade<=6;grade++){
+  const html=ctx.window.makeTestDocument(String(grade));
+  assert.match(html,/اختبار &lt;مخصص&gt;/);assert.match(html,/Emploi du temps/);
+  assert.match(html,/A4 landscape/);assert.match(html,/tbody tr\{height:12mm/);
+  assert.equal((html.match(/<th>/g)||[]).length,grade===1?14:grade<=4?17:15);
+  assert.doesNotMatch(html,/<input|tt-actions|<script/);
+ }
+});
