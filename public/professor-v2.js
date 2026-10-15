@@ -850,7 +850,7 @@ function studentEditor(classId,studentId,onDone){
  const cls=classById(classId);if(!cls)return;cls.students=Array.isArray(cls.students)?cls.students:[];const existing=studentId?cls.students.find(s=>String(s.id)===String(studentId)):null;
  const nextCall=existing?.callNumber||nextProfessorCallNumber(cls),names=profStudentNamePair(existing||{}),m=modal(existing?'Modifier l’élève / تعديل التلميذ':'Ajouter un élève / إضافة تلميذ',`<div class="prof-student-form">
   <label class="prof-student-field"><b>الاسم الكامل بالعربية</b><input id="pv2StudentName" maxlength="160" dir="rtl" autocomplete="off" value="${esc(names.ar||'')}"><small id="pv2StudentArHint">يمكنك البدء بالعربية أو الفرنسية؛ سيقترح التطبيق اللغة الأخرى تلقائيًا، ويمكن تعديل الاقتراح يدويًا.</small></label>
-  <label class="prof-student-field"><b>Nom complet en français</b><input id="pv2StudentNameFr" maxlength="160" dir="ltr" autocomplete="off" value="${esc(names.fr||'')}"><small id="pv2StudentFrHint" dir="ltr">Commencez en arabe ou en français : l’autre langue est proposée automatiquement et reste modifiable.</small></label>
+  <label class="prof-student-field"><b>Nom complet en français</b><input id="pv2StudentNameFr" maxlength="160" dir="ltr" autocomplete="off" value="${esc(names.fr||'')}"><small id="pv2StudentFrHint" dir="ltr">Commencez en arabe ou en français : l’autre langue est proposée automatiquement et reste modifiable.</small><button type="button" id="pv2StudentRegenFr">↻ تحديث الفرنسية من العربية / Régénérer le français</button></label>
   <label class="prof-student-field"><b>NNS / الرقم المدرسي</b><span class="prof-field-optional">Facultatif / اختياري — يمكن تركه فارغًا</span><input id="pv2StudentNns" maxlength="80" dir="ltr" autocomplete="off" value="${esc(existing?.nns||'')}"></label>
   <label class="prof-student-field"><b>N° d’appel / رقم النداء</b><input id="pv2StudentCall" type="number" inputmode="numeric" min="1" max="9999" step="1" value="${esc(nextCall)}" dir="ltr"><small>رقم ثابت بعد الحفظ وقابل للتعديل يدويًا / Numéro modifiable manuellement.</small></label>
   <label class="prof-student-field"><b>Sexe / الجنس</b><select id="pv2StudentSex"><option value="male" ${existing?.sex==='male'?'selected':''}>Garçon / ذكر</option><option value="female" ${existing?.sex==='female'?'selected':''}>Fille / أنثى</option></select></label>
@@ -859,11 +859,12 @@ function studentEditor(classId,studentId,onDone){
   <p class="professor-msg prof-student-msg"></p>
  </div>`);
  m.wrap.classList.add('prof-student-modal');
- const ar=q('#pv2StudentName',m.wrap),frInput=q('#pv2StudentNameFr',m.wrap),arHint=q('#pv2StudentArHint',m.wrap),frHint=q('#pv2StudentFrHint',m.wrap);let arManual=false,frenchManual=false,syncing=false;
+ const ar=q('#pv2StudentName',m.wrap),frInput=q('#pv2StudentNameFr',m.wrap),arHint=q('#pv2StudentArHint',m.wrap),frHint=q('#pv2StudentFrHint',m.wrap);let arManual=!!existing?.name&&!!existing?.nameFr&&String(existing.name).trim()!==profNameAr(existing.nameFr),frenchManual=!!existing?.nameFr&&String(existing.nameFr).trim()!==profNameFr(existing.name),syncing=false;
  const fromArabic=()=>{if(frenchManual)return;syncing=true;frInput.value=profNameFr(ar.value);syncing=false};
  const fromFrench=()=>{if(arManual)return;syncing=true;ar.value=profNameAr(frInput.value);syncing=false};
  ar.addEventListener('input',()=>{if(syncing)return;arManual=!!ar.value.trim();fromArabic();arHint.textContent=arManual?'تم اعتماد الاسم العربي يدويًا / Nom arabe saisi manuellement':'يمكنك البدء بالعربية أو الفرنسية؛ سيقترح التطبيق اللغة الأخرى تلقائيًا.';arHint.classList.toggle('locked',arManual)});
  frInput.addEventListener('input',()=>{if(syncing)return;frenchManual=!!frInput.value.trim();fromFrench();frHint.textContent=frenchManual?'Nom français saisi manuellement / تم اعتماد الاسم الفرنسي يدويًا':'Commencez en arabe ou en français : l’autre langue est proposée automatiquement.';frHint.classList.toggle('locked',frenchManual)});
+ q('#pv2StudentRegenFr',m.wrap).onclick=()=>{frenchManual=false;syncing=true;frInput.value=profNameFr(ar.value.trim());syncing=false;frHint.textContent='اقتراح فرنسي جديد؛ راجعه قبل الحفظ / Nouvelle suggestion française à vérifier.'};
  const resolvedNames=()=>{
   let name=ar.value.trim(),nameFr=frInput.value.trim();
   if(!arManual&&nameFr)name=profNameAr(nameFr);
