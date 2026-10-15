@@ -42,12 +42,12 @@ function copyModal(){
   if(!selected.length||selected.some(x=>!x)||new Set(selected).size!==selected.length){msg.textContent=tr('حدد تلاميذ صالحين للنقل.','Choisissez des élèves valides.');return}
   if(!confirm(tr('سيتم نسخ '+selected.length+' تلميذًا دون درجات إلى القسم الجديد. لن يُحذف شيء من القسم الحالي. هل تؤكد؟','Copier '+selected.length+' élève(s) sans notes vers la nouvelle classe ? Rien ne sera supprimé.')))return;
   if(!onLine())return;
-  e.currentTarget.disabled=true;msg.textContent=tr('جارٍ النسخ…','Copie en cours…');
+  const button=e.currentTarget;button.disabled=true;msg.textContent=tr('جارٍ النسخ…','Copie en cours…');
   try{
    const result=await api('/api/pupils/copy',{method:'POST',body:JSON.stringify({sourceClassId:classId,targetClassId:dest,pupilKeys:selected})});
    msg.textContent=tr('✓ نُسخ '+result.copied+'، وتم تجاوز '+result.skipped+' موجودين سابقًا. بقيت النتائج القديمة محفوظة.','✓ '+result.copied+' copiés, '+result.skipped+' déjà présents. Les anciennes notes sont intactes.');
    await reload(classId,accountId).catch(()=>{});
-  }catch(error){msg.textContent=tr('لم يكتمل النسخ. حاول مجددًا بعد التحقق من اتصالك.','La copie a échoué. Vérifiez votre connexion et réessayez.');e.currentTarget.disabled=false}
+  }catch(error){msg.textContent=tr('لم يكتمل النسخ. حاول مجددًا بعد التحقق من اتصالك.','La copie a échoué. Vérifiez votre connexion et réessayez.');button.disabled=false}
  };
 }
 async function repair(){
