@@ -1132,7 +1132,11 @@ app.post('/api/pupils/repair-calls',auth,async(req,res)=>{
   await client.query('SELECT pg_advisory_xact_lock(hashtext($1),hashtext($2))',[req.user.schoolId,'roster:'+classId]);
   const rows=(await client.query('SELECT nns,data FROM nataiji_pupils WHERE school_id=$1 AND class_id=$2 ORDER BY position,updated_at FOR UPDATE',[req.user.schoolId,classId])).rows;
   const changes=repairCalls(rows);
-  for(const row of changes)await client.query("UPDATE nataiji_pupils SET data=jsonb_set(data,'{5}',to_jsonb($4::integer),true),updated_at=now() WHERE school_id=$1 AND class_id=$2 AND nns=$3",[req.user.schoolId,classId,row.key,row.call]);
+  for(const row of changes){
+   const existing=rows.find(p=>String(p.nns)===row.key),data=structuredClone(existing.data);
+   data[5]=row.call;
+   await client.query('UPDATE nataiji_pupils SET data=$4::jsonb,updated_at=now() WHERE school_id=$1 AND class_id=$2 AND nns=$3',[req.user.schoolId,classId,row.key,JSON.stringify(data)]);
+  }
   await client.query('COMMIT');
   return res.json({ok:true,classId,corrected:changes.length});
  }catch(error){await client.query('ROLLBACK').catch(()=>{});throw error}finally{client.release()}
