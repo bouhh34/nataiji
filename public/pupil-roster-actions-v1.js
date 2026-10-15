@@ -71,11 +71,11 @@ function bind(){
   const b=document.createElement('button');b.type='button';b.id='rosterCopyBtn';b.textContent=tr('نقل / ترحيل الأسماء','Copier / transférer les élèves');b.onclick=copyModal;wrap.appendChild(b)
  }
  const copy=wrap.querySelector('#rosterCopyBtn');copy.hidden=!state.pupils.length||!schoolClasses().length;
- copy.textContent=tr('نقل / ترحيل الأسماء','Copier / transférer les élèves');
+ const copyLabel=tr('نقل / ترحيل الأسماء','Copier / transférer les élèves');if(copy.textContent!==copyLabel)copy.textContent=copyLabel;
  let repairButton=wrap.querySelector('#rosterRepairCalls');
  if(duplicates()){
   if(!repairButton){repairButton=document.createElement('button');repairButton.type='button';repairButton.id='rosterRepairCalls';repairButton.onclick=repair;wrap.appendChild(repairButton)}
-  repairButton.textContent=tr('تصحيح رقم النداء','Corriger les N° d’appel')+' ('+duplicates()+')';
+  const repairLabel=tr('تصحيح رقم النداء','Corriger les N° d’appel')+' ('+duplicates()+')';if(repairButton.textContent!==repairLabel)repairButton.textContent=repairLabel;
  }else repairButton?.remove()
 }
 const css=document.createElement('style');css.textContent=`
