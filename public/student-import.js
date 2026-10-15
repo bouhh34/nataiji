@@ -37,8 +37,42 @@ window.nataijiStudentImport={parse,open({toAr,toFr,onSave}){
  const close=()=>{cancelled=true;wrap.remove()};q('[data-close]').onclick=()=>{if(!saving)close()};wrap.addEventListener('keydown',e=>{if(e.key==='Escape'&&!saving)close();if(e.key==='Tab'){const controls=[...wrap.querySelectorAll('button,input,textarea')].filter(x=>!x.disabled&&!x.hidden&&x.getClientRects().length);if(e.shiftKey&&document.activeElement===controls[0]){e.preventDefault();controls.at(-1)?.focus()}else if(!e.shiftKey&&document.activeElement===controls.at(-1)){e.preventDefault();controls[0]?.focus()}}});q('[data-close]').focus();
  async function read(e){const file=e.target.files[0];if(!file||busy)return;busy=true;setSaveVisible(false);review.disabled=true;q('[data-rows]').replaceChildren();for(const input of wrap.querySelectorAll('input[type=file]'))input.disabled=true;try{await capabilities;const result=await extract(file,s=>status.textContent=s,()=>cancelled,'both',cloud);confidence=result.confidence;q('[data-text]').value=result.text;if(!cancelled){status.textContent='راجع النص، ثم اضغط مراجعة الأسماء / Vérifiez le texte';review.onclick()}}catch(err){if(!cancelled)status.textContent='تعذر قراءة الملف؛ جرّب صورة أوضح أو ألصق الأسماء أدناه / Lecture impossible : utilisez une photo plus nette ou collez les noms. '+err.message}finally{busy=false;review.disabled=false;for(const input of wrap.querySelectorAll('input[type=file]')){input.disabled=false;input.value=''}}}
  q('[data-file]').onchange=read;q('[data-camera]').onchange=read;
- review.onclick=()=>{const names=parse(q('[data-text]').value);if(names.length>800){status.textContent='الحد الأقصى 800 تلميذ / Maximum 800 élèves';return}q('[data-rows]').innerHTML=names.map(raw=>`<div data-row style="padding:10px;border-bottom:1px solid #ddd"><label><input type="checkbox" data-selected ${confidence>=65?'checked':''}> إضافة / Ajouter</label><label>الاسم كما في الملف / Nom dans le document<input data-source maxlength="160" dir="auto" value="${esc(raw)}"></label></div>`).join('');setSaveVisible(!!names.length);status.textContent=`${confidence<65?'قراءة ضعيفة: لم نحدد الأسماء تلقائيًا؛ صحّحها أولًا / Lecture incertaine : corrigez avant de sélectionner. ':''}${names.length} — عدّل الأسماء وألغِ تحديد الأسطر غير المطلوبة / Corrigez et décochez les lignes inutiles`};
+ function normalizeLatin(value){return String(value||'').normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase().replace(/[^a-z0-9]+/g,' ').trim()}
+ function frenchDifference(a,b){
+  const x=normalizeLatin(a),y=normalizeLatin(b);if(!x||!y)return 0;if(x===y)return 0;
+  let prev=Array.from({length:y.length+1},(_,i)=>i);for(let i=1;i<=x.length;i++){let row=[i];for(let j=1;j<=y.length;j++)row[j]=Math.min(prev[j]+1,row[j-1]+1,prev[j-1]+(x[i-1]===y[j-1]?0:1));prev=row}
+  return prev[y.length]/Math.max(1,x.length,y.length)
+ }
+ const rowsContainer=q('[data-rows]');
+ function inspectRow(row){
+  const ar=row.querySelector('[data-ar]'),french=row.querySelector('[data-fr]'),hint=row.querySelector('[data-hint]'),regenerate=row.querySelector('[data-regenerate]');
+  const proposal=ar.value.trim()?toFr(ar.value.trim()):'',current=french.value.trim(),manual=row.dataset.frManual==='true';
+  const distinct=!!(proposal&&current&&frenchDifference(proposal,current)>0.48);
+  hint.textContent=distinct?'اختلاف ملحوظ بين الفرنسية والاقتراح؛ راجع الاسمين قبل الحفظ. / Vérifiez la transcription française proposée.':manual?'الفرنسية المستوردة أو المصححة محفوظة، ولا تُستبدل تلقائيًا. / La version française est protégée.':'الفرنسية المقترحة قابلة للتعديل. / Transcription française modifiable.';
+  hint.hidden=!(distinct||manual);regenerate.hidden=!manual&&!distinct;
+ }
+ function synchronizeRow(row,changed){
+  const source=row.querySelector('[data-source]'),ar=row.querySelector('[data-ar]'),french=row.querySelector('[data-fr]');
+  if(changed==='source'){const raw=source.value.trim(),arabic=/[\u0600-\u06ff]/u.test(raw);if(row.dataset.arManual!=='true')ar.value=arabic?raw:toAr(raw);if(row.dataset.frManual!=='true')french.value=arabic?toFr(raw):raw}
+  if(changed==='ar'){row.dataset.arManual='true';if(row.dataset.frManual!=='true')french.value=toFr(ar.value.trim())}
+  if(changed==='fr')row.dataset.frManual=!!french.value.trim()?'true':'false';
+  inspectRow(row)
+ }
+ review.onclick=()=>{
+  const names=parse(q('[data-text]').value);if(names.length>800){status.textContent='الحد الأقصى 800 تلميذ / Maximum 800 élèves';return}
+  rowsContainer.innerHTML=names.map(raw=>{const arabic=/[\u0600-\u06ff]/u.test(raw),nameAr=arabic?raw:toAr(raw),nameFr=arabic?toFr(raw):raw;return `<div data-row data-ar-manual="${arabic}" data-fr-manual="${!arabic}" style="padding:10px;border-bottom:1px solid #ddd"><label><input type="checkbox" data-selected ${confidence>=65?'checked':''}> إضافة / Ajouter</label><label>الاسم كما في الملف / Nom original<input data-source maxlength="160" dir="auto" value="${esc(raw)}"></label><div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:8px"><label>الاسم بالعربية / Nom en arabe<input data-ar maxlength="160" dir="rtl" value="${esc(nameAr)}"></label><label>Nom en français / الاسم بالفرنسية<input data-fr maxlength="160" dir="ltr" value="${esc(nameFr)}"></label></div><small data-hint role="status"></small><button type="button" data-regenerate>↻ تحديث الفرنسية من العربية / Actualiser depuis l’arabe</button></div>`}).join('');
+  rowsContainer.querySelectorAll('[data-row]').forEach(inspectRow);setSaveVisible(!!names.length);
+  status.textContent=`${confidence<65?'قراءة ضعيفة: راجع كل اسم قبل اختياره. / Lecture incertaine : vérifiez chaque nom. ':''}${names.length} — راجع العربية والفرنسية جنبًا إلى جنب قبل الحفظ / Vérifiez les deux langues avant l’enregistrement`
+ };
+ rowsContainer.addEventListener('input',e=>{const row=e.target.closest('[data-row]');if(!row)return;const type=e.target.hasAttribute('data-source')?'source':e.target.hasAttribute('data-ar')?'ar':e.target.hasAttribute('data-fr')?'fr':null;if(type)synchronizeRow(row,type)});
+ rowsContainer.addEventListener('click',e=>{const button=e.target.closest('[data-regenerate]');if(!button)return;const row=button.closest('[data-row]'),ar=row.querySelector('[data-ar]'),french=row.querySelector('[data-fr]');row.dataset.frManual='false';french.value=toFr(ar.value.trim());inspectRow(row)});
  q('[data-text]').oninput=()=>{confidence=100;setSaveVisible(false);q('[data-rows]').replaceChildren()};
- save.onclick=async()=>{const rows=[...wrap.querySelectorAll('[data-row]')].filter(r=>r.querySelector('[data-selected]').checked).map(r=>{const source=r.querySelector('[data-source]').value.trim(),arabic=/[\u0600-\u06ff]/.test(source);return {name:arabic?source:toAr(source),nameFr:arabic?toFr(source):source}});if(!rows.length||rows.some(r=>!r.name||!r.nameFr)){status.textContent='أكمل الأسماء المحددة قبل الحفظ / Complétez les noms sélectionnés avant de sauvegarder';return}saving=true;save.disabled=true;review.disabled=true;for(const input of wrap.querySelectorAll('input'))input.disabled=true;try{await onSave(rows);close()}catch(err){status.textContent=err.message||'تعذر الحفظ / Enregistrement impossible'}finally{saving=false;save.disabled=false;review.disabled=false;for(const input of wrap.querySelectorAll('input'))input.disabled=false}};
+ save.onclick=async()=>{
+  const rows=[...rowsContainer.querySelectorAll('[data-row]')].filter(r=>r.querySelector('[data-selected]').checked).map(r=>({name:r.querySelector('[data-ar]').value.trim(),nameFr:r.querySelector('[data-fr]').value.trim()}));
+  if(!rows.length||rows.some(r=>!r.name||!r.nameFr)){status.textContent='أكمل الأسماء المحددة قبل الحفظ / Complétez les noms sélectionnés avant de sauvegarder';return}
+  saving=true;save.disabled=true;review.disabled=true;for(const input of wrap.querySelectorAll('input'))input.disabled=true;
+  try{await onSave(rows);close()}catch(err){status.textContent=err.message||'تعذر الحفظ / Enregistrement impossible'}
+  finally{saving=false;save.disabled=false;review.disabled=false;for(const input of wrap.querySelectorAll('input'))input.disabled=false}
+ };
 }};
 })();
