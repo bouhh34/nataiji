@@ -280,7 +280,9 @@ async function saveProfessorProfile(userId,input,{syncShared=true}={}){
     await client.query('UPDATE nataiji_professor_classrooms SET data=$2::jsonb,updated_at=now() WHERE class_id=$1',[sharedClassId,JSON.stringify({...roomData,...sharedData})])
    }else applyProfessorSharedClassData(cls,roomData)
   }
-  profile=cleanProfessorProfile(profile);
+  // Restore surviving marks after the authoritative shared roster has been applied.
+  // A stale former owner must not drop grades by sending an empty local roster.
+  profile=preserveProfessorMarks(before,profile);
   await client.query('INSERT INTO nataiji_professor_profiles(user_id,data,updated_at) VALUES($1,$2::jsonb,now()) ON CONFLICT(user_id) DO UPDATE SET data=EXCLUDED.data,updated_at=now()',[userId,JSON.stringify(profile)]);
   await client.query('COMMIT')
  }catch(e){await client.query('ROLLBACK');throw e}finally{client.release()}
