@@ -37,8 +37,39 @@ window.nataijiStudentImport={parse,open({toAr,toFr,onSave}){
  const close=()=>{cancelled=true;wrap.remove()};q('[data-close]').onclick=()=>{if(!saving)close()};wrap.addEventListener('keydown',e=>{if(e.key==='Escape'&&!saving)close();if(e.key==='Tab'){const controls=[...wrap.querySelectorAll('button,input,textarea')].filter(x=>!x.disabled&&!x.hidden&&x.getClientRects().length);if(e.shiftKey&&document.activeElement===controls[0]){e.preventDefault();controls.at(-1)?.focus()}else if(!e.shiftKey&&document.activeElement===controls.at(-1)){e.preventDefault();controls[0]?.focus()}}});q('[data-close]').focus();
  async function read(e){const file=e.target.files[0];if(!file||busy)return;busy=true;setSaveVisible(false);review.disabled=true;q('[data-rows]').replaceChildren();for(const input of wrap.querySelectorAll('input[type=file]'))input.disabled=true;try{await capabilities;const result=await extract(file,s=>status.textContent=s,()=>cancelled,'both',cloud);confidence=result.confidence;q('[data-text]').value=result.text;if(!cancelled){status.textContent='راجع النص، ثم اضغط مراجعة الأسماء / Vérifiez le texte';review.onclick()}}catch(err){if(!cancelled)status.textContent='تعذر قراءة الملف؛ جرّب صورة أوضح أو ألصق الأسماء أدناه / Lecture impossible : utilisez une photo plus nette ou collez les noms. '+err.message}finally{busy=false;review.disabled=false;for(const input of wrap.querySelectorAll('input[type=file]')){input.disabled=false;input.value=''}}}
  q('[data-file]').onchange=read;q('[data-camera]').onchange=read;
- review.onclick=()=>{const names=parse(q('[data-text]').value);if(names.length>800){status.textContent='الحد الأقصى 800 تلميذ / Maximum 800 élèves';return}q('[data-rows]').innerHTML=names.map(raw=>`<div data-row style="padding:10px;border-bottom:1px solid #ddd"><label><input type="checkbox" data-selected ${confidence>=65?'checked':''}> إضافة / Ajouter</label><label>الاسم كما في الملف / Nom dans le document<input data-source maxlength="160" dir="auto" value="${esc(raw)}"></label></div>`).join('');setSaveVisible(!!names.length);status.textContent=`${confidence<65?'قراءة ضعيفة: لم نحدد الأسماء تلقائيًا؛ صحّحها أولًا / Lecture incertaine : corrigez avant de sélectionner. ':''}${names.length} — عدّل الأسماء وألغِ تحديد الأسطر غير المطلوبة / Corrigez et décochez les lignes inutiles`};
+  review.onclick=()=>{
+   const names=parse(q('[data-text]').value);
+   if(names.length>800){status.textContent='الحد الأقصى 800 تلميذ / Maximum 800 élèves';return}
+   q('[data-rows]').innerHTML=names.map(raw=>{
+    const arabic=/[\u0600-\u06ff]/.test(raw),ar=arabic?raw:toAr(raw),fr=arabic?toFr(raw):raw;
+    return '<div data-row style="padding:10px;border-bottom:1px solid #ddd">'+
+     '<label><input type="checkbox" data-selected '+(confidence>=65?'checked':'')+'> إضافة / Ajouter</label>'+
+     '<small style="display:block;overflow-wrap:anywhere">النص الأصلي / Source : '+esc(raw)+'</small>'+
+     '<div style="display:flex;gap:10px;flex-wrap:wrap">'+
+      '<label style="flex:1 1 165px;min-width:0">الاسم بالعربية<input data-ar dir="rtl" maxlength="160" value="'+esc(ar)+'" style="width:100%;box-sizing:border-box"></label>'+
+      '<label style="flex:1 1 165px;min-width:0">Nom en français<input data-fr dir="ltr" maxlength="160" value="'+esc(fr)+'" style="width:100%;box-sizing:border-box"></label>'+
+     '</div><small data-warning role="status" style="color:#965c00"></small></div>';
+   }).join('');
+   for(const row of wrap.querySelectorAll('[data-row]')){
+    const ar=row.querySelector('[data-ar]'),fr=row.querySelector('[data-fr]'),warning=row.querySelector('[data-warning]');
+    window.nataijiBilingualUtils.bindPair({ar,fr,toFr,toAr});
+    const refresh=()=>{warning.textContent=window.nataijiBilingualUtils.namePairMismatch(ar.value,fr.value,toFr)?'تحقق من اختلاف الاسمين قبل الحفظ؛ لن نبدل تصحيحك يدويًا. / Vérifiez la différence entre les deux noms ; vos modifications sont conservées.':''};
+    ar.addEventListener('input',refresh);fr.addEventListener('input',refresh);fr.addEventListener('change',refresh);refresh();
+   }
+   setSaveVisible(!!names.length);
+   status.textContent=(confidence<65?'قراءة ضعيفة: حدد الأسماء الصحيحة بعد المراجعة / Lecture incertaine : sélectionnez les noms corrects. ':'')+names.length+' — راجع العربية والفرنسية جنبًا إلى جنب / Vérifiez les deux langues avant de sauvegarder';
+  };
  q('[data-text]').oninput=()=>{confidence=100;setSaveVisible(false);q('[data-rows]').replaceChildren()};
- save.onclick=async()=>{const rows=[...wrap.querySelectorAll('[data-row]')].filter(r=>r.querySelector('[data-selected]').checked).map(r=>{const source=r.querySelector('[data-source]').value.trim(),arabic=/[\u0600-\u06ff]/.test(source);return {name:arabic?source:toAr(source),nameFr:arabic?toFr(source):source}});if(!rows.length||rows.some(r=>!r.name||!r.nameFr)){status.textContent='أكمل الأسماء المحددة قبل الحفظ / Complétez les noms sélectionnés avant de sauvegarder';return}saving=true;save.disabled=true;review.disabled=true;for(const input of wrap.querySelectorAll('input'))input.disabled=true;try{await onSave(rows);close()}catch(err){status.textContent=err.message||'تعذر الحفظ / Enregistrement impossible'}finally{saving=false;save.disabled=false;review.disabled=false;for(const input of wrap.querySelectorAll('input'))input.disabled=false}};
+  save.onclick=async()=>{
+   const rows=[...wrap.querySelectorAll('[data-row]')].filter(r=>r.querySelector('[data-selected]').checked).map(r=>({
+    name:r.querySelector('[data-ar]').value.trim(),nameFr:r.querySelector('[data-fr]').value.trim()
+   }));
+   if(!rows.length||rows.some(r=>!r.name||!r.nameFr)){status.textContent='أكمل الاسمين بالعربية والفرنسية قبل الحفظ / Complétez les deux noms avant de sauvegarder';return}
+   saving=true;save.disabled=true;review.disabled=true;
+   for(const input of wrap.querySelectorAll('input'))input.disabled=true;
+   try{await onSave(rows);close()}
+   catch(err){status.textContent=err.message||'تعذر الحفظ / Enregistrement impossible'}
+   finally{saving=false;save.disabled=false;review.disabled=false;for(const input of wrap.querySelectorAll('input'))input.disabled=false}
+  };
 }};
 })();
