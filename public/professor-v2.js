@@ -70,16 +70,7 @@ function profSubjectFr(v){const raw=String(v||'').trim();return PROF_SUBJECT_FR[
 function profSubject(v){const raw=String(v||'').trim();return fr()?profSubjectFr(raw):raw}
 function profClassFr(v){const raw=String(v||'').trim();const map={'السنة الأولى ابتدائية':'1re année primaire','السنة الثانية ابتدائية':'2e année primaire','السنة الثالثة ابتدائية':'3e année primaire','السنة الرابعة ابتدائية':'4e année primaire','السنة الخامسة ابتدائية':'5e année primaire','السنة السادسة ابتدائية':'6e année primaire'};return map[raw]||(/^[0-9A-Z-]+$/i.test(raw)?raw:profTranslit(raw))}
 function profClass(v){const raw=String(v||'').trim();return fr()?profClassFr(raw):raw}
-function profSchoolFrAuto(v){
- const raw=String(v||'').trim();if(!raw)return'';
- const rules=[
-  [/^(?:الإعدادية|الاعدادية|إعدادية|اعدادية)\s*/u,'Collège'],
-  [/^(?:الثانوية|ثانوية)\s*/u,'Lycée'],
-  [/^(?:المدرسة|مدرسة)\s*/u,'École']
- ];
- for(const [re,prefix] of rules)if(re.test(raw)){const rest=raw.replace(re,'').trim();return prefix+(rest?' '+profTranslit(rest):'')}
- return profTranslit(raw)
-}
+function profSchoolFrAuto(v){return window.nataijiBilingualUtils.schoolToFr(v,profTranslit)}
 function profSchool(){return fr()?(profile.schoolNameFr||profSchoolFrAuto(profile.schoolName)):profile.schoolName}
 function profRegion(){return fr()?(profile.regionFr||PROF_PLACE_FR[profile.region]||profTranslit(profile.region)):profile.region}
 function profInspection(){return fr()?(profile.inspectionFr||profTranslit(profile.inspection)):profile.inspection}
@@ -694,9 +685,12 @@ function openSettings(onboarding=false){
  const generatedSchoolFr=profile.schoolNameFr||profSchoolFrAuto(profile.schoolName);
  const m=modal(onboarding?tr('استكمال بيانات المؤسسة','Compléter les informations de l’établissement'):tr('إعدادات الأستاذ','Paramètres du professeur'),`<div class="prof-link-explain"><b>${tr('بيانات الكشوف الرسمية','Informations des relevés officiels')}</b><p>${tr('ستظهر هذه البيانات في كشف التلميذ ولائحة القسم. اسم المؤسسة بالفرنسية يُنشأ تلقائيًا: إعدادية = Collège، ثانوية = Lycée، مدرسة = École.','Ces informations apparaîtront sur les bulletins et listes. Le nom français est généré automatiquement : إعدادية = Collège, ثانوية = Lycée, مدرسة = École.')}</p></div><label>${tr('اسم المؤسسة','Établissement')}<input id="pv2School" value="${esc(profile.schoolName)}" maxlength="160"></label><label>${tr('اسم المؤسسة بالفرنسية','Établissement en français')}<input id="pv2SchoolFr" value="${esc(generatedSchoolFr)}" maxlength="160"><small>${tr('يُحدّث تلقائيًا ما لم تعدّله يدويًا.','Mis à jour automatiquement sauf modification manuelle.')}</small></label><label>${tr('الإدارة الجهوية للتربية','Direction régionale de l’Éducation')}<input id="pv2Region" value="${esc(profile.region)}" maxlength="160"></label><label>${tr('الإدارة الجهوية بالفرنسية (اختياري — تُولد تلقائيًا إذا تُركت فارغة)','Direction régionale en français (facultatif — générée automatiquement si vide)')}<input id="pv2RegionFr" value="${esc(profile.regionFr)}" maxlength="160"></label><label>${tr('الولاية','Wilaya')}<input id="pv2Wilaya" value="${esc(profile.wilaya)}" maxlength="160"></label><label>${tr('الولاية بالفرنسية (اختياري)','Wilaya en français (facultatif)')}<input id="pv2WilayaFr" value="${esc(profile.wilayaFr)}" maxlength="160"></label><label>${tr('المقاطعة','Moughataa')}<input id="pv2District" value="${esc(profile.district)}" maxlength="160"></label><label>${tr('المقاطعة بالفرنسية (اختياري)','Moughataa en français (facultatif)')}<input id="pv2DistrictFr" value="${esc(profile.districtFr)}" maxlength="160"></label><label>${tr('الرقم المدرسي للمؤسسة (اختياري)','N° scolaire de l’établissement (facultatif)')}<input id="pv2SchoolNns" value="${esc(profile.schoolNns)}" maxlength="80" dir="ltr"></label><label>${tr('السنة الدراسية','Année scolaire')}<input id="pv2Year" value="${esc(profile.year)}" maxlength="40" dir="ltr" placeholder="2026-2027"></label><button class="primary" id="pv2SaveSettings">${tr('حفظ','Enregistrer')}</button><p class="professor-msg"></p>`);
  const schoolAr=q('#pv2School',m.wrap),schoolFr=q('#pv2SchoolFr',m.wrap);
- let schoolFrManual=!!String(profile.schoolNameFr||'').trim();
- schoolAr.addEventListener('input',()=>{if(!schoolFrManual)schoolFr.value=profSchoolFrAuto(schoolAr.value)});
- schoolFr.addEventListener('input',()=>{schoolFrManual=schoolFr.value.trim()!==''});
+ for(const [a,f,converter] of [
+  ['pv2School','pv2SchoolFr',profSchoolFrAuto],
+  ['pv2Region','pv2RegionFr',value=>PROF_PLACE_FR[String(value||'').trim()]||profTranslit(value)],
+  ['pv2Wilaya','pv2WilayaFr',value=>PROF_PLACE_FR[String(value||'').trim()]||profTranslit(value)],
+  ['pv2District','pv2DistrictFr',value=>PROF_PLACE_FR[String(value||'').trim()]||profTranslit(value)]
+ ])window.nataijiBilingualUtils.bindPair({ar:q('#'+a,m.wrap),fr:q('#'+f,m.wrap),toFr:converter,toAr:profNameAr});
  q('#pv2SaveSettings',m.wrap).onclick=async()=>{
   const b=q('#pv2SaveSettings',m.wrap),msg=q('.professor-msg',m.wrap);b.disabled=true;
   if(onboarding){const missing=['pv2School','pv2Region','pv2Wilaya','pv2District'].map(id=>q('#'+id,m.wrap)).find(input=>!input.value.trim());if(missing){msg.textContent=tr('أكمل المؤسسة والإدارة الجهوية والولاية والمقاطعة.','Renseignez l’établissement, la direction régionale, la wilaya et la moughataa.');missing.focus();b.disabled=false;return}}
@@ -844,7 +838,7 @@ function studentEditor(classId,studentId,onDone){
   <p class="professor-msg prof-student-msg"></p>
  </div>`);
  m.wrap.classList.add('prof-student-modal');
- const ar=q('#pv2StudentName',m.wrap),frInput=q('#pv2StudentNameFr',m.wrap),arHint=q('#pv2StudentArHint',m.wrap),frHint=q('#pv2StudentFrHint',m.wrap);let arManual=false,frenchManual=false,syncing=false;
+ const ar=q('#pv2StudentName',m.wrap),frInput=q('#pv2StudentNameFr',m.wrap),arHint=q('#pv2StudentArHint',m.wrap),frHint=q('#pv2StudentFrHint',m.wrap);let arManual=!!String(existing?.name||'').trim(),frenchManual=!!String(existing?.nameFr||'').trim()&&String(existing.nameFr).trim()!==profNameFr(existing.name),syncing=false;
  const fromArabic=()=>{if(frenchManual)return;syncing=true;frInput.value=profNameFr(ar.value);syncing=false};
  const fromFrench=()=>{if(arManual)return;syncing=true;ar.value=profNameAr(frInput.value);syncing=false};
  ar.addEventListener('input',()=>{if(syncing)return;arManual=!!ar.value.trim();fromArabic();arHint.textContent=arManual?'تم اعتماد الاسم العربي يدويًا / Nom arabe saisi manuellement':'يمكنك البدء بالعربية أو الفرنسية؛ سيقترح التطبيق اللغة الأخرى تلقائيًا.';arHint.classList.toggle('locked',arManual)});
