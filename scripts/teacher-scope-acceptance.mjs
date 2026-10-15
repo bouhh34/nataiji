@@ -142,6 +142,25 @@ try{
   });
   if(!Array.isArray(created.pupils)||!created.pupils.some(p=>p?.[1]==='طالب مسموح'))throw new Error('teacher could not create a pupil inside the assigned class');
 
+
+  // A scoped teacher cannot copy pupils into a forbidden destination.
+  const allowedKey=String(created.pupils.find(p=>p?.[1]==='طالب مسموح')?.[7]||'');
+  if(!allowedKey)throw new Error('missing canonical pupil key for safe-copy acceptance');
+  await teacher.request('/api/pupils/copy',{method:'POST',body:{sourceClassId:'class-a',targetClassId:'class-b',pupilKeys:[allowedKey]},expected:403});
+  await teacher.request('/api/pupils/repair-calls',{method:'POST',body:{classId:'class-b'},expected:403});
+  // Owner can copy identities only; source roster remains present in the original class.
+  const copied=await owner.request('/api/pupils/copy',{method:'POST',body:{sourceClassId:'class-a',targetClassId:'class-b',pupilKeys:[allowedKey]}});
+  if(copied.copied!==1||copied.skipped!==0)throw new Error('safe class copy failed');
+  const sourceAfter=await owner.request('/api/state?classId=class-a');
+  const targetAfter=await owner.request('/api/state?classId=class-b');
+  if(!sourceAfter.state?.pupils?.some(p=>p?.[1]==='طالب مسموح'))throw new Error('source pupil disappeared after copy');
+  const replica=targetAfter.state?.pupils?.find(p=>p?.[1]==='طالب مسموح');
+  if(!replica||replica[7]===allowedKey)throw new Error('destination pupil lacked its own safe identity');
+  const copiedAgain=await owner.request('/api/pupils/copy',{method:'POST',body:{sourceClassId:'class-a',targetClassId:'class-b',pupilKeys:[allowedKey]}});
+  if(copiedAgain.copied!==0||copiedAgain.skipped!==1)throw new Error('duplicate copy should have been skipped');
+  const repaired=await teacher.request('/api/pupils/repair-calls',{method:'POST',body:{classId:'class-a'}});
+  if(!repaired.ok)throw new Error('allowed teacher call-number repair failed');
+
   await teacher.request('/api/active-selection',{method:'POST',body:{classId:'class-b'},expected:400});
 
   console.log('Nataiji teacher scope acceptance passed');
