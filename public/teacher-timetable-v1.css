@@ -6,5 +6,18 @@
 
 /* Mobile day selector: explicit specificity prevents hidden cells from winning. */
 @media screen and (max-width:700px){#teacherTimetable .tt-table th[data-tt-day],#teacherTimetable .tt-table td[data-tt-day]{display:none!important}#teacherTimetable[data-selected-day="0"] .tt-table [data-tt-day="0"],#teacherTimetable[data-selected-day="1"] .tt-table [data-tt-day="1"],#teacherTimetable[data-selected-day="2"] .tt-table [data-tt-day="2"],#teacherTimetable[data-selected-day="3"] .tt-table [data-tt-day="3"],#teacherTimetable[data-selected-day="4"] .tt-table [data-tt-day="4"]{display:table-cell!important}}
-/* Android print preview can keep portrait A4 despite @page landscape: make rows readable. */
-@media print{body:has(#teacherTimetable:not(.hidden)) #teacherTimetable .tt-table{font-size:14px!important}body:has(#teacherTimetable:not(.hidden)) #teacherTimetable .tt-table td{padding:13px 5px!important;height:56px!important}body:has(#teacherTimetable:not(.hidden)) #teacherTimetable .tt-table th{padding:12px 5px!important}body:has(#teacherTimetable:not(.hidden)) #teacherTimetable .tt-table input{font-size:13px!important;line-height:1.4!important}body:has(#teacherTimetable:not(.hidden)) #teacherTimetable .tt-table label{font-size:12px!important;justify-content:center!important}body:has(#teacherTimetable:not(.hidden)) #teacherTimetable .tt-note{font-size:14px!important}}
+/* Keep all eleven official periods on one landscape A4 page. */
+.tt-print-value{display:none}
+@media print{
+ body:has(#teacherTimetable:not(.hidden)) #teacherTimetable{overflow:visible!important;max-width:none!important}
+ #teacherTimetable .section-head{display:block!important;margin:0 0 2mm!important}
+ #teacherTimetable .section-head h2{margin:0!important;font-size:16pt!important}
+ body:has(#teacherTimetable:not(.hidden)) #teacherTimetable .tt-note{font-size:9pt!important;line-height:1.3!important;margin:0 0 2mm!important}
+ body:has(#teacherTimetable:not(.hidden)) #teacherTimetable .tt-table{font-size:10pt!important}
+ body:has(#teacherTimetable:not(.hidden)) #teacherTimetable .tt-table td{padding:2px 4px!important;height:12mm!important;vertical-align:middle!important}
+ body:has(#teacherTimetable:not(.hidden)) #teacherTimetable .tt-table th{padding:4px!important;vertical-align:middle!important}
+ body:has(#teacherTimetable:not(.hidden)) #teacherTimetable .tt-table input{display:none!important}
+ #teacherTimetable .tt-print-value{display:block!important;white-space:normal!important;overflow-wrap:anywhere!important;font-size:9pt!important;line-height:1.2!important;text-align:center!important}
+ #teacherTimetable label .tt-print-value{display:inline!important}
+ body:has(#teacherTimetable:not(.hidden)) #teacherTimetable .tt-table label{font-size:8pt!important;line-height:1.2!important;justify-content:center!important;margin-top:2px!important}
+}

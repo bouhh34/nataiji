@@ -15,6 +15,36 @@ function landscapeForCurrentPrint(){
 }
 let busy=false;
 const originalPrint=window.print;
+function currentPrintDocument(){
+ const timetable=document.querySelector?.('#teacherTimetable:not(.hidden)');
+ const roots={student:'#officialSheet',class:'#classReport .paper',list:'#listReport .paper','two-a4':'#twoStudentsA4',batch:'#printBatch',portal:'#printPortal'};
+ const selector=timetable?'#teacherTimetable':roots[document.body.dataset.print];
+ if(!selector)return null;
+ window.dispatchEvent(new Event('beforeprint'));
+ const source=document.querySelector(selector);if(!source)throw Error('Print document is unavailable');
+ // RC4 already supports printHtml. Its separate WebView avoids the app WebView's
+ // native dark background, which cannot be overridden reliably by page CSS.
+ const doc=document.implementation.createHTMLDocument('Nataiji');
+ for(const attr of document.documentElement.attributes)doc.documentElement.setAttribute(attr.name,attr.value);
+ const base=doc.createElement('base');base.href=document.baseURI;doc.head.appendChild(base);
+ for(const style of document.querySelectorAll('style,link[rel="stylesheet"]'))doc.head.appendChild(style.cloneNode(true));
+ for(const attr of document.body.attributes)doc.body.setAttribute(attr.name,attr.value);
+ const sourceCopy=source.cloneNode(true);
+ // Form values live in properties after editing. Include unsaved timetable edits
+ // in the print snapshot without writing them to the account or changing the UI.
+ const originals=source.querySelectorAll('input,textarea,select');
+ sourceCopy.querySelectorAll('input,textarea,select').forEach((control,i)=>{
+  const value=originals[i].value;
+  if(control.tagName==='TEXTAREA')control.textContent=value;
+  else if(control.tagName==='SELECT')[...control.options].forEach(option=>option.toggleAttribute('selected',option.value===value));
+  else control.setAttribute('value',value);
+ });
+ let content=sourceCopy;
+ for(let parent=source.parentElement;parent&&parent!==document.body;parent=parent.parentElement){const wrapper=parent.cloneNode(false);wrapper.appendChild(content);content=wrapper}
+ doc.body.appendChild(content);
+ doc.querySelectorAll('script,iframe,object,embed').forEach(el=>el.remove());
+ return {html:'<!doctype html>'+doc.documentElement.outerHTML,title:'Nataiji',landscape:landscapeForCurrentPrint()};
+}
 function finish(){
  busy=false;
  document.documentElement?.removeAttribute?.('data-nataiji-native-print');
@@ -32,11 +62,14 @@ window.nataijiPrintDocument=async function({html,title='Nataiji',landscape=false
  catch(error){console.error('Native document printing failed',error);failed()}
  return true;
 };
-if(native())window.print=function(){
+if(native())window.print=async function(){
  if(!supported()){failed();return}
  if(busy)return;busy=true;
  // Native WebView can include the app's dark background in the PDF page; isolate print roots.
  document.documentElement?.setAttribute?.('data-nataiji-native-print','');
- return window.Capacitor.nativePromise('NataijiPrint','print',{landscape:landscapeForCurrentPrint()}).catch(error=>{console.error('Native printing failed',error);failed()});
+ try{
+  const report=currentPrintDocument();
+  await window.Capacitor.nativePromise('NataijiPrint',report?'printHtml':'print',report||{landscape:landscapeForCurrentPrint()});
+ }catch(error){console.error('Native printing failed',error);failed()}
 };
 })();

@@ -66,18 +66,12 @@ test('French Abs appears only in grade entry while report wording remains unchan
 });
 
 test('Android print orientation follows actual document, never the unrelated timetable CSS',async()=>{
- const f=fixture(nativeCap());f.ctx.state={subjects:Array.from({length:12},(_,i)=>['Subject '+i])};
- f.ctx.document.body.dataset.print='class';await f.window.print();
- assert.equal(f.calls[0][2].landscape,true);
- f.events['nataiji-native-print-finished']();
- f.ctx.document.body.dataset.print='student';await f.window.print();
- assert.equal(f.calls[1][2].landscape,false);
- f.events['nataiji-native-print-finished']();
- f.ctx.document.body.dataset.print='class';f.ctx.state.subjects.length=8;await f.window.print();
- assert.equal(f.calls[2][2].landscape,false);
- f.events['nataiji-native-print-finished']();
- f.ctx.document.querySelector=()=>({});await f.window.print();
- assert.equal(f.calls[3][2].landscape,true);
+ const code=source.slice(source.indexOf('function landscapeForCurrentPrint(){'),source.indexOf('let busy=false;'));
+ const ctx=vm.createContext({document:{body:{dataset:{print:'class'}},querySelector:()=>null},state:{subjects:Array.from({length:12},()=>[])}});
+ vm.runInContext(code,ctx);assert.equal(ctx.landscapeForCurrentPrint(),true);
+ ctx.document.body.dataset.print='student';assert.equal(ctx.landscapeForCurrentPrint(),false);
+ ctx.document.body.dataset.print='class';ctx.state.subjects.length=8;assert.equal(ctx.landscapeForCurrentPrint(),false);
+ ctx.document.querySelector=()=>({});assert.equal(ctx.landscapeForCurrentPrint(),true);
 });
 test('Android plugin accepts print landscape instead of forcing portrait',()=>{
  const java=fs.readFileSync(new URL('../native/android/NataijiPrintPlugin.java',import.meta.url),'utf8');

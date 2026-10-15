@@ -46,5 +46,15 @@
     moreBtn.addEventListener('click',openTimetable);
     document.querySelector('#classTop')?.addEventListener('change',()=>{if(!section.classList.contains('hidden'))load()});
   }
+  window.addEventListener('beforeprint',()=>{
+    const root=document.querySelector('#teacherTimetable:not(.hidden)');if(!root)return;
+    root.querySelectorAll('.tt-print-value').forEach(el=>el.remove());
+    root.querySelectorAll('.tt-table input').forEach(input=>{
+      const text=document.createElement('span');text.className='tt-print-value';text.textContent=input.value;input.after(text);
+    });
+  });
+  function clearPrintValues(){document.querySelectorAll('#teacherTimetable .tt-print-value').forEach(el=>el.remove())}
+  window.addEventListener('afterprint',clearPrintValues);
+  window.addEventListener('nataiji-native-print-finished',clearPrintValues);
   if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',init);else init();
 })();
