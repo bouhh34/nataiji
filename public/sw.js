@@ -1,4 +1,4 @@
-const CACHE = "nataiji-shell-v141";
+const CACHE = "nataiji-shell-v142";
 const ASSETS = [
   "/native-report-print.js?v=7",
   "/koutoubi-resources.css?v=1",
@@ -34,7 +34,7 @@ const ASSETS = [
   "/vendor/feather.min.js",
   "/luxury-ui-v1.js?v=6",
   "/school-grade-journal.js?v=1",
-  "/app.js?v=51",
+  "/app.js?v=52",
   "/app-stability-v1.js?v=5",
   "/teacher-timetable-v1.js?v=5",
   "/teacher-timetable-v1.css?v=4",
@@ -62,7 +62,7 @@ const ASSETS = [
   "/admin-ux-polish-v1.js?v=8",
   "/interface-language-fix.js?v=12",
   "/premium-subject-locale-v1.js?v=5",
-  "/commercial-foundation-v1.js?v=2",
+  "/commercial-foundation-v1.js?v=3",
   "/workflow-polish.js?v=4",
   "/nataiji-premium-v2.js?v=5",
   "/nataiji-home-reference-v1.js?v=2",
@@ -104,10 +104,10 @@ self.addEventListener('fetch', event=>{
     const cached=await cachedPromise;
     if(!navigation&&cached) return cached; // Exact release URL: zero network bytes.
     if(navigation&&cached){
-      let timer;
-      const deadline=new Promise(resolve=>{timer=setTimeout(()=>resolve(cached),2500)});
-      try { return await Promise.race([network().then(r=>r.ok?r:cached).catch(()=>cached),deadline]); }
-      finally {clearTimeout(timer)}
+      // Show the saved app shell immediately on poor mobile connections.
+      // A background revalidation refreshes the cache without delaying launch.
+      void network().catch(()=>{});
+      return cached;
     }
     try {return await network()}
     catch {
