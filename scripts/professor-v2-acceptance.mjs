@@ -27,6 +27,26 @@ async function registerProfessor(name,email){
  await page.locator('[data-profile-type="professor"]').waitFor({state:'visible',timeout:12000});
  await page.locator('[data-profile-type="professor"]').click();
  await page.locator('.prof-reference-hero').waitFor({state:'visible',timeout:12000});
+ await completeInstitutionSetup();
+}
+async function completeInstitutionSetup(){
+ await page.locator('#pv2Wilaya').waitFor({state:'visible'});
+ check('new professor sees institution setup without inspection',await page.locator('#pv2Inspection').count()===0);
+ await page.locator('#pv2SaveSettings').click();
+ check('onboarding requires institution details',await page.locator('.professor-modal .professor-msg').innerText()!=='');
+ await page.locator('#pv2School').fill('ثانوية الاختبار');
+ await page.locator('#pv2Region').fill('إدارة التربية');
+ await page.locator('#pv2Wilaya').fill('لبراكنة');
+ await page.locator('#pv2District').fill('مال');
+ await page.locator('#pv2Year').fill('2026-2027');
+ await page.locator('#pv2SaveSettings').click();
+ await page.locator('.professor-modal').waitFor({state:'detached'});
+ const settings=await page.evaluate(async()=> (await (await fetch('/api/professor/profile')).json()).profile);
+ check('institution setup persists independently',settings.onboardingComplete===true&&settings.wilaya==='لبراكنة'&&settings.district==='مال'&&settings.region==='إدارة التربية');
+ await page.reload({waitUntil:'domcontentloaded'});
+ await page.locator('.prof-reference-hero').waitFor({state:'visible'});
+ check('completed setup is not reopened after reload',await page.locator('#pv2Wilaya').count()===0);
+
 }
 async function logout(){
  await page.locator('#profUtilityToggle').click();
@@ -192,6 +212,7 @@ try{
  await page.locator('[data-profile-type="professor"]').waitFor({state:'visible',timeout:12000});
  await page.locator('[data-profile-type="professor"]').click();
  await page.locator('#profJoinClass').waitFor({state:'visible',timeout:12000});
+ await completeInstitutionSetup();
 
  await page.locator('#profJoinClass').click();
  await page.locator('#pv2JoinCode').fill(code);
@@ -293,6 +314,7 @@ try{
  const studentPrint=await capturePrint('#pv2PrintAllStudents');
  const studentPrintText=await studentPrint.locator('body').innerText();
  check('printed student bulletin has bilingual Mauritanian official header',studentPrintText.includes('الجمهورية الإسلامية الموريتانية')&&studentPrintText.includes('République Islamique de Mauritanie')&&studentPrintText.includes('وزارة التربية وإصلاح النظام التعليمي')&&studentPrintText.includes('Ministère de l’Éducation et de la Réforme du Système Éducatif'),studentPrintText);
+ check('professor header has four institution fields and no inspection',studentPrintText.includes('الولاية')&&studentPrintText.includes('لبراكنة')&&studentPrintText.includes('المقاطعة')&&studentPrintText.includes('مال')&&studentPrintText.includes('Wilaya')&&studentPrintText.includes('Moughataa')&&!studentPrintText.includes('المفتشية')&&!studentPrintText.includes('Inspection'));
  check('printed bulletin contains all shared subjects in both languages',studentPrintText.includes('الرياضيات')&&studentPrintText.includes('Mathématiques')&&studentPrintText.includes('اللغة الفرنسية')&&studentPrintText.includes('Français')&&studentPrintText.includes('الفيزياء والكيمياء')&&studentPrintText.includes('Physique-Chimie'),studentPrintText);
  check('printed bulletin keeps both student names',studentPrintText.includes('محمد سالم')&&studentPrintText.includes('Mohamed Salem'),studentPrintText);
  check('bulk bulletin output uses one official A4 page per student',await studentPrint.locator('.student-page').count()===sharedData.students.length&&await studentPrint.locator('.official-head').count()===sharedData.students.length&&await studentPrint.locator('.student-pair').count()===0);
