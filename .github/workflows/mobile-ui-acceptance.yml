@@ -53,6 +53,8 @@ jobs:
           done
           cat /tmp/nataiji-ui.log
           exit 1
+      - name: Check real report PDFs and entry language
+        run: node scripts/report-pagination-acceptance.mjs
       - name: Run weak network acceptance
         env:
           NATAIJI_TEST_URL: http://127.0.0.1:3221

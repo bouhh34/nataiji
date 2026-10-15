@@ -17,14 +17,22 @@ function landscapeForCurrentPrint(){
 // native navy canvas. Keep the existing report markup and print styles intact.
 function isolatedReport(){
  const type=document.body?.dataset?.print||'';
- const selector=type==='two-a4'?'#twoStudentsA4':type==='batch'?'#printBatch':type==='portal'?'#printPortal':null;
+ const selector={student:'#studentReport',class:'#classReport',list:'#listReport','two-a4':'#twoStudentsA4',batch:'#printBatch',portal:'#printPortal'}[type];
  const root=selector?document.querySelector?.(selector):null;
  if(!root?.outerHTML)return null;
+ let report=root.outerHTML;
+ // Individual/class/list reports rely on their original ancestor CSS selectors.
+ if(['student','class','list'].includes(type)){
+  for(let parent=root.parentElement;parent&&parent!==document.body;parent=parent.parentElement){
+   const wrapper=parent.cloneNode(false);wrapper.innerHTML=report;report=wrapper.outerHTML;
+  }
+ }
  const head=Array.from(document.head.querySelectorAll('style,link[rel="stylesheet"]')).map(el=>el.outerHTML).join('');
+ const htmlClass=String(document.documentElement?.className||'').replace(/&/g,'&amp;').replace(/"/g,'&quot;');
  const attrs=Array.from(document.body.attributes).map(a=>` ${a.name}="${String(a.value).replace(/&/g,'&amp;').replace(/"/g,'&quot;')}"`).join('');
- return '<!doctype html><html data-nataiji-native-print lang="ar" dir="rtl"><head><meta charset="utf-8"><base href="'+location.origin+'/"></head><body></body></html>'
+ return '<!doctype html><html data-nataiji-native-print class="nataiji-auth-ready '+htmlClass+'" lang="ar" dir="rtl"><head><meta charset="utf-8"><base href="'+location.origin+'/"></head><body></body></html>'
   .replace('</head>',head+'<style>@media print{html,body{background:#fff!important}}</style></head>')
-  .replace('<body></body>','<body'+attrs+'>'+root.outerHTML+'</body>');
+  .replace('<body></body>','<body'+attrs+'>'+report+'</body>');
 }
 let busy=false;
 const originalPrint=window.print;
@@ -50,6 +58,7 @@ if(native())window.print=function(){
  if(busy)return;busy=true;
  // Native WebView can include the app's dark background in the PDF page; isolate print roots.
  document.documentElement?.setAttribute?.('data-nataiji-native-print','');
+ window.dispatchEvent?.(new Event('beforeprint'));
  const html=isolatedReport(),landscape=landscapeForCurrentPrint();
  return window.Capacitor.nativePromise('NataijiPrint',html?'printHtml':'print',html?{html,title:'Nataiji',landscape}:{landscape}).catch(error=>{console.error('Native printing failed',error);failed()});
 };
