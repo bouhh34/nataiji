@@ -20,7 +20,11 @@ test('cached school account opens only with its own saved state',()=>{
  assert.equal(f.cache.remember(user),true);
  assert.equal(f.cache.read(),null,'no grade/roster snapshot yet');
  f.localStorage.setItem('nataiji-data',JSON.stringify({classes:[{id:'class-1'}],pupils:[['1001','Test']]}));
+ f.localStorage.setItem('nataiji-offline-school-scope-v1',JSON.stringify([user.id,user.schoolId,'']));
  assert.equal(f.cache.read()?.user?.id,'t-1');
+ f.localStorage.setItem('nataiji-offline-school-scope-v1',JSON.stringify([user.id,'another-school','']));
+ assert.equal(f.cache.read(),null,'offline school snapshot must not cross workspaces');
+ f.localStorage.setItem('nataiji-offline-school-scope-v1',JSON.stringify([user.id,user.schoolId,'']));
  f.localStorage.setItem('nataiji-active-user','t-2');
  assert.equal(f.cache.read(),null,'never reopen a different account');
 });
@@ -36,6 +40,7 @@ test('stale, invalid and suspended sessions never open offline',()=>{
  const f=fixture(),user={id:'t',role:'teacher'};
  f.localStorage.setItem('nataiji-active-user','t');
  f.localStorage.setItem('nataiji-data',JSON.stringify({pupils:[]}));
+ f.localStorage.setItem('nataiji-offline-school-scope-v1',JSON.stringify(['t','','']));
  f.cache.remember(user);
  const key='nataiji-offline-session-v1';
  const raw=JSON.parse(f.entries.get(key));raw.verifiedAt=Date.now()-13*60*60*1000;
@@ -47,6 +52,7 @@ test('no secret fields can be written into offline account metadata',()=>{
  const f=fixture();
  f.localStorage.setItem('nataiji-active-user','u');
  f.localStorage.setItem('nataiji-data',JSON.stringify({pupils:[]}));
+ f.localStorage.setItem('nataiji-offline-school-scope-v1',JSON.stringify(['t','','']));
  f.cache.remember({id:'u',role:'admin',password:'secret',accessToken:'token',cookie:'session',permissions:[]});
  const stored=f.entries.get('nataiji-offline-session-v1');
  assert.ok(!stored.includes('secret')&&!stored.includes('token')&&!stored.includes('session'));
