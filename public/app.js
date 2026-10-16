@@ -366,7 +366,15 @@ function persistMarkCell(input){
   if(error.code==='mark_conflict'&&draft){const current=error.data?.currentValue??'';journal?.setConflict(draft,current);const latest=journal?.snapshot().find(r=>r.account===draft.account&&r.classId===draft.classId&&r.term===draft.term&&r.pupilKey===draft.pupilKey&&r.subjectId===draft.subjectId)||draft;showGradeConflict(latest,String(current))}
  });
 }
-async function flushSchoolGradeJournal(contextFilter=null){
+// Serialize reconnect, manual-save and visibility-triggered retries. Two parallel
+// /api/mark writes for one draft would otherwise generate a false conflict.
+let schoolGradeFlushTail=Promise.resolve();
+function flushSchoolGradeJournal(contextFilter=null){
+ const run=schoolGradeFlushTail.catch(()=>{}).then(()=>runSchoolGradeFlush(contextFilter));
+ schoolGradeFlushTail=run;
+ return run;
+}
+async function runSchoolGradeFlush(contextFilter=null){
  let activeStateChanged=false;const journal=getSchoolGradeJournal();if(!journal?.available){if(sameGradeContext(contextFilter||gradeContext()))markSaveStatus(gradeText('تعذر قراءة مسودات الدرجات المحلية؛ لا تحذف بيانات التطبيق','Impossible de lire les brouillons locaux ; ne supprimez pas les données de l’application'),true);return false}
  if(globalThis.navigator?.onLine===false||window.__nataijiOfflineActive){const ctx=contextFilter||gradeContext();if(sameGradeContext(ctx))markSaveStatus(gradeText('الاتصال منقطع؛ ستتم المحاولة عند عودته','Hors connexion ; nouvelle tentative au retour du réseau'),true);return false}
  for(const row of journal.snapshot()){
