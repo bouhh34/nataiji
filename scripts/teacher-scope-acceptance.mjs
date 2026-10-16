@@ -173,7 +173,7 @@ try{
   // Freeze the current school year in an owner-only, immutable backup before
   // allowing any future year migration. Source school data must remain unchanged.
   const year='2026-2027';
-  await owner.request('/api/settings',{method:'PUT',body:{school:'مدرسة اختبار العزل',year}});
+  await owner.request('/api/settings',{method:'PUT',body:{school:'مدرسة اختبار العزل',year:'2026 - 2027'}});
   const subjectsResult=await owner.request('/api/subjects',{method:'PUT',body:{
     classId:'class-a',subjects:[['الرياضيات',1,'Mathématiques',20]]
   }});
