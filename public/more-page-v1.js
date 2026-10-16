@@ -14,7 +14,7 @@ const GROUPS=[
     fr:'Paramètres académiques',
     subAr:'إدارة المحتوى الدراسي',
     subFr:'Gérez le contenu scolaire',
-    ids:['structureBtn','subjectsBtn']
+    ids:['structureBtn','subjectsBtn','schoolYearArchiveBtn']
   },
   {
     key:'collaboration',
@@ -92,6 +92,9 @@ function apply(){
     page.classList.add('nataiji-more-page');
     grid.classList.add('nataiji-more-grid');
     hero(page);
+    // Account verification can finish after DOMContentLoaded: mount only once
+    // the authenticated admin workspace is actually being organized.
+    window.nataijiMountSchoolYearArchive?.();
 
     const allCards=[...grid.querySelectorAll(':scope > .menu-card')];
     const known=new Set(GROUPS.flatMap(g=>g.ids));
