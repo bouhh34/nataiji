@@ -215,10 +215,14 @@ function overlayDrafts(){
   rec.tests[0]=row.value.test;rec.exam=row.value.exam
  }
 }
+function cacheVerifiedProfessorProfile(){
+ try{if(professorUser?.id&&confirmedProfile)localStorage.setItem('nataiji-professor-profile-v1:'+professorUser.id,
+  JSON.stringify({classes:confirmedProfile.classes,profile:confirmedProfile,classLinks:links,catalog:academicCatalog}))}catch{}
+}
 async function refreshProfile(){
  const [r,cat]=await Promise.all([api('/api/professor/profile'),api('/api/professor/catalog').catch(()=>null)]);
  confirmedProfile=normalize(r.profile);profile=normalize(r.profile);links=r.classLinks||{};if(cat?.catalog)academicCatalog=cat.catalog;
- try{if(professorUser?.id)localStorage.setItem('nataiji-professor-profile-v1:'+professorUser.id,JSON.stringify({classes:profile.classes,profile:r.profile,classLinks:links,catalog:academicCatalog}))}catch{}
+ cacheVerifiedProfessorProfile();
  overlayDrafts();updateSyncStatus();return r
 }
 async function saveProfile(message=''){
@@ -226,7 +230,7 @@ async function saveProfile(message=''){
  const sent=structuredClone(profile),sentJson=JSON.stringify(sent);
  const r=await api('/api/professor/profile',{method:'PUT',body:JSON.stringify({profile:sent})});
  confirmedProfile=normalize(r.profile);if(JSON.stringify(profile)===sentJson)profile=normalize(r.profile);
- overlayDrafts();links=r.classLinks||links||{};if(message)toast(message);return r
+ overlayDrafts();links=r.classLinks||links||{};cacheVerifiedProfessorProfile();if(message)toast(message);return r
 }
 function gradeStatus(text){const el=q('#pv2SaveState');if(el){el.textContent=text;el.setAttribute('role','status');el.setAttribute('aria-live','polite')}}
 function updateSyncStatus(){
@@ -281,7 +285,7 @@ async function flushGradeAutosave(){
      const record=r.marks[row.studentId].terms[String(row.term)];
      for(const p of [confirmedProfile,profile]){p.marks[row.assignmentId]=p.marks[row.assignmentId]||{};const m=p.marks[row.assignmentId][row.studentId]||(p.marks[row.assignmentId][row.studentId]={terms:{}});m.terms=m.terms||{};m.terms[String(row.term)]=structuredClone(record)}
     }
-    journal.ack(batch);overlayDrafts();updateSyncStatus()
+    journal.ack(batch);cacheVerifiedProfessorProfile();overlayDrafts();updateSyncStatus()
    }
    syncRetry=0;gradeSavedRevision=gradeEditRevision;return true
   }catch(error){
