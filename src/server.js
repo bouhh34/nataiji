@@ -1347,8 +1347,10 @@ app.post('/api/year-promotion/prepare',auth,adminOnly,async(req,res)=>{
   }
   const settings=(await client.query('SELECT data FROM nataiji_school_settings WHERE school_id=$1',
    [req.user.schoolId])).rows[0]?.data||{};
-  if(String(settings.year||'').replace('/','-')!==String(ar.academic_year||'').replace('/','-')){
-   await client.query('ROLLBACK');return res.status(409).json({error:'source_year_changed'})
+  let currentYear='';
+  try{currentYear=normalizeAcademicYear(settings.year)}catch{}
+  if(currentYear!==normalizeAcademicYear(ar.academic_year)){
+   await client.query('ROLLBACK');return res.status(409).json({error:'source_year_changed',currentYear:String(settings.year||'')})
   }
   const classes=Array.isArray(ar.snapshot?.structure?.classes)?ar.snapshot.structure.classes:[];
   if(!classes.some(c=>String(c.id)===sourceClassId)){
