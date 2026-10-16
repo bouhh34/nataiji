@@ -2,6 +2,7 @@ import {preserveArchivedAssignments,snapshotDepartingResults} from './professor-
 import {visionConfigured,visionProvider,recognizeStudentDocument} from './student-document-vision.js';
 import {importedPupilRows} from './student-roster-import.js';
 import {repairCalls,planPupilCopy} from './pupil-roster-tools.js';
+import {academicYearNext,planNextYearRoster} from './year-promotion-tools.js';
 import express from 'express';
 import {staticDelivery} from './static-delivery.js';
 import path from 'node:path';
@@ -36,7 +37,7 @@ async function storeGet(key){if(pool){let v=await pgGet(key);if(v!==null)return 
 async function storeSet(key,value,ttl){if(pool)return pgSet(key,value,ttl);if(redis){if(ttl)return redis.set(key,value,{EX:ttl});return redis.set(key,value)}memory.set(key,{value,exp:ttl?Date.now()+ttl*1000:0})}
 async function storeDel(key){if(pool)await pool.query('DELETE FROM kv_store WHERE key=$1',[key]);if(redis)await redis.del(key);else memory.delete(key)}
 async function initStore(){
- if(process.env.DATABASE_URL){try{const databaseUrl=String(process.env.DATABASE_URL);pool=new Pool({connectionString:postgresConnectionString(databaseUrl),ssl:postgresSslOptions(databaseUrl),max:5,connectionTimeoutMillis:10000});await pool.query('SELECT 1');await pool.query('CREATE TABLE IF NOT EXISTS kv_store (key text PRIMARY KEY,value text NOT NULL,expires_at timestamptz,updated_at timestamptz NOT NULL DEFAULT now())');await pool.query(`CREATE TABLE IF NOT EXISTS nataiji_pupils (school_id text NOT NULL,class_id text NOT NULL,nns text NOT NULL,data jsonb NOT NULL,position integer NOT NULL DEFAULT 0,updated_at timestamptz NOT NULL DEFAULT now(),PRIMARY KEY(school_id,class_id,nns))`);await pool.query(`CREATE TABLE IF NOT EXISTS nataiji_school_settings (school_id text PRIMARY KEY,data jsonb NOT NULL,updated_at timestamptz NOT NULL DEFAULT now())`);await pool.query(`CREATE TABLE IF NOT EXISTS nataiji_class_settings (school_id text NOT NULL,class_id text NOT NULL,data jsonb NOT NULL,updated_at timestamptz NOT NULL DEFAULT now(),PRIMARY KEY(school_id,class_id))`);await pool.query(`CREATE TABLE IF NOT EXISTS nataiji_subjects (school_id text NOT NULL,class_id text NOT NULL,subject_id text NOT NULL,data jsonb NOT NULL,position integer NOT NULL DEFAULT 0,updated_at timestamptz NOT NULL DEFAULT now(),PRIMARY KEY(school_id,class_id,subject_id))`);await pool.query(`CREATE TABLE IF NOT EXISTS nataiji_structure (school_id text PRIMARY KEY,data jsonb NOT NULL,updated_at timestamptz NOT NULL DEFAULT now())`);await pool.query(`CREATE TABLE IF NOT EXISTS nataiji_migrations (school_id text NOT NULL,class_id text NOT NULL,resource text NOT NULL,migrated_at timestamptz NOT NULL DEFAULT now(),PRIMARY KEY(school_id,class_id,resource))`);await pool.query(`CREATE TABLE IF NOT EXISTS nataiji_marks (school_id text NOT NULL,class_id text NOT NULL,term text NOT NULL,pupil_key text NOT NULL,subject_id text NOT NULL,value text NOT NULL,updated_at timestamptz NOT NULL DEFAULT now(),PRIMARY KEY(school_id,class_id,term,pupil_key,subject_id))`);await pool.query(`CREATE TABLE IF NOT EXISTS nataiji_school_year_archives (id uuid PRIMARY KEY,school_id text NOT NULL,academic_year text NOT NULL,created_by text NOT NULL,created_at timestamptz NOT NULL DEFAULT now(),snapshot jsonb NOT NULL,counts jsonb NOT NULL)`);await pool.query('CREATE INDEX IF NOT EXISTS nataiji_school_year_archives_lookup_idx ON nataiji_school_year_archives(school_id,created_at DESC)');await pool.query(`CREATE TABLE IF NOT EXISTS nataiji_professor_profiles (user_id text PRIMARY KEY,data jsonb NOT NULL DEFAULT '{}'::jsonb,updated_at timestamptz NOT NULL DEFAULT now())`);await pool.query(`CREATE TABLE IF NOT EXISTS nataiji_professor_profile_versions (id bigserial PRIMARY KEY,user_id text NOT NULL,data jsonb NOT NULL,reason text NOT NULL DEFAULT 'save',created_at timestamptz NOT NULL DEFAULT now())`);await pool.query(`CREATE INDEX IF NOT EXISTS nataiji_professor_profile_versions_user_idx ON nataiji_professor_profile_versions(user_id,created_at DESC)`);await pool.query(`CREATE TABLE IF NOT EXISTS nataiji_professor_grade_history (id bigserial PRIMARY KEY,user_id text NOT NULL,assignment_id text NOT NULL,student_id text NOT NULL,term integer NOT NULL,record jsonb NOT NULL,created_at timestamptz NOT NULL DEFAULT now())`);await pool.query(`CREATE INDEX IF NOT EXISTS nataiji_professor_grade_history_lookup_idx ON nataiji_professor_grade_history(user_id,assignment_id,student_id,term,created_at DESC)`);await pool.query(`CREATE TABLE IF NOT EXISTS nataiji_professor_classrooms (class_id text PRIMARY KEY,owner_user_id text NOT NULL,join_code text UNIQUE NOT NULL,data jsonb NOT NULL DEFAULT '{}'::jsonb,updated_at timestamptz NOT NULL DEFAULT now())`);await pool.query(`CREATE TABLE IF NOT EXISTS nataiji_professor_class_members (class_id text NOT NULL,user_id text NOT NULL,role text NOT NULL DEFAULT 'member',joined_at timestamptz NOT NULL DEFAULT now(),PRIMARY KEY(class_id,user_id))`);storage='postgres'}catch(e){console.error('Postgres unavailable:',e.message);if(pool)await pool.end().catch(()=>{});pool=null;if(process.env.NODE_ENV==='production')throw new Error('Persistent database unavailable; refusing temporary storage')}}
+ if(process.env.DATABASE_URL){try{const databaseUrl=String(process.env.DATABASE_URL);pool=new Pool({connectionString:postgresConnectionString(databaseUrl),ssl:postgresSslOptions(databaseUrl),max:5,connectionTimeoutMillis:10000});await pool.query('SELECT 1');await pool.query('CREATE TABLE IF NOT EXISTS kv_store (key text PRIMARY KEY,value text NOT NULL,expires_at timestamptz,updated_at timestamptz NOT NULL DEFAULT now())');await pool.query(`CREATE TABLE IF NOT EXISTS nataiji_pupils (school_id text NOT NULL,class_id text NOT NULL,nns text NOT NULL,data jsonb NOT NULL,position integer NOT NULL DEFAULT 0,updated_at timestamptz NOT NULL DEFAULT now(),PRIMARY KEY(school_id,class_id,nns))`);await pool.query(`CREATE TABLE IF NOT EXISTS nataiji_school_settings (school_id text PRIMARY KEY,data jsonb NOT NULL,updated_at timestamptz NOT NULL DEFAULT now())`);await pool.query(`CREATE TABLE IF NOT EXISTS nataiji_class_settings (school_id text NOT NULL,class_id text NOT NULL,data jsonb NOT NULL,updated_at timestamptz NOT NULL DEFAULT now(),PRIMARY KEY(school_id,class_id))`);await pool.query(`CREATE TABLE IF NOT EXISTS nataiji_subjects (school_id text NOT NULL,class_id text NOT NULL,subject_id text NOT NULL,data jsonb NOT NULL,position integer NOT NULL DEFAULT 0,updated_at timestamptz NOT NULL DEFAULT now(),PRIMARY KEY(school_id,class_id,subject_id))`);await pool.query(`CREATE TABLE IF NOT EXISTS nataiji_structure (school_id text PRIMARY KEY,data jsonb NOT NULL,updated_at timestamptz NOT NULL DEFAULT now())`);await pool.query(`CREATE TABLE IF NOT EXISTS nataiji_migrations (school_id text NOT NULL,class_id text NOT NULL,resource text NOT NULL,migrated_at timestamptz NOT NULL DEFAULT now(),PRIMARY KEY(school_id,class_id,resource))`);await pool.query(`CREATE TABLE IF NOT EXISTS nataiji_marks (school_id text NOT NULL,class_id text NOT NULL,term text NOT NULL,pupil_key text NOT NULL,subject_id text NOT NULL,value text NOT NULL,updated_at timestamptz NOT NULL DEFAULT now(),PRIMARY KEY(school_id,class_id,term,pupil_key,subject_id))`);await pool.query(`CREATE TABLE IF NOT EXISTS nataiji_school_year_archives (id uuid PRIMARY KEY,school_id text NOT NULL,academic_year text NOT NULL,created_by text NOT NULL,created_at timestamptz NOT NULL DEFAULT now(),snapshot jsonb NOT NULL,counts jsonb NOT NULL)`);await pool.query('CREATE INDEX IF NOT EXISTS nataiji_school_year_archives_lookup_idx ON nataiji_school_year_archives(school_id,created_at DESC)');await pool.query(`CREATE TABLE IF NOT EXISTS nataiji_next_year_rosters (school_id text NOT NULL,target_year text NOT NULL,target_class_code text NOT NULL,source_archive_id uuid NOT NULL,source_year text NOT NULL,pupils jsonb NOT NULL DEFAULT '[]'::jsonb,created_by text NOT NULL,updated_at timestamptz NOT NULL DEFAULT now(),PRIMARY KEY(school_id,target_year,target_class_code))`);await pool.query(`CREATE TABLE IF NOT EXISTS nataiji_professor_profiles (user_id text PRIMARY KEY,data jsonb NOT NULL DEFAULT '{}'::jsonb,updated_at timestamptz NOT NULL DEFAULT now())`);await pool.query(`CREATE TABLE IF NOT EXISTS nataiji_professor_profile_versions (id bigserial PRIMARY KEY,user_id text NOT NULL,data jsonb NOT NULL,reason text NOT NULL DEFAULT 'save',created_at timestamptz NOT NULL DEFAULT now())`);await pool.query(`CREATE INDEX IF NOT EXISTS nataiji_professor_profile_versions_user_idx ON nataiji_professor_profile_versions(user_id,created_at DESC)`);await pool.query(`CREATE TABLE IF NOT EXISTS nataiji_professor_grade_history (id bigserial PRIMARY KEY,user_id text NOT NULL,assignment_id text NOT NULL,student_id text NOT NULL,term integer NOT NULL,record jsonb NOT NULL,created_at timestamptz NOT NULL DEFAULT now())`);await pool.query(`CREATE INDEX IF NOT EXISTS nataiji_professor_grade_history_lookup_idx ON nataiji_professor_grade_history(user_id,assignment_id,student_id,term,created_at DESC)`);await pool.query(`CREATE TABLE IF NOT EXISTS nataiji_professor_classrooms (class_id text PRIMARY KEY,owner_user_id text NOT NULL,join_code text UNIQUE NOT NULL,data jsonb NOT NULL DEFAULT '{}'::jsonb,updated_at timestamptz NOT NULL DEFAULT now())`);await pool.query(`CREATE TABLE IF NOT EXISTS nataiji_professor_class_members (class_id text NOT NULL,user_id text NOT NULL,role text NOT NULL DEFAULT 'member',joined_at timestamptz NOT NULL DEFAULT now(),PRIMARY KEY(class_id,user_id))`);storage='postgres'}catch(e){console.error('Postgres unavailable:',e.message);if(pool)await pool.end().catch(()=>{});pool=null;if(process.env.NODE_ENV==='production')throw new Error('Persistent database unavailable; refusing temporary storage')}}
  if(process.env.REDIS_URL){try{const client=createClient({url:process.env.REDIS_URL,socket:{connectTimeout:5000,reconnectStrategy:false}});client.on('error',e=>console.error('Redis:',e.message));await client.connect();redis=client;if(!pool)storage='redis'}catch(e){console.error('Redis unavailable:',e.message)}}
 }
 
@@ -1310,6 +1311,80 @@ app.put('/api/marks',auth,async(req,res)=>{
 /* A school-year archive is an immutable snapshot. It never updates live
    student rosters, school-year settings, assessments or sharing grants.
    Unsent client drafts cannot be included; the UI warns before creation. */
+
+/* PREPARED next-year rosters live in an isolated PostgreSQL table. None of these
+   endpoints activate a school year, alter school state or touch grade rows. */
+app.get('/api/year-promotion',auth,adminOnly,async(req,res)=>{
+ if(!pool)return res.status(503).json({error:'durable_storage_required'});
+ const rows=(await pool.query('SELECT target_year,target_class_code,source_year,source_archive_id,pupils,updated_at FROM nataiji_next_year_rosters WHERE school_id=$1 ORDER BY target_year,target_class_code LIMIT 100',[req.user.schoolId])).rows;
+ res.json({ok:true,prepared:rows.map(r=>({targetYear:r.target_year,targetClassCode:r.target_class_code,sourceYear:r.source_year,
+  sourceArchiveId:r.source_archive_id,studentCount:Array.isArray(r.pupils)?r.pupils.length:0,updatedAt:r.updated_at}))});
+});
+app.post('/api/year-promotion/prepare',auth,adminOnly,async(req,res)=>{
+ if(!pool)return res.status(503).json({error:'durable_storage_required'});
+ const archiveId=String(req.body?.archiveId||'').trim(),
+  sourceClassId=String(req.body?.sourceClassId||'').trim(),
+  targetClassCode=String(req.body?.targetClassCode||'').trim().toUpperCase(),
+  pupilKeys=req.body?.pupilKeys,
+  dryRun=req.body?.dryRun===true;
+ if(!/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(archiveId)
+   ||!sourceClassId||sourceClassId.length>160
+   ||!/^[A-Z0-9][A-Z0-9_-]{0,19}$/.test(targetClassCode)
+   ||!Array.isArray(pupilKeys)||!pupilKeys.length||pupilKeys.length>800
+   ||pupilKeys.some(k=>typeof k!=='string'||!k||k.length>160))
+  return res.status(400).json({error:'invalid_promotion_selection'});
+ const client=await pool.connect();
+ try{
+  await client.query('BEGIN ISOLATION LEVEL REPEATABLE READ');
+  await client.query('SELECT pg_advisory_xact_lock(hashtext($1),hashtext($2))',
+   [req.user.schoolId,'next-year:'+targetClassCode]);
+  const ar=(await client.query('SELECT academic_year,snapshot FROM nataiji_school_year_archives WHERE id=$1 AND school_id=$2',
+   [archiveId,req.user.schoolId])).rows[0];
+  if(!ar){await client.query('ROLLBACK');return res.status(404).json({error:'archive_not_found'})}
+  let targetYear;
+  try{targetYear=academicYearNext(ar.academic_year)}catch{
+   await client.query('ROLLBACK');return res.status(400).json({error:'invalid_academic_year'})
+  }
+  const settings=(await client.query('SELECT data FROM nataiji_school_settings WHERE school_id=$1',
+   [req.user.schoolId])).rows[0]?.data||{};
+  if(String(settings.year||'').replace('/','-')!==String(ar.academic_year||'').replace('/','-')){
+   await client.query('ROLLBACK');return res.status(409).json({error:'source_year_changed'})
+  }
+  const classes=Array.isArray(ar.snapshot?.structure?.classes)?ar.snapshot.structure.classes:[];
+  if(!classes.some(c=>String(c.id)===sourceClassId)){
+   await client.query('ROLLBACK');return res.status(400).json({error:'source_class_not_archived'})
+  }
+  const rows=Array.isArray(ar.snapshot?.pupils)?ar.snapshot.pupils.filter(p=>String(p.class_id)===sourceClassId):[];
+  if(!rows.length){await client.query('ROLLBACK');return res.status(400).json({error:'archived_pupils_missing'})}
+  const previous=(await client.query('SELECT source_archive_id,pupils FROM nataiji_next_year_rosters WHERE school_id=$1 AND target_year=$2 AND target_class_code=$3 FOR UPDATE',
+   [req.user.schoolId,targetYear,targetClassCode])).rows[0];
+  if(previous&&String(previous.source_archive_id)!==archiveId){
+   await client.query('ROLLBACK');return res.status(409).json({error:'destination_archive_mismatch'})
+  }
+  let planned;
+  try{planned=planNextYearRoster(rows,Array.isArray(previous?.pupils)?previous.pupils:[],pupilKeys,()=>crypto.randomUUID())}
+  catch(e){
+   await client.query('ROLLBACK');
+   return res.status(['invalid_selection','pupil_not_found','class_capacity','roster_capacity','invalid_archived_pupil'].includes(e.message)?400:500)
+    .json({error:e.message||'promotion_plan_failed'})
+  }
+  const summary={ok:true,preview:dryRun,sourceYear:String(ar.academic_year).replace('/','-'),targetYear,
+   sourceClassId,targetClassCode,selected:planned.selected,copied:planned.copies.length,skipped:planned.skipped,
+   totalPrepared:(Array.isArray(previous?.pupils)?previous.pupils.length:0)+planned.copies.length};
+  if(dryRun||!planned.copies.length){
+   await client.query('ROLLBACK');return res.json(summary)
+  }
+  const existing=Array.isArray(previous?.pupils)?previous.pupils:[];
+  const additions=planned.copies.map(r=>({...r,sourceClassId,sourcePupilKey:rows.find(p=>String(p.data?.[0])===String(r.data?.[0])&&String(p.data?.[1])===String(r.data?.[1]))?.nns||''}));
+  await client.query(`INSERT INTO nataiji_next_year_rosters(school_id,target_year,target_class_code,source_archive_id,source_year,pupils,created_by)
+   VALUES($1,$2,$3,$4,$5,$6::jsonb,$7)
+   ON CONFLICT(school_id,target_year,target_class_code)
+   DO UPDATE SET pupils=EXCLUDED.pupils,updated_at=now()`,[req.user.schoolId,targetYear,targetClassCode,archiveId,
+    String(ar.academic_year).replace('/','-'),JSON.stringify([...existing,...additions]),req.user.id]);
+  await client.query('COMMIT');
+  res.status(201).json({...summary,preview:false})
+ }catch(error){await client.query('ROLLBACK').catch(()=>{});throw error}finally{client.release()}
+});
 app.get('/api/school-year-archives',auth,adminOnly,async(req,res)=>{
  if(!pool)return res.status(503).json({error:'durable_storage_required'});
  const rows=(await pool.query('SELECT id,academic_year,created_by,created_at,counts FROM nataiji_school_year_archives WHERE school_id=$1 ORDER BY created_at DESC LIMIT 100',[req.user.schoolId])).rows;

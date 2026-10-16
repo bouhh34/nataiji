@@ -57,6 +57,31 @@ try {
  assert.equal(await page.locator('[data-page="more"] .settings-grid').count(),1);
  await page.unroute('**/api/school-year-archives');
  await page.locator('.modal:has(#schoolYearArchiveCreate) .x').click();
+ // Create a frozen snapshot of the test-only class, then prepare a 2AF future
+ // roster and verify this does not touch the currently active student list.
+ const saved=await context.request.put(base+'/api/settings',{data:{school:'École test',year:'2026-2027'}});
+ assert.equal(saved.status(),200);
+ const archive=await context.request.post(base+'/api/school-year-archives',{data:{year:'2026-2027'}});
+ assert.equal(archive.status(),201,'test school year must archive before promotion');
+ await page.reload({waitUntil:'domcontentloaded'});
+ await page.waitForFunction(()=>state?.year==='2026-2027'&&currentUser?.role==='admin');
+ await page.locator('#bottomNav [data-view="more"]').click();
+ await page.locator('#schoolYearArchiveBtn').click();
+ await page.locator('[data-archive-promote]').waitFor({state:'visible'});
+ await page.locator('[data-archive-promote]').click();
+ await page.locator('#promotionForm').waitFor({state:'visible'});
+ await page.locator('#promotionTarget').fill('2AF');
+ await page.locator('#promotionPreview').click();
+ await page.locator('#promotionStage').waitFor({state:'visible'});
+ await page.waitForFunction(()=>!document.querySelector('#promotionStage')?.disabled);
+ page.once('dialog',d=>d.accept());
+ await page.locator('#promotionStage').click();
+ await page.locator('#promotionStatus').getByText(/أُعدّ/).waitFor({timeout:10000});
+ const staged=await context.request.get(base+'/api/year-promotion');
+ assert.equal(staged.status(),200);
+ assert.ok((await staged.json()).prepared?.some(x=>x.targetYear==='2027-2028'&&x.targetClassCode==='2AF'&&x.studentCount===1));
+ await page.locator('.modal:has(#promotionForm) .x').click();
+ await page.locator('.modal:has(#schoolYearArchiveCreate) .x').click();
  await page.locator('#bottomNav [data-view="home"]').click();
  assert.equal(await page.evaluate(()=>!!window.NataijiOfflineResume?.read()),true);
  await context.setOffline(true);

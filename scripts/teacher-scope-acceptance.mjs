@@ -200,6 +200,29 @@ try{
   const frozen=await owner.request('/api/school-year-archives/'+archived.id);
   if(frozen.snapshot?.marks?.find(m=>m.class_id==='class-a'&&m.pupil_key===allowedKey&&m.subject_id===mathId)?.value!=='12')throw new Error('year archive unexpectedly followed a live grade edit');
   await teacher.request('/api/school-year-archives/'+archived.id,{expected:403});
+  // Prepare next year's roster in an isolated table. This must never mutate
+  // current school settings, pupils, or marks, even during repeated requests.
+  const promotion={archiveId:archived.id,sourceClassId:'class-a',targetClassCode:'2AF',pupilKeys:[allowedKey]};
+  await teacher.request('/api/year-promotion',{expected:403});
+  await teacher.request('/api/year-promotion/prepare',{method:'POST',body:{...promotion,dryRun:true},expected:403});
+  await owner.request('/api/year-promotion/prepare',{method:'POST',body:{...promotion,archiveId:'unknown'},expected:400});
+  const yearPreview=await owner.request('/api/year-promotion/prepare',{method:'POST',body:{...promotion,dryRun:true}});
+  if(!yearPreview.preview||yearPreview.copied!==1||yearPreview.targetYear!=='2027-2028')throw new Error('next year preview failed');
+  const emptyPlan=await owner.request('/api/year-promotion');
+  if(emptyPlan.prepared?.some(x=>x.targetYear==='2027-2028'))throw new Error('promotion preview unexpectedly created live rows');
+  const yearStage=await owner.request('/api/year-promotion/prepare',{method:'POST',body:promotion,expected:201});
+  if(yearStage.copied!==1||yearStage.totalPrepared!==1)throw new Error('next year roster stage failed');
+  const afterStage=await owner.request('/api/year-promotion');
+  if(!afterStage.prepared?.some(x=>x.targetYear==='2027-2028'&&x.targetClassCode==='2AF'&&x.studentCount===1))throw new Error('prepared year roster not isolated or unavailable');
+  const repeated=await owner.request('/api/year-promotion/prepare',{method:'POST',body:{...promotion,dryRun:true}});
+  if(repeated.copied!==0||repeated.skipped!==1)throw new Error('next year preview did not prevent duplicates');
+  const currentAfterYearStage=await owner.request('/api/state?classId=class-a');
+  if(JSON.stringify(currentAfterYearStage.state?.pupils)!==JSON.stringify(afterArchive.state?.pupils))throw new Error('next-year staging mutated current pupils');
+  const historical=await owner.request('/api/school-year-archives/'+archived.id);
+  if(historical.snapshot?.marks?.find(m=>m.class_id==='class-a'&&m.pupil_key===allowedKey&&m.subject_id===mathId)?.value!=='12')throw new Error('staging altered archived grade');
+  await owner.request('/api/settings',{method:'PUT',body:{school:'مدرسة اختبار العزل',year:'2027-2028'}});
+  await owner.request('/api/year-promotion/prepare',{method:'POST',body:{...promotion,dryRun:true},expected:409});
+
 
   console.log('Nataiji teacher scope acceptance passed');
 }finally{
