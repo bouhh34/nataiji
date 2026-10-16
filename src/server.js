@@ -1309,7 +1309,7 @@ app.get('/api/school-year-archives',auth,adminOnly,async(req,res)=>{
 });
 app.get('/api/school-year-archives/:id',auth,adminOnly,async(req,res)=>{
  if(!pool)return res.status(503).json({error:'durable_storage_required'});
- const id=String(req.params.id||'');if(!/^[0-9a-f]{8}-[0-9a-f-]{27,36}$/i.test(id))return res.status(400).json({error:'invalid_archive'});
+ const id=String(req.params.id||'');if(!/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(id))return res.status(400).json({error:'invalid_archive'});
  const row=(await pool.query('SELECT id,academic_year,created_at,snapshot,counts FROM nataiji_school_year_archives WHERE id=$1 AND school_id=$2',[id,req.user.schoolId])).rows[0];
  if(!row)return res.status(404).json({error:'archive_not_found'});
  res.setHeader('Cache-Control','private, no-store');
