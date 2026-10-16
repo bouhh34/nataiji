@@ -2,7 +2,7 @@ import {preserveArchivedAssignments,snapshotDepartingResults} from './professor-
 import {visionConfigured,visionProvider,recognizeStudentDocument} from './student-document-vision.js';
 import {importedPupilRows} from './student-roster-import.js';
 import {repairCalls,planPupilCopy} from './pupil-roster-tools.js';
-import {academicYearNext,planNextYearRoster} from './year-promotion-tools.js';
+import {academicYearNext,normalizeAcademicYear,planNextYearRoster} from './year-promotion-tools.js';
 import express from 'express';
 import {staticDelivery} from './static-delivery.js';
 import path from 'node:path';
@@ -1400,8 +1400,8 @@ app.get('/api/school-year-archives/:id',auth,adminOnly,async(req,res)=>{
 });
 app.post('/api/school-year-archives',auth,adminOnly,async(req,res)=>{
  if(!pool)return res.status(503).json({error:'durable_storage_required'});
- const requested=String(req.body?.year||'').trim();
- if(!/^\d{4}[-/]\d{4}$/.test(requested)||Number(requested.slice(-4))!==Number(requested.slice(0,4))+1)return res.status(400).json({error:'invalid_academic_year'});
+ let requested;
+ try{requested=normalizeAcademicYear(req.body?.year)}catch{return res.status(400).json({error:'invalid_academic_year'})}
  const client=await pool.connect();
  try{
   await client.query('BEGIN ISOLATION LEVEL REPEATABLE READ');
@@ -1419,8 +1419,10 @@ app.post('/api/school-year-archives',auth,adminOnly,async(req,res)=>{
   const schoolKeyRow=(await client.query('SELECT value FROM kv_store WHERE key=$1',[schoolKey(sid)])).rows[0];
   let legacy=null;try{if(schoolKeyRow?.value)legacy=JSON.parse(schoolKeyRow.value)}catch{}
   const schoolSettings=settings[0]?.data||{},savedYear=String(schoolSettings.year||legacy?.year||'').trim();
-  const normalYear=y=>String(y).replace('/','-');
-  if(!savedYear||normalYear(savedYear)!==normalYear(requested)){await client.query('ROLLBACK');return res.status(409).json({error:'academic_year_mismatch',currentYear:savedYear})}
+  let normalizedSavedYear='';
+  try{normalizedSavedYear=normalizeAcademicYear(savedYear)}catch{}
+  if(!normalizedSavedYear||normalizedSavedYear!==requested){await client.query('ROLLBACK');return res.status(409).json({error:'academic_year_mismatch',currentYear:savedYear})}
+  const normalYear=normalizeAcademicYear;
   const classList=Array.isArray(structure[0]?.data?.classes)?structure[0].data.classes:Array.isArray(legacy?.classes)?legacy.classes:[];
   if(!classList.length&&!pupils.length&&!subjects.length&&!marks.length){await client.query('ROLLBACK');return res.status(400).json({error:'empty_school_archive'})}
   const archivedCount=(await client.query('SELECT count(*)::int AS n FROM nataiji_school_year_archives WHERE school_id=$1 AND academic_year=$2',[sid,normalYear(requested)])).rows[0].n;
