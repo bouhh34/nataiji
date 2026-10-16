@@ -1,10 +1,13 @@
 import {test} from 'node:test';
 import assert from 'node:assert/strict';
-import {academicYearNext,planNextYearRoster} from '../src/year-promotion-tools.js';
+import {academicYearNext,normalizeAcademicYear,planNextYearRoster} from '../src/year-promotion-tools.js';
 const row=(key,name,nns='',call=1)=>({nns:key,data:[nns,name,'ذكر','',name,call,'',key],class_id:'class-1',position:call});
 test('academic years advance exactly once',()=>{
  assert.equal(academicYearNext('2026-2027'),'2027-2028');
  assert.equal(academicYearNext('2026/2027'),'2027-2028');
+ assert.equal(academicYearNext(' 2026 - 2027 '),'2027-2028');
+ assert.equal(normalizeAcademicYear('2026 / 2027'),'2026-2027');
+ assert.equal(normalizeAcademicYear('2026-2027'),'2026-2027');
  for(const s of ['2026-2029','2026-2026','2026-27','2001-1902','abcd-efgh'])assert.throws(()=>academicYearNext(s),/invalid_academic_year/);
 });
 test('new year pupils get new isolated row IDs, fresh call numbers and no grades',()=>{
