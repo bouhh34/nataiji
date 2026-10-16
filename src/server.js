@@ -1105,6 +1105,14 @@ app.post('/api/pupils/copy',auth,async(req,res)=>{
   const source=await client.query('SELECT nns,data,position FROM nataiji_pupils WHERE school_id=$1 AND class_id=$2 ORDER BY position,updated_at FOR UPDATE',[req.user.schoolId,sourceClassId]);
   const dest=await client.query('SELECT nns,data,position FROM nataiji_pupils WHERE school_id=$1 AND class_id=$2 ORDER BY position,updated_at FOR UPDATE',[req.user.schoolId,targetClassId]);
   const plan=planPupilCopy(source.rows,dest.rows,selection,()=>crypto.randomUUID());
+  // Preview uses the exact same duplicate and capacity checks as the final copy.
+  // Roll back before any writes; preview does not alter school data.
+  if(req.body?.dryRun===true){
+   await client.query('ROLLBACK');
+   return res.json({ok:true,preview:true,selected:selection.length,copied:plan.copies.length,
+    skipped:plan.skipped,sourceClassId,targetClassId,
+    names:plan.copies.slice(0,20).map(row=>String(row.data?.[1]||''))});
+  }
   let position=dest.rows.reduce((max,row)=>Math.max(max,Number(row.position)||0),-1)+1;
   for(const row of plan.copies){
    await client.query('INSERT INTO nataiji_pupils(school_id,class_id,nns,data,position) VALUES($1,$2,$3,$4::jsonb,$5)',[req.user.schoolId,targetClassId,row.nns,JSON.stringify(row.data),position++]);

@@ -149,6 +149,11 @@ try{
   await teacher.request('/api/pupils/copy',{method:'POST',body:{sourceClassId:'class-a',targetClassId:'class-b',pupilKeys:[allowedKey]},expected:403});
   await teacher.request('/api/pupils/repair-calls',{method:'POST',body:{classId:'class-b'},expected:403});
   // Owner can copy identities only; source roster remains present in the original class.
+  const preview=await owner.request('/api/pupils/copy',{method:'POST',body:{sourceClassId:'class-a',targetClassId:'class-b',pupilKeys:[allowedKey],dryRun:true}});
+  if(preview.preview!==true||preview.copied!==1||preview.skipped!==0)throw new Error('pupil promotion preview is not accurate');
+  const destBefore=await owner.request('/api/state?classId=class-b');
+  if(destBefore.state?.pupils?.some(p=>p?.[1]==='طالب مسموح'))throw new Error('preview unexpectedly wrote the pupil');
+  await teacher.request('/api/pupils/copy',{method:'POST',body:{sourceClassId:'class-a',targetClassId:'class-b',pupilKeys:[allowedKey],dryRun:true},expected:403});
   const copied=await owner.request('/api/pupils/copy',{method:'POST',body:{sourceClassId:'class-a',targetClassId:'class-b',pupilKeys:[allowedKey]}});
   if(copied.copied!==1||copied.skipped!==0)throw new Error('safe class copy failed');
   const sourceAfter=await owner.request('/api/state?classId=class-a');
@@ -158,6 +163,8 @@ try{
   if(!replica||replica[7]===allowedKey)throw new Error('destination pupil lacked its own safe identity');
   const copiedAgain=await owner.request('/api/pupils/copy',{method:'POST',body:{sourceClassId:'class-a',targetClassId:'class-b',pupilKeys:[allowedKey]}});
   if(copiedAgain.copied!==0||copiedAgain.skipped!==1)throw new Error('duplicate copy should have been skipped');
+  const duplicatePreview=await owner.request('/api/pupils/copy',{method:'POST',body:{sourceClassId:'class-a',targetClassId:'class-b',pupilKeys:[allowedKey],dryRun:true}});
+  if(duplicatePreview.copied!==0||duplicatePreview.skipped!==1)throw new Error('duplicate preview did not exclude an existing pupil');
   const repaired=await teacher.request('/api/pupils/repair-calls',{method:'POST',body:{classId:'class-a'}});
   if(!repaired.ok)throw new Error('allowed teacher call-number repair failed');
 

@@ -40,14 +40,26 @@ function copyModal(){
  p.querySelector('#rosterCopyConfirm').onclick=async e=>{
   const selected=checks.filter(c=>c.checked).map(c=>c.dataset.pupilKey),dest=p.querySelector('#rosterDest').value,msg=p.querySelector('.message');
   if(!selected.length||selected.some(x=>!x)||new Set(selected).size!==selected.length){msg.textContent=tr('حدد تلاميذ صالحين للنقل.','Choisissez des élèves valides.');return}
-  if(!confirm(tr('سيتم نسخ '+selected.length+' تلميذًا دون درجات إلى القسم الجديد. لن يُحذف شيء من القسم الحالي. هل تؤكد؟','Copier '+selected.length+' élève(s) sans notes vers la nouvelle classe ? Rien ne sera supprimé.')))return;
   if(!onLine())return;
-  const button=e.currentTarget;button.disabled=true;msg.textContent=tr('جارٍ النسخ…','Copie en cours…');
+  const button=e.currentTarget;button.disabled=true;msg.textContent=tr('جارٍ معاينة القائمة والتحقق من التكرار…','Vérification des élèves et des doublons…');
+  const body={sourceClassId:classId,targetClassId:dest,pupilKeys:selected};
   try{
-   const result=await api('/api/pupils/copy',{method:'POST',body:JSON.stringify({sourceClassId:classId,targetClassId:dest,pupilKeys:selected})});
+   const plan=await api('/api/pupils/copy',{method:'POST',body:JSON.stringify({...body,dryRun:true})});
+   const target=classes.find(c=>String(c.id)===dest);
+   msg.textContent=tr('المعاينة: '+plan.copied+' سينسخون، '+plan.skipped+' موجودون سابقًا.','Aperçu : '+plan.copied+' à copier, '+plan.skipped+' déjà présents.');
+   if(!plan.copied)return;
+   const approval=tr(
+    'معاينة ترحيل الأسماء إلى «'+(target?.name||target?.code||dest)+'»:\n'+plan.copied+' تلميذًا سيُنسخون دون درجات، و'+plan.skipped+' لن يُكرَّروا.\nلن يتغير القسم الأصلي ولا درجاته. هذا ليس ترحيلًا لسنة جديدة؛ يجب أرشفة السنة أولًا قبل تغييرها. هل توافق؟',
+    'Aperçu vers «'+(target?.name||target?.code||dest)+'» :\n'+plan.copied+' élèves copiés sans notes ; '+plan.skipped+' doublons ignorés.\nLa classe et les notes d’origine resteront intactes. Ceci ne change pas l’année scolaire. Continuer ?'
+   );
+   if(!confirm(approval))return;
+   if(!onLine())return;
+   msg.textContent=tr('جارٍ نسخ الأسماء…','Copie en cours…');
+   const result=await api('/api/pupils/copy',{method:'POST',body:JSON.stringify(body)});
    msg.textContent=tr('✓ نُسخ '+result.copied+'، وتم تجاوز '+result.skipped+' موجودين سابقًا. بقيت النتائج القديمة محفوظة.','✓ '+result.copied+' copiés, '+result.skipped+' déjà présents. Les anciennes notes sont intactes.');
    await reload(classId,accountId).catch(()=>{});
-  }catch(error){msg.textContent=tr('لم يكتمل النسخ. حاول مجددًا بعد التحقق من اتصالك.','La copie a échoué. Vérifiez votre connexion et réessayez.');button.disabled=false}
+  }catch(error){msg.textContent=tr('تعذر إجراء المعاينة أو النسخ. تحقق من اتصالك وحاول مجددًا. لم تُحذف درجات القسم الأصلي.','Aperçu ou copie impossible. Vérifiez la connexion et réessayez. Les notes de départ ne sont pas supprimées.')}
+  finally{button.disabled=false}
  };
 }
 async function repair(){
