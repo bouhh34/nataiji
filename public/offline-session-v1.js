@@ -12,6 +12,10 @@
    const professor=record.user.role==='professor'||record.user.profileType==='professor';
    const snap=professor?storage.getItem('nataiji-professor-profile-v1:'+record.user.id):storage.getItem('nataiji-data');
    if(!snap)return null;
+   if(!professor){
+    const expected=JSON.stringify([String(record.user.id),String(record.user.schoolId||''),String(record.user.activeSharedGrant||'')]);
+    if(storage.getItem('nataiji-offline-school-scope-v1')!==expected)return null;
+   }
    const parsed=JSON.parse(snap);
    if(!parsed||typeof parsed!=='object'||professor&&!Array.isArray(parsed.classes)||!professor&&!Array.isArray(parsed.classes)&&!Array.isArray(parsed.pupils))return null;
    return {user:record.user,professor};
