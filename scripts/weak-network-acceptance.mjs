@@ -40,9 +40,22 @@ try {
  await page.locator('#schoolYearArchiveBtn').waitFor({state:'visible',timeout:10000});
  assert.equal(await page.locator('#schoolYearArchiveBtn').count(),1,'archive entry cannot duplicate');
  assert.equal(await page.locator('#schoolYearArchiveBtn').evaluate(el=>el.dataset.moreGroup),'academic','archive entry must be under academic settings');
+ // Simulate a transient archive API outage while ordinary school data works.
+ let archiveReadBlocked=true;
+ await page.route('**/api/school-year-archives',route=>{
+  if(route.request().method()==='GET'&&archiveReadBlocked)return route.abort('failed');
+  return route.continue();
+ });
  await page.locator('#schoolYearArchiveBtn').click();
  await page.locator('#schoolYearArchiveCreate').waitFor({state:'visible'});
+ await page.locator('#schoolYearArchiveRetry').waitFor({state:'visible'});
+ assert.equal(await page.locator('#schoolYearArchiveCreate').isDisabled(),true,'archive save must be unavailable until the server list loads');
+ archiveReadBlocked=false;
+ await page.locator('#schoolYearArchiveRetry').click();
+ await page.locator('#schoolYearArchivesList').getByText('لا توجد أرشيفات بعد.').waitFor();
+ assert.equal(await page.locator('#schoolYearArchiveRetry').isVisible(),false);
  assert.equal(await page.locator('[data-page="more"] .settings-grid').count(),1);
+ await page.unroute('**/api/school-year-archives');
  await page.locator('.modal:has(#schoolYearArchiveCreate) .x').click();
  await page.locator('#bottomNav [data-view="home"]').click();
  assert.equal(await page.evaluate(()=>!!window.NataijiOfflineResume?.read()),true);
