@@ -8,6 +8,7 @@ async function api(url,options={}){
  // Restoring a session may need to wait for the server to wake up on a mobile connection.
  // Retry only this read: never replay a login, grade save, or other mutation.
  const sessionStatus=method==='GET'&&url==='/api/auth/status';
+ if(sessionStatus&&typeof navigator!=='undefined'&&navigator.onLine===false)throw Error('offline');
  for(let attempt=0;;attempt++){
  const controller=new AbortController();
  const timer=setTimeout(()=>controller.abort(),sessionStatus?45000:method==='GET'?15000:30000);
@@ -190,7 +191,32 @@ async function startApp(){
  const isCurrent=()=>epoch===window.__nataijiStateViewEpoch&&context===JSON.stringify([currentUser?.id,currentUser?.schoolId,currentUser?.activeSharedGrant]);
  let remote=null,recoveredLocal=false,recoveryFailure=false;
  const beforeRemote=localState(),beforeScore=localStateDataCount(beforeRemote),activeLocalUser=localStorage.getItem('nataiji-active-user');
- try{const r=await api('/api/state');if(!isCurrent())return;currentUser=r.user||currentUser;remote=r.state}catch(e){if(!isCurrent())return;if(e.status===401){currentUser=null;return showAuth('login')}throw e}
+ // A previously verified offline session can open its account-scoped snapshot.
+ // Never upload this snapshot as a replacement for authoritative server results.
+ function openCachedWorkspace(){
+  if(!isCurrent()||activeLocalUser!==currentUser?.id||!beforeRemote||localStateDataCount(beforeRemote)===0)return false;
+  state=normalizeState(beforeRemote);
+  const journal=getSchoolGradeJournal();
+  for(const row of journal?.snapshot()||[]){
+   if(row.account!==gradeAccount())continue;
+   const data=state.classData?.[row.classId];
+   if(!data)continue;
+   const i=(data.pupils||[]).findIndex(p=>String(p?.[7]||p?.[0]||'')===row.pupilKey);
+   const j=(data.subjects||[]).findIndex(x=>String(x?.[4]||'')===row.subjectId);
+   if(i<0||j<0)continue;
+   data.marksByTerm=data.marksByTerm||{};
+   const matrix=data.marksByTerm[row.term]||(data.marksByTerm[row.term]=[]);
+   matrix[i]=matrix[i]||[];matrix[i][j]=row.value;
+   if(String(row.classId)===String(state.activeClassId)&&row.term===state.term){
+    state.marks[i]=state.marks[i]||[];state.marks[i][j]=row.value;
+   }
+  }
+  render();setView('home');
+  markSaveStatus(gradeText('دون اتصال · النتائج المحفوظة على الجهاز فقط، والمزامنة معلقة','Hors ligne · données sur cet appareil, synchronisation en attente'),true);
+  return true
+ }
+ if(window.__nataijiOfflineActive&&openCachedWorkspace())return;
+ try{const r=await api('/api/state');if(!isCurrent())return;currentUser=r.user||currentUser;remote=r.state}catch(e){if(!isCurrent())return;if(e.status===401){currentUser=null;return showAuth('login')}if(!e.status||[502,503,504].includes(e.status)){if(window.NataijiOfflineResume?.read()){window.__nataijiOfflineActive=true;if(openCachedWorkspace())return}}throw e}
  const sameAccount=!activeLocalUser||activeLocalUser===currentUser?.id,recoveryKey=recoveryStorageKey(currentUser?.id),storedRecovery=(()=>{try{return JSON.parse(localStorage.getItem(recoveryKey))}catch{return null}})(),candidate=localStateDataCount(storedRecovery)>beforeScore?storedRecovery:beforeRemote,candidateScore=localStateDataCount(candidate),remoteScore=localStateDataCount(remote);
  if(sameAccount&&candidateScore>0){
   try{localStorage.setItem(recoveryKey,JSON.stringify(candidate))}catch{}
