@@ -163,6 +163,37 @@ try{
 
   await teacher.request('/api/active-selection',{method:'POST',body:{classId:'class-b'},expected:400});
 
+  // Freeze the current school year in an owner-only, immutable backup before
+  // allowing any future year migration. Source school data must remain unchanged.
+  const year='2026-2027';
+  await owner.request('/api/settings',{method:'PUT',body:{school:'مدرسة اختبار العزل',year}});
+  const subjectsResult=await owner.request('/api/subjects',{method:'PUT',body:{
+    classId:'class-a',subjects:[['الرياضيات',1,'Mathématiques',20]]
+  }});
+  const mathId=String(subjectsResult.subjects?.[0]?.[4]||'');
+  if(!mathId)throw new Error('archive test subject has no stable ID');
+  const grade={classId:'class-a',term:terms[0],pupilKey:allowedKey,subjectId:mathId,value:'12',expectedValue:''};
+  await owner.request('/api/mark',{method:'PUT',body:grade});
+  const beforeArchive=await owner.request('/api/state?classId=class-a');
+  await teacher.request('/api/school-year-archives',{expected:403});
+  await teacher.request('/api/school-year-archives',{method:'POST',body:{year},expected:403});
+  await owner.request('/api/school-year-archives',{method:'POST',body:{year:'2027-2027'},expected:400});
+  await owner.request('/api/school-year-archives',{method:'POST',body:{year:'2025-2026'},expected:409});
+  const archived=await owner.request('/api/school-year-archives',{method:'POST',body:{year},expected:201});
+  if(!archived.id||archived.year!==year||archived.counts.marks<1)throw new Error('no confirmed mark in archived school');
+  const listed=await owner.request('/api/school-year-archives');
+  if(!listed.archives?.some(a=>a.id===archived.id))throw new Error('new school archive not listed');
+  const saved=await owner.request('/api/school-year-archives/'+archived.id);
+  const matching=saved.snapshot?.marks?.find(m=>m.class_id==='class-a'&&m.pupil_key===allowedKey&&m.subject_id===mathId);
+  if(matching?.value!=='12'||saved.snapshot.year!==year)throw new Error('immutable year snapshot missing confirmed grade');
+  if(!saved.snapshot?.pupils?.some(p=>p.class_id==='class-a'&&p.nns===allowedKey))throw new Error('archived school roster incomplete');
+  const afterArchive=await owner.request('/api/state?classId=class-a');
+  if(JSON.stringify(beforeArchive.state?.pupils)!==JSON.stringify(afterArchive.state?.pupils))throw new Error('creating an archive modified live pupils');
+  await owner.request('/api/mark',{method:'PUT',body:{...grade,value:'15',expectedValue:'12'}});
+  const frozen=await owner.request('/api/school-year-archives/'+archived.id);
+  if(frozen.snapshot?.marks?.find(m=>m.class_id==='class-a'&&m.pupil_key===allowedKey&&m.subject_id===mathId)?.value!=='12')throw new Error('year archive unexpectedly followed a live grade edit');
+  await teacher.request('/api/school-year-archives/'+archived.id,{expected:403});
+
   console.log('Nataiji teacher scope acceptance passed');
 }finally{
   server.kill('SIGTERM');
