@@ -32,7 +32,6 @@ if(!manifest.includes('android.permission.ACCESS_NETWORK_STATE')){
  if(!manifest.includes('<application'))throw new Error('Unexpected generated AndroidManifest.xml');
  manifest=manifest.replace('<application',
   '<uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />\\n    <application');
- manifest=manifest.replace(' />\\n    <application',' />\n    <application');
  fs.writeFileSync(manifestPath,manifest);
 }
 if(!fs.existsSync('android/app/src/main/assets/public/index.html'))
