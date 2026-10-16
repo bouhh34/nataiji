@@ -49,8 +49,8 @@ function copyModal(){
    msg.textContent=tr('المعاينة: '+plan.copied+' سينسخون، '+plan.skipped+' موجودون سابقًا.','Aperçu : '+plan.copied+' à copier, '+plan.skipped+' déjà présents.');
    if(!plan.copied)return;
    const approval=tr(
-    'معاينة ترحيل الأسماء إلى «'+(target?.name||target?.code||dest)+'»:\\n'+plan.copied+' تلميذًا سيُنسخون دون درجات، و'+plan.skipped+' لن يُكرَّروا.\\nلن يتغير القسم الأصلي ولا درجاته. هذا ليس ترحيلًا لسنة جديدة؛ يجب أرشفة السنة أولًا قبل تغييرها. هل توافق؟',
-    'Aperçu vers «'+(target?.name||target?.code||dest)+'» :\\n'+plan.copied+' élèves copiés sans notes ; '+plan.skipped+' doublons ignorés.\\nLa classe et les notes d’origine resteront intactes. Ceci ne change pas l’année scolaire. Continuer ?'
+    'معاينة ترحيل الأسماء إلى «'+(target?.name||target?.code||dest)+'»:\n'+plan.copied+' تلميذًا سيُنسخون دون درجات، و'+plan.skipped+' لن يُكرَّروا.\nلن يتغير القسم الأصلي ولا درجاته. هذا ليس ترحيلًا لسنة جديدة؛ يجب أرشفة السنة أولًا قبل تغييرها. هل توافق؟',
+    'Aperçu vers «'+(target?.name||target?.code||dest)+'» :\n'+plan.copied+' élèves copiés sans notes ; '+plan.skipped+' doublons ignorés.\nLa classe et les notes d’origine resteront intactes. Ceci ne change pas l’année scolaire. Continuer ?'
    );
    if(!confirm(approval))return;
    if(!onLine())return;
