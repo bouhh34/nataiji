@@ -352,12 +352,15 @@ document.head.appendChild(css);
 let timer;function refreshAll(){bindOwnerDashboard();bindSchools();bindJoinCard();bindInvite();bindShares();bindLogout();enforcePermissions();patchProfileRole();patchOfficialWording();patchSettingsModal();scheduleUnifiedSelector()}
 new MutationObserver(()=>{clearTimeout(timer);timer=setTimeout(refreshAll,35)}).observe(document.body,{childList:true,subtree:true});
 // Revalidate offline access before any pending changes are sent to the server.
+let offlineRevalidationBusy=false;
 async function revalidateOfflineSession(){
- if(!window.__nataijiOfflineActive||!currentUser?.id||navigator.onLine===false)return;
+ if(offlineRevalidationBusy||!window.__nataijiOfflineActive||!currentUser?.id||navigator.onLine===false)return;
+ const offlineId=String(currentUser.id),run=authRenderSeq;
+ const stillCurrent=()=>window.__nataijiOfflineActive&&String(currentUser?.id||'')===offlineId&&authRenderSeq===run;
+ offlineRevalidationBusy=true;
  try{
-  const status=await api('/api/auth/status');
-  if(!window.__nataijiOfflineActive)return;
-  const offlineId=String(currentUser.id);
+  const status=await within(api('/api/auth/status'),12000);
+  if(!stillCurrent())return;
   if(!status?.user||String(status.user.id)!==offlineId){
    window.__nataijiOfflineActive=false;window.NataijiOfflineResume?.clear();
    currentUser=null;lastStatus=status?.user?null:status;
@@ -368,13 +371,15 @@ async function revalidateOfflineSession(){
   lastStatus=status;
   window.NataijiOfflineResume?.remember(status.user);
   await accountActivate(status.user);
- }catch(error){if([401,403].includes(error?.status)){
+ }catch(error){if(stillCurrent()&&[401,403].includes(error?.status)){
   window.__nataijiOfflineActive=false;window.NataijiOfflineResume?.clear();currentUser=null;lastStatus=null;
   await renderAuth('login')
- }}
+ }}finally{offlineRevalidationBusy=false}
 }
 window.addEventListener('online',()=>{void revalidateOfflineSession()});
 document.addEventListener('visibilitychange',()=>{if(!document.hidden&&window.__nataijiOfflineActive)void revalidateOfflineSession()});
+// The network can return before the server does; retry without requiring another online event.
+setInterval(()=>{if(!document.hidden&&window.__nataijiOfflineActive)void revalidateOfflineSession()},30000);
 window.addEventListener('beforeprint',()=>patchOfficialWording());
 window.addEventListener('DOMContentLoaded',()=>{void renderAuth('login');setTimeout(refreshAll,80)});
 setInterval(()=>{const l=lang();if(l!==lastLang){lastLang=l;if(q('.auth-gate'))renderAuth(authMode,true);setTimeout(refreshAll,20)}},250);
