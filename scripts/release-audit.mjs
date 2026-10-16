@@ -111,7 +111,7 @@ const morePageCss = read('public/more-page-v1.css');
 assert('More page is grouped without moving cards out of settings grid', /GROUPS=\[/.test(morePageJs) && /Compte et école/.test(morePageJs) && /Paramètres académiques/.test(morePageJs) && /Collaboration et partage/.test(morePageJs));
 assert('More page keeps cards compact for mobile', /\.nataiji-more-grid>\.menu-card\.more-row-card/.test(morePageCss) && /@media\(max-width:390px\)/.test(morePageCss));
 assert('More page preserves RTL LTR chevron direction', /inset-inline-end:17px/.test(morePageCss) && /\.lang-fr \.nataiji-more-grid>\.menu-card\.more-row-card:after\{content:"›"\}/.test(morePageCss));
-assert('More page assets are loaded', /more-page-v1\.css\?v=4/.test(index) && /more-page-v1\.js\?v=7/.test(index));
+assert('More page assets are loaded', /more-page-v1\.css\?v=4/.test(index) && /more-page-v1\.js\?v=8/.test(index));
 assert('legacy danger reorder yields to grouped More page', /grid\.classList\.contains\('nataiji-more-grid'\)/.test(read('public/app-power-v1.js')));
 assert('account danger actions stay in account group', /termsPolicyBtn','logoutBtn','deleteAccountBtn'/.test(morePageJs));
 assert('account management is the last More page section', /key:'academic'[\s\S]*key:'collaboration'[\s\S]*key:'account'/.test(morePageJs));
