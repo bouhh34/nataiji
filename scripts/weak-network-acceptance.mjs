@@ -64,7 +64,7 @@ try {
  const archive=await context.request.post(base+'/api/school-year-archives',{data:{year:'2026-2027'}});
  assert.equal(archive.status(),201,'test school year must archive before promotion');
  await page.reload({waitUntil:'domcontentloaded'});
- await page.waitForFunction(()=>String(state?.year||'').replace(/\\s/g,'')==='2026-2027'&&currentUser?.role==='admin');
+ await page.waitForFunction(()=>String(state?.year||'').replace(/\s/g,'')==='2026-2027'&&currentUser?.role==='admin');
  await page.locator('#bottomNav [data-view="more"]').click();
  await page.locator('#schoolYearArchiveBtn').click();
  await page.locator('[data-archive-promote]').waitFor({state:'visible'});
