@@ -12,7 +12,7 @@ let authMode='login',lastStatus=null,lastLang=lang(),authRenderSeq=0;
 function authErr(code){return({bad_credentials:tr('البريد الإلكتروني أو كلمة المرور غير صحيحة','Adresse e-mail ou mot de passe incorrect'),account_suspended:tr('هذا الحساب موقوف مؤقتًا. تواصل مع إدارة نتائجي.','Ce compte est temporairement suspendu. Contactez l’administration de Nataiji.'),invalid_input:tr('تحقق من الحقول. كلمة المرور 8 أحرف على الأقل','Vérifiez les champs. Le mot de passe doit contenir au moins 8 caractères'),invalid_invite:tr('رمز الدعوة غير صحيح أو انتهت صلاحيته','Le code d’invitation est invalide ou expiré'),email_exists:tr('هذا البريد مستخدم مسبقًا','Cette adresse e-mail est déjà utilisée'),invalid_or_expired_reset:tr('رابط أو رمز الاستعادة غير صالح أو انتهت صلاحيته','Le lien ou code de réinitialisation est invalide ou expiré'),email_service_unconfigured:tr('خدمة البريد غير متاحة الآن؛ تواصل مع الإدارة للحصول على رمز استعادة','Le service e-mail est indisponible ; contactez l’administration pour obtenir un code'),email_delivery_failed:tr('تعذر إرسال رسالة الاستعادة الآن','Impossible d’envoyer l’e-mail de réinitialisation pour le moment'),account_login_required:tr('سجّل الدخول إلى حسابك أولًا ثم أضف رمز المشاركة من داخل الحساب','Connectez-vous d’abord à votre compte puis ajoutez le code de partage'),cannot_attach_own_invite:tr('لا يمكنك إضافة رمز مشاركة أنشأته من حسابك نفسه','Vous ne pouvez pas utiliser votre propre code de partage'),invite_in_use:tr('تم استخدام رمز المشاركة مسبقًا','Ce code de partage a déjà été utilisé'),shared_access_revoked:tr('تم إلغاء الوصول إلى هذا القسم','L’accès à cette classe a été retiré'),too_many_requests:tr('محاولات كثيرة. انتظر قليلًا ثم أعد المحاولة','Trop de tentatives. Attendez un moment puis réessayez'),cross_site_request_blocked:tr('تم رفض الطلب لأسباب أمنية','Requête refusée pour des raisons de sécurité')}[code]||tr('تعذر إتمام العملية. حاول مرة أخرى','Impossible de terminer l’opération. Réessayez.'))}
 function resetToken(){return new URLSearchParams(location.search).get('reset')||''}
 function gate(){let g=q('.auth-gate');if(!g){g=document.createElement('div');g.className='auth-gate';document.body.appendChild(g)}return g}
-function accountActivate(user){++authRenderSeq;const prev=localStorage.getItem('nataiji-active-user');if(prev&&prev!==user.id)localStorage.removeItem('nataiji-data');localStorage.setItem('nataiji-active-user',user.id);currentUser=user;const g=q('.auth-gate');if(g)g.remove();document.documentElement.classList.add('nataiji-auth-ready');const routed=window.NataijiProfessor?.activate?.(user);if(routed)return routed;return startApp()}
+function accountActivate(user,offline=false){++authRenderSeq;const prev=localStorage.getItem('nataiji-active-user');if(prev&&prev!==user.id){localStorage.removeItem('nataiji-data');localStorage.removeItem('nataiji-offline-school-scope-v1')}localStorage.setItem('nataiji-active-user',user.id);currentUser=user;window.__nataijiOfflineActive=offline===true;if(!offline)window.NataijiOfflineResume?.remember(user);const g=q('.auth-gate');if(g)g.remove();document.documentElement.classList.add('nataiji-auth-ready');const routed=window.NataijiProfessor?.activate?.(user);if(routed)return routed;return startApp()}
 function tabs(){return `<div class="auth2-tabs"><button data-auth2="login" class="${authMode==='login'?'on':''}">${tr('تسجيل الدخول','Connexion')}</button><button data-auth2="register" class="${authMode==='register'?'on':''}">${tr('إنشاء حساب','Créer un compte')}</button></div>`}
 function loginForm(){return `<form class="auth-form auth2-form" id="auth2Form"><label>${tr('البريد الإلكتروني','Adresse e-mail')}<input name="email" type="email" autocomplete="email" required></label><label>${tr('كلمة المرور','Mot de passe')}<input name="password" type="password" autocomplete="current-password" required></label><button class="auth-submit">${tr('تسجيل الدخول','Se connecter')}</button><button type="button" class="auth2-link" id="forgotPassword">${tr('نسيت كلمة المرور؟','Mot de passe oublié ?')}</button><p class="auth-error"></p></form>`}
 function registerForm(){return `<form class="auth-form auth2-form" id="auth2Form"><label>${tr('الاسم','Nom')}<input name="name" autocomplete="name" required></label><label>${tr('البريد الإلكتروني','Adresse e-mail')}<input name="email" type="email" autocomplete="email" required></label><label>${tr('كلمة المرور','Mot de passe')}<input name="password" type="password" minlength="8" autocomplete="new-password" required></label><button class="auth-submit">${tr('إنشاء الحساب','Créer le compte')}</button><p class="auth2-note">${tr('بعد إنشاء الحساب ستختار نوعه مرة واحدة ثم تكمل الإعداد.','Après la création, vous choisirez une seule fois le type de compte puis terminerez la configuration.')}</p><p class="auth-error"></p></form>`}
@@ -31,13 +31,19 @@ async function renderAuth(mode='login',force=false){
  let status=lastStatus;
  if(!status||!force){
   try{
+   if(typeof navigator!=='undefined'&&navigator.onLine===false)throw Error('offline');
    status=await api('/api/auth/status');
    if(run!==authRenderSeq||currentUser?.id)return null;
+   if(!status?.user)window.NataijiOfflineResume?.clear();
    lastStatus=status;
    storageMode=status.storage||storageMode
   }catch(error){
    if(run!==authRenderSeq||currentUser?.id)return null;
-   // Network errors are NOT an invalid login. Never present credentials again on a timeout.
+   // A verified session can reopen a cached workspace for up to 12h.
+   // Explicit 401/403 and normal logged-out responses never restore access.
+   const temporary=!error?.status||[502,503,504].includes(error.status);
+   const cached=temporary&&!resetToken()&&window.NataijiOfflineResume?.read();
+   if(cached)return accountActivate(cached.user,true);
    storageMode='unavailable';
    const g=gate();
    g.innerHTML=`<div class="auth-box auth2-box"><div class="auth-brand"><div class="mark auth2-app-logo"><img src="/nataiji-brand-mark.png" width="82" height="82" alt="Nataiji"></div><h1>${tr('نتائجي','Nataiji')}</h1><p>${tr('تعذر الاتصال بالخادم مؤقتًا. لا يلزم تسجيل الدخول مرة أخرى.','Le serveur est temporairement inaccessible. Inutile de vous reconnecter.')}</p></div><button type="button" class="auth-submit" data-auth-retry>${tr('إعادة المحاولة','Réessayer')}</button></div>`;
@@ -317,7 +323,7 @@ function patchProfileRole(){
  if(p.has('reports'))parts.push(tr('التقارير','Rapports'));
  stableText(small,tr('معلم','Enseignant')+(parts.length?' / '+parts.join(' + '):''));
 }
-function bindLogout(){const b=q('#logoutBtn');if(!b||b.dataset.auth2Logout)return;b.dataset.auth2Logout='1';b.onclick=async()=>{try{await api('/api/auth/logout',{method:'POST',body:'{}'})}catch(e){if(![401,403].includes(e.status)){alert(tr('تعذر إنهاء الجلسة. اتصل بالإنترنت ثم أعد المحاولة.','Impossible de fermer la session. Reconnectez-vous à Internet et réessayez.'));return}}localStorage.removeItem('nataiji-data');localStorage.removeItem('nataiji-active-user');currentUser=null;lastStatus=null;await renderAuth('login')}}
+function bindLogout(){const b=q('#logoutBtn');if(!b||b.dataset.auth2Logout)return;b.dataset.auth2Logout='1';b.onclick=async()=>{try{await api('/api/auth/logout',{method:'POST',body:'{}'})}catch(e){if(![401,403].includes(e.status)){alert(tr('تعذر إنهاء الجلسة. اتصل بالإنترنت ثم أعد المحاولة.','Impossible de fermer la session. Reconnectez-vous à Internet et réessayez.'));return}}window.NataijiOfflineResume?.clear();localStorage.removeItem('nataiji-data');localStorage.removeItem('nataiji-offline-school-scope-v1');localStorage.removeItem('nataiji-active-user');currentUser=null;lastStatus=null;window.__nataijiOfflineActive=false;await renderAuth('login')}}
 function patchOfficialWording(root=document){qa('.doc-republic .doc-line',root).forEach(line=>{const sp=q('span',line),b=q('b',line);if(!sp||!b)return;const t=sp.textContent;if(/الإدارة الجهوية|Direction régionale/i.test(t)){stableText(sp,fr()?'Direction régionale de l’Éducation – Wilaya de':'الإدارة الجهوية بولاية');stableText(b,b.textContent.replace(/^\s*(ولاية|Wilaya(?:\s+de)?)\s*/i,''))}else if(/المفتشية|Inspection/i.test(t)){stableText(sp,fr()?'Inspection – Moughataa de':'المفتشية بمقاطعة');stableText(b,b.textContent.replace(/^\s*(مقاطعة|Moughataa(?:\s+de)?)\s*/i,''))}})}
 function patchSettingsModal(){const r=q('#wf-sr'),i=q('#wf-si');if(r){const l=r.closest('label'),p=l?.querySelector('.workflow-prefix span');if(l?.firstChild)l.firstChild.nodeValue=tr('الإدارة الجهوية بولاية','Direction régionale de l’Éducation – Wilaya de');if(p)p.style.display='none'}if(i){const l=i.closest('label'),p=l?.querySelector('.workflow-prefix span');if(l?.firstChild)l.firstChild.nodeValue=tr('المفتشية بمقاطعة','Inspection – Moughataa de');if(p)p.style.display='none'}}
 const css=document.createElement('style');css.id='auth-access-v2-style';css.textContent=`.auth2-app-logo{width:82px!important;height:82px!important;margin:0 auto 14px!important;border:0!important;border-radius:20px!important;background:transparent!important;overflow:hidden!important;display:grid!important;place-items:center!important}
@@ -345,6 +351,30 @@ css.textContent+=`.auth2-recovery-divider{display:flex;align-items:center;gap:10
 document.head.appendChild(css);
 let timer;function refreshAll(){bindOwnerDashboard();bindSchools();bindJoinCard();bindInvite();bindShares();bindLogout();enforcePermissions();patchProfileRole();patchOfficialWording();patchSettingsModal();scheduleUnifiedSelector()}
 new MutationObserver(()=>{clearTimeout(timer);timer=setTimeout(refreshAll,35)}).observe(document.body,{childList:true,subtree:true});
+// Revalidate offline access before any pending changes are sent to the server.
+async function revalidateOfflineSession(){
+ if(!window.__nataijiOfflineActive||!currentUser?.id||navigator.onLine===false)return;
+ try{
+  const status=await api('/api/auth/status');
+  if(!window.__nataijiOfflineActive)return;
+  const offlineId=String(currentUser.id);
+  if(!status?.user||String(status.user.id)!==offlineId){
+   window.__nataijiOfflineActive=false;window.NataijiOfflineResume?.clear();
+   currentUser=null;lastStatus=status?.user?null:status;
+   await renderAuth('login');
+   return
+  }
+  window.__nataijiOfflineActive=false;
+  lastStatus=status;
+  window.NataijiOfflineResume?.remember(status.user);
+  await accountActivate(status.user);
+ }catch(error){if([401,403].includes(error?.status)){
+  window.__nataijiOfflineActive=false;window.NataijiOfflineResume?.clear();currentUser=null;lastStatus=null;
+  await renderAuth('login')
+ }}
+}
+window.addEventListener('online',()=>{void revalidateOfflineSession()});
+document.addEventListener('visibilitychange',()=>{if(!document.hidden&&window.__nataijiOfflineActive)void revalidateOfflineSession()});
 window.addEventListener('beforeprint',()=>patchOfficialWording());
 window.addEventListener('DOMContentLoaded',()=>{void renderAuth('login');setTimeout(refreshAll,80)});
 setInterval(()=>{const l=lang();if(l!==lastLang){lastLang=l;if(q('.auth-gate'))renderAuth(authMode,true);setTimeout(refreshAll,20)}},250);

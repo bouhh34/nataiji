@@ -60,7 +60,7 @@ assert('terms page exists', exists('public/terms.html'));
 assert('account deletion web resource exists', exists('public/delete-account.html'));
 assert('PWA caches account deletion help', /\/delete-account\.html/.test(sw) && /\/info-pages\.css\?v=1/.test(sw));
 assert('privacy has public support and deletion links', /mailto:bahmedou596@gmail\.com/.test(read('public/privacy.html')) && /\/delete-account\.html/.test(read('public/privacy.html')));
-assert('PWA cache version current', /nataiji-shell-v143/.test(sw));
+assert('PWA cache version current', /nataiji-shell-v144/.test(sw));
 assert('PWA loads and caches school grade journal', /school-grade-journal\.js\?v=1/.test(index) && /school-grade-journal\.js\?v=1/.test(sw));
 assert('offline school grade journal is account scoped and conflict aware', /nataiji-school-grade-drafts-v1:/.test(gradeJournal) && /setConflict\(/.test(gradeJournal) && /rebase\(/.test(gradeJournal));
 assert('school grade changes compare server value before overwrite', /expectedValue/.test(appJs) && /mark_conflict/.test(server) && /pg_advisory_xact_lock/.test(server));
@@ -200,7 +200,7 @@ assert('student bulletin decision and signatures are easy to read', /official-bu
 assert('bulletin summary has more vertical space', /official-bulletin-summary>div\{min-height:14mm/.test(professorV2));
 assert('Arabic official header is balanced against French', /official-student-bulletin-doc \.official-ar\{font-size:11\.7pt/.test(professorV2) && /class-list-doc \.official-ar\{font-size:11\.5pt/.test(professorV2));
 assert('professor batch bulletin label says one student per A4', /كشوف التلاميذ الرسمية – طالب واحد لكل A4/.test(professorV2) && /Bulletins officiels – 1 élève par A4/.test(professorV2));
-assert('professor v2 cache-busted asset is current', /professor-v2\.js\?v=82/.test(index));
+assert('professor v2 cache-busted asset is current', /professor-v2\.js\?v=83/.test(index));
 assert('professor v2 stylesheet cache-busted asset is current', /professor-v2\.css\?v=48/.test(index));
 const ownerStaff = read('public/owner-staff-v1.js');
 assert('owner professor tools support official branches', /staffClassBranch/.test(ownerStaff) && /data-branch/.test(ownerStaff) && /subjectOptions\(catalog,level,branch\)/.test(ownerStaff));

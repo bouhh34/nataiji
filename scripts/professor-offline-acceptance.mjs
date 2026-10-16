@@ -24,6 +24,7 @@ try{
  assert.equal(calls,1,'autosave coalesces one changed row into one request');
  assert.ok(Date.now()-started<20000,'one-row save confirms over a 64 kbps download / 32 kbps upload connection with 1.5s latency');await slow.send('Network.emulateNetworkConditions',{offline:false,latency:0,downloadThroughput:-1,uploadThroughput:-1});
  await page.locator('[data-test-index]').first().fill('21');await page.locator('#pv2SaveGrades').click();assert.equal(await page.locator('[data-test-index]').first().getAttribute('aria-invalid'),'true');assert.equal((await request('/api/professor/profile')).profile.marks['offline-a'].p0.terms['1'].tests[0],'12','invalid entry is rejected instead of silently clamped');await page.locator('[data-test-index]').first().fill('12');
+ await page.evaluate(async()=>{await navigator.serviceWorker.ready});
  await context.setOffline(true);
  await page.locator('[data-test-index]').first().fill('0');
  await page.locator('[data-exam]').first().fill('10');
@@ -33,6 +34,12 @@ try{
  assert.equal(await page.evaluate(()=>JSON.parse(localStorage.getItem('nataiji-grade-drafts-v1:'+currentUser.id)).rows.length),2,'offline navigation preserves two trimester drafts');
  assert.match(await page.locator('#profSyncStatus').innerText(),/محفوظ على الجهاز/);
  assert.ok(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth+2),'320px screen must not overflow');
+ // Real offline cold reopening: cached shell, verified account and unsynced marks survive a reload.
+ await page.reload({waitUntil:'domcontentloaded'});
+ await page.locator('#profSyncStatus').waitFor({state:'visible'});
+ assert.match(await page.locator('#profSyncStatus').innerText(),/محفوظ على الجهاز/);
+ assert.equal(await page.evaluate(()=>JSON.parse(localStorage.getItem('nataiji-grade-drafts-v1:'+currentUser.id)).rows.length),2);
+ assert.equal(await page.evaluate(()=>Boolean(window.__nataijiOfflineActive)),true);
  await page.locator('[data-prof-nav="more"]').click();await page.locator('#profMoreBackup').click();
  const downloaded=page.waitForEvent('download');await page.locator('#profExportDrafts').click();
  const backup=JSON.parse(await fs.readFile(await (await downloaded).path(),'utf8'));assert.equal(backup.userId,reg.user.id);assert.equal(backup.drafts.length,2);

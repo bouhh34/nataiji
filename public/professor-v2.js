@@ -215,9 +215,14 @@ function overlayDrafts(){
   rec.tests[0]=row.value.test;rec.exam=row.value.exam
  }
 }
+function cacheVerifiedProfessorProfile(){
+ try{if(professorUser?.id&&confirmedProfile)localStorage.setItem('nataiji-professor-profile-v1:'+professorUser.id,
+  JSON.stringify({classes:confirmedProfile.classes,profile:confirmedProfile,classLinks:links,catalog:academicCatalog}))}catch{}
+}
 async function refreshProfile(){
  const [r,cat]=await Promise.all([api('/api/professor/profile'),api('/api/professor/catalog').catch(()=>null)]);
  confirmedProfile=normalize(r.profile);profile=normalize(r.profile);links=r.classLinks||{};if(cat?.catalog)academicCatalog=cat.catalog;
+ cacheVerifiedProfessorProfile();
  overlayDrafts();updateSyncStatus();return r
 }
 async function saveProfile(message=''){
@@ -225,7 +230,7 @@ async function saveProfile(message=''){
  const sent=structuredClone(profile),sentJson=JSON.stringify(sent);
  const r=await api('/api/professor/profile',{method:'PUT',body:JSON.stringify({profile:sent})});
  confirmedProfile=normalize(r.profile);if(JSON.stringify(profile)===sentJson)profile=normalize(r.profile);
- overlayDrafts();links=r.classLinks||links||{};if(message)toast(message);return r
+ overlayDrafts();links=r.classLinks||links||{};cacheVerifiedProfessorProfile();if(message)toast(message);return r
 }
 function gradeStatus(text){const el=q('#pv2SaveState');if(el){el.textContent=text;el.setAttribute('role','status');el.setAttribute('aria-live','polite')}}
 function updateSyncStatus(){
@@ -234,7 +239,7 @@ function updateSyncStatus(){
  syncError?.code==='professor_grade_conflict'?tr('توجد علامات مختلفة على جهاز آخر؛ راجعها قبل المزامنة.','Des notes diffèrent sur un autre appareil. Vérifiez avant de synchroniser.'):
  [401,403].includes(syncError?.status)?tr('انتهت الجلسة أو تغيّرت الصلاحيات؛ سجّل الدخول مجددًا لاستعادة مسودتك.','Session expirée ou droits modifiés : reconnectez-vous pour retrouver le brouillon.'):
  count?tr('محفوظ على الجهاز · '+count+' نتيجة بانتظار المزامنة','Enregistré sur cet appareil · '+count+' note(s) à synchroniser'):
- navigator.onLine===false?tr('الاتصال منقطع · يمكنك إدخال الدرجات هنا','Hors connexion · vous pouvez saisir les notes ici'):
+ (navigator.onLine===false||window.__nataijiOfflineActive)?tr('الاتصال منقطع · يمكنك إدخال الدرجات هنا','Hors connexion · vous pouvez saisir les notes ici'):
  tr('✓ جميع التغييرات محفوظة على الخادم','✓ Toutes les modifications sont enregistrées sur le serveur');
  const banner=q('#profSyncStatus');if(banner){banner.dataset.state=syncError||unavailable?'error':count||navigator.onLine===false?'pending':'saved';q('[data-sync-text]',banner).textContent=text;q('#profSyncRetry',banner).hidden=!count;q('#profSyncReview',banner).hidden=!syncError;q('#profSyncRetry',banner).disabled=!!gradeSaveInFlight}
  gradeStatus(text)
@@ -261,7 +266,7 @@ async function flushGradeAutosave(){
  if(gradeSaveTimer){clearTimeout(gradeSaveTimer);gradeSaveTimer=null}
  if(gradeSaveInFlight)return gradeSaveInFlight;
  if(!gradeJournal?.rows.size){gradeSavedRevision=gradeEditRevision;return true}
- if(navigator.onLine===false){updateSyncStatus();return false}
+ if(navigator.onLine===false||window.__nataijiOfflineActive){updateSyncStatus();return false}
  const userId=professorUser?.id,journal=gradeJournal;
  gradeSaveInFlight=(async()=>{
   try{
@@ -280,7 +285,7 @@ async function flushGradeAutosave(){
      const record=r.marks[row.studentId].terms[String(row.term)];
      for(const p of [confirmedProfile,profile]){p.marks[row.assignmentId]=p.marks[row.assignmentId]||{};const m=p.marks[row.assignmentId][row.studentId]||(p.marks[row.assignmentId][row.studentId]={terms:{}});m.terms=m.terms||{};m.terms[String(row.term)]=structuredClone(record)}
     }
-    journal.ack(batch);overlayDrafts();updateSyncStatus()
+    journal.ack(batch);cacheVerifiedProfessorProfile();overlayDrafts();updateSyncStatus()
    }
    syncRetry=0;gradeSavedRevision=gradeEditRevision;return true
   }catch(error){
@@ -1320,11 +1325,34 @@ function chooseAccountType(user){
  hideLegacy();const el=root();el.innerHTML=`<div class="professor-choice"><div class="professor-choice-card"><img src="/nataiji-brand-mark.png" width="76" height="76" alt=""><small>${tr('إعداد الحساب لأول مرة','Configuration initiale')}</small><h1>${tr('كيف ستستخدم نتائجي؟','Comment utiliserez-vous Nataiji ?')}</h1><p>${tr('اختر مرة واحدة نوع حسابك. نظام المعلمين الحالي يبقى كما هو.','Choisissez une seule fois votre type de compte. Le système actuel des enseignants reste inchangé.')}</p><div class="professor-choice-grid"><button data-profile-type="teacher"><span>👨‍🏫</span><b>${tr('معلم','Enseignant')}</b><small>${tr('النظام الحالي للأقسام والفصول والنتائج','Système actuel des classes, trimestres et résultats')}</small></button><button data-profile-type="professor" class="featured"><span>🎓</span><b>${tr('أستاذ','Professeur')}</b><small>${tr('عدة مواد وأقسام، اختبار واحد وامتحان واحد لكل فصل','Plusieurs matières/classes, une interrogation et une composition par trimestre')}</small></button></div><p class="professor-choice-msg"></p></div></div>`;
  qa('[data-profile-type]',el).forEach(b=>b.onclick=async()=>{qa('[data-profile-type]',el).forEach(x=>x.disabled=true);const type=b.dataset.profileType,msg=q('.professor-choice-msg',el);try{const r=await api('/api/account/profile-type',{method:'POST',body:JSON.stringify({type})});currentUser=r.user;if(type==='professor')return renderProfessor(r.user);showLegacy();return startApp()}catch{msg.textContent=tr('تعذر حفظ الاختيار. أعد المحاولة.','Impossible d’enregistrer le choix. Réessayez.');qa('[data-profile-type]',el).forEach(x=>x.disabled=false)}});return true
 }
-async function renderProfessor(user){professorUser=user;gradeJournal=new NataijiGradeJournal(localStorage,user.id);syncError=null;syncProfessorLanguage();hideLegacy();const el=root();el.innerHTML=`<div class="professor-loading"><img src="/nataiji-brand-mark.png" width="64" height="64" alt=""><p>${tr('جاري تجهيز فضاء الأستاذ…','Préparation de l’espace professeur…')}</p></div>`;try{await refreshProfile();currentView='home';renderHome();if(needsProfessorOnboarding())openSettings(true);if(gradeJournal.rows.size)void flushGradeAutosave()}catch{el.innerHTML=`<div class="professor-loading"><h2>${tr('تعذر تحميل حساب الأستاذ','Impossible de charger le compte professeur')}</h2><button class="primary" onclick="location.reload()">${tr('إعادة المحاولة','Réessayer')}</button></div>`}}
+async function renderProfessor(user){
+ professorUser=user;gradeJournal=new NataijiGradeJournal(localStorage,user.id);syncError=null;syncProfessorLanguage();hideLegacy();
+ const el=root();
+ el.innerHTML=`<div class="professor-loading"><img src="/nataiji-brand-mark.png" width="64" height="64" alt=""><p>${tr('جاري تجهيز فضاء الأستاذ…','Préparation de l’espace professeur…')}</p></div>`;
+ function offlineProfile(){
+  try{
+   if(!window.NataijiOfflineResume?.read()||String(currentUser?.id)!==String(user.id))return false;
+   const saved=JSON.parse(localStorage.getItem('nataiji-professor-profile-v1:'+user.id)||'null');
+   if(!saved?.profile||!Array.isArray(saved.profile.classes))return false;
+   confirmedProfile=normalize(saved.profile);profile=normalize(saved.profile);
+   links=saved.classLinks||{};if(saved.catalog?.levels)academicCatalog=saved.catalog;
+   overlayDrafts();currentView='home';renderHome();updateSyncStatus();return true
+  }catch{return false}
+ }
+ if(window.__nataijiOfflineActive&&offlineProfile())return;
+ try{
+  await refreshProfile();currentView='home';renderHome();
+  if(needsProfessorOnboarding())openSettings(true);
+  if(gradeJournal.rows.size)void flushGradeAutosave()
+ }catch(error){
+  if((!error?.status||[502,503,504].includes(error.status))&&offlineProfile()){window.__nataijiOfflineActive=true;updateSyncStatus();return}
+  el.innerHTML=`<div class="professor-loading"><h2>${tr('تعذر تحميل حساب الأستاذ','Impossible de charger le compte professeur')}</h2><button class="primary" onclick="location.reload()">${tr('إعادة المحاولة','Réessayer')}</button></div>`
+ }
+}
 async function logout(){
  if(gradeJournal?.rows.size&&!confirm(tr('توجد مسودات لم تصل للخادم. ستبقى على هذا الجهاز لحسابك حتى تسجل الدخول مجددًا. هل تريد الخروج؟','Des brouillons restent sur cet appareil pour ce compte jusqu’à votre prochaine connexion. Se déconnecter ?')))return;
  try{await api('/api/auth/logout',{method:'POST',body:'{}'})}catch(e){if(![401,403].includes(e.status)){toast(tr('تعذر إنهاء الجلسة. اتصل بالإنترنت ثم أعد المحاولة.','Impossible de fermer la session. Reconnectez-vous à Internet et réessayez.'));return}}
- professorUser=null;currentUser=null;location.reload()
+ window.NataijiOfflineResume?.clear();professorUser=null;currentUser=null;location.reload()
 }
 window.NataijiProfessor={activate(user){if(user?.needsProfileChoice===true)return chooseAccountType(user);if(user?.role==='professor'||user?.profileType==='professor')return renderProfessor(user);return false},_calculateTerm:termResult,_calculateAnnual:annualSubjectResult,_ownListLandscape:professorOwnListLandscape,_classListLandscape:professorClassListLandscape};
 })();

@@ -8,6 +8,7 @@ async function api(url,options={}){
  // Restoring a session may need to wait for the server to wake up on a mobile connection.
  // Retry only this read: never replay a login, grade save, or other mutation.
  const sessionStatus=method==='GET'&&url==='/api/auth/status';
+ if(sessionStatus&&typeof navigator!=='undefined'&&navigator.onLine===false)throw Error('offline');
  for(let attempt=0;;attempt++){
  const controller=new AbortController();
  const timer=setTimeout(()=>controller.abort(),sessionStatus?45000:method==='GET'?15000:30000);
@@ -190,7 +191,32 @@ async function startApp(){
  const isCurrent=()=>epoch===window.__nataijiStateViewEpoch&&context===JSON.stringify([currentUser?.id,currentUser?.schoolId,currentUser?.activeSharedGrant]);
  let remote=null,recoveredLocal=false,recoveryFailure=false;
  const beforeRemote=localState(),beforeScore=localStateDataCount(beforeRemote),activeLocalUser=localStorage.getItem('nataiji-active-user');
- try{const r=await api('/api/state');if(!isCurrent())return;currentUser=r.user||currentUser;remote=r.state}catch(e){if(!isCurrent())return;if(e.status===401){currentUser=null;return showAuth('login')}throw e}
+ // A previously verified offline session can open its account-scoped snapshot.
+ // Never upload this snapshot as a replacement for authoritative server results.
+ function openCachedWorkspace(){
+  if(!isCurrent()||activeLocalUser!==currentUser?.id||!beforeRemote||localStateDataCount(beforeRemote)===0)return false;
+  state=normalizeState(beforeRemote);
+  const journal=getSchoolGradeJournal();
+  for(const row of journal?.snapshot()||[]){
+   if(row.account!==gradeAccount())continue;
+   const data=state.classData?.[row.classId];
+   if(!data)continue;
+   const i=(data.pupils||[]).findIndex(p=>String(p?.[7]||p?.[0]||'')===row.pupilKey);
+   const j=(data.subjects||[]).findIndex(x=>String(x?.[4]||'')===row.subjectId);
+   if(i<0||j<0)continue;
+   data.marksByTerm=data.marksByTerm||{};
+   const matrix=data.marksByTerm[row.term]||(data.marksByTerm[row.term]=[]);
+   matrix[i]=matrix[i]||[];matrix[i][j]=row.value;
+   if(String(row.classId)===String(state.activeClassId)&&row.term===state.term){
+    state.marks[i]=state.marks[i]||[];state.marks[i][j]=row.value;
+   }
+  }
+  render();setView('home');
+  markSaveStatus(gradeText('دون اتصال · النتائج المحفوظة على الجهاز فقط، والمزامنة معلقة','Hors ligne · données sur cet appareil, synchronisation en attente'),true);
+  return true
+ }
+ if(window.__nataijiOfflineActive&&openCachedWorkspace())return;
+ try{const r=await api('/api/state');if(!isCurrent())return;currentUser=r.user||currentUser;remote=r.state}catch(e){if(!isCurrent())return;if(e.status===401){currentUser=null;return showAuth('login')}if(!e.status||[502,503,504].includes(e.status)){if(window.NataijiOfflineResume?.read()){window.__nataijiOfflineActive=true;if(openCachedWorkspace())return}}throw e}
  const sameAccount=!activeLocalUser||activeLocalUser===currentUser?.id,recoveryKey=recoveryStorageKey(currentUser?.id),storedRecovery=(()=>{try{return JSON.parse(localStorage.getItem(recoveryKey))}catch{return null}})(),candidate=localStateDataCount(storedRecovery)>beforeScore?storedRecovery:beforeRemote,candidateScore=localStateDataCount(candidate),remoteScore=localStateDataCount(remote);
  if(sameAccount&&candidateScore>0){
   try{localStorage.setItem(recoveryKey,JSON.stringify(candidate))}catch{}
@@ -208,7 +234,10 @@ async function startApp(){
  // second request that could race with a class switch and mix two revisions.
  if(!isCurrent())return;
  state=nextState;
- try{localStorage.setItem('nataiji-data',JSON.stringify(state))}catch{}
+ try{
+  localStorage.setItem('nataiji-data',JSON.stringify(state));
+  localStorage.setItem('nataiji-offline-school-scope-v1',JSON.stringify([String(currentUser.id),String(currentUser.schoolId||''),String(currentUser.activeSharedGrant||'')]));
+ }catch{}
  render();setView('home');
  void flushSchoolGradeJournal();
  if(recoveredLocal)setTimeout(()=>modal('تم استرجاع البيانات',`<p><b>تم العثور على نسخة محلية محفوظة على هذا الجهاز واسترجاعها إلى الخادم بنجاح.</b></p><p>تحقق من الأقسام والتلاميذ والدرجات قبل إجراء أي تعديل جديد.</p>`),120);
@@ -339,7 +368,7 @@ function persistMarkCell(input){
 }
 async function flushSchoolGradeJournal(contextFilter=null){
  let activeStateChanged=false;const journal=getSchoolGradeJournal();if(!journal?.available){if(sameGradeContext(contextFilter||gradeContext()))markSaveStatus(gradeText('تعذر قراءة مسودات الدرجات المحلية؛ لا تحذف بيانات التطبيق','Impossible de lire les brouillons locaux ; ne supprimez pas les données de l’application'),true);return false}
- if(globalThis.navigator?.onLine===false){const ctx=contextFilter||gradeContext();if(sameGradeContext(ctx))markSaveStatus(gradeText('الاتصال منقطع؛ ستتم المحاولة عند عودته','Hors connexion ; nouvelle tentative au retour du réseau'),true);return false}
+ if(globalThis.navigator?.onLine===false||window.__nataijiOfflineActive){const ctx=contextFilter||gradeContext();if(sameGradeContext(ctx))markSaveStatus(gradeText('الاتصال منقطع؛ ستتم المحاولة عند عودته','Hors connexion ; nouvelle tentative au retour du réseau'),true);return false}
  for(const row of journal.snapshot()){
   if(row.account!==gradeAccount())continue;
   if(contextFilter&&(row.classId!==String(contextFilter.classId)||row.term!==String(contextFilter.term)))continue;
@@ -410,7 +439,7 @@ $('#saveGrades').onclick=async()=>{
  }finally{button.textContent=old;button.disabled=false}
 };
 $('#student').onchange=renderReports;const showResultBtn=$('#showResult');if(showResultBtn)showResultBtn.onclick=renderReports;$('#addStudent').onclick=addStudent;$('#settingsBtn').onclick=openSettings;$('#subjectsBtn').onclick=openSubjects;
-$('#logoutBtn').onclick=async()=>{try{await api('/api/auth/logout',{method:'POST',body:'{}'})}catch{}currentUser=null;await showAuth('login')};
+$('#logoutBtn').onclick=async()=>{try{await api('/api/auth/logout',{method:'POST',body:'{}'})}catch{}window.NataijiOfflineResume?.clear();currentUser=null;await showAuth('login')};
 $('#printResult').onclick=()=>printOnly('student');$('#printList').onclick=()=>{setView('reports');showReport('list');setTimeout(()=>printOnly('list'),50)};
 $('#importBtn').onclick=()=>$('#importFile').click();$('#importFile').onchange=e=>{if(e.target.files[0])importCsv(e.target.files[0])};
 $$('[data-report]').forEach(b=>b.onclick=()=>showReport(b.dataset.report));$$('.report-print').forEach(b=>b.onclick=()=>printOnly(b.dataset.print));
