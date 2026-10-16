@@ -234,7 +234,10 @@ async function startApp(){
  // second request that could race with a class switch and mix two revisions.
  if(!isCurrent())return;
  state=nextState;
- try{localStorage.setItem('nataiji-data',JSON.stringify(state))}catch{}
+ try{
+  localStorage.setItem('nataiji-data',JSON.stringify(state));
+  localStorage.setItem('nataiji-offline-school-scope-v1',JSON.stringify([String(currentUser.id),String(currentUser.schoolId||''),String(currentUser.activeSharedGrant||'')]));
+ }catch{}
  render();setView('home');
  void flushSchoolGradeJournal();
  if(recoveredLocal)setTimeout(()=>modal('تم استرجاع البيانات',`<p><b>تم العثور على نسخة محلية محفوظة على هذا الجهاز واسترجاعها إلى الخادم بنجاح.</b></p><p>تحقق من الأقسام والتلاميذ والدرجات قبل إجراء أي تعديل جديد.</p>`),120);
