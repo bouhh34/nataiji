@@ -24,6 +24,8 @@ try {
   name:'Offline School QA',email:'offline.school.qa@example.com',password:'OfflineSchool-9021',school:'École test'
  }});
  assert.equal(register.status(),201,'test school account should register');
+ const setup=await context.request.post(base+'/api/account/profile-type',{data:{type:'teacher'}});
+ assert.equal(setup.status(),200,'test account should choose the teacher workspace');
  const cls='offline-school-class',term='الفصل الأول';
  const structure=await context.request.put(base+'/api/structure',{data:{structure:{
   classes:[{id:cls,name:'القسم التجريبي',code:'1AF'}],terms:[term,'الفصل الثاني','الفصل الثالث'],activeClassId:cls,term
