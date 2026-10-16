@@ -46,7 +46,11 @@ function openArchive(){
    ready=true;create.disabled=!validYear;
    msg.textContent='';
    const rows=data.archives||[];
-   list.innerHTML=rows.length?rows.map(item=>`<div class="school-year-archive-row"><span><b>${esc(item.year)}</b><small>${esc(new Date(item.createdAt).toLocaleString(fr()?'fr-FR':'ar-MR'))} · ${tr('تلاميذ','Élèves')} ${Number(item.counts?.pupils||0)} · ${tr('درجات','Notes')} ${Number(item.counts?.marks||0)}</small></span><button type="button" data-archive-export="${esc(item.id)}" data-archive-year="${esc(item.year)}">${tr('تنزيل نسخة','Télécharger')}</button></div>`).join(''):`<p>${tr('لا توجد أرشيفات بعد.','Aucune archive enregistrée.')}</p>`;
+   list.innerHTML=rows.length?rows.map(item=>`<div class="school-year-archive-row"><span><b>${esc(item.year)}</b><small>${esc(new Date(item.createdAt).toLocaleString(fr()?'fr-FR':'ar-MR'))} · ${tr('تلاميذ','Élèves')} ${Number(item.counts?.pupils||0)} · ${tr('درجات','Notes')} ${Number(item.counts?.marks||0)}</small></span><button type="button" data-archive-export="${esc(item.id)}" data-archive-year="${esc(item.year)}">${tr('تنزيل نسخة','Télécharger')}</button>${String(item.year).replace('/','-')===year.replace('/','-')?'<button type="button" data-archive-promote="'+esc(item.id)+'">'+tr('إعداد السنة القادمة','Préparer l’année suivante')+'</button>':''}</div>`).join(''):`<p>${tr('لا توجد أرشيفات بعد.','Aucune archive enregistrée.')}</p>`;
+   for(const button of p.querySelectorAll('[data-archive-promote]'))button.onclick=()=>{
+    const archived=rows.find(x=>x.id===button.dataset.archivePromote);
+    if(archived)window.nataijiOpenYearPromotion?.(archived)
+   };
    for(const button of p.querySelectorAll('[data-archive-export]'))button.onclick=async()=>{
     button.disabled=true;
     try{const item=await api('/api/school-year-archives/'+encodeURIComponent(button.dataset.archiveExport));saveJson(item,button.dataset.archiveYear)}
