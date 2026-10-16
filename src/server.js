@@ -1318,7 +1318,7 @@ app.get('/api/school-year-archives/:id',auth,adminOnly,async(req,res)=>{
 app.post('/api/school-year-archives',auth,adminOnly,async(req,res)=>{
  if(!pool)return res.status(503).json({error:'durable_storage_required'});
  const requested=String(req.body?.year||'').trim();
- if(!/^\\d{4}[-/]\\d{4}$/.test(requested)||Number(requested.slice(-4))!==Number(requested.slice(0,4))+1)return res.status(400).json({error:'invalid_academic_year'});
+ if(!/^\d{4}[-/]\d{4}$/.test(requested)||Number(requested.slice(-4))!==Number(requested.slice(0,4))+1)return res.status(400).json({error:'invalid_academic_year'});
  const client=await pool.connect();
  try{
   await client.query('BEGIN ISOLATION LEVEL REPEATABLE READ');
