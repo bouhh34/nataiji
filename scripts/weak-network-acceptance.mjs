@@ -18,6 +18,28 @@ try {
  const apiOffline=await page.evaluate(async()=>{try{await fetch('/api/auth/status');return false}catch{return true}});
  assert.equal(apiOffline,true);
  await context.setOffline(false);
+ // Seed a real teacher workspace and confirm it can be reopened from local
+ // state while disconnected, not just the public HTML shell.
+ const register=await context.request.post(base+'/api/auth/register',{data:{
+  name:'Offline School QA',email:'offline.school.qa@example.com',password:'OfflineSchool-9021',school:'École test'
+ }});
+ assert.equal(register.status(),201,'test school account should register');
+ const cls='offline-school-class',term='الفصل الأول';
+ const structure=await context.request.put(base+'/api/structure',{data:{structure:{
+  classes:[{id:cls,name:'القسم التجريبي',code:'1AF'}],terms:[term,'الفصل الثاني','الفصل الثالث'],activeClassId:cls,term
+ }}});
+ assert.equal(structure.status(),200);
+ const pupil=await context.request.post(base+'/api/pupils',{data:{classId:cls,pupil:['','تلميذ تجريبي','','','','','', '']}});
+ assert.equal(pupil.status(),201);
+ await page.reload({waitUntil:'domcontentloaded'});
+ await page.waitForFunction(()=>typeof currentUser!=='undefined'&&currentUser?.id&&state?.pupils?.some(p=>p[1]==='تلميذ تجريبي'));
+ assert.equal(await page.evaluate(()=>!!window.NataijiOfflineResume?.read()),true);
+ await context.setOffline(true);
+ await page.reload({waitUntil:'domcontentloaded'});
+ await page.waitForFunction(()=>typeof currentUser!=='undefined'&&currentUser?.id&&state?.pupils?.some(p=>p[1]==='تلميذ تجريبي'));
+ assert.equal(await page.evaluate(()=>window.__nataijiOfflineActive),true,'school should open cached workspace offline');
+ assert.equal(await page.locator('.auth-gate').count(),0,'offline reopening must not show login or retry gate');
+ await context.setOffline(false);
  await page.evaluate(()=>localStorage.setItem('nataiji-lang','fr'));
  await page.reload({waitUntil:'networkidle'});
  assert.equal(await page.getAttribute('html','dir'),'ltr');
