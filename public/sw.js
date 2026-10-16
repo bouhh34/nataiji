@@ -1,4 +1,4 @@
-const CACHE = "nataiji-shell-v146";
+const CACHE = "nataiji-shell-v147";
 const ASSETS = [
   "/native-report-print.js?v=7",
   "/koutoubi-resources.css?v=1",
@@ -57,7 +57,7 @@ const ASSETS = [
   "/app-power-v1.js?v=12",
   "/student-mobile-cards-v1.js?v=3",
   "/pupil-roster-actions-v1.js?v=1",
-  "/school-year-archive-v1.js?v=1",
+  "/school-year-archive-v1.js?v=2",
   "/grade-mobile-ui-v1.js?v=13",
   "/report-mobile-preview-v1.js?v=3",
   "/report-final-polish-v1.js?v=11",
@@ -69,7 +69,7 @@ const ASSETS = [
   "/workflow-polish.js?v=4",
   "/nataiji-premium-v2.js?v=5",
   "/nataiji-home-reference-v1.js?v=2",
-  "/more-page-v1.js?v=7"
+  "/more-page-v1.js?v=8"
 ];
 const shellPages = new Set(['/', '/index.html', '/privacy.html', '/delete-account.html', '/terms.html', '/download.html']);
 const assetPaths = new Set(ASSETS.map(p=>new URL(p,location.origin).pathname));
