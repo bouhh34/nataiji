@@ -1,10 +1,14 @@
 import {planPupilCopy} from './pupil-roster-tools.js';
-export function academicYearNext(value){
- const s=String(value||'').replace('/','-');
+export function normalizeAcademicYear(value){
+ const s=String(value??'').trim().replace(/\s*[-/]\s*/g,'-');
  if(!/^\d{4}-\d{4}$/.test(s))throw Error('invalid_academic_year');
  const a=Number(s.slice(0,4)),b=Number(s.slice(5,9));
  if(a<2000||a>2100||b!==a+1)throw Error('invalid_academic_year');
- return String(a+1)+'-'+String(b+1);
+ return s;
+}
+export function academicYearNext(value){
+ const s=normalizeAcademicYear(value);
+ return String(Number(s.slice(0,4))+1)+'-'+String(Number(s.slice(5,9))+1);
 }
 export function planNextYearRoster(archivedRows,existingRows,selectedKeys,createId){
  const source=archivedRows.map(p=>({nns:String(p.nns),data:p.data,position:p.position}));

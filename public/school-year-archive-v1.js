@@ -3,6 +3,8 @@
 'use strict';
 if(window.__nataijiSchoolYearArchiveUi)return;window.__nataijiSchoolYearArchiveUi=true;
 const q=(sel,root=document)=>root.querySelector(sel);
+const yearKey=value=>String(value??'').trim().replace(/\s*[-/]\s*/g,'-');
+const validAcademicYear=value=>{const m=yearKey(value).match(/^(\d{4})-(\d{4})$/);return !!m&&Number(m[2])===Number(m[1])+1};
 const fr=()=>localStorage.getItem('nataiji-lang')==='fr';
 const tr=(ar,f)=>fr()?f:ar;
 const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;','\'':'&#39;'}[c]));
@@ -10,6 +12,11 @@ function archiveError(error){
  if(navigator.onLine===false||window.__nataijiOfflineActive)return tr('أنت تعمل دون إنترنت. اتصل بالإنترنت ثم اضغط «إعادة المحاولة».','Vous êtes hors ligne. Connectez-vous puis appuyez sur « Réessayer ».');
  if(error?.status===401)return tr('انتهت جلسة الحساب. أعد تسجيل الدخول ثم افتح الأرشيف.','Session expirée. Reconnectez-vous puis ouvrez les archives.');
  if(error?.status===403)return tr('لا تملك صلاحية الاطلاع على أرشيف هذه المساحة.','Vous n’avez pas accès aux archives de cet espace.');
+ if(error?.code==='academic_year_mismatch')return tr('السنة الدراسية لا تطابق إعدادات المدرسة. السنة المسجلة بالخادم: ','L’année diffère des paramètres scolaires. Année du serveur : ')+String(error?.data?.currentYear||'—');
+ if(error?.code==='invalid_academic_year')return tr('تحقق من السنة الدراسية في الإعدادات، مثل 2026-2027.','Vérifiez l’année scolaire dans les paramètres (ex. 2026-2027).');
+ if(error?.code==='archive_limit_reached')return tr('بلغت هذه السنة الحد الأقصى من الأرشيفات. يمكنك تنزيل النسخ السابقة.','Limite des archives atteinte pour cette année ; vous pouvez télécharger les copies existantes.');
+ if(error?.code==='empty_school_archive')return tr('لا توجد بيانات في هذا القسم تستحق الأرشفة بعد.','Aucune donnée scolaire à archiver.');
+ if(error?.code==='durable_storage_required')return tr('تخزين الأرشيف غير متاح على الخادم مؤقتًا.','Stockage d’archives temporairement indisponible.');
  if(error?.status===503||error?.status>=500)return tr('الخادم غير متاح مؤقتًا. لا تتأثر الدرجات؛ حاول بعد قليل.','Serveur temporairement indisponible. Les notes sont intactes ; réessayez.');
  if(error?.name==='AbortError')return tr('استغرق الاتصال بالخادم وقتًا طويلًا. حاول مرة أخرى.','Le serveur met trop de temps à répondre. Réessayez.');
  return tr('تعذر الاتصال بالخادم. تحقق من الإنترنت ثم اضغط «إعادة المحاولة».','Connexion au serveur impossible. Vérifiez Internet et appuyez sur « Réessayer ».');
@@ -33,9 +40,10 @@ function openArchive(){
  <p id="schoolYearArchiveMessage" role="status" aria-live="polite"></p><div id="schoolYearArchivesList" aria-live="polite">${tr('جارٍ تحميل الأرشيف…','Chargement des archives…')}</div>
  <button type="button" id="schoolYearArchiveRetry" hidden>${tr('إعادة المحاولة','Réessayer')}</button>`);
  const msg=q('#schoolYearArchiveMessage',p),list=q('#schoolYearArchivesList',p),create=q('#schoolYearArchiveCreate',p),retry=q('#schoolYearArchiveRetry',p);
- const validYear=/^\d{4}[-/]\d{4}$/.test(year);
+ const yearIsValid=validAcademicYear(year);
  let refreshing=false,ready=false;
  create.disabled=true;
+ if(!yearIsValid)msg.textContent=tr('تحقق من السنة الدراسية في الإعدادات (مثال 2026-2027).','Vérifiez l’année scolaire dans les paramètres (ex. 2026-2027).');
  const render=async()=>{
   if(refreshing||!p.isConnected)return;refreshing=true;
   retry.hidden=true;list.textContent=tr('جارٍ الاتصال بالخادم…','Connexion au serveur…');
@@ -43,10 +51,10 @@ function openArchive(){
    if(navigator.onLine===false||window.__nataijiOfflineActive)throw Object.assign(new Error('offline'),{code:'offline'});
    const data=await api('/api/school-year-archives');
    if(!p.isConnected)return;
-   ready=true;create.disabled=!validYear;
-   msg.textContent='';
+   ready=true;create.disabled=!yearIsValid;
+   if(!msg.dataset.keepMessage)msg.textContent='';
    const rows=data.archives||[];
-   list.innerHTML=rows.length?rows.map(item=>`<div class="school-year-archive-row"><span><b>${esc(item.year)}</b><small>${esc(new Date(item.createdAt).toLocaleString(fr()?'fr-FR':'ar-MR'))} · ${tr('تلاميذ','Élèves')} ${Number(item.counts?.pupils||0)} · ${tr('درجات','Notes')} ${Number(item.counts?.marks||0)}</small></span><button type="button" data-archive-export="${esc(item.id)}" data-archive-year="${esc(item.year)}">${tr('تنزيل نسخة','Télécharger')}</button>${String(item.year).replace('/','-')===year.replace('/','-')?'<button type="button" data-archive-promote="'+esc(item.id)+'">'+tr('إعداد السنة القادمة','Préparer l’année suivante')+'</button>':''}</div>`).join(''):`<p>${tr('لا توجد أرشيفات بعد.','Aucune archive enregistrée.')}</p>`;
+   list.innerHTML=rows.length?rows.map(item=>`<div class="school-year-archive-row"><span><b>${esc(item.year)}</b><small>${esc(new Date(item.createdAt).toLocaleString(fr()?'fr-FR':'ar-MR'))} · ${tr('تلاميذ','Élèves')} ${Number(item.counts?.pupils||0)} · ${tr('درجات','Notes')} ${Number(item.counts?.marks||0)}</small></span><button type="button" data-archive-export="${esc(item.id)}" data-archive-year="${esc(item.year)}">${tr('تنزيل نسخة','Télécharger')}</button>${yearKey(item.year)===yearKey(year)?'<button type="button" data-archive-promote="'+esc(item.id)+'">'+tr('إعداد السنة القادمة','Préparer l’année suivante')+'</button>':''}</div>`).join(''):`<p>${tr('لا توجد أرشيفات بعد.','Aucune archive enregistrée.')}</p>`;
    for(const button of p.querySelectorAll('[data-archive-promote]'))button.onclick=()=>{
     const archived=rows.find(x=>x.id===button.dataset.archivePromote);
     if(archived)window.nataijiOpenYearPromotion?.(archived)
@@ -72,9 +80,15 @@ function openArchive(){
   if(n){msg.textContent=tr('توجد '+n+' درجة معلقة على هذا الجهاز. زامنها أولًا قبل إنشاء الأرشيف.','Il reste '+n+' note(s) sur cet appareil. Synchronisez-les avant l’archive.');return}
   if(!confirm(tr('إنشاء نسخة ثابتة لسنة '+year+'؟ لن يتغير أي تلميذ أو درجة أو سنة. تأكد من مزامنة جميع أجهزة المعلمين أولًا.','Archiver '+year+' sans modifier les élèves, notes ou l’année ? Vérifiez que tous les appareils ont synchronisé leurs notes.')))return;
   create.disabled=true;msg.textContent=tr('جارٍ حفظ الأرشيف على الخادم…','Archivage sur le serveur…');
-  try{const result=await api('/api/school-year-archives',{method:'POST',body:JSON.stringify({year})});msg.textContent=tr('✓ حُفظ الأرشيف. نزّله من القائمة للاحتفاظ بنسخة أخرى.','✓ Archive créée. Téléchargez-en une autre copie depuis la liste.');await render();const button=p.querySelector('[data-archive-export="'+result.id+'"]');button?.focus()}
+  try{
+   const result=await api('/api/school-year-archives',{method:'POST',body:JSON.stringify({year:yearKey(year)})});
+   msg.dataset.keepMessage='1';
+   await render();
+   msg.textContent=tr('✓ تم الحفظ بنجاح. يمكنك الآن الضغط على «إعداد السنة القادمة» بجوار الأرشيف.','✓ Archive enregistrée. Utilisez « Préparer l’année suivante » à côté.');
+   const button=p.querySelector('[data-archive-promote="'+result.id+'"]')||p.querySelector('[data-archive-export="'+result.id+'"]');button?.focus()
+  }
   catch(e){msg.textContent=archiveError(e)+tr(' تحقق من القائمة قبل إعادة الحفظ.',' Vérifiez la liste avant de recommencer.')}
-  finally{create.disabled=!ready||!validYear}
+  finally{create.disabled=!ready||!yearIsValid}
  };
  void render();
 }
