@@ -35,6 +35,16 @@ try {
  assert.equal(pupil.status(),201);
  await page.reload({waitUntil:'domcontentloaded'});
  await page.waitForFunction(()=>typeof currentUser!=='undefined'&&currentUser?.id&&state?.pupils?.some(p=>p[1]==='تلميذ تجريبي'));
+ assert.equal(await page.evaluate(()=>currentUser?.role), 'admin','school owner must have access to archive tools');
+ await page.locator('#bottomNav [data-view="more"]').click();
+ await page.locator('#schoolYearArchiveBtn').waitFor({state:'visible',timeout:10000});
+ assert.equal(await page.locator('#schoolYearArchiveBtn').count(),1,'archive entry cannot duplicate');
+ assert.equal(await page.locator('#schoolYearArchiveBtn').evaluate(el=>el.dataset.moreGroup),'academic','archive entry must be under academic settings');
+ await page.locator('#schoolYearArchiveBtn').click();
+ await page.locator('#schoolYearArchiveCreate').waitFor({state:'visible'});
+ assert.equal(await page.locator('[data-page="more"] .settings-grid').count(),1);
+ await page.locator('.modal:has(#schoolYearArchiveCreate) .x').click();
+ await page.locator('#bottomNav [data-view="home"]').click();
  assert.equal(await page.evaluate(()=>!!window.NataijiOfflineResume?.read()),true);
  await context.setOffline(true);
  await page.reload({waitUntil:'domcontentloaded'});

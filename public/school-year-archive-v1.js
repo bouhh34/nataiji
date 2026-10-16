@@ -54,12 +54,31 @@ function openArchive(){
  void render();
 }
 function mount(){
- if(currentUser?.role!=='admin')return;
- const grid=q('.settings-grid');if(!grid||q('#schoolYearArchiveBtn'))return;
- const b=document.createElement('button');b.id='schoolYearArchiveBtn';b.className='menu-card';b.type='button';b.innerHTML='<b>'+tr('أرشيف السنوات الدراسية','Archives des années scolaires')+'</b><span>'+tr('حفظ النتائج السابقة وتنزيلها دون تغييرها','Conserver et exporter les résultats sans les modifier')+'</span>';
+ const grid=q('[data-page="more"] .settings-grid');
+ if(!grid)return;
+ const existing=q('#schoolYearArchiveBtn',grid);
+ // Session permission can change when switching between owned and shared spaces.
+ if(typeof currentUser==='undefined'||currentUser?.role!=='admin'){
+  existing?.remove();return
+ }
+ if(existing)return;
+ const b=document.createElement('button');
+ b.id='schoolYearArchiveBtn';b.className='menu-card';b.type='button';
+ b.innerHTML='<b>'+tr('أرشيف السنوات الدراسية','Archives des années scolaires')+'</b><span>'+tr('حفظ النتائج السابقة وتنزيلها دون تغييرها','Conserver et exporter les résultats sans les modifier')+'</span>';
  grid.appendChild(b);b.onclick=openArchive
 }
+window.nataijiMountSchoolYearArchive=mount;
 document.addEventListener('DOMContentLoaded',()=>setTimeout(mount,100));
-let timeout;
-new MutationObserver(()=>{if(q('#schoolYearArchiveBtn')||!q('.settings-grid'))return;clearTimeout(timeout);timeout=setTimeout(mount,180)}).observe(document.documentElement,{childList:true,subtree:true});
+// The first auth status request may still be pending at DOMContentLoaded.
+document.addEventListener('click',e=>{
+ if(e.target.closest?.('[data-view="more"]'))setTimeout(mount,0)
+},true);
+document.addEventListener('visibilitychange',()=>{if(!document.hidden)setTimeout(mount,0)});
+let timer;
+new MutationObserver(()=>{
+ if(!q('[data-page="more"] .settings-grid'))return;
+ const visible=q('#schoolYearArchiveBtn');
+ if(visible&&typeof currentUser!=='undefined'&&currentUser?.role==='admin')return;
+ clearTimeout(timer);timer=setTimeout(mount,60)
+}).observe(document.documentElement,{childList:true,subtree:true});
 })();
