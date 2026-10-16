@@ -29,3 +29,28 @@ test('storage failure remains visible and drafts are not reported as durable',()
  const s=storage();s.setItem=()=>{throw Error('quota')};const j=new Journal(s,'user-a');
  j.stage(context,'p-1','math','5','12');assert.equal(j.available,false);assert.equal(j.snapshot().length,1);
 });
+
+test('manual and reconnect synchronization must pass through one serialized queue',async()=>{
+ const app=fs.readFileSync(new URL('../public/app.js',import.meta.url),'utf8');
+ const first=app.indexOf('let schoolGradeFlushTail=Promise.resolve()');
+ const second=app.indexOf('async function runSchoolGradeFlush(',first);
+ assert.ok(first>0&&second>first);
+ const wrapper=app.slice(first,second);
+ assert.match(wrapper,/function flushSchoolGradeJournal\(contextFilter=null\)/);
+ assert.match(wrapper,/schoolGradeFlushTail\.catch\(\(\)=>\{\}\)\.then\(\(\)=>runSchoolGradeFlush\(contextFilter\)\)/);
+ assert.match(app,/window\.addEventListener\('online',\(\)=>\{void flushSchoolGradeJournal\(\)\}\)/);
+ // Exercise the exact queue pattern with delayed simulated requests.
+ let active=0,peak=0;
+ let tail=Promise.resolve();
+ const calls=[];
+ const execute=n=>{
+  const run=tail.catch(()=>{}).then(async()=>{
+   active++;peak=Math.max(peak,active);calls.push(n);
+   await new Promise(resolve=>setTimeout(resolve,5));active--;
+  });
+  tail=run;return run
+ };
+ await Promise.all([execute('auto'),execute('manual'),execute('retry')]);
+ assert.equal(peak,1);
+ assert.deepEqual(calls,['auto','manual','retry']);
+});
