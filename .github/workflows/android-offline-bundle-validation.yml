@@ -1,0 +1,61 @@
+name: Android offline bundle validation
+
+on:
+  pull_request:
+    paths:
+      - 'native/android/**'
+      - 'scripts/prepare-android-print.mjs'
+      - 'scripts/android-offline-asset-regression.mjs'
+      - 'capacitor.config.ts'
+      - '.github/workflows/android-offline-bundle-validation.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  verify-android-offline:
+    runs-on: ubuntu-latest
+    timeout-minutes: 35
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '21'
+      - name: Install API 36 SDK
+        run: |
+          SDKMANAGER="$(find "$ANDROID_HOME/cmdline-tools" -type f -name sdkmanager | head -n 1)"
+          test -n "$SDKMANAGER"
+          yes | "$SDKMANAGER" --licenses >/dev/null || true
+          "$SDKMANAGER" "platform-tools" "platforms;android-36" "build-tools;36.0.0"
+      - name: Install dependencies
+        run: npm ci --no-audit --no-fund
+      - name: Validate JS and native fallback invariants
+        run: |
+          npm run release:check
+          node --test scripts/android-offline-asset-regression.mjs
+      - name: Generate native Android project
+        run: |
+          npx cap add android
+          npx cap sync android
+          node scripts/prepare-android-print.mjs
+          test -f android/app/src/main/assets/public/index.html
+          test -f android/app/src/main/java/mr/nataiji/app/NataijiOfflineWebViewClient.java
+          grep -q 'NataijiOfflineWebViewClient' android/app/src/main/java/mr/nataiji/app/MainActivity.java
+          grep -q 'android.permission.ACCESS_NETWORK_STATE' android/app/src/main/AndroidManifest.xml
+      - name: Compile Android APK with offline fallback
+        working-directory: android
+        run: ./gradlew assembleDebug --no-daemon
+      - name: Verify APK contains offline shell and native code
+        run: |
+          APK=android/app/build/outputs/apk/debug/app-debug.apk
+          test -s "$APK"
+          unzip -Z1 "$APK" | grep -q '^assets/public/index.html$'
+          unzip -Z1 "$APK" | grep -q '^assets/public/offline-session-v1.js$'
+          unzip -Z1 "$APK" | grep -q '^assets/public/professor-v2.js$'
+          echo 'Android offline bundle compiled and contains public app shell'
