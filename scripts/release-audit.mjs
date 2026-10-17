@@ -237,9 +237,9 @@ assert('teacher bilingual timetable title uses explicit isolated language spans'
 const accountSheetJs=read('public/teacher-account-sheet-v1.js');
 const accountSheetCss=read('public/teacher-account-sheet-v1.css');
 assert('teacher account sheet scripts and styles versioned in offline bundle',
-  /teacher-account-sheet-v1\.js\?v=1/.test(index) &&
+  /teacher-account-sheet-v1\.js\?v=2/.test(index) &&
   /teacher-account-sheet-v1\.css\?v=1/.test(index) &&
-  /teacher-account-sheet-v1\.js\?v=1/.test(sw) &&
+  /teacher-account-sheet-v1\.js\?v=2/.test(sw) &&
   /teacher-account-sheet-v1\.css\?v=1/.test(sw));
 assert('account sheet reuses actual school password logout controls without changing data',
   /main > header \.profile/.test(accountSheetJs) &&
