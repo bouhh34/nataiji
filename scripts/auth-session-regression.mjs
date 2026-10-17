@@ -102,3 +102,84 @@ test('the legacy boot and timeout no longer force the login screen',()=>{
  assert.doesNotMatch(html,/window\.showAuth\?\.\('login'\)/);
  assert.match(html,/نتحقق من جلستك/);
 });
+
+
+test('login keeps password manager autofill and offers an accessible one-tap password reveal',()=>{
+ const beginning=source.indexOf('function loginForm(){');
+ const end=source.indexOf('function registerForm(){',beginning);
+ assert.ok(beginning>0&&end>beginning);
+ const html=vm.runInNewContext(source.slice(beginning,end)+';loginForm()', {tr:(ar)=>ar});
+ assert.match(html,/autocomplete="email"/);
+ assert.match(html,/autocomplete="current-password"/);
+ assert.match(html,/data-auth2-password-toggle/);
+ assert.match(html,/aria-pressed="false"/);
+ assert.match(html,/inputmode="email"/);
+});
+
+function logoutFixture(mode='success'){
+ const start=source.indexOf('let logoutInFlight=false;');
+ const end=source.indexOf('function patchOfficialWording(',start);
+ assert.ok(start>0&&end>start,'logout must be isolated for regression');
+ const calls=[],renders=[],alerts=[],entries=new Map([
+  ['nataiji-data','private pupil grades'],
+  ['nataiji-active-user','teacher-1'],
+  ['nataiji-offline-school-scope-v1','school-1']
+ ]);
+ let complete=null,clears=0;
+ const button={dataset:{},disabled:false,textContent:'تسجيل الخروج'};
+ const ctx=vm.createContext({
+  currentUser:{id:'teacher-1'},lastStatus:{user:{id:'teacher-1'},storage:'postgres'},storageMode:'postgres',
+  q:selector=>selector==='#logoutBtn'?button:null,
+  api:(url,options)=>{
+   calls.push({url,method:options.method});
+   if(mode==='offline')return Promise.reject(new Error('offline'));
+   if(mode==='expired')return Promise.reject(Object.assign(new Error('expired'),{status:401}));
+   return new Promise(resolve=>{complete=resolve});
+  },
+  tr:(ar)=>ar,
+  alert:message=>alerts.push(message),
+  window:{__nataijiOfflineActive:false,NataijiOfflineResume:{clear(){clears++}}},
+  localStorage:{removeItem:key=>entries.delete(key)}
+  ,renderAuth:async(...args)=>{renders.push(args)}
+ });
+ vm.runInContext(source.slice(start,end),ctx);
+ ctx.bindLogout();
+ return {button,ctx,calls,renders,alerts,entries,complete:()=>complete?.(),clears:()=>clears};
+}
+
+test('successful logout is one POST, no second status request, and no duplicate tap',async()=>{
+ const f=logoutFixture();
+ const first=f.button.onclick();
+ const second=f.button.onclick();
+ assert.equal(f.calls.length,1,'double tapping must not resend logout');
+ assert.equal(f.button.disabled,true);
+ f.complete();
+ await Promise.all([first,second]);
+ assert.deepEqual(f.calls.map(c=>c.url),['/api/auth/logout']);
+ assert.equal(f.ctx.currentUser,null);
+ assert.equal(f.ctx.lastStatus.user,null);
+ assert.equal(f.renders.length,1);
+ assert.equal(f.renders[0][0],'login');
+ assert.equal(f.renders[0][1],true,'verified logout renders the login gate without another network request');
+ assert.equal(f.entries.size,0);
+ assert.equal(f.clears(),1);
+ assert.equal(f.button.disabled,false);
+});
+
+test('offline logout leaves current session and data intact, with retry enabled',async()=>{
+ const f=logoutFixture('offline');
+ await f.button.onclick();
+ assert.equal(f.ctx.currentUser.id,'teacher-1');
+ assert.equal(f.entries.get('nataiji-data'),'private pupil grades');
+ assert.equal(f.renders.length,0);
+ assert.equal(f.alerts.length,1);
+ assert.equal(f.button.disabled,false);
+});
+
+test('server-confirmed expired session can exit cleanly',async()=>{
+ const f=logoutFixture('expired');
+ await f.button.onclick();
+ assert.equal(f.ctx.currentUser,null);
+ assert.equal(f.clears(),1);
+ assert.equal(f.renders.length,1);
+});
