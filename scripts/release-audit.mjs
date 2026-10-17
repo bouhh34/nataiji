@@ -120,7 +120,7 @@ assert('student import menu is teacher-only and safe for print and no edit right
  /@media screen/.test(studentShortcutCss) &&
  !/@media print/.test(studentShortcutCss) &&
  /student-quick-import-ready/.test(studentShortcutCss));
-assert('PWA cache version current', /nataiji-shell-v167/.test(sw));
+assert('PWA cache version current', /nataiji-shell-v168/.test(sw));
 const commercialPlan = read('public/commercial-foundation-v1.js');
 assert('plan card script version is present in web and Android cache',
   /commercial-foundation-v1\.js\?v=4/.test(index) &&
@@ -140,7 +140,7 @@ assert('free plan card is informational, stable, and bilingual',
 assert('new Play tester shell installs atomically and activates after complete precache',
   /cache=>cache.addAll\(ASSETS\)\)\.then\(\(\)=>self.skipWaiting\(\)\)/.test(sw) &&
   /navigate/.test(sw) &&
-  /nataiji-shell-v167/.test(sw));
+  /nataiji-shell-v168/.test(sw));
 assert('native and web release check the newest SW URL on every start',
   /sw\.js\?v=4/.test(read('public/app-power-v1.js')) &&
   /app-power-v1\.js\?v=13/.test(index) &&
@@ -408,3 +408,5 @@ if (failures.length){
 console.log(`\nAll ${checks.length} release gate checks passed.`);
 
 assert('unified registration supports local phone or email plus password',/name="identifier"/.test(authAccess)&&/phoneSignInEnabled:!!phone,phoneVerified:false/.test(read('src/server.js')));
+
+assert('registration checks identifier syntax locally and offers safe existing-account sign-in', /authIdentifierCheck/.test(authAccess) && /data-auth2-id-feedback/.test(authAccess) && /data-auth2-existing-login/.test(authAccess));

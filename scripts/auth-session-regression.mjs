@@ -230,3 +230,29 @@ test('phone registration remains a password-protected username, never falsely ph
  assert.match(block,/idx\[loginKey\]=id/);
  assert.match(server,/user\.phoneVerified!==true&&user\.phoneSignInEnabled!==true/);
 });
+
+test('unified identifiers show bilingual formatting feedback without live account lookup',()=>{
+ const from=source.indexOf('function authIdentifierCheck('),to=source.indexOf('function loginForm(){',from);
+ const fn=vm.runInNewContext(source.slice(from,to)+';({authIdentifierCheck,authIdentifierHint})',{tr:ar=>ar});
+ for(const val of ['22334455','٢٢٣٣٤٤٥٥','۲۲۳۳۴۴۵۵'])assert.equal(fn.authIdentifierCheck(val).value,'22334455');
+ assert.equal(fn.authIdentifierCheck(' A@Example.COM ').value,'a@example.com');
+ for(const val of ['2233445','123456789','+22222334455','invalid-email'])assert.equal(fn.authIdentifierCheck(val).valid,false);
+ assert.equal(fn.authIdentifierHint(fn.authIdentifierCheck('22334455'),'login'),'');
+ assert.match(fn.authIdentifierHint(fn.authIdentifierCheck('22334455'),'register'),/عند إنشاء الحساب/);
+ assert.match(source,/data-auth2-existing-login hidden/);
+ assert.match(source,/identifier.addEventListener\('input',refreshIdentifier\)/);
+ assert.match(source,/ex.code==='email_exists'\|\|ex.code==='phone_exists'/);
+ assert.doesNotMatch(source,/api\/auth\/(availability|identifier-exists|check-identifier)/);
+});
+
+test('failed sign-in offers generic advice and prefilled signup, not account lookup',()=>{
+ const login=source.slice(source.indexOf('function loginForm(){'),source.indexOf('function registerForm(){'));
+ assert.match(login,/data-auth2-create-account hidden/);
+ assert.match(login,/role="alert"/);
+ assert.match(source,/if\(create&&authMode==='login'&&ex.code==='bad_credentials'\)create.hidden=false/);
+ assert.match(source,/await renderAuth\('register',true\)/);
+ assert.match(source,/field.value=prior/);
+ const errors=source.slice(source.indexOf('function authErr('),source.indexOf('function gate(',source.indexOf('function authErr(')));
+ assert.match(errors,/تعذر تسجيل الدخول/);
+ assert.doesNotMatch(errors,/هذا الرقم غير مسجل|هذا البريد غير مسجل/);
+});
