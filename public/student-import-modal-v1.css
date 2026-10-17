@@ -204,6 +204,15 @@
     background:#fbfdfc!important;border-radius:10px!important;
     min-width:0;
   }
+  html:not(.nataiji-professor-mode) .nataiji-student-import-modal .nti-review-list input[type=checkbox] {
+    flex:none;width:18px!important;height:18px!important;
+    padding:0!important;margin:0 0 0 6px!important;
+    accent-color:#0a8c72;
+  }
+  html:not(.nataiji-professor-mode) .nataiji-student-import-modal .nti-review-list label:has(input[type=checkbox]) {
+    display:flex!important;align-items:center!important;justify-content:flex-start!important;
+    gap:6px!important;
+  }
   html:not(.nataiji-professor-mode) .nataiji-student-import-modal .nti-review-list [data-regenerate] {
     width:auto;justify-self:start;font-size:11.5px!important;
     padding:8px 12px!important;border-radius:10px!important;
