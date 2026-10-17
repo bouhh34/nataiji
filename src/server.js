@@ -1,5 +1,5 @@
 import {preserveArchivedAssignments,snapshotDepartingResults} from './professor-collaboration.js';
-import {visionConfigured,visionProvider,recognizeStudentDocument} from './student-document-vision.js';
+import {visionProvider,recognizeStudentDocument} from './student-document-vision.js';
 import {importedPupilRows} from './student-roster-import.js';
 import {repairCalls,planPupilCopy} from './pupil-roster-tools.js';
 import {academicYearNext,normalizeAcademicYear,planNextYearRoster} from './year-promotion-tools.js';
