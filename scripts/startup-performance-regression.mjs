@@ -12,7 +12,7 @@ test('all application entrypoint scripts download without blocking the HTML pars
  assert.ok(scripts.length>=35);
  assert.ok(scripts.every(attributes=>/\bdefer\b/.test(attributes)));
  const names=scripts.map(attributes=>attributes.match(/src="([^"]+)"/)?.[1]);
- for(const [first,second] of [['/app.js?v=53','/auth-access-v2.js?v=51'],['/grade-journal.js?v=1','/professor-v2.js?v=83'],['/auth-access-v2.js?v=51','/luxury-ui-v1.js?v=6']]){
+ for(const [first,second] of [['/app.js?v=53','/auth-access-v2.js?v=52'],['/grade-journal.js?v=1','/professor-v2.js?v=83'],['/auth-access-v2.js?v=52','/luxury-ui-v1.js?v=6']]){
   assert.ok(names.indexOf(first)>=0&&names.indexOf(second)>names.indexOf(first),first+' should precede '+second);
  }
  const cacheAssets=JSON.parse(sw.match(/const ASSETS = ([\s\S]*?);/)[1]);
@@ -85,7 +85,7 @@ test('lightweight table updates do not rewrite unchanged cells or loop on their 
 
 test('login, session restore and UI updates ship as versioned assets in the current offline bundle',()=>{
  const css=read('auth.css'),login=read('auth-access-v2.js'),stability=read('app-stability-v1.js');
- for(const asset of ['/auth.css?v=5','/auth-access-v2.js?v=51','/app-stability-v1.js?v=6']){
+ for(const asset of ['/auth.css?v=5','/auth-access-v2.js?v=52','/app-stability-v1.js?v=6']){
   assert.ok(html.includes(asset),'page missing '+asset);
   assert.ok(sw.includes(asset),'offline cache missing '+asset);
  }
@@ -95,7 +95,7 @@ test('login, session restore and UI updates ship as versioned assets in the curr
 });
 
 test('session and login downloads receive preload priority with unchanged execution order',()=>{
- const paths=['/offline-session-v1.js?v=1','/app.js?v=53','/auth-access-v2.js?v=51'];
+ const paths=['/offline-session-v1.js?v=1','/app.js?v=53','/auth-access-v2.js?v=52'];
  const positions=[];
  for(const path of paths){
   assert.ok(html.includes('<link rel="preload" href="'+path+'" as="script" />'));
