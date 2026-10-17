@@ -23,9 +23,13 @@ async function extract(file,progress,cancelled,language='both',cloud=false){
  try{if(file.type==='application/pdf'||/\.pdf$/i.test(file.name)){
  const pdf=await import(base+'pdf.mjs');pdf.GlobalWorkerOptions.workerSrc=base+'pdf.worker.mjs';doc=await pdf.getDocument({data:new Uint8Array(await file.arrayBuffer()),cMapUrl:base+'cmaps/',cMapPacked:true,standardFontDataUrl:base+'standard_fonts/'}).promise;
  if(doc.numPages>30)throw Error('الحد الأقصى 30 صفحة / Maximum 30 pages');
- for(let n=1;n<=doc.numPages;n++){if(cancelled())throw Error('cancelled');progress(`${n} / ${doc.numPages}`);const page=await doc.getPage(n),content=await page.getTextContent(),lines=new Map();for(const item of content.items){if(!item.str)continue;const y=Math.round(item.transform[5]/3)*3;if(!lines.has(y))lines.set(y,[]);lines.get(y).push(item)}
- let text=[...lines.entries()].sort((a,b)=>b[0]-a[0]).map(([,items])=>items.sort((a,b)=>items.filter(x=>x.dir==='rtl').length>items.length/2?b.transform[4]-a.transform[4]:a.transform[4]-b.transform[4]).map(x=>x.str).join(' ')).join('\n');
- if(!/[\p{L}]/u.test(text)){const initial=page.getViewport({scale:1}),scale=Math.min(2,2200/Math.max(initial.width,initial.height)),view=page.getViewport({scale}),canvas=document.createElement('canvas');canvas.width=Math.ceil(view.width);canvas.height=Math.ceil(view.height);await page.render({canvasContext:canvas.getContext('2d'),viewport:view}).promise;text=await ocr(canvas);canvas.width=canvas.height=0}output.push(text);page.cleanup()}
+ for(let n=1;n<=doc.numPages;n++){if(cancelled())throw Error('cancelled');progress(`${n} / ${doc.numPages}`);const page=await doc.getPage(n);
+ // Render each page for Gemini, even if the PDF contains embedded text.
+ // This avoids inconsistent local extraction when a PDF mixes scans and text.
+ const initial=page.getViewport({scale:1}),scale=Math.min(2,2200/Math.max(initial.width,initial.height)),view=page.getViewport({scale}),canvas=document.createElement('canvas');
+ canvas.width=Math.ceil(view.width);canvas.height=Math.ceil(view.height);
+ try{await page.render({canvasContext:canvas.getContext('2d'),viewport:view}).promise;output.push(await ocr(canvas))}
+ finally{canvas.width=canvas.height=0;page.cleanup()}}
  }else output.push(await photo());return {text:output.join('\n'),confidence:confidences.length?Math.min(...confidences):100};
  }catch(err){failed=true;throw err}finally{extracting=false;clearTimeout(timer);workerProgress=()=>{};if(failed||cancelled()){if(worker){if(cachedWorker===worker)cachedWorker=null;await worker.terminate()}else pendingWorker?.then(w=>w.terminate()).catch(()=>{})}else if(worker){idleTimer=setTimeout(()=>{const old=cachedWorker;cachedWorker=null;old?.terminate().catch(()=>{})},120000)}await doc?.destroy()}
 }
@@ -61,13 +65,11 @@ window.nataijiStudentImport={parse,open({toAr,toFr,onSave}){
        <output data-camera-feedback aria-live="polite"></output>
      </label>
    </div>
-   <p data-local-note class="nti-helper">${t('القراءة المحلية مناسبة للنصوص المطبوعة؛ راجع الأسماء المكتوبة بخط اليد.','La lecture locale convient aux textes imprimés. Vérifiez les noms manuscrits.')}</p>
    <div data-reading-choice class="nti-reading-choice" hidden>
-     <strong>${t('كيف تريد قراءة الأسماء؟','Comment lire les noms ?')}</strong>
-     <p class="nti-reading-hint">${t('للخط اليدوي، ننصح بالقراءة الذكية.','Pour l’écriture manuscrite, la lecture intelligente est recommandée.')}</p>
-     <button type="button" data-read-smart class="nti-smart-choice">${t('✨ قراءة الخط اليدوي بالذكاء الاصطناعي','✨ Lire l’écriture manuscrite avec l’IA')}</button>
+     <strong>${t('جاهز لاستخراج الأسماء','Prêt à extraire les noms')}</strong>
+     <p class="nti-reading-hint">${t('يدعم الصور واللوائح المكتوبة بخط اليد أو المطبوعة.','Pour les listes manuscrites ou imprimées.')}</p>
      <p data-smart-disclosure class="nti-smart-disclosure"></p>
-     <button type="button" data-read-local class="nti-local-choice">${t('قراءة محلية دون إرسال الصورة','Lecture locale sans envoyer la photo')}</button>
+     <button type="button" data-read-smart class="nti-smart-choice">${t('✨ استخراج الأسماء بالذكاء الاصطناعي','✨ Extraire les noms avec Gemini')}</button>
    </div>
    <p data-status class="nti-status" role="status" aria-live="polite"></p>
    <label class="nti-text-field"><strong>${t('الأسماء المستخرجة (اسم في كل سطر)','Noms extraits (un nom par ligne)')}</strong><textarea data-text rows="5" dir="auto" placeholder="${t('ستظهر الأسماء هنا، ويمكنك تعديلها أو لصقها يدويًا','Les noms apparaîtront ici. Vous pouvez les corriger ou les coller.')}"></textarea></label>
@@ -77,18 +79,16 @@ window.nataijiStudentImport={parse,open({toAr,toFr,onSave}){
  </div></div>`;
  document.body.append(wrap)
  const q=s=>wrap.querySelector(s),status=q('[data-status]'),review=q('[data-review]'),save=q('[data-save]');let cancelled=false,busy=false,saving=false,confidence=100;
- let cloud=false,providerName='Gemini',pendingFile=null,choiceGeneration=0;
+ let cloud=false,pendingFile=null,choiceGeneration=0;
  const capabilities=fetch('/api/student-document/status')
   .then(r=>r.ok?r.json():{})
-  .then(info=>{
-    cloud=!!info.available;
-    providerName=String(info.provider||'Gemini');
-  }).catch(()=>{cloud=false});
+  .then(info=>{cloud=info.available===true&&info.provider==='Gemini'})
+  .catch(()=>{cloud=false});
  // This information is displayed before the user chooses smart OCR.
  function explainSmartReading(){
    q('[data-smart-disclosure]').textContent=t(
-     'عند الضغط على القراءة الذكية، ستُرسل الصورة إلى '+providerName+' لاستخراج الأسماء. لن تُحفظ الأسماء إلا بعد مراجعتك.',
-     'En choisissant la lecture intelligente, la photo sera envoyée à '+providerName+' pour extraire les noms. Vous vérifierez les noms avant tout enregistrement.'
+     'بالضغط على زر الاستخراج، توافق على إرسال صورة اللائحة إلى Gemini لتحليلها. راجع الأسماء وصححها قبل الحفظ.',
+     'En appuyant sur Extraire, vous acceptez l’envoi de l’image à Gemini pour analyse. Vérifiez et corrigez les noms avant de les enregistrer.'
    );
  }
 
@@ -103,7 +103,7 @@ window.nataijiStudentImport={parse,open({toAr,toFr,onSave}){
  setStep(1);
  save.disabled=true;const setSaveVisible=visible=>{save.hidden=!visible;save.style.display=visible?'':'none';save.disabled=!visible};setSaveVisible(false);
  const close=()=>{cancelled=true;wrap.remove()};q('[data-close]').onclick=()=>{if(!saving)close()};wrap.addEventListener('keydown',e=>{if(e.key==='Escape'&&!saving)close();if(e.key==='Tab'){const controls=[...wrap.querySelectorAll('button,input,textarea')].filter(x=>!x.disabled&&!x.hidden&&x.getClientRects().length);if(e.shiftKey&&document.activeElement===controls[0]){e.preventDefault();controls.at(-1)?.focus()}else if(!e.shiftKey&&document.activeElement===controls.at(-1)){e.preventDefault();controls[0]?.focus()}}});q('[data-close]').focus();
- async function processFile(file,useSmart){
+ async function processFile(file){
   if(!file||busy||cancelled)return;
   busy=true;
   pendingFile=null;
@@ -114,7 +114,8 @@ window.nataijiStudentImport={parse,open({toAr,toFr,onSave}){
   try{
     status.textContent=t('جارٍ استخراج الأسماء...','Extraction des noms en cours…');
     // Only the user's explicit smart-reading button authorizes cloud transfer.
-    const result=await extract(file,message=>{status.textContent=message},()=>cancelled,'both',useSmart&&cloud);
+    if(!cloud)throw Error(t('خدمة Gemini غير متاحة الآن. حاول مجددًا لاحقًا أو أدخل الأسماء يدويًا.','Gemini est indisponible. Réessayez plus tard ou saisissez les noms manuellement.'));
+    const result=await extract(file,message=>{status.textContent=message},()=>cancelled,'both',true);
     confidence=result.confidence;
     q('[data-text]').value=result.text;
     if(!cancelled){
@@ -145,28 +146,21 @@ window.nataijiStudentImport={parse,open({toAr,toFr,onSave}){
   status.textContent=t('جارٍ تجهيز خيارات القراءة…','Préparation des options de lecture…');
   await capabilities;
   if(generation!==choiceGeneration||cancelled||pendingFile!==file)return;
-  q('[data-local-note]').hidden=cloud;
   if(!cloud){
+    pendingFile=null;
     q('[data-reading-choice]').hidden=true;
-    status.textContent=t('القراءة المحلية متاحة الآن. قد تحتاج الكتابة اليدوية إلى تصحيح.','Lecture locale disponible. L’écriture manuscrite peut nécessiter des corrections.');
-    await processFile(file,false);
+    status.textContent=t('Gemini غير متاح الآن. يمكنك كتابة الأسماء أو لصقها في الخانة أدناه ثم مراجعتها وحفظها.','Gemini est indisponible. Saisissez ou collez les noms ci-dessous, puis vérifiez-les et enregistrez-les.');
     return;
   }
   explainSmartReading();
   q('[data-reading-choice]').hidden=false;
-  status.textContent=t('اختر طريقة القراءة المناسبة للصورة.','Choisissez la méthode de lecture.');
+  status.textContent=t('اضغط استخراج الأسماء لبدء تحليل الصورة.','Appuyez sur Extraire pour analyser l’image.');
   q('[data-read-smart]').focus();
  }
  q('[data-read-smart]').onclick=()=>{
-  // Explicit informed click: no image leaves the device before this choice.
+  // Informed affirmative click: selecting a file alone never uploads it.
   if(!pendingFile||busy||!cloud)return;
-  const file=pendingFile;
-  processFile(file,true);
- };
- q('[data-read-local]').onclick=()=>{
-  if(!pendingFile||busy)return;
-  const file=pendingFile;
-  processFile(file,false);
+  processFile(pendingFile);
  };
  q('[data-file]').onchange=read;q('[data-camera]').onchange=read;
  function normalizeLatin(value){return String(value||'').normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase().replace(/[^a-z0-9]+/g,' ').trim()}

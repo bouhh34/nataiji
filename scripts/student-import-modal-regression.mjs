@@ -50,7 +50,7 @@ async function openWith(language,available=false){
   fetch:async(url)=>{
    calls.push(String(url));
    return url==='/api/student-document/status'
-    ?{ok:true,json:async()=>({available,provider:'Gemini'})}
+    ?{ok:true,json:async()=>({available,provider:available?'Gemini':null})}
     :{ok:true,json:async()=>({names:[{text:'محمد محمود',uncertain:false}]})}
   },
   URL:mockUrl,Image:MockImage,console,
@@ -73,8 +73,8 @@ test('Arabic importer shows simple upload paths and no obscure OCR checkbox',asy
  assert.match(x.dialog.innerHTML,/استيراد التلاميذ/);
  assert.match(x.dialog.innerHTML,/اختيار PDF أو صورة/);
  assert.match(x.dialog.innerHTML,/التقاط صورة بالكاميرا/);
- assert.match(x.dialog.innerHTML,/قراءة الخط اليدوي بالذكاء الاصطناعي/);
- assert.match(x.dialog.innerHTML,/قراءة محلية دون إرسال الصورة/);
+ assert.match(x.dialog.innerHTML,/استخراج الأسماء بالذكاء الاصطناعي/);
+ assert.doesNotMatch(x.dialog.innerHTML,/data-read-local/);
  assert.doesNotMatch(x.dialog.innerHTML,/data-cloud-consent/);
  assert.equal(x.steps[0].attributes['aria-current'],'step');
  assert.equal(x.map.get('[data-reading-choice]').hidden,true);
@@ -94,13 +94,32 @@ test('clear explicit smart-reading click is the only gateway to Gemini image tra
  await new Promise(resolve=>setTimeout(resolve,15));
  assert.equal(x.calls.filter(c=>c==='/api/student-document/recognize').length,1);
 });
-test('French import describes AI image transfer before choice and preserves local button',async()=>{
+test('French import explains Gemini transfer and has no local OCR button',async()=>{
  const x=await openWith('fr',true);
- assert.match(x.dialog.innerHTML,/Lire l’écriture manuscrite avec l’IA/);
+ assert.match(x.dialog.innerHTML,/Extraire les noms avec Gemini/);
  await x.select();
- assert.match(x.map.get('[data-smart-disclosure]').textContent,/envoyée à Gemini/);
- assert.ok(typeof x.map.get('[data-read-local]').onclick==='function');
+ assert.match(x.map.get('[data-smart-disclosure]').textContent,/l’image à Gemini/);
+ assert.doesNotMatch(x.dialog.innerHTML,/data-read-local/);
  assert.equal(x.calls.filter(c=>c==='/api/student-document/recognize').length,0);
+});
+test('Gemini unavailable: selecting a photo never starts unreliable local OCR and allows manual entry',async()=>{
+ const x=await openWith('ar',false);
+ await x.select();
+ assert.equal(x.map.get('[data-reading-choice]').hidden,true);
+ assert.match(x.map.get('[data-status]').textContent,/Gemini غير متاح/);
+ assert.equal(x.calls.filter(c=>c==='/api/student-document/recognize').length,0);
+ assert.equal(x.map.get('[data-file]').disabled,false);
+ assert.equal(x.dialog.querySelector('[data-text]').disabled,false);
+});
+test('server route offers only Gemini and rejects another provider before extracting pupil names',()=>{
+ const backend=fs.readFileSync(new URL('../src/server.js',import.meta.url),'utf8');
+ assert.match(backend,/const enabled=visionProvider\(\)==='Gemini'/);
+ assert.match(backend,/if\(visionProvider\(\)!=='Gemini'\)return res.status\(503\)/);
+});
+test('all PDF pages are rendered and sent through cloud recognition, not local text OCR',()=>{
+ assert.match(source,/output.push\(await ocr\(canvas\)\)/);
+ assert.match(source,/const result=await extract\(file,message=>\{status.textContent=message\},\(\)=>cancelled,'both',true\)/);
+ assert.doesNotMatch(source,/processFile\(file,false\)/);
 });
 test('manual pasted names still advance review, and original class save handler exists',async()=>{
  const x=await openWith('ar',false);

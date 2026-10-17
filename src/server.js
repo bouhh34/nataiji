@@ -1,5 +1,5 @@
 import {preserveArchivedAssignments,snapshotDepartingResults} from './professor-collaboration.js';
-import {visionConfigured,visionProvider,recognizeStudentDocument} from './student-document-vision.js';
+import {visionProvider,recognizeStudentDocument} from './student-document-vision.js';
 import {importedPupilRows} from './student-roster-import.js';
 import {repairCalls,planPupilCopy} from './pupil-roster-tools.js';
 import {academicYearNext,normalizeAcademicYear,planNextYearRoster} from './year-promotion-tools.js';
@@ -1081,9 +1081,14 @@ app.post('/api/subjects/normalize-primary',auth,async(req,res)=>{
  try{await client.query('BEGIN');const sourceIds=mergeRows.map(r=>String(r.subject_id)),mq=await client.query('SELECT term,pupil_key,subject_id,value FROM nataiji_marks WHERE school_id=$1 AND class_id=$2 AND subject_id=ANY($3::text[])',[req.user.schoolId,classId,sourceIds]),groups=new Map();for(const row of mq.rows){const k=String(row.term)+'\u0000'+String(row.pupil_key);if(!groups.has(k))groups.set(k,{term:row.term,pupil:row.pupil_key,values:[]});groups.get(k).values.push(row.value)}await client.query('DELETE FROM nataiji_marks WHERE school_id=$1 AND class_id=$2 AND subject_id=ANY($3::text[])',[req.user.schoolId,classId,sourceIds]);const mergedId=target.find(x=>x.sourceIds.length>1)?.id;if(mergedId)for(const g of groups.values()){const value=primaryMergedValue(g.values);if(value!=='')await client.query('INSERT INTO nataiji_marks(school_id,class_id,term,pupil_key,subject_id,value,updated_at) VALUES($1,$2,$3,$4,$5,$6,now()) ON CONFLICT(school_id,class_id,term,pupil_key,subject_id) DO UPDATE SET value=EXCLUDED.value,updated_at=now()',[req.user.schoolId,classId,g.term,g.pupil,mergedId,value])}await client.query('DELETE FROM nataiji_subjects WHERE school_id=$1 AND class_id=$2',[req.user.schoolId,classId]);for(let i=0;i<target.length;i++)await client.query('INSERT INTO nataiji_subjects(school_id,class_id,subject_id,data,position) VALUES($1,$2,$3,$4::jsonb,$5)',[req.user.schoolId,classId,target[i].id,JSON.stringify(target[i].data),i]);await client.query('INSERT INTO nataiji_migrations(school_id,class_id,resource) VALUES($1,$2,$3) ON CONFLICT DO NOTHING',[req.user.schoolId,classId,'primary-subjects-v2']);await client.query('COMMIT')}catch(e){await client.query('ROLLBACK');console.error('primary subject normalization failed',req.user.schoolId,classId,e);return res.status(500).json({error:'subject_normalization_failed'})}finally{client.release()}
  const q=await pool.query('SELECT subject_id,data FROM nataiji_subjects WHERE school_id=$1 AND class_id=$2 ORDER BY position,updated_at',[req.user.schoolId,classId]);res.json({ok:true,changed:true,subjects:subjectRows(q.rows)})
 });
-app.get('/api/student-document/status',auth,(_req,res)=>res.json({available:visionConfigured(),provider:visionProvider()}));
+app.get('/api/student-document/status',auth,(_req,res)=>{
+ const enabled=visionProvider()==='Gemini';
+ res.json({available:enabled,provider:enabled?'Gemini':null});
+});
 const studentVisionRate=rateLimit('student-vision',20,60*60*1000);
 app.post('/api/student-document/recognize',auth,studentVisionRate,express.json({limit:'3mb'}),async(req,res)=>{
+ // Student list images are sent only to the configured Gemini service.
+ if(visionProvider()!=='Gemini')return res.status(503).json({error:'vision_unconfigured'});
  try{res.json(await recognizeStudentDocument(req.body?.image))}catch(err){res.status(err.status||502).json({error:err.status?err.message:'vision_unavailable'})}
 });
 // No destructive move: copy only pupil identities. Source pupils and marks remain intact.
