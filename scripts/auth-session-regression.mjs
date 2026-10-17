@@ -256,3 +256,15 @@ test('failed sign-in offers generic advice and prefilled signup, not account loo
  assert.match(errors,/تعذر تسجيل الدخول/);
  assert.doesNotMatch(errors,/هذا الرقم غير مسجل|هذا البريد غير مسجل/);
 });
+
+test('signup gives accessible live password minimum guidance in Arabic and French',()=>{
+ const start=source.indexOf('function registerForm(){'),end=source.indexOf('function forgotForm(){',start);
+ const form=lang=>vm.runInNewContext(source.slice(start,end)+';registerForm()',{tr:(ar,fr)=>lang==='fr'?fr:ar});
+ const ar=form('ar'),fr=form('fr');
+ assert.match(ar,/data-auth2-password-hint role="status" aria-live="polite"/);
+ assert.match(ar,/aria-describedby="auth2PasswordHint"/);
+ assert.match(ar,/8 أحرف أو أرقام على الأقل/);
+ assert.match(fr,/au moins 8 caractères ou chiffres/);
+ assert.match(source,/field.addEventListener\('input',updatePasswordHint\)/);
+ assert.match(source,/length<8/);
+});
