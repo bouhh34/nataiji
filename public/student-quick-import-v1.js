@@ -66,7 +66,8 @@ function sync(){
     });
   }
   btn.hidden=false;
-  q('span',btn).textContent=label('استيراد ملف','Importer un fichier');
+  q('span',btn).textContent=label('رفع ملف','Importer');
+  btn.setAttribute('aria-label',label('استيراد ملف','Importer un fichier'));
   btn.title=label('استيراد PDF أو صورة أو Excel / CSV','Importer PDF, photo, Excel ou CSV');
   menu.setAttribute('aria-label',label('خيارات استيراد التلاميذ','Options d’importation des élèves'));
   q('[data-student-import="document"] span',menu).textContent=label('PDF أو صورة','PDF ou photo');
