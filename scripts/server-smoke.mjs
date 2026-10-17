@@ -54,6 +54,16 @@ try{
   const missingScript=await fetch(base+'/missing-script.js');
   if(missingScript.status!==404)throw new Error('missing script must not receive the HTML shell');
   await request('/api/student-document/status',401);
+  const phoneClient=client(),phoneNumber='22334455',phonePassword='PhoneSmoke-9021';
+  const phoneAccount=await phoneClient.request('/api/auth/register',{method:'POST',body:{name:'Phone Only Smoke',identifier:'٢٢٣٣٤٤٥٥',password:phonePassword},expected:201});
+  if(phoneAccount.user?.email!==''||phoneAccount.user?.phone!==phoneNumber||phoneAccount.user?.phoneVerified||phoneAccount.user?.isSuperAdmin)throw new Error('phone-only registration must create an unverified, non-owner account');
+  await phoneClient.request('/api/auth/logout',{method:'POST',body:{}});
+  phoneClient.clear();
+  await phoneClient.request('/api/auth/login',{method:'POST',body:{identifier:phoneNumber,password:'wrong-pass'},expected:401});
+  await phoneClient.request('/api/auth/login',{method:'POST',body:{identifier:'٢٢٣٣٤٤٥٥',password:phonePassword}});
+  const anotherPhone=client();
+  await anotherPhone.request('/api/auth/register',{method:'POST',body:{name:'Duplicate Number',identifier:phoneNumber,password:phonePassword},expected:409});
+  await anotherPhone.request('/api/auth/register',{method:'POST',body:{name:'Invalid Number',identifier:'+22222334455',password:phonePassword},expected:400});
   const owner=client(),member=client(),memberEmail='teacher.smoke@example.com';
   const ownerRegistration=await owner.request('/api/auth/register',{method:'POST',body:{name:'Owner Smoke',email:ownerEmail,password:'OwnerPass-9021',school:'Owner school'},expected:201});
   if(!ownerRegistration.user?.isSuperAdmin||ownerRegistration.user?.name!=='Ahmedou bembe')throw new Error('configured super admin was not created correctly');

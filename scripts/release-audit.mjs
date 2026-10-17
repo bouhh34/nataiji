@@ -120,7 +120,7 @@ assert('student import menu is teacher-only and safe for print and no edit right
  /@media screen/.test(studentShortcutCss) &&
  !/@media print/.test(studentShortcutCss) &&
  /student-quick-import-ready/.test(studentShortcutCss));
-assert('PWA cache version current', /nataiji-shell-v166/.test(sw));
+assert('PWA cache version current', /nataiji-shell-v167/.test(sw));
 const commercialPlan = read('public/commercial-foundation-v1.js');
 assert('plan card script version is present in web and Android cache',
   /commercial-foundation-v1\.js\?v=4/.test(index) &&
@@ -140,7 +140,7 @@ assert('free plan card is informational, stable, and bilingual',
 assert('new Play tester shell installs atomically and activates after complete precache',
   /cache=>cache.addAll\(ASSETS\)\)\.then\(\(\)=>self.skipWaiting\(\)\)/.test(sw) &&
   /navigate/.test(sw) &&
-  /nataiji-shell-v166/.test(sw));
+  /nataiji-shell-v167/.test(sw));
 assert('native and web release check the newest SW URL on every start',
   /sw\.js\?v=4/.test(read('public/app-power-v1.js')) &&
   /app-power-v1\.js\?v=13/.test(index) &&
@@ -237,9 +237,9 @@ assert('teacher bilingual timetable title uses explicit isolated language spans'
 const accountSheetJs=read('public/teacher-account-sheet-v1.js');
 const accountSheetCss=read('public/teacher-account-sheet-v1.css');
 assert('teacher account sheet scripts and styles versioned in offline bundle',
-  /teacher-account-sheet-v1\.js\?v=1/.test(index) &&
+  /teacher-account-sheet-v1\.js\?v=2/.test(index) &&
   /teacher-account-sheet-v1\.css\?v=1/.test(index) &&
-  /teacher-account-sheet-v1\.js\?v=1/.test(sw) &&
+  /teacher-account-sheet-v1\.js\?v=2/.test(sw) &&
   /teacher-account-sheet-v1\.css\?v=1/.test(sw));
 assert('account sheet reuses actual school password logout controls without changing data',
   /main > header \.profile/.test(accountSheetJs) &&
@@ -406,3 +406,5 @@ if (failures.length){
   process.exit(1);
 }
 console.log(`\nAll ${checks.length} release gate checks passed.`);
+
+assert('unified registration supports local phone or email plus password',/name="identifier"/.test(authAccess)&&/phoneSignInEnabled:!!phone,phoneVerified:false/.test(read('src/server.js')));

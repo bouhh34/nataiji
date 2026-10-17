@@ -204,3 +204,29 @@ test('phone sign-in accepts exactly eight local digits including Arabic numerals
  assert.match(server,/localLoginPhone\(user\.phone\)!==phone/);
  assert.match(server,/verifyPassword\(password,user\)/);
 });
+
+test('registration uses exactly name, a unified identifier, and password in both languages',()=>{
+ const beginning=source.indexOf('function registerForm(){'),end=source.indexOf('function forgotForm(){',beginning);
+ assert.ok(beginning>0&&end>beginning);
+ const render=language=>vm.runInNewContext(source.slice(beginning,end)+';registerForm()',{tr:(ar,fr)=>language==='fr'?fr:ar});
+ const ar=render('ar'),fr=render('fr');
+ for(const html of [ar,fr]){
+  assert.match(html,/name="name"/);assert.match(html,/name="identifier"/);assert.match(html,/name="password"/);
+  assert.match(html,/autocomplete="username"/);assert.match(html,/autocomplete="new-password"/);
+  assert.match(html,/minlength="8"/);assert.match(html,/data-auth2-password-toggle/);
+  assert.doesNotMatch(html,/name="email" type="email"/);
+ }
+ assert.match(ar,/رقم الهاتف أو البريد الإلكتروني/);
+ assert.match(ar,/دون \+222/);
+ assert.match(ar,/استعادة الحساب تكون عبر دعم نتائجي/);
+ assert.match(fr,/Numéro de téléphone ou e-mail/);
+});
+test('phone registration remains a password-protected username, never falsely phone-verified or super-admin',()=>{
+ const server=fs.readFileSync(new URL('../src/server.js',import.meta.url),'utf8');
+ const block=server.slice(server.indexOf("app.post('/api/auth/register',registerRate,"),server.indexOf("app.post('/api/auth/login',loginRate,"));
+ assert.match(block,/phone:phone\|\|''/);
+ assert.match(block,/phoneSignInEnabled:!!phone,phoneVerified:false/);
+ assert.match(block,/const owner=Boolean\(email&&configuredOwnerEmail\(\)&&email===configuredOwnerEmail\(\)\)/);
+ assert.match(block,/idx\[loginKey\]=id/);
+ assert.match(server,/user\.phoneVerified!==true&&user\.phoneSignInEnabled!==true/);
+});

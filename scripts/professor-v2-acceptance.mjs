@@ -21,7 +21,7 @@ async function registerProfessor(name,email){
  await page.locator('[data-auth2="register"]').waitFor({state:'visible',timeout:10000});
  await page.locator('[data-auth2="register"]').click();
  await page.locator('#auth2Form input[name="name"]').fill(name);
- await page.locator('#auth2Form input[name="email"]').fill(email);
+ await page.locator('#auth2Form input[name="identifier"]').fill(email);
  await page.locator('#auth2Form input[name="password"]').fill('ProfessorQA-9021');
  await page.locator('#auth2Form .auth-submit').click();
  await page.locator('[data-profile-type="professor"]').waitFor({state:'visible',timeout:12000});
@@ -213,7 +213,7 @@ try{
  await logout();
  await page.locator('[data-auth2="register"]').click();
  await page.locator('#auth2Form input[name="name"]').fill('Professor Two');
- await page.locator('#auth2Form input[name="email"]').fill('professor.two@example.com');
+ await page.locator('#auth2Form input[name="identifier"]').fill('professor.two@example.com');
  await page.locator('#auth2Form input[name="password"]').fill('ProfessorQA-9021');
  await page.locator('#auth2Form .auth-submit').click();
  await page.locator('[data-profile-type="professor"]').waitFor({state:'visible',timeout:12000});

@@ -26,7 +26,7 @@ try{
 
   await page.locator('[data-auth2="register"]').click();
   await page.locator('#auth2Form input[name="name"]').fill('Mobile QA Teacher');
-  await page.locator('#auth2Form input[name="email"]').fill('mobile.owner@example.com');
+  await page.locator('#auth2Form input[name="identifier"]').fill('mobile.owner@example.com');
   await page.locator('#auth2Form input[name="password"]').fill('MobileQA-9021');
   await page.locator('#auth2Form .auth-submit').click();
 
