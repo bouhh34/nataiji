@@ -94,11 +94,11 @@ test('clear explicit smart-reading click is the only gateway to Gemini image tra
  await new Promise(resolve=>setTimeout(resolve,15));
  assert.equal(x.calls.filter(c=>c==='/api/student-document/recognize').length,1);
 });
-test('French import describes AI image transfer before choice and preserves local button',async()=>{
+test('French import explains Gemini transfer and has no local OCR button',async()=>{
  const x=await openWith('fr',true);
  assert.match(x.dialog.innerHTML,/Extraire les noms avec Gemini/);
  await x.select();
- assert.match(x.map.get('[data-smart-disclosure]').textContent,/envoyée à Gemini/);
+ assert.match(x.map.get('[data-smart-disclosure]').textContent,/l’image à Gemini/);
  assert.doesNotMatch(x.dialog.innerHTML,/data-read-local/);
  assert.equal(x.calls.filter(c=>c==='/api/student-document/recognize').length,0);
 });
