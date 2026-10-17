@@ -30,12 +30,80 @@ async function extract(file,progress,cancelled,language='both',cloud=false){
  }catch(err){failed=true;throw err}finally{extracting=false;clearTimeout(timer);workerProgress=()=>{};if(failed||cancelled()){if(worker){if(cachedWorker===worker)cachedWorker=null;await worker.terminate()}else pendingWorker?.then(w=>w.terminate()).catch(()=>{})}else if(worker){idleTimer=setTimeout(()=>{const old=cachedWorker;cachedWorker=null;old?.terminate().catch(()=>{})},120000)}await doc?.destroy()}
 }
 window.nataijiStudentImport={parse,open({toAr,toFr,onSave}){
- const wrap=document.createElement('div');wrap.className='professor-modal';wrap.innerHTML=`<div class="professor-modal-card" role="dialog" aria-modal="true" aria-label="استيراد التلاميذ / Importer des élèves"><header><h2>استيراد التلاميذ / Importer des élèves</h2><button type="button" data-close aria-label="إغلاق / Fermer">×</button></header><div class="professor-modal-body"><p>ارفع PDF أو صورة واضحة، ثم راجع الأسماء قبل الحفظ. الكتابة باللغة الأخرى اقتراح قابل للتعديل.<br>Importez un PDF ou une photo nette, puis vérifiez les noms et leur transcription.</p><p data-cloud-note hidden></p><p data-local-note>القارئ مناسب للنص المطبوع. الخط اليدوي قد يُقرأ خطأ؛ راجع الصورة والأسماء.<br>Le lecteur est adapté au texte imprimé. Vérifiez particulièrement les noms manuscrits.</p><label>PDF / صورة / Photo<input type="file" data-file accept="application/pdf,image/jpeg,image/png,image/webp,image/bmp,.pdf"></label><label>تصوير اللائحة / Photographier la liste<input type="file" data-camera accept="image/*" capture="environment"></label><p data-status role="status"></p><label>النص المستخرج: اسم واحد في كل سطر / Un nom par ligne<textarea data-text rows="8" dir="auto" style="width:100%"></textarea></label><button type="button" data-review>مراجعة الأسماء / Vérifier les noms</button><div data-rows></div><button type="button" class="primary" data-save hidden>إضافة إلى القسم / Ajouter à la classe</button></div></div>`;document.body.append(wrap);
+ const french=localStorage.getItem('nataiji-lang')==='fr';
+ const t=(ar,fr)=>french?fr:ar;
+ const wrap=document.createElement('div');wrap.className='professor-modal nataiji-student-import-modal';
+ wrap.innerHTML=`<div class="professor-modal-card" role="dialog" aria-modal="true" aria-labelledby="nti-import-title" dir="${french?'ltr':'rtl'}">
+ <header>
+   <div class="nti-heading"><span class="nti-heading-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6M8 13h8M8 17h5"/></svg></span><div><small>${t('لائحة التلاميذ','Liste des élèves')}</small><h2 id="nti-import-title">${t('استيراد التلاميذ','Importer des élèves')}</h2></div></div>
+   <button type="button" data-close aria-label="${t('إغلاق','Fermer')}">×</button>
+ </header>
+ <div class="professor-modal-body">
+   <div class="nti-steps" aria-label="${t('مراحل الاستيراد','Étapes de l’importation')}">
+     <div data-step="1" aria-current="step"><b>1</b><span>${t('اختيار الملف','Choisir le fichier')}</span></div>
+     <div data-step="2"><b>2</b><span>${t('مراجعة الأسماء','Vérifier les noms')}</span></div>
+     <div data-step="3"><b>3</b><span>${t('حفظ التلاميذ','Enregistrer')}</span></div>
+   </div>
+   <p class="nti-intro">${t('ارفع صورة واضحة أو ملف PDF، ثم راجع الأسماء بالعربية والفرنسية قبل الحفظ.','Importez une photo nette ou un PDF, puis vérifiez les noms en arabe et en français avant de les enregistrer.')}</p>
+   <div class="nti-upload-grid">
+     <label class="nti-upload-choice">
+       <span class="nti-upload-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6M8 13h8M8 17h5"/></svg></span>
+       <strong>${t('اختيار PDF أو صورة','Choisir un PDF ou une photo')}</strong>
+       <small>PDF · JPG · PNG · WebP</small>
+       <input type="file" data-file accept="application/pdf,image/jpeg,image/png,image/webp,image/bmp,.pdf" aria-label="${t('اختيار ملف PDF أو صورة','Sélectionner un PDF ou une photo')}">
+       <output data-file-feedback aria-live="polite"></output>
+     </label>
+     <label class="nti-upload-choice">
+       <span class="nti-upload-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 7h4l2-3h4l2 3h4a2 2 0 0 1 2 2v10a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V9a2 2 0 0 1 2-2Z"/><circle cx="12" cy="13.5" r="3.5"/></svg></span>
+       <strong>${t('التقاط صورة بالكاميرا','Prendre une photo')}</strong>
+       <small>${t('تصوير لائحة التلاميذ','Photographier la liste')}</small>
+       <input type="file" data-camera accept="image/*" capture="environment" aria-label="${t('تصوير لائحة التلاميذ','Photographier la liste des élèves')}">
+       <output data-camera-feedback aria-live="polite"></output>
+     </label>
+   </div>
+   <p data-local-note class="nti-helper">${t('القراءة المحلية مناسبة للنصوص المطبوعة؛ راجع الأسماء المكتوبة بخط اليد.','La lecture locale convient aux textes imprimés. Vérifiez les noms manuscrits.')}</p>
+   <div data-cloud-note class="nti-cloud-disclosure" hidden>
+     <label><input type="checkbox" data-cloud-consent><span data-cloud-copy></span></label>
+   </div>
+   <p data-status class="nti-status" role="status" aria-live="polite"></p>
+   <label class="nti-text-field"><strong>${t('الأسماء المستخرجة (اسم في كل سطر)','Noms extraits (un nom par ligne)')}</strong><textarea data-text rows="5" dir="auto" placeholder="${t('ستظهر الأسماء هنا، ويمكنك تعديلها أو لصقها يدويًا','Les noms apparaîtront ici. Vous pouvez les corriger ou les coller.')}"></textarea></label>
+   <button type="button" class="nti-review-button" data-review>${t('متابعة إلى مراجعة الأسماء','Vérifier les noms')} <span aria-hidden="true">←</span></button>
+   <div data-rows class="nti-review-list"></div>
+   <button type="button" class="primary nti-save-button" data-save hidden>${t('حفظ التلاميذ في القسم','Enregistrer les élèves dans la classe')}</button>
+ </div></div>`;
+ document.body.append(wrap)
  const q=s=>wrap.querySelector(s),status=q('[data-status]'),review=q('[data-review]'),save=q('[data-save]');let cancelled=false,busy=false,saving=false,confidence=100;
- let cloud=false;const capabilities=fetch('/api/student-document/status').then(r=>r.ok?r.json():{}).then(info=>{cloud=!!info.available;if(cloud){q('[data-local-note]').style.display='none';const note=q('[data-cloud-note]');note.hidden=false;note.textContent='القراءة الذكية مفعّلة: تُرسل الصورة إلى '+(info.provider||'مزود القراءة')+' لاستخراج الأسماء، ثم تراجعها قبل الحفظ. / Lecture intelligente : image envoyée à '+(info.provider||'service de lecture')+', noms à vérifier.'}}).catch(()=>{});
+ let cloud=false;
+ const capabilities=fetch('/api/student-document/status')
+  .then(r=>r.ok?r.json():{})
+  .then(info=>{
+    cloud=!!info.available;
+    if(!cloud)return;
+    const note=q('[data-cloud-note]');
+    note.hidden=false;
+    const provider=String(info.provider||'Gemini');
+    q('[data-cloud-copy]').textContent=t(
+      'استخدام القراءة الذكية: أوافق على إرسال صورة المستند إلى '+provider+' لاستخراج الأسماء. يمكنني إبقاء هذا الخيار غير محدد واستخدام القراءة المحلية دون إرسال الصورة إلى خدمة القراءة الذكية.',
+      'Lecture intelligente : j’accepte l’envoi de l’image du document à '+provider+' pour extraire les noms. Sans cocher cette case, la lecture locale reste utilisée.'
+    );
+  }).catch(()=>{});
+ const setStep=number=>{
+   for(const el of wrap.querySelectorAll('[data-step]')){
+     const active=Number(el.dataset.step)===number;
+     if(active)el.setAttribute('aria-current','step');
+     else el.removeAttribute('aria-current');
+     el.classList.toggle('is-current',active);
+   }
+ };
+ setStep(1);
  save.disabled=true;const setSaveVisible=visible=>{save.hidden=!visible;save.style.display=visible?'':'none';save.disabled=!visible};setSaveVisible(false);
  const close=()=>{cancelled=true;wrap.remove()};q('[data-close]').onclick=()=>{if(!saving)close()};wrap.addEventListener('keydown',e=>{if(e.key==='Escape'&&!saving)close();if(e.key==='Tab'){const controls=[...wrap.querySelectorAll('button,input,textarea')].filter(x=>!x.disabled&&!x.hidden&&x.getClientRects().length);if(e.shiftKey&&document.activeElement===controls[0]){e.preventDefault();controls.at(-1)?.focus()}else if(!e.shiftKey&&document.activeElement===controls.at(-1)){e.preventDefault();controls[0]?.focus()}}});q('[data-close]').focus();
- async function read(e){const file=e.target.files[0];if(!file||busy)return;busy=true;setSaveVisible(false);review.disabled=true;q('[data-rows]').replaceChildren();for(const input of wrap.querySelectorAll('input[type=file]'))input.disabled=true;try{await capabilities;const result=await extract(file,s=>status.textContent=s,()=>cancelled,'both',cloud);confidence=result.confidence;q('[data-text]').value=result.text;if(!cancelled){status.textContent='راجع النص، ثم اضغط مراجعة الأسماء / Vérifiez le texte';review.onclick()}}catch(err){if(!cancelled)status.textContent='تعذر قراءة الملف؛ جرّب صورة أوضح أو ألصق الأسماء أدناه / Lecture impossible : utilisez une photo plus nette ou collez les noms. '+err.message}finally{busy=false;review.disabled=false;for(const input of wrap.querySelectorAll('input[type=file]')){input.disabled=false;input.value=''}}}
+ async function read(e){const file=e.target.files[0];if(!file||busy)return;
+  const feedback=e.target.hasAttribute('data-camera')?q('[data-camera-feedback]'):q('[data-file-feedback]');
+  feedback.textContent=file.name;
+  setStep(1);
+  busy=true;setSaveVisible(false);review.disabled=true;q('[data-rows]').replaceChildren();for(const input of wrap.querySelectorAll('input[type=file]'))input.disabled=true;try{await capabilities;const consent=cloud&&q('[data-cloud-consent]')?.checked===true;
+  const result=await extract(file,s=>status.textContent=s,()=>cancelled,'both',consent);confidence=result.confidence;q('[data-text]').value=result.text;if(!cancelled){status.textContent='راجع النص، ثم اضغط مراجعة الأسماء / Vérifiez le texte';review.onclick()}}catch(err){if(!cancelled)status.textContent='تعذر قراءة الملف؛ جرّب صورة أوضح أو ألصق الأسماء أدناه / Lecture impossible : utilisez une photo plus nette ou collez les noms. '+err.message}finally{busy=false;review.disabled=false;for(const input of wrap.querySelectorAll('input[type=file]')){input.disabled=false;input.value=''}}}
  q('[data-file]').onchange=read;q('[data-camera]').onchange=read;
  function normalizeLatin(value){return String(value||'').normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase().replace(/[^a-z0-9]+/g,' ').trim()}
  function frenchDifference(a,b){
@@ -48,7 +116,7 @@ window.nataijiStudentImport={parse,open({toAr,toFr,onSave}){
   const ar=row.querySelector('[data-ar]'),french=row.querySelector('[data-fr]'),hint=row.querySelector('[data-hint]'),regenerate=row.querySelector('[data-regenerate]');
   const proposal=ar.value.trim()?toFr(ar.value.trim()):'',current=french.value.trim(),manual=row.dataset.frManual==='true';
   const distinct=!!(proposal&&current&&frenchDifference(proposal,current)>0.48);
-  hint.textContent=distinct?'اختلاف ملحوظ بين الفرنسية والاقتراح؛ راجع الاسمين قبل الحفظ. / Vérifiez la transcription française proposée.':manual?'الفرنسية المستوردة أو المصححة محفوظة، ولا تُستبدل تلقائيًا. / La version française est protégée.':'الفرنسية المقترحة قابلة للتعديل. / Transcription française modifiable.';
+  hint.textContent=distinct?t('اختلاف بين الفرنسية والاقتراح؛ راجع الاسمين قبل الحفظ.','Vérifiez la transcription française proposée.'):manual?t('الفرنسية المصححة محفوظة ولن تُستبدل تلقائيًا.','La version française corrigée est conservée.'):t('الفرنسية المقترحة قابلة للتعديل.','Transcription française modifiable.');
   hint.hidden=!(distinct||manual);regenerate.hidden=!manual&&!distinct;
  }
  function synchronizeRow(row,changed){
@@ -60,18 +128,20 @@ window.nataijiStudentImport={parse,open({toAr,toFr,onSave}){
  }
  review.onclick=()=>{
   const names=parse(q('[data-text]').value);if(names.length>800){status.textContent='الحد الأقصى 800 تلميذ / Maximum 800 élèves';return}
-  rowsContainer.innerHTML=names.map(raw=>{const arabic=/[\u0600-\u06ff]/u.test(raw),nameAr=arabic?raw:toAr(raw),nameFr=arabic?toFr(raw):raw;return `<div data-row data-ar-manual="${arabic}" data-fr-manual="${!arabic}" style="padding:10px;border-bottom:1px solid #ddd"><label><input type="checkbox" data-selected ${confidence>=65?'checked':''}> إضافة / Ajouter</label><label>الاسم كما في الملف / Nom original<input data-source maxlength="160" dir="auto" value="${esc(raw)}"></label><div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:8px"><label>الاسم بالعربية / Nom en arabe<input data-ar maxlength="160" dir="rtl" value="${esc(nameAr)}"></label><label>Nom en français / الاسم بالفرنسية<input data-fr maxlength="160" dir="ltr" value="${esc(nameFr)}"></label></div><small data-hint role="status"></small><button type="button" data-regenerate>↻ تحديث الفرنسية من العربية / Actualiser depuis l’arabe</button></div>`}).join('');
+  rowsContainer.innerHTML=names.map(raw=>{const arabic=/[\u0600-\u06ff]/u.test(raw),nameAr=arabic?raw:toAr(raw),nameFr=arabic?toFr(raw):raw;return `<div data-row data-ar-manual="${arabic}" data-fr-manual="${!arabic}" style="padding:10px;border-bottom:1px solid #ddd"><label><input type="checkbox" data-selected ${confidence>=65?'checked':''}> ${t('إضافة','Ajouter')}</label><label>${t('الاسم كما في الملف','Nom original')}<input data-source maxlength="160" dir="auto" value="${esc(raw)}"></label><div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:8px"><label>${t('الاسم بالعربية','Nom en arabe')}<input data-ar maxlength="160" dir="rtl" value="${esc(nameAr)}"></label><label>${t('الاسم بالفرنسية','Nom en français')}<input data-fr maxlength="160" dir="ltr" value="${esc(nameFr)}"></label></div><small data-hint role="status"></small><button type="button" data-regenerate>↻ ${t('تحديث الفرنسية من العربية','Actualiser depuis l’arabe')}</button></div>`}).join('');
   rowsContainer.querySelectorAll('[data-row]').forEach(inspectRow);setSaveVisible(!!names.length);
-  status.textContent=`${confidence<65?'قراءة ضعيفة: راجع كل اسم قبل اختياره. / Lecture incertaine : vérifiez chaque nom. ':''}${names.length} — راجع العربية والفرنسية جنبًا إلى جنب قبل الحفظ / Vérifiez les deux langues avant l’enregistrement`
+  setStep(names.length?2:1);
+  status.textContent=`${confidence<65?t('قراءة ضعيفة: راجع كل اسم قبل اختياره. ','Lecture incertaine : vérifiez chaque nom. '):''}${names.length} — ${t('راجع الاسمين بالعربية والفرنسية قبل الحفظ','Vérifiez les noms en arabe et en français avant l’enregistrement')}`
  };
  rowsContainer.addEventListener('input',e=>{const row=e.target.closest('[data-row]');if(!row)return;const type=e.target.hasAttribute('data-source')?'source':e.target.hasAttribute('data-ar')?'ar':e.target.hasAttribute('data-fr')?'fr':null;if(type)synchronizeRow(row,type)});
  rowsContainer.addEventListener('click',e=>{const button=e.target.closest('[data-regenerate]');if(!button)return;const row=button.closest('[data-row]'),ar=row.querySelector('[data-ar]'),french=row.querySelector('[data-fr]');row.dataset.frManual='false';french.value=toFr(ar.value.trim());inspectRow(row)});
- q('[data-text]').oninput=()=>{confidence=100;setSaveVisible(false);q('[data-rows]').replaceChildren()};
+ q('[data-text]').oninput=()=>{confidence=100;setSaveVisible(false);setStep(1);q('[data-rows]').replaceChildren()};
  save.onclick=async()=>{
   const rows=[...rowsContainer.querySelectorAll('[data-row]')].filter(r=>r.querySelector('[data-selected]').checked).map(r=>({name:r.querySelector('[data-ar]').value.trim(),nameFr:r.querySelector('[data-fr]').value.trim()}));
-  if(!rows.length||rows.some(r=>!r.name||!r.nameFr)){status.textContent='أكمل الأسماء المحددة قبل الحفظ / Complétez les noms sélectionnés avant de sauvegarder';return}
+  if(!rows.length||rows.some(r=>!r.name||!r.nameFr)){status.textContent=t('أكمل الأسماء المحددة قبل الحفظ','Complétez les noms sélectionnés avant l’enregistrement');return}
+  setStep(3);
   saving=true;save.disabled=true;review.disabled=true;for(const input of wrap.querySelectorAll('input'))input.disabled=true;
-  try{await onSave(rows);close()}catch(err){status.textContent=err.message||'تعذر الحفظ / Enregistrement impossible'}
+  try{await onSave(rows);close() }catch(err){setStep(2);status.textContent=err.message||'تعذر الحفظ / Enregistrement impossible'}
   finally{saving=false;save.disabled=false;review.disabled=false;for(const input of wrap.querySelectorAll('input'))input.disabled=false}
  };
 }};
