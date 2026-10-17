@@ -12,7 +12,7 @@ test('all application entrypoint scripts download without blocking the HTML pars
  assert.ok(scripts.length>=35);
  assert.ok(scripts.every(attributes=>/\bdefer\b/.test(attributes)));
  const names=scripts.map(attributes=>attributes.match(/src="([^"]+)"/)?.[1]);
- for(const [first,second] of [['/app.js?v=53','/auth-access-v2.js?v=47'],['/grade-journal.js?v=1','/professor-v2.js?v=83'],['/auth-access-v2.js?v=47','/luxury-ui-v1.js?v=6']]){
+ for(const [first,second] of [['/app.js?v=53','/auth-access-v2.js?v=48'],['/grade-journal.js?v=1','/professor-v2.js?v=83'],['/auth-access-v2.js?v=48','/luxury-ui-v1.js?v=6']]){
   assert.ok(names.indexOf(first)>=0&&names.indexOf(second)>names.indexOf(first),first+' should precede '+second);
  }
  const cacheAssets=JSON.parse(sw.match(/const ASSETS = ([\s\S]*?);/)[1]);
@@ -59,4 +59,37 @@ test('teacher free-year promise is bilingual and does not advertise paid service
  assert.match(plan,/2026–2027/);
  assert.match(plan,/جميع وظائف نتائجي مجانية للمعلمين والأساتذة الحاليين والجدد/);
  assert.match(plan,/Toutes les fonctionnalités sont gratuites/);
+});
+
+
+test('lightweight table updates do not rewrite unchanged cells or loop on their own mutations',()=>{
+ const stability=read('app-stability-v1.js');
+ const start=stability.indexOf('function callNo('),end=stability.indexOf('let timer=null;',start);
+ assert.ok(start>0&&end>start);
+ const makeCell=()=>{let current='',writes=0;return{get textContent(){return current},set textContent(v){current=v;writes++},get writes(){return writes}}};
+ const title=makeCell(),number=makeCell(),st={pupils:[['1234','Pupil','','','','3']]};
+ const ctx=vm.createContext({state:st,localStorage:{getItem:()=> 'ar'},q:()=>({cells:[title]}),qa:()=>[{cells:[number]}]});
+ vm.runInContext(stability.slice(start,end),ctx);
+ ctx.syncAdminCallNumbers();
+ assert.equal(title.writes,1);
+ assert.equal(number.writes,1);
+ ctx.syncAdminCallNumbers();
+ assert.equal(title.writes,1,'repeated renders should not rewrite the header');
+ assert.equal(number.writes,1,'repeated renders should not rewrite the pupil cells');
+ st.pupils[0][5]='4';
+ ctx.syncAdminCallNumbers();
+ assert.equal(number.textContent,'4');
+ assert.equal(number.writes,2,'changed values should still update immediately');
+ assert.match(stability,/if\(callNumberSyncQueued\)return/);
+});
+
+test('login, session restore and UI updates ship as versioned assets in the current offline bundle',()=>{
+ const css=read('auth.css'),login=read('auth-access-v2.js'),stability=read('app-stability-v1.js');
+ for(const asset of ['/auth.css?v=4','/auth-access-v2.js?v=48','/app-stability-v1.js?v=6']){
+  assert.ok(html.includes(asset),'page missing '+asset);
+  assert.ok(sw.includes(asset),'offline cache missing '+asset);
+ }
+ assert.match(login,/lastStatus=\{\.\.\.\(lastStatus\|\|\{\}\),user:null,storage:storageMode\}/);
+ assert.match(css,/auth2-password-toggle/);
+ assert.match(stability,/callNumberSyncQueued/);
 });
