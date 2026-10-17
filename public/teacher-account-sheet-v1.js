@@ -44,7 +44,7 @@ const row=(type,title,sub,action,danger=false)=>`<button type="button" class="nt
 </button>`;
 const datum=(label,value,ltr=false)=>`<div class="ntas-datum"><small>${label}</small><strong${ltr?' dir="ltr"':''}>${display(value)}</strong></div>`;
 let host=null,returnFocus=null,lastOverflow='',currentSection='menu';
-const isAdmin=()=>{const u=getUser();return !!u&&(u.role==='admin'||u.role==='owner')&&!u.activeSharedGrant};
+const isAdmin=()=>{const u=getUser();return !!u&&u.role==='admin'&&!u.activeSharedGrant};
 function content(){
  const u=getUser()||{},school=schoolData(),name=escapeHtml(u.name||getState()?.teacher||fallback()),email=escapeHtml(u.email||'');
  if(currentSection==='profile')return `<div class="ntas-details">
