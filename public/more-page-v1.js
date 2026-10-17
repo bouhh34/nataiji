@@ -36,6 +36,29 @@ const GROUPS=[
   }
 ];
 
+/* Presentation-only icons for cards not covered by the existing luxury icon layer.
+   Reuse the original card nodes and click handlers; no extra controls are introduced. */
+const MORE_ICONS=Object.freeze({
+  structureBtn:'layers', subjectsBtn:'book-open',
+  schoolYearArchiveBtn:'archive', teacherTimetableMoreBtn:'calendar',
+  koutoubiResourcesBtn:'book-open', inviteBtn:'user-plus',
+  sharesBtn:'share-2',joinInviteBtn:'link',ownerDashboardBtn:'shield',
+  langSwitch:'globe',schoolsBtn:'briefcase',settingsBtn:'settings',
+  subscriptionBtn:'credit-card',installAppBtn:'download',
+  shareAppBtn:'share-2',supportBtn:'message-circle',
+  changePasswordBtn:'lock',privacyPolicyBtn:'shield',
+  termsPolicyBtn:'file-text',logoutBtn:'log-out',deleteAccountBtn:'trash-2'
+});
+function ensureCardIcon(card){
+  const title=card.querySelector(':scope > b');
+  const icon=MORE_ICONS[card.id];
+  if(!title||!icon||title.querySelector(':scope > svg, :scope > [data-feather], :scope > .lux-feather'))return;
+  const mark=document.createElement('i');
+  mark.dataset.feather=icon;
+  mark.setAttribute('aria-hidden','true');
+  title.prepend(mark);
+}
+
 let timer=0,applying=false;
 function hero(page){
   let h=q('.nataiji-more-hero',page);
@@ -65,6 +88,7 @@ function heading(group){
 function decorateCard(card,key){
   card.dataset.moreGroup=key;
   card.classList.add('more-row-card','more-row-'+key);
+  ensureCardIcon(card);
   if(card.id==='langSwitch'){
     const title=card.querySelector(':scope > b');
     if(title&&!title.querySelector(':scope > .lux-feather,:scope > [data-feather],:scope > svg')){
@@ -137,4 +161,21 @@ if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',
 else setTimeout(start,180);
 document.addEventListener('click',e=>{if(e.target.closest?.('[data-view="more"]'))requestAnimationFrame(apply)},true);
 window.addEventListener('storage',e=>{if(e.key==='nataiji-lang')setTimeout(apply,80)});
+// Only throttle accidental rapid double taps on non-destructive dialog launchers.
+// This does not delay the first click or intercept grades, reports, account actions,
+// links, professor screens, or keyboard/screen-reader activations.
+let lastMoreOpen=null,lastMoreOpenAt=0;
+document.addEventListener('click',event=>{
+  if(document.documentElement.classList.contains('nataiji-professor-mode')||event.detail===0)return;
+  const card=event.target.closest?.('#koutoubiResourcesBtn,#schoolYearArchiveBtn,#teacherTimetableMoreBtn');
+  if(!card||!card.closest('[data-page="more"]'))return;
+  const now=Date.now();
+  if(card===lastMoreOpen&&now-lastMoreOpenAt<500){
+    event.preventDefault();
+    event.stopImmediatePropagation();
+    return;
+  }
+  lastMoreOpen=card;
+  lastMoreOpenAt=now;
+},true);
 })();
