@@ -85,10 +85,35 @@ function heading(group){
   setText(q('small',h),fr()?group.subFr:group.subAr);
   return h;
 }
+/* Isolate Arabic and French without changing the timetable card action or its icon. */
+function organizeTimetableTitle(card){
+  const title=card.querySelector(':scope > b');
+  if(!title)return;
+  let label=title.querySelector(':scope > .nt-more-timetable-label');
+  if(!label){
+    // Preserve injected SVG icons and other controls; only replace text nodes.
+    if(!/استعمال الزمن|Emploi du temps/.test(title.textContent||''))return;
+    [...title.childNodes].filter(node=>node.nodeType===3).forEach(node=>node.remove());
+    label=document.createElement('span');
+    label.className='nt-more-timetable-label';
+    const ar=document.createElement('span');
+    ar.lang='ar';ar.dir='rtl';ar.textContent='استعمال الزمن';
+    const sep=document.createElement('span');
+    sep.className='nt-more-timetable-divider';sep.textContent='/';sep.setAttribute('aria-hidden','true');
+    const french=document.createElement('span');
+    french.lang='fr';french.dir='ltr';french.textContent='Emploi du temps';
+    label.append(ar,sep,french);
+    title.append(label);
+  }
+  const direction=fr()?'ltr':'rtl';
+  if(label.dir!==direction)label.dir=direction;
+}
+
 function decorateCard(card,key){
   card.dataset.moreGroup=key;
   card.classList.add('more-row-card','more-row-'+key);
   ensureCardIcon(card);
+  if(card.id==='teacherTimetableMoreBtn')organizeTimetableTitle(card);
   if(card.id==='langSwitch'){
     const title=card.querySelector(':scope > b');
     if(title&&!title.querySelector(':scope > .lux-feather,:scope > [data-feather],:scope > svg')){
