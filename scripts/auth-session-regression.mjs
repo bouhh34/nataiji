@@ -109,11 +109,15 @@ test('login keeps password manager autofill and offers an accessible one-tap pas
  const end=source.indexOf('function registerForm(){',beginning);
  assert.ok(beginning>0&&end>beginning);
  const html=vm.runInNewContext(source.slice(beginning,end)+';loginForm()', {tr:(ar)=>ar});
- assert.match(html,/autocomplete="email"/);
+ assert.match(html,/autocomplete="username"/);
+ assert.match(html,/name="identifier"/);
+ assert.match(html,/رقم الهاتف أو البريد الإلكتروني/);
+ assert.match(html,/8 أرقام أو example@email.com/);
  assert.match(html,/autocomplete="current-password"/);
  assert.match(html,/data-auth2-password-toggle/);
  assert.match(html,/aria-pressed="false"/);
- assert.match(html,/inputmode="email"/);
+ assert.match(html,/maxlength="254"/);
+ assert.doesNotMatch(html,/name="email" type="email"/);
 });
 
 function logoutFixture(mode='success'){
@@ -182,4 +186,21 @@ test('server-confirmed expired session can exit cleanly',async()=>{
  assert.equal(f.ctx.currentUser,null);
  assert.equal(f.clears(),1);
  assert.equal(f.renders.length,1);
+});
+
+test('phone sign-in accepts exactly eight local digits including Arabic numerals',()=>{
+ const server=fs.readFileSync(new URL('../src/server.js',import.meta.url),'utf8');
+ const beginning=server.indexOf('const localLoginPhone=');
+ const ending=server.indexOf('const configuredOwnerEmail=',beginning);
+ assert.ok(beginning>=0&&ending>beginning);
+ const parse=vm.runInNewContext(server.slice(beginning,ending)+';localLoginPhone');
+ assert.equal(parse('22334455'),'22334455');
+ assert.equal(parse('٢٢٣٣٤٤٥٥'),'22334455');
+ assert.equal(parse('۲۲۳۳۴۴۵۵'),'22334455');
+ for(const invalid of ['+22222334455','2233445','223344556','aaa34455','test@example.com'])assert.equal(parse(invalid),'');
+ assert.match(server,/req\.body\?\.identifier\?\?req\.body\?\.email/);
+ assert.match(server,/idx\['phone:'\+phone\]/);
+ assert.match(server,/user\.phoneVerified/);
+ assert.match(server,/localLoginPhone\(user\.phone\)!==phone/);
+ assert.match(server,/verifyPassword\(password,user\)/);
 });
