@@ -39,7 +39,7 @@ function sync(){
     btn.setAttribute('aria-controls','studentImportChoices');
     btn.setAttribute('aria-haspopup','true');
     btn.setAttribute('aria-expanded','false');
-    btn.innerHTML='<i data-feather="file-up" aria-hidden="true"></i><span></span>';
+    btn.innerHTML='<i data-feather="upload-cloud" aria-hidden="true"></i><span></span>';
     add.insertAdjacentElement('afterend',btn);
     btn.addEventListener('click',()=>{
       if(btn.hidden)return;
@@ -55,7 +55,7 @@ function sync(){
     menu.className='student-import-quick-choices';
     menu.hidden=true;
     menu.setAttribute('role','group');
-    menu.innerHTML='<button type="button" data-student-import="document"><i data-feather="file-text" aria-hidden="true"></i><span></span></button><button type="button" data-student-import="spreadsheet"><i data-feather="file-spreadsheet" aria-hidden="true"></i><span></span></button>';
+    menu.innerHTML='<button type="button" data-student-import="document"><i data-feather="file-text" aria-hidden="true"></i><span></span></button><button type="button" data-student-import="spreadsheet"><i data-feather="grid" aria-hidden="true"></i><span></span></button>';
     btn.insertAdjacentElement('afterend',menu);
     menu.addEventListener('click',e=>{
       const choice=e.target.closest?.('button[data-student-import]');
