@@ -1,0 +1,109 @@
+/* Roster shortcut only. Original #addStudent is not restyled or replaced.
+   Existing importers remain as the backup if JavaScript cannot mount this UI. */
+@media screen {
+  html:not(.nataiji-professor-mode) [data-page="students"] .section-head.student-quick-import-ready {
+    display:flex;
+    flex-wrap:wrap;
+    align-items:center;
+    gap:10px;
+  }
+  html:not(.nataiji-professor-mode) [data-page="students"] .student-import-quick-button {
+    display:inline-flex;
+    justify-content:center;
+    align-items:center;
+    gap:9px;
+    min-height:48px;
+    padding:11px 15px;
+    border-radius:14px;
+    border:1px solid #c6e2d9;
+    background:#f0faf6;
+    color:#087d69;
+    font-size:13px;
+    font-weight:850;
+    line-height:1.3;
+    white-space:nowrap;
+    box-shadow:0 5px 15px rgba(7,112,96,.07);
+    cursor:pointer;
+    touch-action:manipulation;
+  }
+  html:not(.nataiji-professor-mode) [data-page="students"] .student-import-quick-button > svg {
+    width:19px;height:19px;flex:none;
+  }
+  html:not(.nataiji-professor-mode) [data-page="students"] .student-import-quick-button[aria-expanded="true"] {
+    background:#e2f6ed;
+    border-color:#74c1ac;
+  }
+  html:not(.nataiji-professor-mode) [data-page="students"] .student-import-quick-button:focus-visible,
+  html:not(.nataiji-professor-mode) [data-page="students"] .student-import-quick-choices button:focus-visible {
+    outline:3px solid #138d78;
+    outline-offset:2px;
+  }
+  html:not(.nataiji-professor-mode) [data-page="students"] .student-import-quick-choices {
+    flex:0 0 100%;
+    display:grid;
+    grid-template-columns:1fr 1fr;
+    gap:9px;
+    padding:10px;
+    border:1px solid #dceae6;
+    border-radius:15px;
+    background:#f8fcfa;
+    box-shadow:0 5px 13px rgba(9,52,69,.035);
+  }
+  html:not(.nataiji-professor-mode) [data-page="students"] .student-import-quick-choices[hidden],
+  html:not(.nataiji-professor-mode) [data-page="students"] .student-import-quick-button[hidden] {
+    display:none!important;
+  }
+  html:not(.nataiji-professor-mode) [data-page="students"] .student-import-quick-choices button {
+    min-width:0;
+    min-height:46px;
+    display:flex;
+    justify-content:center;
+    align-items:center;
+    gap:7px;
+    border:1px solid #d2e1e1;
+    border-radius:12px;
+    background:#fff;
+    color:#214758;
+    font-size:12.5px;
+    font-weight:780;
+    cursor:pointer;
+  }
+  html:not(.nataiji-professor-mode) [data-page="students"] .student-import-quick-choices svg {
+    width:18px;height:18px;color:#0d9278;flex:none;
+  }
+  /* Hide lower duplicate importer triggers only if new usable controls exist.
+     The original click handlers and hidden CSV input remain in the DOM. */
+  html:not(.nataiji-professor-mode) [data-page="students"] .section-head.student-quick-import-ready ~ .tools #importDocumentBtn,
+  html:not(.nataiji-professor-mode) [data-page="students"] .section-head.student-quick-import-ready ~ .tools #importBtn {
+    display:none!important;
+  }
+  html:not(.nataiji-professor-mode) [data-page="students"] .section-head.student-quick-import-ready > #rosterActionTools {
+    flex-basis:100%;
+  }
+  @media(max-width:760px){
+    html:not(.nataiji-professor-mode) [data-page="students"] .section-head.student-quick-import-ready > div:first-child {
+      flex:0 0 100%;
+    }
+    html:not(.nataiji-professor-mode) [data-page="students"] .student-import-quick-button {
+      min-height:52px;
+      padding:11px 13px;
+      font-size:12px;
+    }
+    html:not(.nataiji-professor-mode) [data-page="students"] .section-head.student-quick-import-ready {
+      column-gap:8px;
+      row-gap:11px;
+    }
+  }
+  @media(max-width:360px){
+    html:not(.nataiji-professor-mode) [data-page="students"] .student-import-quick-button {
+      padding-inline:8px;
+      gap:5px;
+      font-size:11px;
+    }
+  }
+  @media(prefers-reduced-motion:reduce){
+    html:not(.nataiji-professor-mode) [data-page="students"] .student-import-quick-button {
+      transition:none;
+    }
+  }
+}
