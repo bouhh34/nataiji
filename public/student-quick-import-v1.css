@@ -1,4 +1,4 @@
-/* Roster shortcut only. Original #addStudent is not restyled or replaced.
+/* Roster shortcut only. Original #addStudent markup/icon/shape/size/handler are untouched.
    Existing importers remain as the backup if JavaScript cannot mount this UI. */
 @media screen {
   html:not(.nataiji-professor-mode) [data-page="students"] .section-head.student-quick-import-ready {
@@ -105,5 +105,16 @@
     html:not(.nataiji-professor-mode) [data-page="students"] .student-import-quick-button {
       transition:none;
     }
+  }
+  /* Elevation only: restore the primary action's visual prominence beside
+     the new secondary upload shortcut. Its geometry, icon and gradient remain. */
+  html:not(.nataiji-professor-mode) [data-page="students"]
+  .section-head.student-quick-import-ready > #addStudent {
+    box-shadow:0 10px 22px rgba(4,100,79,.25),0 3px 7px rgba(4,100,79,.14)!important;
+  }
+  html:not(.nataiji-professor-mode) [data-page="students"]
+  .section-head.student-quick-import-ready > #addStudent:focus-visible {
+    outline:3px solid #2fac92;
+    outline-offset:3px;
   }
 }

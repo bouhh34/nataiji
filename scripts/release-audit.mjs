@@ -64,9 +64,13 @@ const studentShortcutJs=read('public/student-quick-import-v1.js');
 const studentShortcutCss=read('public/student-quick-import-v1.css');
 assert('student import shortcut is bundled and offline cached',
  /student-quick-import-v1\.js\?v=1/.test(index) &&
- /student-quick-import-v1\.css\?v=1/.test(index) &&
+ /student-quick-import-v1\.css\?v=2/.test(index) &&
  /student-quick-import-v1\.js\?v=1/.test(sw) &&
- /student-quick-import-v1\.css\?v=1/.test(sw));
+ /student-quick-import-v1\.css\?v=2/.test(sw));
+assert('student Add button retains geometry while regaining visual elevation only',
+  /section-head\.student-quick-import-ready > #addStudent/.test(studentShortcutCss) &&
+  /box-shadow:0 10px 22px rgba\(4,100,79,\.25\)/.test(studentShortcutCss) &&
+  !/section-head\.student-quick-import-ready > #addStudent\s*\{[^}]*?(?:background|padding|height|border-radius|font-size|transform):/s.test(studentShortcutCss));
 assert('student Add button keeps its existing ID, class, markup and icon',
  /<button id="addStudent" class="primary">\+ إضافة تلميذ<\/button>/.test(index) &&
  /icon\(add,'user-plus','npv2-button-icon'\)/.test(read('public/nataiji-premium-v2.js')) &&
@@ -83,7 +87,7 @@ assert('student import menu is teacher-only and safe for print and no edit right
  /@media screen/.test(studentShortcutCss) &&
  !/@media print/.test(studentShortcutCss) &&
  /student-quick-import-ready/.test(studentShortcutCss));
-assert('PWA cache version current', /nataiji-shell-v159/.test(sw));
+assert('PWA cache version current', /nataiji-shell-v160/.test(sw));
 const commercialPlan = read('public/commercial-foundation-v1.js');
 assert('plan card script version is present in web and Android cache',
   /commercial-foundation-v1\.js\?v=4/.test(index) &&
@@ -103,7 +107,7 @@ assert('free plan card is informational, stable, and bilingual',
 assert('new Play tester shell installs atomically and activates after complete precache',
   /cache=>cache.addAll\(ASSETS\)\)\.then\(\(\)=>self.skipWaiting\(\)\)/.test(sw) &&
   /navigate/.test(sw) &&
-  /nataiji-shell-v159/.test(sw));
+  /nataiji-shell-v160/.test(sw));
 assert('native and web release check the newest SW URL on every start',
   /sw\.js\?v=4/.test(read('public/app-power-v1.js')) &&
   /app-power-v1\.js\?v=13/.test(index) &&
