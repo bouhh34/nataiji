@@ -43,7 +43,7 @@ function setup(user,language='ar'){
   createElement:makeModal,
   addEventListener(name,fn){events.set(name,fn)},
  };
- const sandbox=vm.createContext({window:{},document,localStorage:{getItem:()=>language},currentUser,state});
+ const sandbox=vm.createContext({window:{addEventListener(){}},document,localStorage:{getItem:()=>language},currentUser,state});
  vm.runInContext(source,sandbox);
  const clickHeader=()=>{
   events.get('click')({target:{closest:s=>s.includes('.profile')?profile:null},preventDefault(){}});
