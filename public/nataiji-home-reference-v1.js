@@ -21,6 +21,50 @@ function feather(host,name,cls){
 function render(){
   if(window.feather&&document.querySelector('i[data-feather]'))window.feather.replace({class:'lux-feather','stroke-width':1.9});
 }
+/* The native class selector remains unchanged; reveal its full selected label
+   briefly on focus, tapping or changing class (especially on narrow phones). */
+function enhanceClassNameReveal(select,wrap){
+  if(!select||!wrap)return;
+  let tooltip=q('.nt-class-full-name',wrap);
+  if(!tooltip){
+    tooltip=document.createElement('div');
+    tooltip.className='nt-class-full-name';
+    tooltip.id='ntClassFullName';
+    tooltip.setAttribute('role','status');
+    tooltip.setAttribute('aria-live','polite');
+    tooltip.setAttribute('aria-atomic','true');
+    wrap.appendChild(tooltip);
+  }
+  const update=()=>{
+    const full=String(select.selectedOptions?.[0]?.textContent||'').trim();
+    const usable=full&&full!=='…'&&full!=='...';
+    if(select.title!==(usable?full:''))select.title=usable?full:'';
+    if(tooltip.textContent!==(usable?full:''))tooltip.textContent=usable?full:'';
+    tooltip.dir=isFr()?'ltr':'rtl';
+  };
+  if(wrap.dataset.ntClassHintReady!=='1'){
+    wrap.dataset.ntClassHintReady='1';
+    let hideTimer;
+    const reveal=()=>{
+      update();
+      if(!tooltip.textContent)return;
+      clearTimeout(hideTimer);
+      wrap.classList.add('nt-class-name-revealed');
+      hideTimer=setTimeout(()=>wrap.classList.remove('nt-class-name-revealed'),4000);
+    };
+    const conceal=()=>{
+      clearTimeout(hideTimer);
+      wrap.classList.remove('nt-class-name-revealed');
+    };
+    select.addEventListener('focus',reveal);
+    select.addEventListener('pointerdown',reveal);
+    select.addEventListener('change',reveal);
+    select.addEventListener('blur',conceal);
+    select.addEventListener('keydown',event=>{if(event.key==='Escape')conceal()});
+  }
+  update();
+}
+
 function decorateHeader(){
   const header=q('main > header');
   if(!header)return;
@@ -47,6 +91,7 @@ function decorateHeader(){
       wrap.prepend(i);
     }
   });
+  enhanceClassNameReveal(cls,cls?.closest('.np-home-class'));
 }
 function decorateHero(){
   const hero=q('[data-page="home"] .welcome');

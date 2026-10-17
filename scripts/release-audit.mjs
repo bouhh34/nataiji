@@ -60,7 +60,7 @@ assert('terms page exists', exists('public/terms.html'));
 assert('account deletion web resource exists', exists('public/delete-account.html'));
 assert('PWA caches account deletion help', /\/delete-account\.html/.test(sw) && /\/info-pages\.css\?v=1/.test(sw));
 assert('privacy has public support and deletion links', /mailto:bahmedou596@gmail\.com/.test(read('public/privacy.html')) && /\/delete-account\.html/.test(read('public/privacy.html')));
-assert('PWA cache version current', /nataiji-shell-v155/.test(sw));
+assert('PWA cache version current', /nataiji-shell-v156/.test(sw));
 assert('teacher restores pre-redesign dashboard', !/teacher-visual-v3\.(?:css|js)/.test(index) && /teacher-touchups-v1\.css\?v=1/.test(index));
 assert('teacher visual polish is cached and never targets professor or print', /teacher-touchups-v1\.css\?v=1/.test(sw) && !/teacher-visual-v3\.(?:css|js)/.test(sw) && /html:not\(\.nataiji-professor-mode\)/.test(read('public/teacher-touchups-v1.css')) && /@media screen/.test(read('public/teacher-touchups-v1.css')) && !/@media print/.test(read('public/teacher-touchups-v1.css')));
 assert('PWA loads and caches school grade journal', /school-grade-journal\.js\?v=1/.test(index) && /school-grade-journal\.js\?v=1/.test(sw));
@@ -133,8 +133,8 @@ assert('More page suppresses only rapid duplicate non-destructive taps',
   /nataiji-professor-mode/.test(morePageJs));
 const teacherFinalCss = read('public/teacher-three-finishing-touches-v1.css');
 assert('teacher final three-touch layer is loaded and offline-cached',
-  /teacher-three-finishing-touches-v1\.css\?v=1/.test(index) &&
-  /teacher-three-finishing-touches-v1\.css\?v=1/.test(sw));
+  /teacher-three-finishing-touches-v1\.css\?v=2/.test(index) &&
+  /teacher-three-finishing-touches-v1\.css\?v=2/.test(sw));
 assert('teacher final three-touch layer leaves professor and print unchanged',
   /@media screen/.test(teacherFinalCss) && !/@media print/.test(teacherFinalCss) &&
   /html:not\(\.nataiji-professor-mode\)/.test(teacherFinalCss));
@@ -150,6 +150,26 @@ assert('teacher bilingual timetable title uses explicit isolated language spans'
   /label\.append\(ar,sep,french\)/.test(morePageJs) &&
   /label\.dir!==direction/.test(morePageJs) &&
   /nt-more-timetable-label/.test(teacherFinalCss));
+const teacherHeaderJs = read('public/nataiji-home-reference-v1.js');
+assert('teacher language and class reveal assets are exact-version cached',
+  /interface-language-fix\.js\?v=13/.test(index) &&
+  /interface-language-fix\.js\?v=13/.test(sw) &&
+  /nataiji-home-reference-v1\.js\?v=3/.test(index) &&
+  /nataiji-home-reference-v1\.js\?v=3/.test(sw));
+assert('full selected class label accessible without replacing native selector',
+  /enhanceClassNameReveal\(cls/.test(teacherHeaderJs) &&
+  /select\.selectedOptions\?\.\[0\]\?\.textContent/.test(teacherHeaderJs) &&
+  /addEventListener\('pointerdown',reveal\)/.test(teacherHeaderJs) &&
+  /addEventListener\('change',reveal\)/.test(teacherHeaderJs) &&
+  /setAttribute\('aria-live','polite'\)/.test(teacherHeaderJs) &&
+  /nt-class-name-revealed/.test(teacherFinalCss) &&
+  /html:not\(\.nataiji-professor-mode\)/.test(teacherFinalCss));
+assert('teacher timetable description localized with other More labels',
+  /الجدول الرسمي وتخصيص حصص القسم • طباعة PDF/.test(interfaceLanguage) &&
+  /Emploi du temps officiel et personnalisation des séances • Impression PDF/.test(interfaceLanguage) &&
+  /حفظ النتائج السابقة وتنزيلها دون تغييرها/.test(interfaceLanguage) &&
+  /حماية حسابك وإنهاء الجلسات الأخرى/.test(interfaceLanguage) &&
+  /const PROTECTED=/.test(interfaceLanguage));
 assert('More page assets are loaded', /more-page-v1\.css\?v=4/.test(index) && /more-page-v1\.js\?v=10/.test(index));
 assert('legacy danger reorder yields to grouped More page', /grid\.classList\.contains\('nataiji-more-grid'\)/.test(read('public/app-power-v1.js')));
 assert('account danger actions stay in account group', /termsPolicyBtn','logoutBtn','deleteAccountBtn'/.test(morePageJs));
