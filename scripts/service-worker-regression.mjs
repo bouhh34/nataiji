@@ -42,6 +42,35 @@ test('temporary server failure returns the cached home',async()=>{
  const f=fixture(async()=>new Response('unavailable',{status:503}),r=>r.url?.endsWith('/')?new Response('saved home'):null);
  assert.equal(await(await f.request('/','navigate')).text(),'saved home');
 });
+test('new service worker becomes active after the complete asset cache is ready',async()=>{
+  const handlers={}; let precacheResolve; let activated=false; let wait;
+  const ready=new Promise(resolve=>{precacheResolve=resolve});
+  const context=vm.createContext({
+    URL, location:{origin:'https://example.test'},
+    self:{addEventListener:(name,fn)=>handlers[name]=fn,skipWaiting:async()=>{activated=true}},
+    caches:{open:async()=>({addAll:async()=>ready})}
+  });
+  vm.runInContext(code,context);
+  handlers.install({waitUntil:p=>{wait=p}});
+  await Promise.resolve();
+  assert.equal(activated,false,'a partial cache must never be activated');
+  precacheResolve();
+  await wait;
+  assert.equal(activated,true,'a complete release should not remain waiting in Android WebView');
+});
+test('failed offline precache does not take over the current working release',async()=>{
+  const handlers={};let activated=false;let wait;
+  const context=vm.createContext({
+    URL,location:{origin:'https://example.test'},
+    self:{addEventListener:(name,fn)=>handlers[name]=fn,skipWaiting:async()=>{activated=true}},
+    caches:{open:async()=>({addAll:async()=>{throw Error('missing asset')}})}
+  });
+  vm.runInContext(code,context);
+  handlers.install({waitUntil:p=>{wait=p}});
+  await assert.rejects(wait,/missing asset/);
+  assert.equal(activated,false);
+});
+
 test('all entrypoint scripts and styles are precached with their exact version',()=>{
  const html=fs.readFileSync(new URL('../public/index.html',import.meta.url),'utf8');
  const assets=JSON.parse(code.match(/const ASSETS = ([\s\S]*?);/)[1]);

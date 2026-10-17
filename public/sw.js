@@ -1,4 +1,4 @@
-const CACHE = "nataiji-shell-v156";
+const CACHE = "nataiji-shell-v157";
 const ASSETS = [
   "/teacher-touchups-v1.css?v=1",
   "/teacher-three-finishing-touches-v1.css?v=2",
@@ -57,7 +57,7 @@ const ASSETS = [
   "/official-bilingual-v1.js?v=14",
   "/class-report-layout-v2.js?v=10",
   "/two-students-a4-v1.js?v=18",
-  "/app-power-v1.js?v=12",
+  "/app-power-v1.js?v=13",
   "/student-mobile-cards-v1.js?v=3",
   "/pupil-roster-actions-v1.js?v=2",
   "/school-year-archive-v1.js?v=5",
@@ -79,7 +79,10 @@ const shellPages = new Set(['/', '/index.html', '/privacy.html', '/delete-accoun
 const assetPaths = new Set(ASSETS.map(p=>new URL(p,location.origin).pathname));
 self.addEventListener('install', event=>{
   // An incomplete release must not replace the working offline shell.
-  event.waitUntil(caches.open(CACHE).then(cache=>cache.addAll(ASSETS)));
+  // Activate a fully cached new release without waiting indefinitely for an
+  // Android WebView left alive by the operating system. A running page is not
+  // forcibly reloaded, preserving in-progress grades and offline drafts.
+  event.waitUntil(caches.open(CACHE).then(cache=>cache.addAll(ASSETS)).then(()=>self.skipWaiting()));
 });
 self.addEventListener('activate', event=>{
   event.waitUntil(caches.keys().then(keys=>Promise.all(keys
