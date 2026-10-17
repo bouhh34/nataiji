@@ -1,4 +1,4 @@
-const CACHE = "nataiji-shell-v153";
+const CACHE = "nataiji-shell-v154";
 const ASSETS = [
   "/teacher-touchups-v1.css?v=1",
   "/native-report-print.js?v=7",
@@ -29,6 +29,7 @@ const ASSETS = [
   "/nataiji-premium-v2.css?v=2",
   "/nataiji-home-reference-v1.css?v=4",
   "/more-page-v1.css?v=4",
+  "/more-page-polish-v2.css?v=1",
   "/professor-v1.css?v=1",
   "/professor-v2.css?v=48",
   "/accessibility.css?v=5",
@@ -71,7 +72,7 @@ const ASSETS = [
   "/workflow-polish.js?v=4",
   "/nataiji-premium-v2.js?v=5",
   "/nataiji-home-reference-v1.js?v=2",
-  "/more-page-v1.js?v=8"
+  "/more-page-v1.js?v=9"
 ];
 const shellPages = new Set(['/', '/index.html', '/privacy.html', '/delete-account.html', '/terms.html', '/download.html']);
 const assetPaths = new Set(ASSETS.map(p=>new URL(p,location.origin).pathname));
