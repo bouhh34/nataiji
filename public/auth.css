@@ -8,3 +8,9 @@
 .auth2-lang-switch button.on{background:#fff;color:#087d67;box-shadow:0 3px 10px rgba(8,43,75,.08)}
 .auth2-lang-switch button:focus-visible{outline:3px solid rgba(8,125,103,.18);outline-offset:1px}
 @media(max-width:380px){.auth2-lang-switch{width:100%}.auth2-lang-switch button{min-width:0;flex:1}}
+
+/* The sign-in field stays compatible with Android/browser password managers. */
+.auth2-password-field{position:relative;display:block}
+.auth2-password-field input{padding-inline-end:88px}
+.auth2-password-toggle{position:absolute;inset-inline-end:6px;top:11px;min-width:72px;height:38px;padding:0 9px;border:1px solid #d6e8e4;border-radius:8px;background:#f2faf7;color:#087761;font:inherit;font-size:12px;font-weight:800;cursor:pointer}
+.auth2-password-toggle:focus-visible{outline:2px solid #087761;outline-offset:2px}
