@@ -1,0 +1,63 @@
+/* Teacher-only multilingual finish. Keep class select native and professor/print untouched. */
+@media screen {
+  html:not(.nataiji-professor-mode) main > .np-home-header {
+    position:relative!important;
+    z-index:8!important;
+    overflow:visible!important;
+  }
+  html:not(.nataiji-professor-mode) .np-home-header .np-home-class {
+    position:relative!important;
+    overflow:visible!important;
+  }
+  html:not(.nataiji-professor-mode) .np-home-header .np-home-class #classTop {
+    text-overflow:ellipsis!important;
+    min-width:0!important;
+  }
+  /* Full selected class appears without changing the dropdown option values
+     or increasing the header height on narrow phones. */
+  html:not(.nataiji-professor-mode) .np-home-header .np-home-class .nt-full-class-name {
+    position:absolute;
+    z-index:20;
+    inset-inline-end:0;
+    top:calc(100% + 7px);
+    width:max-content;
+    max-width:min(86vw,350px);
+    padding:10px 12px;
+    box-sizing:border-box;
+    border:1px solid #cae4dd;
+    border-radius:12px;
+    background:#fff;
+    box-shadow:0 12px 28px rgba(8,43,75,.16);
+    color:#17384f;
+    font-size:12px;
+    font-weight:750;
+    line-height:1.55;
+    text-align:start;
+    overflow-wrap:anywhere;
+    white-space:normal;
+    visibility:hidden;
+    opacity:0;
+    pointer-events:none;
+    transform:translateY(-3px);
+    transition:opacity .12s ease,transform .12s ease,visibility .12s;
+  }
+  html:not(.nataiji-professor-mode) .np-home-header .np-home-class.nt-has-long-class:is(:focus-within,.nt-class-just-selected) .nt-full-class-name {
+    visibility:visible;
+    opacity:1;
+    transform:translateY(0);
+  }
+  /* Mobile popover is only informative; the same original select remains tappable. */
+  html:not(.nataiji-professor-mode)[dir="ltr"] .np-home-header .np-home-class .nt-full-class-name {
+    direction:ltr;
+    text-align:left;
+  }
+  html:not(.nataiji-professor-mode)[dir="rtl"] .np-home-header .np-home-class .nt-full-class-name {
+    direction:rtl;
+    text-align:right;
+  }
+  @media(prefers-reduced-motion:reduce) {
+    html:not(.nataiji-professor-mode) .np-home-header .np-home-class .nt-full-class-name {
+      transition:none;
+    }
+  }
+}
