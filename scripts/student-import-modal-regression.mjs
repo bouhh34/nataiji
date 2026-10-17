@@ -16,6 +16,7 @@ async function openWith(language,available=false){
   querySelectorAll(){return []}
   addEventListener(){}
   setAttribute(){}
+  hasAttribute(){return false}
  }
  for(const key of ['[data-reading-choice]','[data-save]'])map.set(key,Object.assign(new Field(),{hidden:true}));
  const dialog={
