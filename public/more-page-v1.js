@@ -109,10 +109,40 @@ function organizeTimetableTitle(card){
   if(label.dir!==direction)label.dir=direction;
 }
 
+/* Translate only known, static teacher More-card descriptions.
+   Dynamic role-dependent copy, rich links and modal content remain untouched. */
+const MORE_DESCRIPTION_COPY=Object.freeze({
+  structureBtn:['إدارة الأقسام مع الفصول الدراسية الثلاثة الثابتة','Gérer les classes avec les trois trimestres fixes'],
+  subjectsBtn:['تحديد درجة كل مادة والمجموع العام','Définir la note maximale de chaque matière et le total général'],
+  schoolYearArchiveBtn:['حفظ النتائج السابقة وتنزيلها دون تغييرها','Conserver et exporter les résultats sans les modifier'],
+  teacherTimetableMoreBtn:['الجدول الرسمي وتخصيص حصص القسم • طباعة PDF','Emploi du temps officiel et adaptation des séances • Impression PDF'],
+  koutoubiResourcesBtn:['كتبي الرسمي • اختر السنة الدراسية','Koutoubi officiel • Choisissez l’année'],
+  inviteBtn:['إنشاء رمز دعوة للقسم','Créer un code d’invitation pour la classe'],
+  sharesBtn:['عرض من لديه وصول وإلغاء الصلاحية عند الحاجة','Voir les accès accordés et les retirer si nécessaire'],
+  joinInviteBtn:['أضف قسمًا أو مواد جديدة إلى حسابك الحالي دون تسجيل الخروج','Ajoutez une classe ou de nouvelles matières à votre compte sans vous déconnecter'],
+  schoolsBtn:['إضافة مساحة عمل أو الانتقال بين مساحات حسابك','Ajouter un espace de travail ou changer d’espace'],
+  settingsBtn:['بيانات المدرسة والسنة الدراسية','Données de l’école et année scolaire'],
+  shareAppBtn:['شارك نتائجي مع زملائك المعلمين','Partagez Nataiji avec vos collègues enseignants'],
+  supportBtn:['تواصل مع إدارة تطبيق نتائجي أو أرسل ملاحظة','Contacter l’administration de Nataiji ou envoyer une remarque'],
+  changePasswordBtn:['حماية حسابك وإنهاء الجلسات الأخرى','Protégez votre compte et fermez les autres sessions'],
+  privacyPolicyBtn:['كيف نحمي بياناتك','Comment nous protégeons vos données'],
+  termsPolicyBtn:['قواعد استخدام نتائجي','Règles d’utilisation de Nataiji'],
+  logoutBtn:['إنهاء الجلسة الحالية','Fermer la session actuelle']
+});
+function localizeKnownMoreDescription(card){
+  const copy=MORE_DESCRIPTION_COPY[card.id],subtitle=card.querySelector(':scope > span');
+  if(!copy||!subtitle||subtitle.children.length)return;
+  const existing=subtitle.textContent.trim();
+  // Do not overwrite other components' customized or contextual descriptions.
+  if(existing!==copy[0]&&existing!==copy[1])return;
+  setText(subtitle,fr()?copy[1]:copy[0]);
+}
+
 function decorateCard(card,key){
   card.dataset.moreGroup=key;
   card.classList.add('more-row-card','more-row-'+key);
   ensureCardIcon(card);
+  localizeKnownMoreDescription(card);
   if(card.id==='teacherTimetableMoreBtn')organizeTimetableTitle(card);
   if(card.id==='langSwitch'){
     const title=card.querySelector(':scope > b');
