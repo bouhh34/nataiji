@@ -116,7 +116,7 @@ window.nataijiStudentImport={parse,open({toAr,toFr,onSave}){
   const ar=row.querySelector('[data-ar]'),french=row.querySelector('[data-fr]'),hint=row.querySelector('[data-hint]'),regenerate=row.querySelector('[data-regenerate]');
   const proposal=ar.value.trim()?toFr(ar.value.trim()):'',current=french.value.trim(),manual=row.dataset.frManual==='true';
   const distinct=!!(proposal&&current&&frenchDifference(proposal,current)>0.48);
-  hint.textContent=distinct?'اختلاف ملحوظ بين الفرنسية والاقتراح؛ راجع الاسمين قبل الحفظ. / Vérifiez la transcription française proposée.':manual?'الفرنسية المستوردة أو المصححة محفوظة، ولا تُستبدل تلقائيًا. / La version française est protégée.':'الفرنسية المقترحة قابلة للتعديل. / Transcription française modifiable.';
+  hint.textContent=distinct?t('اختلاف بين الفرنسية والاقتراح؛ راجع الاسمين قبل الحفظ.','Vérifiez la transcription française proposée.'):manual?t('الفرنسية المصححة محفوظة ولن تُستبدل تلقائيًا.','La version française corrigée est conservée.'):t('الفرنسية المقترحة قابلة للتعديل.','Transcription française modifiable.');
   hint.hidden=!(distinct||manual);regenerate.hidden=!manual&&!distinct;
  }
  function synchronizeRow(row,changed){
@@ -128,17 +128,17 @@ window.nataijiStudentImport={parse,open({toAr,toFr,onSave}){
  }
  review.onclick=()=>{
   const names=parse(q('[data-text]').value);if(names.length>800){status.textContent='الحد الأقصى 800 تلميذ / Maximum 800 élèves';return}
-  rowsContainer.innerHTML=names.map(raw=>{const arabic=/[\u0600-\u06ff]/u.test(raw),nameAr=arabic?raw:toAr(raw),nameFr=arabic?toFr(raw):raw;return `<div data-row data-ar-manual="${arabic}" data-fr-manual="${!arabic}" style="padding:10px;border-bottom:1px solid #ddd"><label><input type="checkbox" data-selected ${confidence>=65?'checked':''}> إضافة / Ajouter</label><label>الاسم كما في الملف / Nom original<input data-source maxlength="160" dir="auto" value="${esc(raw)}"></label><div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:8px"><label>الاسم بالعربية / Nom en arabe<input data-ar maxlength="160" dir="rtl" value="${esc(nameAr)}"></label><label>Nom en français / الاسم بالفرنسية<input data-fr maxlength="160" dir="ltr" value="${esc(nameFr)}"></label></div><small data-hint role="status"></small><button type="button" data-regenerate>↻ تحديث الفرنسية من العربية / Actualiser depuis l’arabe</button></div>`}).join('');
+  rowsContainer.innerHTML=names.map(raw=>{const arabic=/[\u0600-\u06ff]/u.test(raw),nameAr=arabic?raw:toAr(raw),nameFr=arabic?toFr(raw):raw;return `<div data-row data-ar-manual="${arabic}" data-fr-manual="${!arabic}" style="padding:10px;border-bottom:1px solid #ddd"><label><input type="checkbox" data-selected ${confidence>=65?'checked':''}> ${t('إضافة','Ajouter')}</label><label>${t('الاسم كما في الملف','Nom original')}<input data-source maxlength="160" dir="auto" value="${esc(raw)}"></label><div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:8px"><label>${t('الاسم بالعربية','Nom en arabe')}<input data-ar maxlength="160" dir="rtl" value="${esc(nameAr)}"></label><label>${t('الاسم بالفرنسية','Nom en français')}<input data-fr maxlength="160" dir="ltr" value="${esc(nameFr)}"></label></div><small data-hint role="status"></small><button type="button" data-regenerate>↻ ${t('تحديث الفرنسية من العربية','Actualiser depuis l’arabe')}</button></div>`}).join('');
   rowsContainer.querySelectorAll('[data-row]').forEach(inspectRow);setSaveVisible(!!names.length);
   setStep(names.length?2:1);
-  status.textContent=`${confidence<65?'قراءة ضعيفة: راجع كل اسم قبل اختياره. / Lecture incertaine : vérifiez chaque nom. ':''}${names.length} — راجع العربية والفرنسية جنبًا إلى جنب قبل الحفظ / Vérifiez les deux langues avant l’enregistrement`
+  status.textContent=`${confidence<65?t('قراءة ضعيفة: راجع كل اسم قبل اختياره. ','Lecture incertaine : vérifiez chaque nom. '):''}${names.length} — ${t('راجع الاسمين بالعربية والفرنسية قبل الحفظ','Vérifiez les noms en arabe et en français avant l’enregistrement')}`
  };
  rowsContainer.addEventListener('input',e=>{const row=e.target.closest('[data-row]');if(!row)return;const type=e.target.hasAttribute('data-source')?'source':e.target.hasAttribute('data-ar')?'ar':e.target.hasAttribute('data-fr')?'fr':null;if(type)synchronizeRow(row,type)});
  rowsContainer.addEventListener('click',e=>{const button=e.target.closest('[data-regenerate]');if(!button)return;const row=button.closest('[data-row]'),ar=row.querySelector('[data-ar]'),french=row.querySelector('[data-fr]');row.dataset.frManual='false';french.value=toFr(ar.value.trim());inspectRow(row)});
  q('[data-text]').oninput=()=>{confidence=100;setSaveVisible(false);setStep(1);q('[data-rows]').replaceChildren()};
  save.onclick=async()=>{
   const rows=[...rowsContainer.querySelectorAll('[data-row]')].filter(r=>r.querySelector('[data-selected]').checked).map(r=>({name:r.querySelector('[data-ar]').value.trim(),nameFr:r.querySelector('[data-fr]').value.trim()}));
-  if(!rows.length||rows.some(r=>!r.name||!r.nameFr)){status.textContent='أكمل الأسماء المحددة قبل الحفظ / Complétez les noms sélectionnés avant de sauvegarder';return}
+  if(!rows.length||rows.some(r=>!r.name||!r.nameFr)){status.textContent=t('أكمل الأسماء المحددة قبل الحفظ','Complétez les noms sélectionnés avant l’enregistrement');return}
   setStep(3);
   saving=true;save.disabled=true;review.disabled=true;for(const input of wrap.querySelectorAll('input'))input.disabled=true;
   try{await onSave(rows);close() }catch(err){setStep(2);status.textContent=err.message||'تعذر الحفظ / Enregistrement impossible'}
