@@ -49,7 +49,7 @@ function content(){
  const u=getUser()||{},school=schoolData(),name=escapeHtml(u.name||getState()?.teacher||fallback()),email=escapeHtml(u.email||'');
  if(currentSection==='profile')return `<div class="ntas-details">
   ${datum(tr('الاسم','Nom'),u.name||getState()?.teacher)}
-  ${datum(tr('البريد الإلكتروني','Adresse e-mail'),u.email,true)}
+  ${datum(tr('رقم الهاتف أو البريد الإلكتروني','Téléphone ou e-mail'),u.phone||u.email,true)}
   ${datum(tr('نوع الحساب','Type de compte'),role(u))}
   <p class="ntas-note">${tr('تُعرض هنا بيانات حسابك المسجّلة. لا يمكن تعديل اسم حساب آخر أو صلاحياته من هذه القائمة.','Voici les informations de votre compte. Cette fenêtre ne permet pas de modifier le nom ou les droits d’un autre utilisateur.')}</p>
  </div>`;
@@ -61,7 +61,7 @@ function content(){
   <p class="ntas-note">${tr('تُعرض معلومات المدرسة المرتبطة بالقسم الحالي. التعديل متاح فقط لصاحب الصلاحية.','Informations de l’école liée à la classe actuelle. La modification dépend des autorisations.')}</p>
  </div>`;
  if(currentSection==='security')return `<div class="ntas-details">
-  ${datum(tr('بريد تسجيل الدخول','E-mail de connexion'),u.email,true)}
+  ${datum(tr('معرّف تسجيل الدخول','Identifiant de connexion'),u.phone||u.email,true)}
   <button type="button" class="ntas-primary" data-account-action="password">${icon('lock')}${tr('تغيير كلمة المرور','Changer le mot de passe')}</button>
   <p class="ntas-note">${tr('لن تظهر كلمة المرور الحالية. سيفتح النموذج الآمن الموجود في نتائجي لتغييرها.','Votre mot de passe actuel ne sera pas affiché. Le formulaire sécurisé de Nataiji sera ouvert.')}</p>
  </div>`;
