@@ -105,3 +105,16 @@ test('session and login downloads receive preload priority with unchanged execut
  }
  assert.ok(positions[0]<positions[1]&&positions[1]<positions[2]);
 });
+
+test('professor add-student action is a clear full-width mobile primary button, scoped by mode',()=>{
+ const css=read('professor-v2.css'),professor=read('professor-v2.js');
+ assert.match(css,/\.nataiji-professor-mode #pv2AddStudent\.prof-add-student/);
+ assert.match(css,/flex:1 1 100%!important/);
+ assert.match(css,/min-height:59px!important/);
+ assert.match(css,/focus-visible/);
+ assert.match(professor,/canManageRoster\?\x60/);
+ assert.match(professor,/id="pv2AddStudent"/);
+ assert.match(professor,/if\(canManageRoster\)\{q\('#pv2AddStudent',el\)\.onclick=/);
+ assert.match(html,/professor-v2\.css\?v=49/);
+ assert.match(sw,/professor-v2\.css\?v=49/);
+});
