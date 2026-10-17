@@ -12,10 +12,10 @@
     min-height:120px!important;
   }
   html:not(.nataiji-professor-mode) [data-page="home"] .np-home-stat .np-home-stat-icon {
-    inset-inline-start:auto!important;
-    inset-inline-end:13px!important;
     left:auto!important;
     right:auto!important;
+    inset-inline-start:auto!important;
+    inset-inline-end:13px!important;
     top:12px!important;
   }
   html:not(.nataiji-professor-mode) [data-page="home"] .np-home-stat > b {
