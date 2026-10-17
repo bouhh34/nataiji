@@ -62,8 +62,12 @@ window.nataijiStudentImport={parse,open({toAr,toFr,onSave}){
      </label>
    </div>
    <p data-local-note class="nti-helper">${t('القراءة المحلية مناسبة للنصوص المطبوعة؛ راجع الأسماء المكتوبة بخط اليد.','La lecture locale convient aux textes imprimés. Vérifiez les noms manuscrits.')}</p>
-   <div data-cloud-note class="nti-cloud-disclosure" hidden>
-     <label><input type="checkbox" data-cloud-consent><span data-cloud-copy></span></label>
+   <div data-reading-choice class="nti-reading-choice" hidden>
+     <strong>${t('كيف تريد قراءة الأسماء؟','Comment lire les noms ?')}</strong>
+     <p class="nti-reading-hint">${t('للخط اليدوي، ننصح بالقراءة الذكية.','Pour l’écriture manuscrite, la lecture intelligente est recommandée.')}</p>
+     <button type="button" data-read-smart class="nti-smart-choice">${t('✨ قراءة الخط اليدوي بالذكاء الاصطناعي','✨ Lire l’écriture manuscrite avec l’IA')}</button>
+     <p data-smart-disclosure class="nti-smart-disclosure"></p>
+     <button type="button" data-read-local class="nti-local-choice">${t('قراءة محلية دون إرسال الصورة','Lecture locale sans envoyer la photo')}</button>
    </div>
    <p data-status class="nti-status" role="status" aria-live="polite"></p>
    <label class="nti-text-field"><strong>${t('الأسماء المستخرجة (اسم في كل سطر)','Noms extraits (un nom par ligne)')}</strong><textarea data-text rows="5" dir="auto" placeholder="${t('ستظهر الأسماء هنا، ويمكنك تعديلها أو لصقها يدويًا','Les noms apparaîtront ici. Vous pouvez les corriger ou les coller.')}"></textarea></label>
@@ -73,20 +77,21 @@ window.nataijiStudentImport={parse,open({toAr,toFr,onSave}){
  </div></div>`;
  document.body.append(wrap)
  const q=s=>wrap.querySelector(s),status=q('[data-status]'),review=q('[data-review]'),save=q('[data-save]');let cancelled=false,busy=false,saving=false,confidence=100;
- let cloud=false;
+ let cloud=false,providerName='Gemini',pendingFile=null,choiceGeneration=0;
  const capabilities=fetch('/api/student-document/status')
   .then(r=>r.ok?r.json():{})
   .then(info=>{
     cloud=!!info.available;
-    if(!cloud)return;
-    const note=q('[data-cloud-note]');
-    note.hidden=false;
-    const provider=String(info.provider||'Gemini');
-    q('[data-cloud-copy]').textContent=t(
-      'استخدام القراءة الذكية: أوافق على إرسال صورة المستند إلى '+provider+' لاستخراج الأسماء. يمكنني إبقاء هذا الخيار غير محدد واستخدام القراءة المحلية دون إرسال الصورة إلى خدمة القراءة الذكية.',
-      'Lecture intelligente : j’accepte l’envoi de l’image du document à '+provider+' pour extraire les noms. Sans cocher cette case, la lecture locale reste utilisée.'
-    );
-  }).catch(()=>{});
+    providerName=String(info.provider||'Gemini');
+  }).catch(()=>{cloud=false});
+ // This information is displayed before the user chooses smart OCR.
+ function explainSmartReading(){
+   q('[data-smart-disclosure]').textContent=t(
+     'عند الضغط على القراءة الذكية، ستُرسل الصورة إلى '+providerName+' لاستخراج الأسماء. لن تُحفظ الأسماء إلا بعد مراجعتك.',
+     'En choisissant la lecture intelligente, la photo sera envoyée à '+providerName+' pour extraire les noms. Vous vérifierez les noms avant tout enregistrement.'
+   );
+ }
+
  const setStep=number=>{
    for(const el of wrap.querySelectorAll('[data-step]')){
      const active=Number(el.dataset.step)===number;
@@ -98,12 +103,70 @@ window.nataijiStudentImport={parse,open({toAr,toFr,onSave}){
  setStep(1);
  save.disabled=true;const setSaveVisible=visible=>{save.hidden=!visible;save.style.display=visible?'':'none';save.disabled=!visible};setSaveVisible(false);
  const close=()=>{cancelled=true;wrap.remove()};q('[data-close]').onclick=()=>{if(!saving)close()};wrap.addEventListener('keydown',e=>{if(e.key==='Escape'&&!saving)close();if(e.key==='Tab'){const controls=[...wrap.querySelectorAll('button,input,textarea')].filter(x=>!x.disabled&&!x.hidden&&x.getClientRects().length);if(e.shiftKey&&document.activeElement===controls[0]){e.preventDefault();controls.at(-1)?.focus()}else if(!e.shiftKey&&document.activeElement===controls.at(-1)){e.preventDefault();controls[0]?.focus()}}});q('[data-close]').focus();
- async function read(e){const file=e.target.files[0];if(!file||busy)return;
+ async function processFile(file,useSmart){
+  if(!file||busy||cancelled)return;
+  busy=true;
+  pendingFile=null;
+  q('[data-reading-choice]').hidden=true;
+  setStep(1);setSaveVisible(false);review.disabled=true;
+  q('[data-rows]').replaceChildren();
+  for(const input of wrap.querySelectorAll('input[type=file]'))input.disabled=true;
+  try{
+    status.textContent=t('جارٍ استخراج الأسماء...','Extraction des noms en cours…');
+    // Only the user's explicit smart-reading button authorizes cloud transfer.
+    const result=await extract(file,message=>{status.textContent=message},()=>cancelled,'both',useSmart&&cloud);
+    confidence=result.confidence;
+    q('[data-text]').value=result.text;
+    if(!cancelled){
+      status.textContent=t('راجع الأسماء المستخرجة قبل الحفظ.','Vérifiez les noms extraits avant l’enregistrement.');
+      review.onclick();
+    }
+  }catch(err){
+    if(!cancelled){
+      status.textContent=t('تعذر قراءة الملف. جرّب صورة أوضح أو الصق الأسماء يدويًا. ','Lecture impossible. Essayez une photo plus nette ou collez les noms. ')+err.message;
+    }
+  }finally{
+    busy=false;review.disabled=false;
+    for(const input of wrap.querySelectorAll('input[type=file]')){input.disabled=false;input.value=''}
+  }
+ }
+ async function read(e){
+  const file=e.target.files?.[0];
+  if(!file||busy||cancelled)return;
+  const generation=++choiceGeneration;
+  pendingFile=file;
+  q('[data-text]').value='';
+  q('[data-rows]').replaceChildren();
+  setSaveVisible(false);setStep(1);
   const feedback=e.target.hasAttribute('data-camera')?q('[data-camera-feedback]'):q('[data-file-feedback]');
   feedback.textContent=file.name;
-  setStep(1);
-  busy=true;setSaveVisible(false);review.disabled=true;q('[data-rows]').replaceChildren();for(const input of wrap.querySelectorAll('input[type=file]'))input.disabled=true;try{await capabilities;const consent=cloud&&q('[data-cloud-consent]')?.checked===true;
-  const result=await extract(file,s=>status.textContent=s,()=>cancelled,'both',consent);confidence=result.confidence;q('[data-text]').value=result.text;if(!cancelled){status.textContent='راجع النص، ثم اضغط مراجعة الأسماء / Vérifiez le texte';review.onclick()}}catch(err){if(!cancelled)status.textContent='تعذر قراءة الملف؛ جرّب صورة أوضح أو ألصق الأسماء أدناه / Lecture impossible : utilisez une photo plus nette ou collez les noms. '+err.message}finally{busy=false;review.disabled=false;for(const input of wrap.querySelectorAll('input[type=file]')){input.disabled=false;input.value=''}}}
+  e.target.value='';
+  q('[data-reading-choice]').hidden=true;
+  status.textContent=t('جارٍ تجهيز خيارات القراءة…','Préparation des options de lecture…');
+  await capabilities;
+  if(generation!==choiceGeneration||cancelled||pendingFile!==file)return;
+  if(!cloud){
+    q('[data-reading-choice]').hidden=true;
+    status.textContent=t('القراءة المحلية متاحة الآن. قد تحتاج الكتابة اليدوية إلى تصحيح.','Lecture locale disponible. L’écriture manuscrite peut nécessiter des corrections.');
+    await processFile(file,false);
+    return;
+  }
+  explainSmartReading();
+  q('[data-reading-choice]').hidden=false;
+  status.textContent=t('اختر طريقة القراءة المناسبة للصورة.','Choisissez la méthode de lecture.');
+  q('[data-read-smart]').focus();
+ }
+ q('[data-read-smart]').onclick=()=>{
+  // Explicit informed click: no image leaves the device before this choice.
+  if(!pendingFile||busy||!cloud)return;
+  const file=pendingFile;
+  processFile(file,true);
+ };
+ q('[data-read-local]').onclick=()=>{
+  if(!pendingFile||busy)return;
+  const file=pendingFile;
+  processFile(file,false);
+ };
  q('[data-file]').onchange=read;q('[data-camera]').onchange=read;
  function normalizeLatin(value){return String(value||'').normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase().replace(/[^a-z0-9]+/g,' ').trim()}
  function frenchDifference(a,b){
@@ -135,7 +198,10 @@ window.nataijiStudentImport={parse,open({toAr,toFr,onSave}){
  };
  rowsContainer.addEventListener('input',e=>{const row=e.target.closest('[data-row]');if(!row)return;const type=e.target.hasAttribute('data-source')?'source':e.target.hasAttribute('data-ar')?'ar':e.target.hasAttribute('data-fr')?'fr':null;if(type)synchronizeRow(row,type)});
  rowsContainer.addEventListener('click',e=>{const button=e.target.closest('[data-regenerate]');if(!button)return;const row=button.closest('[data-row]'),ar=row.querySelector('[data-ar]'),french=row.querySelector('[data-fr]');row.dataset.frManual='false';french.value=toFr(ar.value.trim());inspectRow(row)});
- q('[data-text]').oninput=()=>{confidence=100;setSaveVisible(false);setStep(1);q('[data-rows]').replaceChildren()};
+ q('[data-text]').oninput=()=>{
+   ++choiceGeneration;pendingFile=null;q('[data-reading-choice]').hidden=true;
+   confidence=100;setSaveVisible(false);setStep(1);q('[data-rows]').replaceChildren()
+ };
  save.onclick=async()=>{
   const rows=[...rowsContainer.querySelectorAll('[data-row]')].filter(r=>r.querySelector('[data-selected]').checked).map(r=>({name:r.querySelector('[data-ar]').value.trim(),nameFr:r.querySelector('[data-fr]').value.trim()}));
   if(!rows.length||rows.some(r=>!r.name||!r.nameFr)){status.textContent=t('أكمل الأسماء المحددة قبل الحفظ','Complétez les noms sélectionnés avant l’enregistrement');return}
