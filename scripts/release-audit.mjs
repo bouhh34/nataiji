@@ -80,7 +80,7 @@ assert('free plan card is informational, stable, and bilingual',
 assert('new Play tester shell installs atomically and activates after complete precache',
   /cache=>cache.addAll\(ASSETS\)\)\.then\(\(\)=>self.skipWaiting\(\)\)/.test(sw) &&
   /navigate/.test(sw) &&
-  /nataiji-shell-v157/.test(sw));
+  /nataiji-shell-v158/.test(sw));
 assert('native and web release check the newest SW URL on every start',
   /sw\.js\?v=4/.test(read('public/app-power-v1.js')) &&
   /app-power-v1\.js\?v=13/.test(index) &&
