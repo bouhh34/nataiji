@@ -93,3 +93,15 @@ test('login, session restore and UI updates ship as versioned assets in the curr
  assert.match(css,/auth2-password-toggle/);
  assert.match(stability,/callNumberSyncQueued/);
 });
+
+test('session and login downloads receive preload priority with unchanged execution order',()=>{
+ const paths=['/offline-session-v1.js?v=1','/app.js?v=53','/auth-access-v2.js?v=48'];
+ const positions=[];
+ for(const path of paths){
+  assert.ok(html.includes('<link rel="preload" href="'+path+'" as="script" />'));
+  const script='<script src="'+path+'" defer></script>';
+  assert.ok(html.includes(script),'original deferred script remains');
+  positions.push(html.indexOf(script));
+ }
+ assert.ok(positions[0]<positions[1]&&positions[1]<positions[2]);
+});
