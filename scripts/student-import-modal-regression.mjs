@@ -19,6 +19,8 @@ async function openWith(language,available=false){
     addEventListener(){}
     setAttribute(){}
   }
+  map.set('[data-cloud-note]',Object.assign(new Field(),{hidden:true}));
+  map.set('[data-save]',Object.assign(new Field(),{hidden:true}));
   const dialog={
     className:'',innerHTML:'',removed:false,
     querySelector(selector){
@@ -73,7 +75,7 @@ test('French interface displays compact French labels and safe cloud choice',asy
 });
 test('review stage remains available for manual text entry and original save handler',async()=>{
   const x=await openWith('ar',false);
-  x.map.get('[data-text]').value='محمد محمود\nمريم محمد';
+  x.modal.querySelector('[data-text]').value='محمد محمود\nمريم محمد';
   x.map.get('[data-review]').onclick();
   assert.equal(x.steps[1].attributes['aria-current'],'step');
   assert.equal(x.map.get('[data-save]').hidden,false);
