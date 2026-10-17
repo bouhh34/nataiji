@@ -48,6 +48,23 @@ function decorateHeader(){
     }
   });
 }
+function refreshSelectedClassName(){
+  if(document.documentElement.classList.contains('nataiji-professor-mode'))return;
+  const select=q('#classTop'),wrapper=select?.closest('.np-home-class');
+  if(!wrapper)return;
+  let detail=q(':scope > .nt-full-class-name',wrapper);
+  if(!detail){
+    detail=document.createElement('span');
+    detail.className='nt-full-class-name';
+    detail.setAttribute('aria-hidden','true');
+    wrapper.append(detail);
+  }
+  const selected=String(select.selectedOptions?.[0]?.textContent||'').trim();
+  setText(detail,selected);
+  detail.dir=isFr()?'ltr':'rtl';
+  if(selected&&selected!=='…')select.title=selected;
+  wrapper.classList.toggle('nt-has-long-class',selected.length>19);
+}
 function decorateHero(){
   const hero=q('[data-page="home"] .welcome');
   if(!hero)return;
@@ -129,6 +146,7 @@ function decorateProgress(){
 function apply(){
   try{
     decorateHeader();
+    refreshSelectedClassName();
     decorateHero();
     decorateStats();
     decorateProgress();
@@ -146,5 +164,17 @@ window.addEventListener('storage',e=>{if(e.key==='nataiji-lang')setTimeout(apply
 document.addEventListener('click',e=>{
   if(e.target.closest?.('[data-view="home"],#langSwitch'))setTimeout(apply,80);
 },true);
+let selectedClassTipTimer;
+document.addEventListener('change',event=>{
+  if(event.target?.id!=='classTop')return;
+  setTimeout(()=>{
+    refreshSelectedClassName();
+    const wrapper=q('#classTop')?.closest('.np-home-class');
+    if(!wrapper)return;
+    wrapper.classList.add('nt-class-just-selected');
+    clearTimeout(selectedClassTipTimer);
+    selectedClassTipTimer=setTimeout(()=>wrapper.classList.remove('nt-class-just-selected'),4500);
+  },80);
+});
 setTimeout(apply,500);
 })();
