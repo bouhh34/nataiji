@@ -60,7 +60,7 @@ assert('terms page exists', exists('public/terms.html'));
 assert('account deletion web resource exists', exists('public/delete-account.html'));
 assert('PWA caches account deletion help', /\/delete-account\.html/.test(sw) && /\/info-pages\.css\?v=1/.test(sw));
 assert('privacy has public support and deletion links', /mailto:bahmedou596@gmail\.com/.test(read('public/privacy.html')) && /\/delete-account\.html/.test(read('public/privacy.html')));
-assert('PWA cache version current', /nataiji-shell-v153/.test(sw));
+assert('PWA cache version current', /nataiji-shell-v154/.test(sw));
 assert('teacher restores pre-redesign dashboard', !/teacher-visual-v3\.(?:css|js)/.test(index) && /teacher-touchups-v1\.css\?v=1/.test(index));
 assert('teacher visual polish is cached and never targets professor or print', /teacher-touchups-v1\.css\?v=1/.test(sw) && !/teacher-visual-v3\.(?:css|js)/.test(sw) && /html:not\(\.nataiji-professor-mode\)/.test(read('public/teacher-touchups-v1.css')) && /@media screen/.test(read('public/teacher-touchups-v1.css')) && !/@media print/.test(read('public/teacher-touchups-v1.css')));
 assert('PWA loads and caches school grade journal', /school-grade-journal\.js\?v=1/.test(index) && /school-grade-journal\.js\?v=1/.test(sw));
@@ -113,7 +113,25 @@ const morePageCss = read('public/more-page-v1.css');
 assert('More page is grouped without moving cards out of settings grid', /GROUPS=\[/.test(morePageJs) && /Compte et école/.test(morePageJs) && /Paramètres académiques/.test(morePageJs) && /Collaboration et partage/.test(morePageJs));
 assert('More page keeps cards compact for mobile', /\.nataiji-more-grid>\.menu-card\.more-row-card/.test(morePageCss) && /@media\(max-width:390px\)/.test(morePageCss));
 assert('More page preserves RTL LTR chevron direction', /inset-inline-end:17px/.test(morePageCss) && /\.lang-fr \.nataiji-more-grid>\.menu-card\.more-row-card:after\{content:"›"\}/.test(morePageCss));
-assert('More page assets are loaded', /more-page-v1\.css\?v=4/.test(index) && /more-page-v1\.js\?v=8/.test(index));
+const morePolishCss = read('public/more-page-polish-v2.css');
+assert('More page finishing polish is loaded and cached',
+  /more-page-polish-v2\.css\?v=1/.test(index) && /more-page-polish-v2\.css\?v=1/.test(sw) &&
+  /more-page-v1\.js\?v=9/.test(index) && /more-page-v1\.js\?v=9/.test(sw));
+assert('More page icons cover teacher archive timetable and books',
+  /schoolYearArchiveBtn:'archive'/.test(morePageJs) &&
+  /teacherTimetableMoreBtn:'calendar'/.test(morePageJs) &&
+  /koutoubiResourcesBtn:'book-open'/.test(morePageJs) &&
+  /ensureCardIcon\(card\)/.test(morePageJs));
+assert('More page polish is screen-only, bilingual and professor-isolated',
+  /@media screen/.test(morePolishCss) && !/@media print/.test(morePolishCss) &&
+  /html:not\(\.nataiji-professor-mode\)/.test(morePolishCss) &&
+  /\[dir="ltr"\]/.test(morePolishCss) &&
+  /:focus-visible/.test(morePolishCss));
+assert('More page suppresses only rapid duplicate non-destructive taps',
+  /lastMoreOpenAt<500/.test(morePageJs) &&
+  /event\.detail===0/.test(morePageJs) &&
+  /nataiji-professor-mode/.test(morePageJs));
+assert('More page assets are loaded', /more-page-v1\.css\?v=4/.test(index) && /more-page-v1\.js\?v=9/.test(index));
 assert('legacy danger reorder yields to grouped More page', /grid\.classList\.contains\('nataiji-more-grid'\)/.test(read('public/app-power-v1.js')));
 assert('account danger actions stay in account group', /termsPolicyBtn','logoutBtn','deleteAccountBtn'/.test(morePageJs));
 assert('account management is the last More page section', /key:'academic'[\s\S]*key:'collaboration'[\s\S]*key:'account'/.test(morePageJs));

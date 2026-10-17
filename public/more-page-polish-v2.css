@@ -1,0 +1,189 @@
+/* Teacher More-page finishing touches.
+   Scope: original teacher menu only, screen only. No changes to professor, grades,
+   account permissions, report printing or underlying card handlers. */
+@media screen {
+  html:not(.nataiji-professor-mode) [data-page="more"].nataiji-more-page {
+    --more-muted:#536b75;
+    --more-line:#dbe8e7;
+  }
+  html:not(.nataiji-professor-mode) [data-page="more"] .nataiji-more-grid {
+    gap:9px!important;
+  }
+  html:not(.nataiji-professor-mode) [data-page="more"] .more-group-heading {
+    gap:10px;
+    margin-top:9px;
+    padding-block:12px 7px;
+  }
+  html:not(.nataiji-professor-mode) [data-page="more"] .more-group-heading-copy small {
+    color:#526b76;
+    font-size:12px;
+    line-height:1.5;
+  }
+  html:not(.nataiji-professor-mode) [data-page="more"] .nataiji-more-grid > .menu-card.more-row-card {
+    min-height:72px!important;
+    padding-block:12px!important;
+    padding-inline:15px 50px!important;
+    gap:3px!important;
+    border-radius:16px!important;
+    border-color:#dce7e8!important;
+    box-shadow:0 5px 16px rgba(8,43,75,.048)!important;
+    transition:background-color .16s ease,border-color .16s ease,box-shadow .16s ease,filter .16s ease!important;
+    touch-action:manipulation;
+    -webkit-tap-highlight-color:transparent;
+  }
+  html:not(.nataiji-professor-mode) [data-page="more"] .nataiji-more-grid > .menu-card.more-row-card > b {
+    display:flex!important;
+    gap:10px!important;
+    align-items:center!important;
+    flex-wrap:wrap!important;
+    font-size:15.5px!important;
+    font-weight:850!important;
+    line-height:1.4!important;
+    min-width:0;
+    overflow-wrap:anywhere;
+  }
+  html:not(.nataiji-professor-mode) [data-page="more"] .nataiji-more-grid > .menu-card.more-row-card > b > :is(svg,i[data-feather]) {
+    width:21px!important;
+    height:21px!important;
+    box-sizing:content-box!important;
+    padding:8px!important;
+    flex:0 0 21px;
+    border-radius:11px!important;
+    background:#eaf8f4;
+    color:#0b8d76;
+  }
+  html:not(.nataiji-professor-mode) [data-page="more"] .nataiji-more-grid > .menu-card.more-row-academic > b > :is(svg,i[data-feather]) {
+    background:#eaf4fe;
+    color:#1875b1!important;
+  }
+  html:not(.nataiji-professor-mode) [data-page="more"] .nataiji-more-grid > .menu-card.more-row-collaboration > b > :is(svg,i[data-feather]) {
+    background:#eaf8f1;
+    color:#138a6d!important;
+  }
+  html:not(.nataiji-professor-mode) [data-page="more"] .nataiji-more-grid > .menu-card.more-row-card > span {
+    margin-inline-start:47px!important;
+    font-size:12px!important;
+    line-height:1.5!important;
+    color:#536b75!important;
+    overflow-wrap:anywhere;
+  }
+  /* Real chevrons, independent of bidi glyph mirroring; RTL points left. */
+  html:not(.nataiji-professor-mode) [data-page="more"] .nataiji-more-grid > .menu-card.more-row-card::after {
+    content:""!important;
+    inset-inline-end:19px;
+    top:50%;
+    width:9px;
+    height:9px;
+    border:0;
+    border-left:2px solid #738a92;
+    border-bottom:2px solid #738a92;
+    border-radius:0 0 0 2px;
+    transform:translateY(-50%) rotate(45deg);
+    pointer-events:none;
+  }
+  html:not(.nataiji-professor-mode)[dir="ltr"] [data-page="more"] .nataiji-more-grid > .menu-card.more-row-card::after {
+    content:""!important;
+    border:0;
+    border-right:2px solid #738a92;
+    border-top:2px solid #738a92;
+    border-radius:0 2px 0 0;
+    transform:translateY(-50%) rotate(45deg);
+  }
+  html:not(.nataiji-professor-mode) [data-page="more"] .nataiji-more-grid > .menu-card.more-row-card:active {
+    background:#f0faf6!important;
+    filter:brightness(.99);
+    border-color:#9ccfc2!important;
+  }
+  html:not(.nataiji-professor-mode) [data-page="more"] .nataiji-more-grid > .menu-card.more-row-card:focus-visible {
+    outline:3px solid #178c79!important;
+    outline-offset:3px!important;
+    border-color:#138b75!important;
+  }
+  html:not(.nataiji-professor-mode) [data-page="more"] .nataiji-more-grid > .menu-card.more-row-card:is([disabled],[aria-disabled="true"]) {
+    opacity:.62;
+    cursor:not-allowed;
+    box-shadow:none!important;
+  }
+  html:not(.nataiji-professor-mode) [data-page="more"] .nataiji-more-grid > .menu-card.more-row-card[aria-busy="true"] {
+    cursor:progress;
+  }
+  /* Important cards: differentiated quietly, never replace the original Super Admin panel. */
+  html:not(.nataiji-professor-mode) [data-page="more"] #supportBtn.more-row-card {
+    border-color:#cce7df!important;
+    background:linear-gradient(105deg,#fff,#f4fcf8)!important;
+  }
+  html:not(.nataiji-professor-mode) [data-page="more"] #changePasswordBtn.more-row-card {
+    border-color:#d3e6e4!important;
+  }
+  html:not(.nataiji-professor-mode) [data-page="more"] #ownerDashboardBtn.owner-card.more-row-card {
+    min-height:88px!important;
+    padding-block:14px!important;
+    border-color:rgba(219,190,105,.72)!important;
+    background:linear-gradient(120deg,#071f38 0%,#0a4667 66%,#08745f 100%)!important;
+  }
+  html:not(.nataiji-professor-mode) [data-page="more"] #ownerDashboardBtn.owner-card.more-row-card::after {
+    border-color:#f4f9f8;
+  }
+  /* Preserve a single semantic title and the existing mixed-language timetable label. */
+  html:not(.nataiji-professor-mode) [data-page="more"] #teacherTimetableMoreBtn > b {
+    direction:inherit;
+    unicode-bidi:plaintext;
+  }
+  html:not(.nataiji-professor-mode) [data-page="more"] .nataiji-more-hero p {
+    color:#e5f5ef;
+  }
+  @media(max-width:760px){
+    html:not(.nataiji-professor-mode) [data-page="more"] .nataiji-more-grid > .menu-card.more-row-card {
+      min-height:68px!important;
+      padding-block:10px!important;
+      padding-inline:13px 46px!important;
+      gap:2px!important;
+    }
+    html:not(.nataiji-professor-mode) [data-page="more"] .nataiji-more-grid > .menu-card.more-row-card > b {
+      font-size:14.5px!important;
+      gap:9px!important;
+    }
+    html:not(.nataiji-professor-mode) [data-page="more"] .nataiji-more-grid > .menu-card.more-row-card > b > :is(svg,i[data-feather]) {
+      width:20px!important;
+      height:20px!important;
+      flex-basis:20px!important;
+      padding:7px!important;
+    }
+    html:not(.nataiji-professor-mode) [data-page="more"] .nataiji-more-grid > .menu-card.more-row-card > span {
+      margin-inline-start:43px!important;
+      font-size:11.8px!important;
+      line-height:1.48!important;
+    }
+    html:not(.nataiji-professor-mode) [data-page="more"] .nataiji-more-grid > .menu-card.more-row-card::after {
+      inset-inline-end:16px!important;
+    }
+    html:not(.nataiji-professor-mode) [data-page="more"] .more-group-heading {
+      margin-top:6px;
+      padding-block:11px 7px;
+    }
+    html:not(.nataiji-professor-mode) [data-page="more"] .more-group-heading-copy small {
+      font-size:11.5px;
+    }
+    html:not(.nataiji-professor-mode) [data-page="more"] #ownerDashboardBtn.owner-card.more-row-card {
+      min-height:82px!important;
+    }
+  }
+  @media(max-width:390px){
+    html:not(.nataiji-professor-mode) [data-page="more"] .nataiji-more-grid > .menu-card.more-row-card {
+      padding-inline:11px 41px!important;
+    }
+    html:not(.nataiji-professor-mode) [data-page="more"] .nataiji-more-grid > .menu-card.more-row-card::after {
+      inset-inline-end:13px!important;
+    }
+  }
+  @media(hover:none){
+    html:not(.nataiji-professor-mode) [data-page="more"] .nataiji-more-grid > .menu-card.more-row-card:hover {
+      box-shadow:0 5px 16px rgba(8,43,75,.048)!important;
+    }
+  }
+  @media(prefers-reduced-motion:reduce){
+    html:not(.nataiji-professor-mode) [data-page="more"] .nataiji-more-grid > .menu-card.more-row-card {
+      transition:none!important;
+    }
+  }
+}
