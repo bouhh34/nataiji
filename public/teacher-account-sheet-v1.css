@@ -1,0 +1,201 @@
+/* Account sheet: teacher-only screen layer. Header's existing avatar/name layout,
+   professor route, PDF previews and grade entry are not replaced. */
+@media screen {
+  html:not(.nataiji-professor-mode) main > header .profile.nataiji-account-entry{
+    cursor:pointer!important;touch-action:manipulation;min-width:0;
+    border-radius:14px!important;
+    padding:5px 7px!important;
+    margin:-5px -7px!important;
+    transition:background .14s ease, box-shadow .14s ease;
+  }
+  html:not(.nataiji-professor-mode) main > header .profile.nataiji-account-entry:active{
+    background:#eff9f5!important;
+  }
+  html:not(.nataiji-professor-mode) main > header .profile.nataiji-account-entry:focus-visible{
+    outline:3px solid #0b967a!important;outline-offset:3px!important;
+  }
+  html:not(.nataiji-professor-mode) main > header .profile.nataiji-account-entry[aria-expanded="true"]{
+    background:#eff9f5!important;
+  }
+  .nataiji-account-sheet{
+    position:fixed;z-index:110000;inset:0;
+    display:flex;align-items:center;justify-content:center;
+    padding:15px;background:rgba(6,36,49,.53);
+    -webkit-backdrop-filter:blur(5px);backdrop-filter:blur(5px);
+  }
+  .nataiji-account-sheet .ntas-panel{
+    width:min(465px,100%);max-height:min(90dvh,760px);
+    display:flex;flex-direction:column;
+    overflow:hidden;
+    background:linear-gradient(180deg,#fff 0%,#fafdfe 100%);
+    border:1px solid #d9e8e6;border-radius:25px;
+    box-shadow:0 28px 75px rgba(6,38,58,.24);
+    color:#143b4f;
+  }
+  .nataiji-account-sheet svg{
+    width:21px;height:21px;display:block;flex:none;
+  }
+  .nataiji-account-sheet button{
+    -webkit-tap-highlight-color:transparent;
+    font:inherit;cursor:pointer;touch-action:manipulation;
+  }
+  .nataiji-account-sheet .ntas-head{
+    flex:none;display:flex;align-items:center;justify-content:space-between;gap:12px;
+    padding:16px 18px;border-bottom:1px solid #e9efef;
+    background:#fff;
+  }
+  .nataiji-account-sheet .ntas-head-title{
+    display:flex;align-items:center;gap:10px;min-width:0;
+  }
+  .nataiji-account-sheet .ntas-head-title>div{min-width:0}
+  .nataiji-account-sheet .ntas-head-title small{
+    font-size:10.5px;font-weight:650;color:#789198;
+  }
+  .nataiji-account-sheet .ntas-head-title h2{
+    font-size:19px;line-height:1.3;margin:3px 0 0;color:#103d50;
+  }
+  .nataiji-account-sheet .ntas-close,
+  .nataiji-account-sheet .ntas-back{
+    border:1px solid #e0eae9;background:#f9fcfa;color:#496971;
+    border-radius:12px;width:41px;height:41px;
+    display:grid;place-items:center;flex:0 0 41px;padding:0;
+  }
+  .nataiji-account-sheet .ntas-body{
+    overflow-y:auto;overscroll-behavior:contain;
+    padding:17px 18px calc(20px + env(safe-area-inset-bottom));
+  }
+  .nataiji-account-sheet .ntas-identity{
+    display:flex;align-items:center;gap:12px;
+    padding:14px;background:linear-gradient(135deg,#eefaf5,#f6fbfb);
+    border:1px solid #d9eee5;border-radius:17px;margin-bottom:15px;
+  }
+  .nataiji-account-sheet .ntas-avatar{
+    background:linear-gradient(145deg,#ddf5eb,#c8ebdf);
+    color:#0a896c;border:1px solid #cce6dc;
+    border-radius:15px;width:54px;height:54px;flex:none;
+    display:grid;place-items:center;
+  }
+  .nataiji-account-sheet .ntas-avatar svg{width:27px;height:27px}
+  .nataiji-account-sheet .ntas-identity>div{
+    display:grid;gap:3px;min-width:0;
+  }
+  .nataiji-account-sheet .ntas-identity strong{
+    font-size:16px;color:#133b51;overflow-wrap:anywhere;
+  }
+  .nataiji-account-sheet .ntas-identity small{
+    font-size:11px;color:#728a90;overflow-wrap:anywhere;
+  }
+  .nataiji-account-sheet .ntas-identity small[dir="ltr"]{
+    text-align:start;
+  }
+  .nataiji-account-sheet .ntas-links{
+    display:grid;gap:8px;
+  }
+  .nataiji-account-sheet .ntas-link{
+    display:flex;align-items:center;gap:11px;text-align:start;
+    width:100%;min-height:64px;
+    padding:11px 12px;
+    border:1px solid #e0eae9;border-radius:14px;background:#fff;
+    color:#143a4c;
+  }
+  .nataiji-account-sheet .ntas-link:active{background:#f1f8f5}
+  .nataiji-account-sheet .ntas-link-icon{
+    width:41px;height:41px;flex:none;border-radius:12px;
+    display:grid;place-items:center;
+    background:#eaf8f3;color:#07836c;
+  }
+  .nataiji-account-sheet .ntas-link-copy{
+    display:grid;flex:1;min-width:0;gap:4px;
+    text-align:start;
+  }
+  .nataiji-account-sheet .ntas-link-copy strong{
+    font-size:13.5px;font-weight:850;
+  }
+  .nataiji-account-sheet .ntas-link-copy small{
+    font-size:11px;font-weight:500;line-height:1.4;color:#738b93;
+  }
+  .nataiji-account-sheet .ntas-chevron{color:#91a2a8}
+  .nataiji-account-sheet .ntas-chevron svg{width:16px;height:16px}
+  html[dir="ltr"] .nataiji-account-sheet .ntas-chevron{transform:scaleX(-1)}
+  .nataiji-account-sheet .ntas-link.ntas-danger{
+    border-color:#f1dcdd;color:#a93638;background:#fffafa;
+  }
+  .nataiji-account-sheet .ntas-link.ntas-danger .ntas-link-icon{
+    background:#fff0f1;color:#b64248;
+  }
+  .nataiji-account-sheet .ntas-details{
+    display:grid;gap:12px;
+  }
+  .nataiji-account-sheet .ntas-datum{
+    display:grid;gap:5px;padding:13px;
+    border:1px solid #e1eae8;border-radius:13px;
+    background:#fbfdfc;
+  }
+  .nataiji-account-sheet .ntas-datum small{
+    color:#758a92;font-size:11px;font-weight:700;
+  }
+  .nataiji-account-sheet .ntas-datum strong{
+    font-size:13.5px;font-weight:800;color:#163c51;
+    overflow-wrap:anywhere;
+  }
+  .nataiji-account-sheet .ntas-datum strong[dir="ltr"]{text-align:start}
+  .nataiji-account-sheet .ntas-note{
+    margin:3px 0 0;padding:12px 13px;
+    font-size:11.5px;line-height:1.75;
+    color:#54716e;background:#f2f9f6;
+    border:1px solid #e0eee8;border-radius:12px;
+  }
+  .nataiji-account-sheet .ntas-primary,
+  .nataiji-account-sheet .ntas-logout-confirm{
+    display:flex;align-items:center;justify-content:center;gap:8px;
+    width:100%;min-height:49px;
+    border:0;border-radius:13px;
+    color:#fff;background:linear-gradient(130deg,#0b997a,#08775f);
+    box-shadow:0 9px 20px rgba(9,131,102,.18);
+    font-size:13px;font-weight:850;
+    padding:11px 16px;
+  }
+  .nataiji-account-sheet .ntas-primary svg{width:18px;height:18px}
+  .nataiji-account-sheet .ntas-confirm{
+    text-align:center;justify-items:center;padding:10px 0 2px;
+  }
+  .nataiji-account-sheet .ntas-confirm-icon{
+    color:#b64248;background:#fff0f1;
+    width:52px;height:52px;border-radius:17px;
+    display:grid;place-items:center;
+  }
+  .nataiji-account-sheet .ntas-confirm>strong{font-size:17px}
+  .nataiji-account-sheet .ntas-confirm>p{font-size:12px;color:#617b82;line-height:1.65;margin:0}
+  .nataiji-account-sheet .ntas-logout-confirm{
+    background:#b63d42;box-shadow:0 6px 18px rgba(167,48,53,.12)
+  }
+  .nataiji-account-sheet .ntas-cancel{
+    min-height:44px;padding:9px 15px;
+    border:1px solid #dce8e5;background:#fff;color:#355a61;
+    border-radius:12px;font-size:12px;font-weight:800;width:100%;
+  }
+  .nataiji-account-sheet button:focus-visible{
+    outline:3px solid #0a947b;outline-offset:3px;
+  }
+  @media(max-width:650px){
+    .nataiji-account-sheet{
+      padding:0;align-items:flex-end;
+    }
+    .nataiji-account-sheet .ntas-panel{
+      width:100%;max-height:86dvh;
+      border-radius:26px 26px 0 0;
+      border-bottom:0;
+      box-shadow:0 -12px 55px rgba(6,38,58,.16);
+    }
+    .nataiji-account-sheet .ntas-head{padding:17px 18px 13px}
+    .nataiji-account-sheet .ntas-body{padding:16px 17px calc(22px + env(safe-area-inset-bottom))}
+    .nataiji-account-sheet .ntas-links{gap:9px}
+    .nataiji-account-sheet .ntas-link{min-height:67px}
+  }
+  @media(prefers-reduced-motion:reduce){
+    .nataiji-account-sheet *,main>header .profile.nataiji-account-entry{transition:none!important}
+  }
+}
+@media print{
+  .nataiji-account-sheet{display:none!important}
+}
