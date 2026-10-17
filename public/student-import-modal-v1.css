@@ -310,17 +310,8 @@
     background:#fff;color:#4d6871;
     font-size:11px;line-height:1.65;
   }
-  html:not(.nataiji-professor-mode) .nataiji-student-import-modal .nti-local-choice {
-    width:100%;min-height:47px;
-    padding:9px 13px!important;
-    border:1px solid #cedfda!important;
-    border-radius:12px!important;
-    background:#fff!important;
-    color:#265b61!important;
-    font-size:12.5px!important;
-    font-weight:760!important;
-  }
-  html:not(.nataiji-professor-mode) .nataiji-student-import-modal :is(.nti-smart-choice,.nti-local-choice):focus-visible {
+
+  html:not(.nataiji-professor-mode) .nataiji-student-import-modal .nti-smart-choice:focus-visible {
     outline:3px solid #0d9478;outline-offset:3px;
   }
   @media(max-width:640px) {
