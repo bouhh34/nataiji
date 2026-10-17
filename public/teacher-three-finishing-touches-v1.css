@@ -77,3 +77,45 @@
     }
   }
 }
+
+/* Accessible full class name shown on interaction without changing the native selector. */
+@media screen {
+  html:not(.nataiji-professor-mode) main > .np-home-header {
+    position:relative!important;
+    overflow:visible!important;
+    z-index:4;
+  }
+  html:not(.nataiji-professor-mode) .np-home-header .np-home-class {
+    position:relative!important;
+    overflow:visible!important;
+  }
+  html:not(.nataiji-professor-mode) .np-home-header .np-home-class.nt-class-name-revealed {
+    z-index:5!important;
+  }
+  html:not(.nataiji-professor-mode) .np-home-header .np-home-class .nt-class-full-name {
+    display:none;
+    pointer-events:none;
+    position:absolute;
+    z-index:6;
+    inset-inline-end:0;
+    top:calc(100% + 7px);
+    box-sizing:border-box;
+    width:max-content;
+    max-width:min(84vw,350px);
+    padding:10px 13px;
+    border:1px solid #c8e5dc;
+    border-radius:12px;
+    background:#fff;
+    box-shadow:0 12px 28px rgba(8,43,75,.15);
+    color:#17384f;
+    font-size:13px;
+    font-weight:750;
+    line-height:1.5;
+    text-align:start;
+    white-space:normal;
+    overflow-wrap:anywhere;
+  }
+  html:not(.nataiji-professor-mode) .np-home-header .np-home-class.nt-class-name-revealed .nt-class-full-name:not(:empty) {
+    display:block;
+  }
+}
