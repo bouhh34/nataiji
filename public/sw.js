@@ -1,4 +1,4 @@
-const CACHE = "nataiji-shell-v157";
+const CACHE = "nataiji-shell-v158";
 const ASSETS = [
   "/teacher-touchups-v1.css?v=1",
   "/teacher-three-finishing-touches-v1.css?v=2",
@@ -69,7 +69,7 @@ const ASSETS = [
   "/admin-ux-polish-v1.js?v=8",
   "/interface-language-fix.js?v=13",
   "/premium-subject-locale-v1.js?v=5",
-  "/commercial-foundation-v1.js?v=3",
+  "/commercial-foundation-v1.js?v=4",
   "/workflow-polish.js?v=4",
   "/nataiji-premium-v2.js?v=5",
   "/nataiji-home-reference-v1.js?v=3",
