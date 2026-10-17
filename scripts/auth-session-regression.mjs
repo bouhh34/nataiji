@@ -230,3 +230,17 @@ test('phone registration remains a password-protected username, never falsely ph
  assert.match(block,/idx\[loginKey\]=id/);
  assert.match(server,/user\.phoneVerified!==true&&user\.phoneSignInEnabled!==true/);
 });
+
+test('identifier format feedback is bilingual and does not enumerate accounts on input',()=>{
+ const beginning=source.indexOf('function authIdentifierFeedback('),end=source.indexOf('function resetToken(){',beginning);
+ assert.ok(beginning>0&&end>beginning);
+ const parse=vm.runInNewContext(source.slice(beginning,end)+';authIdentifierFeedback',{tr:(ar)=>ar});
+ for(const valid of ['22334455','٢٢٣٣٤٤٥٥','professeur@example.com'])assert.equal(parse(valid).valid,true,valid);
+ for(const invalid of ['+22222334455','2233445','223344556','name@','123 45678'])assert.equal(parse(invalid).valid,false,invalid);
+ assert.match(parse('22334455').message,/سيُتحقق من التسجيل عند إرسال الطلب/);
+ assert.doesNotMatch(parse('22334455').message,/غير موجود|متاح|مسجّل بالفعل/);
+ assert.match(source,/data-auth2-identifier-feedback role="status" aria-live="polite"/);
+ assert.match(source,/authMode==='register'&&\['email_exists','phone_exists'\]/);
+ assert.match(source,/createFromLogin\.hidden=false/);
+ assert.match(source,/تعذر الدخول\. تحقق من رقم الهاتف/);
+});
