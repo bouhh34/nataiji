@@ -145,6 +145,7 @@ window.nataijiStudentImport={parse,open({toAr,toFr,onSave}){
   status.textContent=t('جارٍ تجهيز خيارات القراءة…','Préparation des options de lecture…');
   await capabilities;
   if(generation!==choiceGeneration||cancelled||pendingFile!==file)return;
+  q('[data-local-note]').hidden=cloud;
   if(!cloud){
     q('[data-reading-choice]').hidden=true;
     status.textContent=t('القراءة المحلية متاحة الآن. قد تحتاج الكتابة اليدوية إلى تصحيح.','Lecture locale disponible. L’écriture manuscrite peut nécessiter des corrections.');
