@@ -120,7 +120,7 @@ assert('student import menu is teacher-only and safe for print and no edit right
  /@media screen/.test(studentShortcutCss) &&
  !/@media print/.test(studentShortcutCss) &&
  /student-quick-import-ready/.test(studentShortcutCss));
-assert('PWA cache version current', /nataiji-shell-v163/.test(sw));
+assert('PWA cache version current', /nataiji-shell-v164/.test(sw));
 const commercialPlan = read('public/commercial-foundation-v1.js');
 assert('plan card script version is present in web and Android cache',
   /commercial-foundation-v1\.js\?v=4/.test(index) &&
@@ -140,7 +140,7 @@ assert('free plan card is informational, stable, and bilingual',
 assert('new Play tester shell installs atomically and activates after complete precache',
   /cache=>cache.addAll\(ASSETS\)\)\.then\(\(\)=>self.skipWaiting\(\)\)/.test(sw) &&
   /navigate/.test(sw) &&
-  /nataiji-shell-v163/.test(sw));
+  /nataiji-shell-v164/.test(sw));
 assert('native and web release check the newest SW URL on every start',
   /sw\.js\?v=4/.test(read('public/app-power-v1.js')) &&
   /app-power-v1\.js\?v=13/.test(index) &&
@@ -234,6 +234,26 @@ assert('teacher bilingual timetable title uses explicit isolated language spans'
   /label\.append\(ar,sep,french\)/.test(morePageJs) &&
   /label\.dir!==direction/.test(morePageJs) &&
   /nt-more-timetable-label/.test(teacherFinalCss));
+const accountSheetJs=read('public/teacher-account-sheet-v1.js');
+const accountSheetCss=read('public/teacher-account-sheet-v1.css');
+assert('teacher account sheet scripts and styles versioned in offline bundle',
+  /teacher-account-sheet-v1\.js\?v=1/.test(index) &&
+  /teacher-account-sheet-v1\.css\?v=1/.test(index) &&
+  /teacher-account-sheet-v1\.js\?v=1/.test(sw) &&
+  /teacher-account-sheet-v1\.css\?v=1/.test(sw));
+assert('account sheet reuses actual school password logout controls without changing data',
+  /main > header \.profile/.test(accountSheetJs) &&
+  /#changePasswordBtn/.test(accountSheetJs) &&
+  /#logoutBtn/.test(accountSheetJs) &&
+  /#settingsBtn/.test(accountSheetJs) &&
+  /data-account-action/.test(accountSheetJs) &&
+  !/await save\(/.test(accountSheetJs) &&
+  !/\/api\/account\/password/.test(accountSheetJs));
+assert('account sheet remains teacher-only and does not affect PDF/print',
+  /nataiji-professor-mode/.test(accountSheetJs) &&
+  /@media screen/.test(accountSheetCss) &&
+  /@media print/.test(accountSheetCss) &&
+  /nataiji-account-sheet\{display:none!important\}/.test(accountSheetCss));
 const teacherHeaderJs = read('public/nataiji-home-reference-v1.js');
 assert('teacher language and class reveal assets are exact-version cached',
   /interface-language-fix\.js\?v=13/.test(index) &&
