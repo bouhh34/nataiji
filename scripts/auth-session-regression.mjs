@@ -244,3 +244,15 @@ test('unified identifiers show bilingual formatting feedback without live accoun
  assert.match(source,/ex.code==='email_exists'\|\|ex.code==='phone_exists'/);
  assert.doesNotMatch(source,/api\/auth\/(availability|identifier-exists|check-identifier)/);
 });
+
+test('failed sign-in offers generic advice and prefilled signup, not account lookup',()=>{
+ const login=source.slice(source.indexOf('function loginForm(){'),source.indexOf('function registerForm(){'));
+ assert.match(login,/data-auth2-create-account hidden/);
+ assert.match(login,/role="alert"/);
+ assert.match(source,/if\(create&&authMode==='login'&&ex.code==='bad_credentials'\)create.hidden=false/);
+ assert.match(source,/await renderAuth\('register',true\)/);
+ assert.match(source,/field.value=prior/);
+ const errors=source.slice(source.indexOf('function authErr('),source.indexOf('function gate(',source.indexOf('function authErr(')));
+ assert.match(errors,/تعذر تسجيل الدخول/);
+ assert.doesNotMatch(errors,/هذا الرقم غير مسجل|هذا البريد غير مسجل/);
+});
