@@ -1,0 +1,79 @@
+/* Figma BcStYHGjmzyHLr3ki8GMTk, frames 1:3–1:5.
+   Screen-only, teacher-only presentation. Existing controls remain interactive. */
+@media screen {
+  html.nt-teacher-design:not(.nataiji-professor-mode) { --nt-navy:#092f48; --nt-green:#087f68; --nt-bg:#f3f7f6; --nt-ink:#163b4b; --nt-muted:#637c86; --nt-mint:#e5f4ee; --nt-gold:#c8a554; }
+  html.nt-teacher-design:not(.nataiji-professor-mode).nt-core-view body { background:var(--nt-bg)!important; color:var(--nt-ink); }
+  html.nt-teacher-design:not(.nataiji-professor-mode).nt-core-view main { font-family:Tajawal,Tahoma,Arial,sans-serif!important; }
+  html.nt-teacher-design:not(.nataiji-professor-mode).nt-core-view main > header.np-home-header { background:var(--nt-navy)!important; border:0!important; box-shadow:none!important; border-radius:20px!important; padding:20px 24px!important; gap:16px!important; }
+  html.nt-teacher-design:not(.nataiji-professor-mode).nt-core-view .np-home-header .np-home-brand b,
+  html.nt-teacher-design:not(.nataiji-professor-mode).nt-core-view .np-home-header .np-home-brand small,
+  html.nt-teacher-design:not(.nataiji-professor-mode).nt-core-view .np-home-header .profile b,
+  html.nt-teacher-design:not(.nataiji-professor-mode).nt-core-view .np-home-header .profile small { color:#fff!important; }
+  html.nt-teacher-design:not(.nataiji-professor-mode).nt-core-view .np-home-header .np-home-brand img { width:44px!important; height:44px!important; object-fit:contain!important; }
+  #ntTeacherTitle { display:none; }
+  html.nt-teacher-design:not(.nataiji-professor-mode).nt-core-view #ntTeacherTitle { display:block; grid-column:1/-1; width:100%; color:#fff; font-size:27px; line-height:1.4; margin:0; text-align:start; overflow-wrap:anywhere; }
+  html.nt-teacher-design:not(.nataiji-professor-mode) [data-page="home"] .welcome.np-home-hero { display:flex!important; flex-direction:column!important; align-items:stretch!important; gap:12px!important; min-height:0!important; padding:20px!important; background:#fff!important; border:0!important; border-radius:20px!important; box-shadow:none!important; direction:inherit!important; }
+  html.nt-teacher-design:not(.nataiji-professor-mode) [data-page="home"] .welcome.np-home-hero > div:first-child { align-self:stretch!important; text-align:start!important; direction:inherit!important; }
+  html.nt-teacher-design:not(.nataiji-professor-mode) [data-page="home"] .welcome h1,
+  html.nt-teacher-design:not(.nataiji-professor-mode) [data-page="home"] .welcome small,
+  html.nt-teacher-design:not(.nataiji-professor-mode) [data-page="home"] .np-home-hero-art { display:none!important; }
+  #ntTeacherStart { margin:0 0 6px; font-size:19px; line-height:1.4; color:var(--nt-ink); }
+  html.nt-teacher-design:not(.nataiji-professor-mode) [data-page="home"] .welcome p { color:var(--nt-muted)!important; font-size:13px!important; line-height:1.5!important; }
+  html.nt-teacher-design:not(.nataiji-professor-mode) [data-page="home"] .welcome .np-home-cta { width:100%!important; min-height:45px!important; color:#fff!important; background:var(--nt-green)!important; border-radius:14px!important; box-shadow:none!important; font-size:15px!important; padding:12px!important; }
+  html.nt-teacher-design:not(.nataiji-professor-mode) [data-page="home"] .stats { gap:12px!important; margin:16px 0!important; }
+  html.nt-teacher-design:not(.nataiji-professor-mode) [data-page="home"] .stats article { border:0!important; border-radius:16px!important; box-shadow:none!important; padding:16px!important; min-height:92px!important; }
+  html.nt-teacher-design:not(.nataiji-professor-mode) [data-page="home"] .stats article b { margin-top:4px!important; font-size:30px!important; line-height:1.4!important; }
+  html.nt-teacher-design:not(.nataiji-professor-mode) [data-page="home"] .stats article span { font-size:12px!important; color:var(--nt-muted)!important; }
+  html.nt-teacher-design:not(.nataiji-professor-mode) [data-page="home"] .np-home-stat-icon { display:none!important; }
+  html.nt-teacher-design:not(.nataiji-professor-mode) [data-page="home"] .np-home-stat-complete b { color:var(--nt-green)!important; }
+  html.nt-teacher-design:not(.nataiji-professor-mode) [data-page="home"].nt-no-results .stats article:has(#statAverage),
+  html.nt-teacher-design:not(.nataiji-professor-mode) [data-page="home"].nt-no-results .stats article:has(#statNeeds) { display:none!important; }
+  html.nt-teacher-design:not(.nataiji-professor-mode) [data-page="home"] .np-home-progress-card { padding:16px!important; border:0!important; border-radius:18px!important; box-shadow:none!important; margin-top:16px!important; }
+  html.nt-teacher-design:not(.nataiji-professor-mode) #subjectProgress .subject-progress-name { font-size:14px!important; line-height:1.5!important; }
+  html.nt-teacher-design:not(.nataiji-professor-mode) #subjectProgress > div { min-height:62px!important; height:auto!important; max-height:none!important; }
+  html.nt-teacher-design:not(.nataiji-professor-mode) #subjectProgress > div > i { height:4px!important; background:#dfe9e8!important; }
+  #ntTeacherSupport { display:none; }
+  html.nt-teacher-design:not(.nataiji-professor-mode) #ntTeacherSupport { display:flex; flex-wrap:wrap; gap:6px 8px; margin-top:16px; padding:16px; border-radius:16px; background:var(--nt-mint); color:var(--nt-green); font-size:13px; }
+  #ntTeacherSupport b { flex-basis:100%; font-size:15px; }
+  #ntTeacherSupport button { color:inherit; font:inherit; font-weight:700; padding:4px 0; min-height:44px; border:0; background:none; text-decoration:underline; cursor:pointer; }
+  html.nt-teacher-design:not(.nataiji-professor-mode) :is([data-page="grades"],[data-page="students"]) > .card { background:transparent!important; border:0!important; padding:0!important; box-shadow:none!important; }
+  html.nt-teacher-design:not(.nataiji-professor-mode) :is([data-page="grades"],[data-page="students"]) .section-head { border:0!important; padding:0!important; margin-bottom:16px!important; }
+  html.nt-teacher-design:not(.nataiji-professor-mode) :is([data-page="grades"],[data-page="students"]) .section-head > div { display:none!important; }
+  html.nt-teacher-design:not(.nataiji-professor-mode) :is(#saveGrades,#addStudent) { width:100%!important; min-height:45px!important; padding:12px 16px!important; background:var(--nt-green)!important; box-shadow:none!important; border-radius:14px!important; font-size:15px!important; }
+  html.nt-teacher-design:not(.nataiji-professor-mode) [data-page="grades"] .filters { background:transparent!important; border:0!important; padding:0!important; gap:12px!important; }
+  html.nt-teacher-design:not(.nataiji-professor-mode) [data-page="grades"] .filters select { background:#fff!important; border:1px solid #dfe9e8!important; border-radius:12px!important; min-height:44px!important; }
+  html.nt-teacher-design:not(.nataiji-professor-mode) #mobileScores { background:#fff!important; border-radius:20px!important; padding:12px 16px!important; }
+  html.nt-teacher-design:not(.nataiji-professor-mode) #mobileScores .grade-subject-title { background:var(--nt-mint)!important; border:0!important; border-radius:12px!important; }
+  html.nt-teacher-design:not(.nataiji-professor-mode) #mobileScores .compact-score-row { background:#fff!important; border-bottom:1px solid #edf2f1!important; padding:9px 0!important; min-height:64px!important; }
+  html.nt-teacher-design:not(.nataiji-professor-mode) #mobileScores .score-student b { color:var(--nt-ink)!important; font-size:15px!important; font-weight:600!important; line-height:1.5!important; }
+  html.nt-teacher-design:not(.nataiji-professor-mode) #mobileScores input.mobile-mark { background:var(--nt-mint)!important; border:1px solid #d6e9e1!important; color:var(--nt-green)!important; border-radius:12px!important; min-height:44px!important; font-size:17px!important; box-shadow:none!important; }
+  html.nt-teacher-design:not(.nataiji-professor-mode) #mobileScores .absent-btn { min-height:44px!important; border-radius:12px!important; box-shadow:none!important; }
+  html.nt-teacher-design:not(.nataiji-professor-mode) #mobileScores .compact-score-row:focus-within { outline:2px solid var(--nt-green); outline-offset:3px; border-radius:12px; }
+  html.nt-teacher-design:not(.nataiji-professor-mode) #saveState { border-radius:12px!important; font-size:13px!important; line-height:1.5!important; padding:12px!important; }
+  html.nt-teacher-design:not(.nataiji-professor-mode) .student-mobile-cards { gap:12px!important; }
+  html.nt-teacher-design:not(.nataiji-professor-mode) .student-mobile-card { background:#fff!important; border:0!important; padding:16px!important; border-radius:16px!important; box-shadow:none!important; }
+  html.nt-teacher-design:not(.nataiji-professor-mode) .student-mobile-name b { font-size:19px!important; line-height:1.4!important; }
+  html.nt-teacher-design:not(.nataiji-professor-mode) .student-mobile-name small { font-size:12px!important; color:var(--nt-muted)!important; }
+  html.nt-teacher-design:not(.nataiji-professor-mode) .student-mobile-actions button { min-height:44px!important; box-shadow:none!important; border-radius:12px!important; }
+  html.nt-teacher-design:not(.nataiji-professor-mode) .bottom-nav { background:#fff!important; box-shadow:0 -1px 0 #dfe9e8!important; }
+  html.nt-teacher-design:not(.nataiji-professor-mode) .bottom-nav button.active { color:var(--nt-green)!important; background:var(--nt-mint)!important; border-radius:12px!important; }
+  html.nt-teacher-design:not(.nataiji-professor-mode) .bottom-nav button { font-family:Tajawal,Tahoma,Arial,sans-serif!important; }
+  @media(max-width:760px) {
+    html.nt-teacher-design:not(.nataiji-professor-mode).nt-core-view main { padding:0 20px 100px!important; }
+    html.nt-teacher-design:not(.nataiji-professor-mode).nt-core-view main > header.np-home-header { margin:0 -20px 24px!important; border-radius:0!important; padding:24px 20px!important; width:calc(100% + 40px)!important; }
+    html.nt-teacher-design:not(.nataiji-professor-mode).nt-core-view .np-home-header .profile { display:none!important; }
+    html.nt-teacher-design:not(.nataiji-professor-mode).nt-core-view .np-home-header .np-home-brand { grid-column:1!important; grid-row:1!important; }
+    html.nt-teacher-design:not(.nataiji-professor-mode).nt-core-view .np-home-header .np-home-year { grid-column:2!important; grid-row:1!important; }
+    html.nt-teacher-design:not(.nataiji-professor-mode).nt-core-view #ntTeacherTitle { grid-row:2!important; }
+    html.nt-teacher-design:not(.nataiji-professor-mode).nt-core-view .np-home-header .np-home-class { grid-column:1/-1!important; grid-row:3!important; }
+  }
+}
+@media print { #ntTeacherTitle,#ntTeacherStart,#ntTeacherSupport { display:none!important; } }
+@media screen {
+  html.nt-teacher-design:not(.nataiji-professor-mode) [data-page="home"] .welcome::before,
+  html.nt-teacher-design:not(.nataiji-professor-mode) [data-page="home"] .welcome::after { display:none!important; }
+  html.nt-teacher-design:not(.nataiji-professor-mode).nt-core-view .np-home-year .np-home-select-icon { display:none!important; }
+  html.nt-teacher-design:not(.nataiji-professor-mode).nt-core-view main > header.np-home-header .np-home-year #yearTop { padding-left:10px!important; padding-right:28px!important; font-size:12px!important; }
+  html.nt-teacher-design:not(.nataiji-professor-mode):not([dir="ltr"]) #ntTeacherTitle { text-align:right; }
+  html.nt-teacher-design:not(.nataiji-professor-mode)[dir="ltr"] #ntTeacherTitle { text-align:left; }
+}
