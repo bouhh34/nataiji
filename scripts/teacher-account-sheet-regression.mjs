@@ -107,6 +107,6 @@ test('unsafe account values are escaped and the teacher sheet never touches pass
  assert.doesNotMatch(source,/passwordHash|sessionVersion/);
  assert.match(css,/@media print/);
  assert.match(css,/html:not\(\.nataiji-professor-mode\)/);
- assert.match(index,/teacher-account-sheet-v1\.js\?v=1/);
- assert.match(sw,/teacher-account-sheet-v1\.js\?v=1/);
+ assert.match(index,/teacher-account-sheet-v1\.js\?v=2/);
+ assert.match(sw,/teacher-account-sheet-v1\.js\?v=2/);
 });
