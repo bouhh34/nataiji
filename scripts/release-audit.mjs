@@ -60,7 +60,23 @@ assert('terms page exists', exists('public/terms.html'));
 assert('account deletion web resource exists', exists('public/delete-account.html'));
 assert('PWA caches account deletion help', /\/delete-account\.html/.test(sw) && /\/info-pages\.css\?v=1/.test(sw));
 assert('privacy has public support and deletion links', /mailto:bahmedou596@gmail\.com/.test(read('public/privacy.html')) && /\/delete-account\.html/.test(read('public/privacy.html')));
-assert('PWA cache version current', /nataiji-shell-v157/.test(sw));
+assert('PWA cache version current', /nataiji-shell-v158/.test(sw));
+const commercialPlan = read('public/commercial-foundation-v1.js');
+assert('plan card script version is present in web and Android cache',
+  /commercial-foundation-v1\.js\?v=4/.test(index) &&
+  /commercial-foundation-v1\.js\?v=4/.test(sw));
+assert('plan card is mounted after login without mutation starvation',
+  /if\(mountTimer!==null\)return/.test(commercialPlan) &&
+  /\[data-view="more"\]/.test(commercialPlan) &&
+  /window\.addEventListener\('pageshow'/.test(commercialPlan) &&
+  /window\.addEventListener\('focus'/.test(commercialPlan) &&
+  /btn\.dataset\.planBound/.test(commercialPlan) &&
+  /\.settings-grid/.test(commercialPlan));
+assert('free plan card is informational, stable, and bilingual',
+  /مجاني طوال 2026–2027/.test(commercialPlan) &&
+  /Offre et abonnement/.test(commercialPlan) &&
+  /GRATUIT/.test(commercialPlan) &&
+  /script/.test(index));
 assert('new Play tester shell installs atomically and activates after complete precache',
   /cache=>cache.addAll\(ASSETS\)\)\.then\(\(\)=>self.skipWaiting\(\)\)/.test(sw) &&
   /navigate/.test(sw) &&
