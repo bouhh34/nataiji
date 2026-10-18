@@ -41,3 +41,12 @@ html.nataiji-director-mode body{background:#f5f8f7;color:#173a42}
 .director-record{flex-wrap:wrap}.director-record>div{min-width:140px;flex:1}
 #directorRosterLabel select{max-width:100%;min-height:44px}
 @media (max-width:420px){.director-record button{padding:9px 10px}}
+
+/* Keep return-to-director available above professor onboarding dialogs. */
+html.nataiji-professor-mode #directorReturnButton{
+ z-index:2147483000!important;
+ bottom:calc(16px + env(safe-area-inset-bottom,0px));
+ inset-inline-end:16px;
+ pointer-events:auto;
+}
+.director-card-icon .director-svg{display:block}
