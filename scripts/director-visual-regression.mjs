@@ -15,7 +15,7 @@ test('director visuals ship to both web and Android offline shell',()=>{
 });
 test('all fourteen registers have semantic SVG icons, medical records remain locked',()=>{
  for(const id of ['enrolment','correspondence','visits','visitor-log','daily-attendance','supervision','student-absence','staff-meetings','inventory','referrals','notice-board','model-lessons','teacher-health','student-health']){
-  assert.match(js,new RegExp("'"+id+"'\\s*:\\s*\\["));
+  assert.match(js,new RegExp("(?:'"+id+"'|"+id+")\\s*:\\s*\\["));
  }
  assert.match(js,/directorSvgPaths=/);
  assert.match(js,/directorIcon=\(name,size=20\)/);
