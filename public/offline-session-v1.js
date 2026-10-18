@@ -10,7 +10,7 @@
    if(record.verifiedAt>Date.now()+60_000||Date.now()-record.verifiedAt>MAX_AGE||record.user.suspended)return null;
    if(storage.getItem('nataiji-active-user')!==String(record.user.id))return null;
    const professor=record.user.role==='professor'||record.user.profileType==='professor';
-   const director=record.user.role==='director'&&record.user.profileType==='director';
+   const director=record.user.role==='admin'&&record.user.profileType==='director';
    const snap=director?storage.getItem('nataiji-director-cache-v1:'+record.user.id):professor?storage.getItem('nataiji-professor-profile-v1:'+record.user.id):storage.getItem('nataiji-data');
    if(!snap)return null;
    if(!professor&&!director){
