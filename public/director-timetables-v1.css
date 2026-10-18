@@ -1,0 +1,51 @@
+/* Class timetables: isolated classic-director components, web + Android. */
+.director-app .director-timetable-link{margin:13px 0 24px}
+.director-app .director-timetable-link>button{background:#fff;border:1px solid #cce6df;border-radius:17px;padding:16px;min-height:85px;color:#104a50;width:100%;display:flex;gap:15px;align-items:center;text-align:start;cursor:pointer;box-shadow:0 2px 14px #11545708;font-family:inherit}
+.director-app .director-timetable-link>button:hover,.director-app .director-timetable-link>button:focus-visible{border-color:#139580;background:#f5fcf9}
+.director-app .director-timetable-link>button>span:nth-child(2){display:grid;gap:4px;flex:1;min-width:0}
+.director-app .director-timetable-link b{font-size:16px;font-weight:800}
+.director-app .director-timetable-link small{font-size:12px;color:#73878c;line-height:1.6}
+.director-app .director-timetable-link .director-card-icon{background:#e8f7ef;color:#0d8071;width:43px;height:43px;border-radius:13px;flex:none}
+.director-app .director-time-panel{background:#fff;border:1px solid #deebe7;border-radius:16px;padding:15px;display:grid;gap:13px;margin-bottom:14px}
+.director-app .director-time-panel label{display:grid;gap:7px;font-size:13px;font-weight:750;color:#2e5960}
+.director-app .director-time-panel input,.director-app .director-time-panel select{font-family:inherit;background:#fff;border:1px solid #c9dcd7;border-radius:11px;padding:10px;min-height:43px;font-size:14px;width:100%;min-width:0}
+.director-app .director-time-new-class{display:grid;grid-template-columns:minmax(0,1fr) auto;align-items:end;gap:9px}
+.director-app .director-time-new-class button{font-family:inherit;background:#eff9f6;color:#076e60;border:1px solid #b4dcd2;border-radius:11px;min-height:43px;padding:9px 13px;display:inline-flex;gap:6px;align-items:center;cursor:pointer;font-size:12px;font-weight:700}
+.director-app .director-time-toolbar{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:12px;margin:15px 0}
+.director-app .director-time-toolbar>div:first-child{display:grid;gap:3px}
+.director-app .director-time-toolbar b{font-size:17px;color:#164149}
+.director-app .director-time-toolbar small{font-size:12px;color:#789094}
+.director-app .director-time-toolbar-actions{display:flex;gap:8px;flex-wrap:wrap}
+.director-app .director-time-toolbar-actions button{font-family:inherit;border:1px solid #c7dcd5;background:white;border-radius:12px;min-height:42px;padding:9px 13px;color:#176d63;font-size:13px;font-weight:750;display:inline-flex;align-items:center;justify-content:center;gap:7px;cursor:pointer}
+.director-app .director-time-toolbar-actions button:disabled{opacity:.45;cursor:not-allowed}
+.director-app .director-time-status{font-size:13px;color:#087f66;min-height:0;margin:7px 0}
+.director-app .director-time-status:empty{display:none}
+.director-app .director-time-status.bad{color:#a72631}
+.director-app .director-time-days{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:13px}
+.director-app .director-time-day{background:#fff;border:1px solid #dce9e6;border-radius:16px;overflow:hidden;min-width:0;box-shadow:0 3px 15px #063c4806}
+.director-app .director-time-day h3{font-size:15px;background:#eaf7f2;color:#0f7166;padding:13px 15px;margin:0;border-bottom:1px solid #d9ede7}
+.director-app .director-time-day-body{display:grid;gap:8px;padding:12px;align-content:start;min-height:68px}
+.director-app .director-time-empty{font-size:12px;color:#8a999d;margin:10px 0;text-align:center}
+.director-app .director-time-lesson{font-family:inherit;display:grid;gap:3px;min-width:0;text-align:start;cursor:pointer;border:1px solid #dfebe7;background:#fbfefc;color:#133f47;padding:11px;border-radius:12px}
+.director-app .director-time-lesson:hover,.director-app .director-time-lesson:focus-visible{background:#eef9f4;border-color:#8bcabc}
+.director-app .director-time-lesson b{font-size:13px;overflow-wrap:anywhere}
+.director-app .director-time-lesson small{font-size:11px;color:#70868b;overflow-wrap:anywhere}
+.director-app .director-time-clock{font-size:12px;font-variant-numeric:tabular-nums;color:#08746c;font-weight:750;text-align:start;direction:ltr;unicode-bidi:embed}
+.director-app .director-time-editor{max-width:660px;grid-template-columns:repeat(2,minmax(0,1fr))}
+.director-app .director-time-editor>label:nth-of-type(n+4){grid-column:1/-1}
+.director-app .director-time-editor-actions{display:flex;flex-wrap:wrap;gap:10px;align-items:center;grid-column:1/-1}
+.director-app .director-time-editor-actions button{font-family:inherit;font-size:13px;border:1px solid #c8dfda;border-radius:12px;padding:10px 16px;background:#fff;color:#155f63;cursor:pointer;font-weight:750;min-height:42px}
+.director-app #directorTimeDelete{color:#ab3035;border-color:#f2c9ca}
+@media(max-width:850px){.director-app .director-time-days{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media(max-width:510px){
+ .director-app .director-timetable-link{margin:12px 0 18px}
+ .director-app .director-timetable-link>button{padding:12px;gap:10px;min-height:75px}
+ .director-app .director-timetable-link b{font-size:14px}
+ .director-app .director-timetable-link small{font-size:11px}
+ .director-app .director-time-days{grid-template-columns:minmax(0,1fr)}
+ .director-app .director-time-new-class{grid-template-columns:1fr}
+ .director-app .director-time-new-class button{justify-content:center}
+ .director-app .director-time-editor{grid-template-columns:minmax(0,1fr)}
+ .director-app .director-time-editor>label{grid-column:1/-1}
+}
+@media print{.director-app .director-timetable-link,.director-app .director-time-toolbar,.director-app .director-time-new-class{display:none!important}}
