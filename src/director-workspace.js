@@ -25,7 +25,7 @@ export async function initDirectorSchema(pool) {
  await pool.query("CREATE INDEX IF NOT EXISTS nataiji_director_audit_lookup_idx ON nataiji_director_audit(institution_id,occurred_at DESC)");
 }
 
-export function mountDirectorRoutes(app,{auth,getPool}) {
+export function mountDirectorRoutes(app,{auth,getPool,loadMember=async()=>null}) {
  function db(req,res,next){if(!getPool())return res.status(503).json({error:'durable_storage_required'});next()}
  const requireDirector=(req,res,next)=>req.user?.role==='director' && req.user?.profileType==='director'
   ?next():res.status(403).json({error:'director_required'});
