@@ -33,14 +33,14 @@ test('a teacher cannot query director catalog',async()=>{
  assert.equal(r.status,403);
 });
 test('director can view their institution and records catalog',async()=>{
- const h=harness({id:'director-a',role:'director',profileType:'director',schoolId:'school-a'});
+ const h=harness({id:'director-a',role:'admin',profileType:'director',schoolId:'school-a'});
  const r=await h.request('GET','/api/director/institution');
  assert.equal(r.status,200);assert.equal(r.body.institution.id,'school-a');
  const cat=await h.request('GET','/api/director/catalog');
  assert.equal(cat.body.registers.find(x=>x.id==='student-health').enabled,false);
 });
 test('health records reject generic unencrypted write path',async()=>{
- const h=harness({id:'director-a',role:'director',profileType:'director',schoolId:'school-a'},{
+ const h=harness({id:'director-a',role:'admin',profileType:'director',schoolId:'school-a'},{
   category:'student-health',subject:'Private',recordDate:'2026-10-18',details:{notes:'sensitive'}
  });
  const r=await h.request('POST','/api/director/registers');
