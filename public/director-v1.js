@@ -41,7 +41,7 @@ function registerCustomFields(category,details){
  return (registerFields[category]||[]).map(([key,ar,fr])=>'<label>'+t(ar,fr)+'<input name="custom-'+key+'" maxlength="180" value="'+esc(details[key]||'')+'"></label>').join('');
 }
 function printDirectorRecord(record){
- const category=labels.find(x=>x[0]===record.category),rows=[...Object.entries(record.details||{}).map(([key,value])=>{
+ const category=labels.find(x=>x[0]===record.category),rows=[...Object.entries(record.details||{}).filter(([key])=>key!=='studentRef').map(([key,value])=>{
   const field=(registerFields[record.category]||[]).find(x=>x[0]===key);
   return [field?t(field[1],field[2]):key,String(value??'')];
  })].filter(([_,v])=>v);
@@ -60,7 +60,7 @@ function readCachedRecords(category){try{const d=JSON.parse(localStorage.getItem
 function storeCachedRecords(category,data){if(window.__nataijiOfflineActive)return;try{localStorage.setItem(cacheKey()+':'+category,JSON.stringify({institutionId:institution.id,records:data}))}catch{}}
 async function pendingEntries(){
  if(!institution?.id||!user?.id)return [];
- return window.NataijiDirectorOutbox?.pending?.({userId:user.id,institutionId:institution.id})||[]
+ return window.NataijiDirectorOutbox?.pending?.(user.id,institution.id)||[]
 }
 async function flushPending(){
  if(pendingSyncBusy||window.__nataijiOfflineActive||navigator.onLine===false||!institution?.id||!user?.id)return;
@@ -163,7 +163,7 @@ async function openRegister(){
    if(!cached)message(t('الاتصال غير متاح؛ القيود الجديدة محفوظة على هذا الجهاز إن وجدت.','Connexion indisponible ; les nouvelles entrées restent sur cet appareil.'),true)
   }
   if(currentCategory!==category||!$('#directorRecords'))return;
-  const entries=(await pendingEntries()).filter(x=>x.payload?.category===category);
+  const entries=(await pendingEntries().catch(()=>[])).filter(x=>x.payload?.category===category);
   const pendingHtml=entries.map(item=>'<article class="director-record director-pending"><div><b>'+esc(item.payload.subject)+'</b><small>'+t('محفوظ على الجهاز — بانتظار المزامنة','Enregistré sur cet appareil — en attente de synchronisation')+'</small></div></article>').join('');
   const savedHtml=records.map(x=>'<article class="director-record"><div><b>'+esc(x.subject)+'</b><small>'+esc(String(x.record_date).slice(0,10))+' · '+esc(x.reference||'—')+'</small></div><button data-director-edit="'+esc(x.id)+'" type="button">'+t('تعديل','Modifier')+'</button><button data-director-print="'+esc(x.id)+'" type="button">'+t('طباعة / PDF','Imprimer / PDF')+'</button></article>').join('');
   $('#directorRecords').innerHTML=pendingHtml+savedHtml||'<div class="director-empty">'+t('لا توجد قيود في هذا السجل. ابدأ بإضافة أول قيد.','Aucune entrée. Ajoutez la première.')+'</div>';
