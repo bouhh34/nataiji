@@ -91,7 +91,7 @@ export function mountDirectorRoutes(app,{auth,getPool,loadMember=async()=>null})
  }));
  app.get('/api/director/members',auth,requireDirector,db,wrap(ownInstitution),wrap(async(req,res)=>{
   const rows=await getPool().query('SELECT user_id,member_role,joined_at FROM nataiji_director_memberships WHERE institution_id=$1 ORDER BY joined_at DESC',[req.directorInstitution.id]);
-  res.json({ok:true,members:rows.rows});
+  const members=await Promise.all(rows.rows.map(async row=>{const member=await loadMember(row.user_id);return {...row,name:clean(member?.name||'',160)}}));res.json({ok:true,members});
  }));
  app.delete('/api/director/members/:userId',auth,requireDirector,db,wrap(ownInstitution),wrap(async(req,res)=>{
   await getPool().query('DELETE FROM nataiji_director_memberships WHERE institution_id=$1 AND user_id=$2',[req.directorInstitution.id,req.params.userId]);
