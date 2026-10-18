@@ -89,6 +89,27 @@ export function mountDirectorRoutes(app,{auth,getPool,loadMember=async()=>null})
    await client.query('COMMIT');res.json({ok:true,institutionId:row.institution_id});
   }catch(e){await client.query('ROLLBACK');throw e}finally{client.release()}
  }));
+ app.get('/api/director/roster',auth,requireDirector,db,wrap(ownInstitution),wrap(async(req,res)=>{
+  // A director can only see their own institution's roster. Linked professors'
+  // private profiles and grade books are deliberately excluded.
+  const schoolId=req.directorInstitution.id;
+  const [structure,pupils]=await Promise.all([
+   getPool().query('SELECT data FROM nataiji_structure WHERE school_id=$1',[schoolId]),
+   getPool().query('SELECT class_id,nns,data FROM nataiji_pupils WHERE school_id=$1 ORDER BY class_id,position LIMIT 2000',[schoolId])
+  ]);
+  const classes=Array.isArray(structure.rows[0]?.data?.classes)?structure.rows[0].data.classes.map(c=>({
+   id:clean(c?.id,120),name:clean(c?.name||c?.code,120)
+  })).filter(c=>c.id):[];
+  const names=new Map(classes.map(c=>[c.id,c.name]));
+  const students=pupils.rows.map(row=>{
+   const data=row.data;
+   const name=clean(Array.isArray(data)?data[1]:data?.name,160);
+   const classId=clean(row.class_id,120);
+   const studentKey=clean(row.nns,120);
+   return {studentKey,name,classId,className:names.get(classId)||''};
+  }).filter(row=>row.studentKey&&row.name);
+  res.json({ok:true,classes,students,limited:pupils.rows.length>=2000});
+ }));
  app.get('/api/director/members',auth,requireDirector,db,wrap(ownInstitution),wrap(async(req,res)=>{
   const rows=await getPool().query('SELECT user_id,member_role,joined_at FROM nataiji_director_memberships WHERE institution_id=$1 ORDER BY joined_at DESC',[req.directorInstitution.id]);
   const members=await Promise.all(rows.rows.map(async row=>{const member=await loadMember(row.user_id);return {...row,name:clean(member?.name||'',160)}}));res.json({ok:true,members});
