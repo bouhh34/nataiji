@@ -1,0 +1,34 @@
+name: Director workspace regression
+
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - 'src/director-workspace.js'
+      - 'src/server.js'
+      - 'public/director-*'
+      - 'public/auth-access-v2.js'
+      - 'public/professor-v2.js'
+      - 'public/offline-session-v1.js'
+      - 'public/index.html'
+      - 'public/sw.js'
+      - 'scripts/director-workspace-regression.mjs'
+      - 'scripts/release-audit.mjs'
+      - 'package.json'
+      - '.github/workflows/director-validation.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+      - run: npm ci --no-audit --no-fund
+      - run: npm run release:check
