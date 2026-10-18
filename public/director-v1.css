@@ -17,6 +17,8 @@ html.nataiji-director-mode {background:#f5f8f7}
 #directorLanguage {margin-top:auto;border:1px solid #4a8c94}
 #directorLogout {color:#f2cfcf}
 .director-main {min-width:0}
+.director-top-mobile {display:none;gap:6px}
+.director-top-mobile button {border:1px solid #c8dddd;border-radius:8px;background:#f0f7f6;color:#145a66;font-size:11px;padding:5px 8px}
 .director-top {padding:15px 26px;background:#fff;border-bottom:1px solid #dbe6e7;display:flex;justify-content:space-between;gap:15px;align-items:center;color:#486372;font-weight:700;font-size:13px}
 .director-content {max-width:1120px;margin:auto;padding:22px 22px 80px}
 .director-hero {padding:22px 25px;border-radius:20px;background:linear-gradient(120deg,#0d6571,#0d4155);color:#fff;display:flex;align-items:center;justify-content:space-between;gap:16px;box-shadow:0 9px 25px #0b506424}
@@ -78,6 +80,7 @@ html.nataiji-director-mode {background:#f5f8f7}
  .director-side nav {display:flex;margin:0;justify-content:space-around;gap:2px}
  .director-side nav button {text-align:center;flex:1;padding:6px 3px;min-height:47px;font-size:11px}
  .director-top {padding:13px 17px}
+ .director-top-mobile {display:flex}
  .director-content {padding:13px 12px 40px}
  .director-hero {padding:18px}
  .director-hero h2 {font-size:19px}
