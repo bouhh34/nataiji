@@ -42,6 +42,7 @@ async function refresh(){
  overview=result;return result;
 }
 function setMode(){
+ document.documentElement.classList.remove('nataiji-professor-mode');
  document.documentElement.classList.add('nataiji-director-mode');
  $('.app-shell')?.style.setProperty('display','none');
  $('.bottom-nav')?.style.setProperty('display','none');
@@ -78,7 +79,7 @@ function registersPage(){
  const health=registerType.endsWith('_health');
  return '<section class="director-section"><h2>'+tr('السجلات الإدارية','Registres administratifs')+'</h2><label>'+tr('اختر السجل','Choisir le registre')+'<select id="directorRegisterType">'+REGISTERS.map(r=>'<option value="'+esc(r[0])+'"'+(r[0]===registerType?' selected':'')+'>'+esc(label(r[0]))+'</option>').join('')+'</select></label>'+
  (health?'<p class="director-sensitive">'+tr('بيانات صحية حساسة: صلاحية المدير فقط في هذه النسخة التجريبية. لا تدخل معلومات طبية حقيقية قبل استكمال مراجعة الأمان.','Données de santé sensibles : accès directeur uniquement. Ne saisissez pas de données réelles avant la validation de sécurité.')+'</p>':'')+
- '<form id="directorRegisterForm" class="director-form"><input name="subject" required maxlength="250" placeholder="'+tr('الموضوع / عنوان القيد','Objet / Intitulé')+'"><input name="date" type="date" required value="'+new Date().toISOString().slice(0,10)+'"><input name="reference" maxlength="150" placeholder="'+tr('المرجع أو رقم المراسلة (اختياري)','Référence (facultatif)')+'"><input name="person" maxlength="180" placeholder="'+tr('الجهة أو الشخص المعني','Personne ou organisme')+'"><textarea name="notes" rows="3" maxlength="4000" placeholder="'+tr('الملاحظات والتفاصيل','Observations et détails')+'"></textarea><button class="director-primary" type="submit">'+tr('حفظ القيد','Enregistrer')+'</button></form>'+
+ '<form id="directorRegisterForm" class="director-form"><input name="subject" required maxlength="250" placeholder="'+tr('الموضوع / عنوان القيد','Objet / Intitulé')+'"><input name="date" type="date" required value="'+new Date().toISOString().slice(0,10)+'"><input name="reference" maxlength="150" placeholder="'+tr('المرجع أو رقم المراسلة (اختياري)','Référence (facultatif)')+'"><input name="person" maxlength="180" placeholder="'+tr('الجهة أو الشخص المعني','Personne ou organisme')+'"><textarea name="notes" rows="3" maxlength="4000" placeholder="'+tr('الملاحظات والتفاصيل','Observations et détails')+'"></textarea><button class="director-primary" type="submit"'+(health?' disabled':'')+'>'+tr(health?'الإدخال موقوف لحماية البيانات':'حفظ القيد',health?'Saisie suspendue pour protéger les données':'Enregistrer')+'</button></form>'+
  '<div class="director-table-scroll"><table><thead><tr><th>'+tr('الرقم','N°')+'</th><th>'+tr('التاريخ','Date')+'</th><th>'+tr('الموضوع','Objet')+'</th><th>'+tr('المرجع','Référence')+'</th></tr></thead><tbody>'+registers.map(r=>'<tr><td>'+r.serial+'</td><td>'+esc(String(r.date).slice(0,10))+'</td><td>'+esc(r.subject)+'</td><td>'+esc(r.details?.reference||'—')+'</td></tr>').join('')+'</tbody></table></div><button id="directorPrint" class="director-secondary">'+tr('طباعة القائمة','Imprimer la liste')+'</button></section>';
 }
 function membersPage(){
@@ -90,11 +91,13 @@ function render(){
  const el=root(),inst=overview?.institution;
  if(!inst){setup();return;}
  document.title=tr('لوحة المدير | نتائجي','Directeur | Nataiji');
- el.innerHTML='<div class="director-layout"><aside class="director-side"><div class="director-brand"><img src="/nataiji-brand-mark.png" width="42" height="42" alt=""><div><b>نتائجي</b><small>NATAIJI · DIRECTOR</small></div></div><nav>'+NAV.map(row=>'<button class="'+(view===row[0]?'active':'')+'" data-view="'+row[0]+'">'+tr(row[1],row[2])+'</button>').join('')+'</nav><button id="directorLanguage">العربية / Français</button><button id="directorLogout">'+tr('تسجيل الخروج','Déconnexion')+'</button></aside><div class="director-main"><header class="director-top"><span>'+tr('فضاء مدير المؤسسة','Espace direction')+'</span><span>'+esc(currentUser?.name||'')+'</span></header><div id="directorNotice" class="director-notice" hidden></div><div class="director-content">'+(view==='home'?home():view==='students'?studentsPage():view==='members'?membersPage():registersPage())+'</div></div></div>';
+ el.innerHTML='<div class="director-layout"><aside class="director-side"><div class="director-brand"><img src="/nataiji-brand-mark.png" width="42" height="42" alt=""><div><b>نتائجي</b><small>NATAIJI · DIRECTOR</small></div></div><nav>'+NAV.map(row=>'<button class="'+(view===row[0]?'active':'')+'" data-view="'+row[0]+'">'+tr(row[1],row[2])+'</button>').join('')+'</nav><button id="directorLanguage">العربية / Français</button><button id="directorLogout">'+tr('تسجيل الخروج','Déconnexion')+'</button></aside><div class="director-main"><header class="director-top"><span>'+tr('فضاء مدير المؤسسة','Espace direction')+'</span><span>'+esc(currentUser?.name||'')+'</span><div class="director-top-mobile"><button id="directorMobileLang">AR / FR</button><button id="directorMobileLogout">'+tr('خروج','Quitter')+'</button></div></header><div id="directorNotice" class="director-notice" hidden></div><div class="director-content">'+(view==='home'?home():view==='students'?studentsPage():view==='members'?membersPage():registersPage())+'</div></div></div>';
  el.querySelectorAll('[data-view]').forEach(b=>b.onclick=()=>go(b.dataset.view));
  el.querySelectorAll('[data-type]').forEach(b=>b.onclick=()=>{registerType=b.dataset.type;go('registers');});
  $('#directorLanguage',el).onclick=()=>{localStorage.setItem('nataiji-lang',localStorage.getItem('nataiji-lang')==='fr'?'ar':'fr');document.documentElement.dir=localStorage.getItem('nataiji-lang')==='fr'?'ltr':'rtl';document.documentElement.lang=localStorage.getItem('nataiji-lang')||'ar';render();};
  $('#directorLogout',el).onclick=logout;
+ $('#directorMobileLang',el).onclick=()=>$('#directorLanguage',el).click();
+ $('#directorMobileLogout',el).onclick=logout;
  const select=$('#directorRegisterType',el);if(select)select.onchange=()=>{registerType=select.value;loadRegisters();};
  const studentForm=$('#directorStudentForm',el);if(studentForm)studentForm.onsubmit=saveStudent;
  const recordForm=$('#directorRegisterForm',el);if(recordForm)recordForm.onsubmit=saveRegister;
