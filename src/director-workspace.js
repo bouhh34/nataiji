@@ -12,6 +12,15 @@ const sha = value => crypto.createHash('sha256').update(value).digest('hex');
 const clean = (value,max=160) => String(value??'').trim().slice(0,max);
 const validDate = value => /^\d{4}-\d{2}-\d{2}$/.test(String(value||'')) && !Number.isNaN(Date.parse(String(value)));
 const isObject = value => value!==null && typeof value==='object' && !Array.isArray(value);
+async function checkStudentLink(pool,institutionId,details){
+ const link=details?.studentRef;
+ if(link===undefined||link===null)return true;
+ if(!isObject(link)||typeof link.classId!=='string'||typeof link.studentKey!=='string')return false;
+ if(!link.classId||!link.studentKey||link.classId.length>120||link.studentKey.length>120)return false;
+ const row=await pool.query('SELECT 1 FROM nataiji_pupils WHERE school_id=$1 AND class_id=$2 AND nns=$3 LIMIT 1',[institutionId,link.classId,link.studentKey]);
+ return row.rowCount>0
+}
+
 
 export async function initDirectorSchema(pool) {
  if(!pool) return;
@@ -125,7 +134,8 @@ export function mountDirectorRoutes(app,{auth,getPool,loadMember=async()=>null})
  app.get('/api/director/registers',auth,requireDirector,db,wrap(ownInstitution),wrap(async(req,res)=>{
   const category=clean(req.query.category,40),limit=Math.min(100,Math.max(1,Number(req.query.limit)||30));
   if(category&&!DIRECTOR_REGISTER_CATEGORIES.includes(category))return res.status(400).json({error:'invalid_register_category'});
-  const result=await getPool().query('SELECT id,category,academic_year,record_date,reference,subject,details,version,created_at,updated_at FROM nataiji_director_registers WHERE institution_id=$1 AND deleted_at IS NULL AND ($2::text IS NULL OR category=$2) ORDER BY record_date DESC,created_at DESC LIMIT $3',[req.directorInstitution.id,category||null,limit]);
+  if(category&&sensitive.has(category))return res.status(403).json({error:'sensitive_register_not_enabled'});
+  const result=await getPool().query("SELECT id,category,academic_year,record_date,reference,subject,details,version,created_at,updated_at FROM nataiji_director_registers WHERE institution_id=$1 AND deleted_at IS NULL AND category NOT IN ('teacher-health','student-health') AND ($2::text IS NULL OR category=$2) ORDER BY record_date DESC,created_at DESC LIMIT $3",[req.directorInstitution.id,category||null,limit]);
   res.json({ok:true,records:result.rows});
  }));
  app.post('/api/director/registers',auth,requireDirector,db,wrap(ownInstitution),wrap(async(req,res)=>{
@@ -133,13 +143,20 @@ export function mountDirectorRoutes(app,{auth,getPool,loadMember=async()=>null})
   if(!DIRECTOR_REGISTER_CATEGORIES.includes(category))return res.status(400).json({error:'invalid_register_category'});
   if(sensitive.has(category))return res.status(403).json({error:'sensitive_register_not_enabled'});
   if(!subject||!validDate(date)||!isObject(details)||JSON.stringify(details).length>8000)return res.status(400).json({error:'invalid_register_record'});
-  const id=crypto.randomUUID(),institutionId=req.directorInstitution.id,pool=getPool(),client=await pool.connect();
+  const id=crypto.randomUUID(),institutionId=req.directorInstitution.id,pool=getPool();
+  if(!await checkStudentLink(pool,institutionId,details))return res.status(400).json({error:'student_link_not_found'});
+  const client=await pool.connect();
   try{
    await client.query('BEGIN');
    const inserted=await client.query('INSERT INTO nataiji_director_registers(id,institution_id,academic_year,category,record_date,reference,subject,details,client_mutation_id,created_by,updated_by) VALUES($1,$2,$3,$4,$5,$6,$7,$8::jsonb,$9,$10,$10) ON CONFLICT (institution_id,client_mutation_id) DO NOTHING RETURNING *',
     [id,institutionId,req.directorInstitution.academic_year,category,date,clean(input.reference,100),subject,JSON.stringify(details),mutationId||null,req.user.id]);
    const record=inserted.rows[0]||(mutationId?(await client.query('SELECT * FROM nataiji_director_registers WHERE institution_id=$1 AND client_mutation_id=$2',[institutionId,mutationId])).rows[0]:null);
    if(!record){await client.query('ROLLBACK');return res.status(409).json({error:'record_conflict'})}
+   if(!inserted.rowCount){
+    const sameDate=String(record.record_date instanceof Date?record.record_date.toISOString().slice(0,10):record.record_date).slice(0,10)===date;
+    const samePayload=record.category===category&&record.subject===subject&&record.reference===clean(input.reference,100)&&sameDate&&JSON.stringify(record.details)===JSON.stringify(details);
+    if(!samePayload){await client.query('ROLLBACK');return res.status(409).json({error:'mutation_id_payload_mismatch'})}
+   }
    if(inserted.rowCount)await client.query('INSERT INTO nataiji_director_audit(institution_id,actor_id,record_id,action,after_data) VALUES($1,$2,$3,$4,$5::jsonb)',[institutionId,req.user.id,record.id,'create',JSON.stringify(record)]);
    await client.query('COMMIT');res.status(inserted.rowCount?201:200).json({ok:true,record});
   }catch(e){await client.query('ROLLBACK');throw e}finally{client.release()}
@@ -154,6 +171,7 @@ export function mountDirectorRoutes(app,{auth,getPool,loadMember=async()=>null})
    if(!prev.rowCount){await client.query('ROLLBACK');return res.status(404).json({error:'register_record_not_found'})}
    if(sensitive.has(prev.rows[0].category)){await client.query('ROLLBACK');return res.status(403).json({error:'sensitive_register_not_enabled'})}
    if(prev.rows[0].version!==version){await client.query('ROLLBACK');return res.status(409).json({error:'record_version_conflict'})}
+   if(!await checkStudentLink(client,req.directorInstitution.id,details)){await client.query('ROLLBACK');return res.status(400).json({error:'student_link_not_found'})}
    const result=await client.query('UPDATE nataiji_director_registers SET subject=$3,record_date=$4,reference=$5,details=$6::jsonb,version=version+1,updated_by=$7,updated_at=now() WHERE id=$1 AND institution_id=$2 RETURNING *',[req.params.id,req.directorInstitution.id,subject,date,clean(input.reference,100),JSON.stringify(details),req.user.id]);
    await client.query('INSERT INTO nataiji_director_audit(institution_id,actor_id,record_id,action,before_data,after_data) VALUES($1,$2,$3,$4,$5::jsonb,$6::jsonb)',[req.directorInstitution.id,req.user.id,req.params.id,'update',JSON.stringify(prev.rows[0]),JSON.stringify(result.rows[0])]);
    await client.query('COMMIT');res.json({ok:true,record:result.rows[0]});
