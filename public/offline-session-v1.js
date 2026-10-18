@@ -1,8 +1,8 @@
-/* Short-lived offline reopening of a previously verified device workspace.
+/* 35-day offline reopening of a previously verified device workspace.
  * Never caches a cookie/password and never grants server access. */
 (function(global){
  'use strict';
- const KEY='nataiji-offline-session-v1', MAX_AGE=12*60*60*1000;
+ const KEY='nataiji-offline-session-v1', MAX_AGE=35*24*60*60*1000;
  function read(storage){
   try{
    const record=JSON.parse(storage.getItem(KEY)||'null');
@@ -17,7 +17,7 @@
     if(storage.getItem('nataiji-offline-school-scope-v1')!==expected)return null;
    }
    const parsed=JSON.parse(snap);
-   if(!parsed||typeof parsed!=='object'||professor&&!Array.isArray(parsed.classes)||!professor&&!Array.isArray(parsed.classes)&&!Array.isArray(parsed.pupils))return null;
+   if(!parsed||typeof parsed!=='object'||professor&&!Array.isArray(parsed.profile?.classes)||!professor&&!Array.isArray(parsed.profile?.classes)&&!Array.isArray(parsed.pupils))return null;
    return {user:record.user,professor};
   }catch{return null}
  }

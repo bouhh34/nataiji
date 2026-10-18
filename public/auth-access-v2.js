@@ -58,7 +58,7 @@ async function renderAuth(mode='login',force=false){
    storageMode=status.storage||storageMode
   }catch(error){
    if(run!==authRenderSeq||currentUser?.id)return null;
-   // A verified session can reopen a cached workspace for up to 12h.
+   // A verified session can reopen a cached workspace for up to 35 days.
    // Explicit 401/403 and normal logged-out responses never restore access.
    const temporary=!error?.status||[502,503,504].includes(error.status);
    const cached=temporary&&!resetToken()&&window.NataijiOfflineResume?.read();
@@ -482,7 +482,18 @@ document.addEventListener('visibilitychange',()=>{if(!document.hidden&&window.__
 // The network can return before the server does; retry without requiring another online event.
 setInterval(()=>{if(!document.hidden&&window.__nataijiOfflineActive)void revalidateOfflineSession()},30000);
 window.addEventListener('beforeprint',()=>patchOfficialWording());
-window.addEventListener('DOMContentLoaded',()=>{void renderAuth('login');setTimeout(refreshAll,80)});
+async function resumeAtStartup(){
+ // Local data is immediately usable, even when Wi-Fi has no working internet.
+ // Server access and synchronization remain blocked until revalidation succeeds.
+ const cached=!resetToken()&&window.NataijiOfflineResume?.read();
+ if(cached){
+  await accountActivate(cached.user,true);
+  void revalidateOfflineSession();
+  return;
+ }
+ await renderAuth('login');
+}
+window.addEventListener('DOMContentLoaded',()=>{void resumeAtStartup();setTimeout(refreshAll,80)});
 setInterval(()=>{const l=lang();if(l!==lastLang){lastLang=l;if(q('.auth-gate'))renderAuth(authMode,true);setTimeout(refreshAll,20)}},250);
 setTimeout(refreshAll,0);
 })();

@@ -32,7 +32,7 @@ test('professor offline cache requires a saved profile and remains account scope
  const f=fixture(),user={id:'prof-1',role:'professor',profileType:'professor'};
  f.localStorage.setItem('nataiji-active-user',user.id);
  f.cache.remember(user);assert.equal(f.cache.read(),null);
- f.localStorage.setItem('nataiji-professor-profile-v1:prof-1',JSON.stringify({classes:[],profile:{classes:[]}}));
+ f.localStorage.setItem('nataiji-professor-profile-v1:prof-1',JSON.stringify({profile:{classes:[]},classLinks:{}}));
  assert.equal(f.cache.read()?.professor,true);
  f.cache.clear();assert.equal(f.cache.read(),null);
 });
@@ -43,7 +43,7 @@ test('stale, invalid and suspended sessions never open offline',()=>{
  f.localStorage.setItem('nataiji-offline-school-scope-v1',JSON.stringify(['t','','']));
  f.cache.remember(user);
  const key='nataiji-offline-session-v1';
- const raw=JSON.parse(f.entries.get(key));raw.verifiedAt=Date.now()-13*60*60*1000;
+ const raw=JSON.parse(f.entries.get(key));raw.verifiedAt=Date.now()-36*24*60*60*1000;
  f.localStorage.setItem(key,JSON.stringify(raw));assert.equal(f.cache.read(),null);
  raw.verifiedAt=Date.now()+5*60*1000;f.localStorage.setItem(key,JSON.stringify(raw));assert.equal(f.cache.read(),null);
  raw.verifiedAt=Date.now();raw.user.suspended=true;f.localStorage.setItem(key,JSON.stringify(raw));assert.equal(f.cache.read(),null);
@@ -68,3 +68,30 @@ test('offline login routing never sends saved snapshots as server grade mutation
  assert.match(prof,/function offlineProfile\(\)/);
  assert.match(prof,/navigator\.onLine===false\|\|window\.__nataijiOfflineActive/);
 });
+
+ test('offline workspace remains usable after a month without extending verification time',()=>{
+ const f=fixture(), user={id:'month',role:'teacher'};
+ f.localStorage.setItem('nataiji-active-user',user.id);
+ f.localStorage.setItem('nataiji-data',JSON.stringify({pupils:[]}));
+ f.localStorage.setItem('nataiji-offline-school-scope-v1',JSON.stringify([user.id,'','']));
+ f.cache.remember(user);
+ const key='nataiji-offline-session-v1', record=JSON.parse(f.entries.get(key));
+ record.verifiedAt=Date.now()-31*24*60*60*1000;
+ f.localStorage.setItem(key,JSON.stringify(record));
+ assert.equal(f.cache.read()?.user.id,user.id);
+ assert.equal(JSON.parse(f.entries.get(key)).verifiedAt,record.verifiedAt);
+ });
+ test('cached startup renders before background network verification',async()=>{
+ const auth=fs.readFileSync(new URL('../public/auth-access-v2.js',import.meta.url),'utf8');
+ const source=auth.slice(auth.indexOf('async function resumeAtStartup(){'),auth.indexOf("window.addEventListener('DOMContentLoaded'"));
+ const calls=[];
+ const context=vm.createContext({resetToken:()=>'',window:{NataijiOfflineResume:{read:()=>({user:{id:'cached'}})}},
+ accountActivate:async(user,offline)=>{calls.push(['open',user.id,offline])},
+ revalidateOfflineSession:()=>{calls.push(['verify']);return new Promise(()=>{})},
+ renderAuth:async()=>{calls.push(['login'])}});
+ vm.runInContext(source,context);
+ await context.resumeAtStartup();
+ assert.deepEqual(calls,[['open','cached',true],['verify']]);
+ context.resetToken=()=> 'reset-token';calls.length=0;
+ await context.resumeAtStartup();assert.deepEqual(calls,[['login']]);
+ });
