@@ -11,7 +11,7 @@ test('director visuals ship to both web and Android offline shell',()=>{
   assert.ok(sw.includes('/'+asset),'offline cache missing '+asset);
  }
  assert.match(sw,/nataiji-shell-v175/);
- assert.match(html,/<link rel="stylesheet" href="\/director-v1\.css\?v=2" \/>[\s\S]*<link rel="stylesheet" href="\/director-premium-v1\.css\?v=1" \/>/);
+ assert.match(html,/<link rel="stylesheet" href="\/director-v1\.css\?v=2" \/>[\s\S]*<link rel="stylesheet" href="\/director-premium-v1\.css\?v=2" \/>/);
 });
 test('all fourteen registers have semantic SVG icons, medical records remain locked',()=>{
  for(const id of ['enrolment','correspondence','visits','visitor-log','daily-attendance','supervision','student-absence','staff-meetings','inventory','referrals','notice-board','model-lessons','teacher-health','student-health']){
