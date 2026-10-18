@@ -21,6 +21,41 @@ const labels=[
  ['student-health','الصحي للتلاميذ','Santé des élèves','heart']
 ];
 let user=null,institution=null,currentCategory='enrolment',overview=null,records=[];
+
+/* Local SVGs render in web browsers and Android WebView even without icon fonts. */
+const directorSvgPaths={
+ home:'<path d="m3 10 9-7 9 7v10a1 1 0 0 1-1 1h-5v-7H9v7H4a1 1 0 0 1-1-1z"/>',
+ users:'<path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75"/>',
+ logout:'<path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><path d="m16 17 5-5-5-5M21 12H9"/>',
+ settings:'<circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.6 1.6 0 0 0 .32 1.77l-1.9 1.9a1.6 1.6 0 0 0-1.77-.32 1.6 1.6 0 0 0-1 1.48V22h-2.7v-2.17a1.6 1.6 0 0 0-1-1.48 1.6 1.6 0 0 0-1.77.32l-1.9-1.9A1.6 1.6 0 0 0 8 15a1.6 1.6 0 0 0-1.48-1H4v-2.7h2.52A1.6 1.6 0 0 0 8 10.3a1.6 1.6 0 0 0-.32-1.77l1.9-1.9a1.6 1.6 0 0 0 1.77.32 1.6 1.6 0 0 0 1-1.48V3h2.7v2.47a1.6 1.6 0 0 0 1 1.48 1.6 1.6 0 0 0 1.77-.32l1.9 1.9a1.6 1.6 0 0 0-.32 1.77 1.6 1.6 0 0 0 1.48 1H23V14h-2.12a1.6 1.6 0 0 0-1.48 1z"/>',
+ school:'<path d="M3 21V8l9-5 9 5v13H3zM9 21v-6h6v6M7 10h2m6 0h2M7 13h2m6 0h2"/>',
+ plus:'<path d="M12 5v14M5 12h14"/>',
+ link:'<path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/>',
+ bookmark:'<path d="M5 4a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2v18l-7-5-7 5z"/>',
+ list:'<path d="M9 6h12M9 12h12M9 18h12M3 6h.01M3 12h.01M3 18h.01"/>',
+ arrow:'<path d="m15 18-6-6 6-6"/>',
+ enrolment:'<circle cx="9" cy="7" r="3"/><path d="M3 20v-2a6 6 0 0 1 12 0v2M17 8h6M20 5v6"/>',
+ correspondence:'<path d="M4 7h16M4 17h16m-4-4 4 4-4 4M8 3 4 7l4 4"/>',
+ visits:'<rect x="3" y="5" width="18" height="16" rx="2"/><path d="M7 3v4m10-4v4M3 10h18M9 15h6"/>',
+ visitor:'<rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="10" cy="10" r="2"/><path d="M6 17c0-3 8-3 8 0M16 8h3M16 12h3"/>',
+ attendance:'<rect x="3" y="5" width="18" height="16" rx="2"/><path d="M7 3v4m10-4v4M3 10h18m5 6 2 2 4-4"/>',
+ supervision:'<path d="M12 22c5-2 8-6 8-11V5l-8-3-8 3v6c0 5 3 9 8 11z"/><path d="m9 12 2 2 4-4"/>',
+ absence:'<circle cx="9" cy="8" r="4"/><path d="M2 21v-2a7 7 0 0 1 12-4M16 19h6"/>',
+ meeting:'<circle cx="12" cy="7" r="3"/><path d="M7 19v-2a5 5 0 0 1 10 0v2M3 9a2 2 0 1 0 0 4M21 9a2 2 0 1 1 0 4M2 21v-3a3 3 0 0 1 3-3M22 21v-3a3 3 0 0 0-3-3"/>',
+ inventory:'<path d="M5 13h14v7H5zM7 13V5h10v8M4 20v2m16-2v2M7 9h10"/>',
+ referrals:'<path d="M6 2h9l5 5v15H6zM15 2v6h5M9 13h8M9 17h6"/>',
+ notices:'<path d="M3 11v3l4 1 10 6V4L7 10l-4 1zM7 15l1 6h4l-2-5M20 9l2-2m-2 9 2 2"/>',
+ lesson:'<path d="m2 10 10-6 10 6-10 6zM6 12v5c3 3 9 3 12 0v-5M22 10v7"/>',
+ lock:'<rect x="5" y="10" width="14" height="11" rx="2"/><path d="M8 10V7a4 4 0 0 1 8 0v3M12 14v3"/>'
+};
+const directorIcon=(name,size=20)=>'<svg class="director-svg" width="'+size+'" height="'+size+'" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false">'+(directorSvgPaths[name]||directorSvgPaths.list)+'</svg>';
+const directorCardVisuals={
+ enrolment:['enrolment','teal'],correspondence:['correspondence','blue'],visits:['visits','amber'],'visitor-log':['visitor','purple'],
+ 'daily-attendance':['attendance','blue'],supervision:['supervision','teal'],'student-absence':['absence','red'],'staff-meetings':['meeting','purple'],
+ inventory:['inventory','amber'],referrals:['referrals','blue'],'notice-board':['notices','purple'],'model-lessons':['lesson','teal'],
+ 'teacher-health':['lock','locked'],'student-health':['lock','locked']
+};
+
 let pendingSyncBusy=false;
 const health=new Set(['teacher-health','student-health']);
 const registerFields={
@@ -99,7 +134,11 @@ function message(value,bad=false){const el=$('#directorMessage');if(el){el.textC
 function network(url,options={}){if(navigator.onLine===false)throw Object.assign(Error('offline'),{code:'offline'});return api(url,options)}
 function apiPost(url,data,method='POST'){return network(url,{method,body:JSON.stringify(data)})}
 const formField=(name,label,value='',kind='text')=>'<label>'+label+'<input name="'+name+'" type="'+kind+'" value="'+esc(value)+'" maxlength="160" required></label>';
-function frame(title,contents){const el=show();el.innerHTML='<div class="director-shell"><header class="director-top"><div class="director-brand"><img src="/nataiji-brand-mark.png" alt="" width="46" height="46"><div><b>'+t('نتائجي | الإدارة','Nataiji | Direction')+'</b><small>'+esc(user?.name||'')+'</small></div></div><div class="director-actions"><button id="directorHome" type="button">'+t('الرئيسية','Accueil')+'</button><button id="directorTeacherArea" type="button">'+t('مساحة المعلم','Espace enseignant')+'</button><button id="directorLogout" type="button">'+t('الخروج','Quitter')+'</button></div></header><div class="director-wrap"><h1>'+esc(title)+'</h1><p id="directorMessage" role="status"></p>'+contents+'</div></div>';$('#directorHome',el).onclick=()=>{void dashboard()};$('#directorTeacherArea',el).onclick=openTeacherArea;$('#directorLogout',el).onclick=logout;return el}
+function frame(title,contents){
+ const el=show();
+ el.innerHTML='<div class="director-shell"><header class="director-top"><div class="director-brand"><img src="/nataiji-brand-mark.png" alt="" width="46" height="46"><div><b>'+t('نتائجي | الإدارة','Nataiji | Direction')+'</b><small>'+esc(user?.name||'')+'</small></div></div><nav class="director-actions" aria-label="'+t('خيارات الحساب','Actions du compte')+'"><button id="directorHome" class="director-top-home" type="button">'+directorIcon('home',17)+'<span>'+t('الرئيسية','Accueil')+'</span></button><button id="directorTeacherArea" type="button">'+directorIcon('users',17)+'<span>'+t('مساحة المعلم','Espace enseignant')+'</span></button><button id="directorLogout" class="director-logout" type="button">'+directorIcon('logout',17)+'<span>'+t('الخروج','Quitter')+'</span></button></nav></header><div class="director-wrap"><div class="director-page-title"><span class="director-heading-icon">'+directorIcon('school',22)+'</span><h1>'+esc(title)+'</h1></div><p id="directorMessage" role="status"></p>'+contents+'</div></div>';
+ $('#directorHome',el).onclick=()=>{void dashboard()};$('#directorTeacherArea',el).onclick=openTeacherArea;$('#directorLogout',el).onclick=logout;return el
+}
 async function logout(){try{await apiPost('/api/auth/logout',{})}catch{message(t('لإنهاء الجلسة بأمان اتصل بالإنترنت أولًا.','Reconnectez-vous pour vous déconnecter en toute sécurité.'),true);return}window.NataijiOfflineResume?.clear();currentUser=null;hide();location.reload()}
 function institutionForm(){
  const d=institution||{},edit=!!d.id;
@@ -117,7 +156,10 @@ function institutionForm(){
 }
 function cardButtons(){
  const count=overview?.registerCounts||{};
- return labels.map(([key,ar,fr])=>'<button class="director-card" type="button" data-director-register="'+key+'"><span class="director-card-icon">'+(health.has(key)?'🔒':'▤')+'</span><b>'+t(ar,fr)+'</b><small>'+(health.has(key)?t('قريبًا · حماية خاصة','Bientôt · Accès protégé'):t('السجلات','Registres')+' · '+(count[key]||0))+'</small></button>').join('')
+ return labels.map(([key,ar,fr])=>{
+  const locked=health.has(key),[graphic,tone]=directorCardVisuals[key]||['list','teal'];
+  return '<button class="director-card director-tone-'+tone+'" type="button" data-director-register="'+key+'"'+(locked?' aria-disabled="true"':'')+'><span class="director-card-icon" aria-hidden="true">'+directorIcon(graphic,23)+'</span><span class="director-card-title">'+t(ar,fr)+'</span><small>'+(locked?t('قريبًا · حماية خاصة','Bientôt · accès protégé'):t('السجلات','Registres')+' · '+(count[key]||0))+'</small><span class="director-card-arrow" aria-hidden="true">'+directorIcon('arrow',16)+'</span></button>'
+ }).join('')
 }
 async function dashboard(){
  const el=show();el.innerHTML='<div class="director-loading">'+t('جاري تحميل الإدارة...','Chargement...')+'</div>';
@@ -128,10 +170,10 @@ async function dashboard(){
    overview=await network('/api/director/overview');saveCachedHome();
   }catch(error){const cached=readCachedHome();if(!cached)throw error;institution=cached.institution;overview=cached.overview}
 
-  const body=(window.__nataijiOfflineActive||navigator.onLine===false?'<p class="director-offline-notice">'+t('وضع دون إنترنت: البيانات المحفوظة متاحة للقراءة، ويلزم الاتصال لحفظ التعديلات.','Hors connexion : consultation disponible, enregistrement après reconnexion.')+'</p>':'')+'<div class="director-welcome"><div><small>'+t('لوحة المدير','Espace direction')+'</small><h2>'+esc(institution.name)+'</h2><p>'+esc(institution.academic_year||'')+' · '+t('إدارة مستقلة مع ربط اختياري للمعلمين','Gestion autonome et partage facultatif')+'</p></div><button type="button" id="directorSettings">'+t('الإعدادات','Paramètres')+'</button></div>'+
-  '<div class="director-stats"><article><b>'+Number(overview.memberCount||0)+'</b><span>'+t('معلمون مرتبطون','Enseignants liés')+'</span></article><article><b>'+Object.values(overview.registerCounts||{}).reduce((a,b)=>a+Number(b||0),0)+'</b><span>'+t('قيود محفوظة','Entrées enregistrées')+'</span></article></div>'+
-  '<div class="director-tools"><button type="button" id="directorInvite">＋ '+t('دعوة معلم','Inviter un enseignant')+'</button><button type="button" id="directorMembers">'+t('الحسابات المرتبطة','Comptes liés')+'</button></div>'+
-  '<h3>'+t('السجلات الإدارية','Registres administratifs')+'</h3><div class="director-grid">'+cardButtons()+'</div>';
+  const body=(window.__nataijiOfflineActive||navigator.onLine===false?'<p class="director-offline-notice">'+t('وضع دون إنترنت: البيانات المحفوظة متاحة للقراءة، ويلزم الاتصال لحفظ التعديلات.','Hors connexion : consultation disponible, enregistrement après reconnexion.')+'</p>':'')+'<div class="director-welcome"><div class="director-welcome-copy"><small>'+t('لوحة المدير','Espace direction')+'</small><h2>'+esc(institution.name)+'</h2><p>'+esc(institution.academic_year||'')+' · '+t('إدارة مستقلة مع ربط اختياري للمعلمين','Gestion autonome et partage facultatif')+'</p></div><span class="director-hero-decoration" aria-hidden="true">'+directorIcon('school',75)+'</span><button type="button" id="directorSettings">'+directorIcon('settings',17)+'<span>'+t('الإعدادات','Paramètres')+'</span></button></div>'+
+  '<div class="director-stats"><article><span class="director-stat-icon">'+directorIcon('users',20)+'</span><b>'+Number(overview.memberCount||0)+'</b><span>'+t('معلمون مرتبطون','Enseignants liés')+'</span></article><article><span class="director-stat-icon">'+directorIcon('bookmark',20)+'</span><b>'+Object.values(overview.registerCounts||{}).reduce((a,b)=>a+Number(b||0),0)+'</b><span>'+t('قيود محفوظة','Entrées enregistrées')+'</span></article></div>'+
+  '<div class="director-tools"><button type="button" id="directorInvite">'+directorIcon('plus',18)+'<span>'+t('دعوة معلم','Inviter un enseignant')+'</span></button><button type="button" id="directorMembers">'+directorIcon('link',18)+'<span>'+t('الحسابات المرتبطة','Comptes liés')+'</span></button></div>'+
+  '<div class="director-register-header"><span class="director-register-icon">'+directorIcon('list',20)+'</span><div><h3>'+t('السجلات الإدارية','Registres administratifs')+'</h3><p>'+t('الوصول إلى جميع سجلات المدرسة وإدارتها','Tous les registres administratifs à portée de main')+'</p></div></div><div class="director-grid">'+cardButtons()+'</div>';
   frame(t('الإدارة المدرسية','Administration scolaire'),body);
   if(!window.__nataijiOfflineActive)void flushPending();
   $('#directorSettings').onclick=institutionForm;
