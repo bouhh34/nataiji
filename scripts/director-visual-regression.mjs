@@ -6,11 +6,11 @@ const html=read('public/index.html'),sw=read('public/sw.js');
 const css=read('public/director-premium-v1.css'),js=read('public/director-v1.js');
 
 test('director visuals ship to both web and Android offline shell',()=>{
- for(const asset of ['director-premium-v1.css?v=1','director-v1.js?v=4']){
+ for(const asset of ['director-premium-v1.css?v=2','director-v1.js?v=4']){
   assert.ok(html.includes('/'+asset),'index missing '+asset);
   assert.ok(sw.includes('/'+asset),'offline cache missing '+asset);
  }
- assert.match(sw,/nataiji-shell-v174/);
+ assert.match(sw,/nataiji-shell-v175/);
  assert.match(html,/<link rel="stylesheet" href="\/director-v1\.css\?v=2" \/>[\s\S]*<link rel="stylesheet" href="\/director-premium-v1\.css\?v=1" \/>/);
 });
 test('all fourteen registers have semantic SVG icons, medical records remain locked',()=>{
