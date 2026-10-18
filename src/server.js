@@ -501,7 +501,7 @@ app.post('/api/account/profile-type',auth,async(req,res)=>{
  if(user.profileType===type&&user.needsProfileChoice!==true)return res.json({ok:true,user:safeUser(user)});
  if(user.needsProfileChoice!==true)return res.status(409).json({error:'profile_type_locked'});
  if(type==='teacher'){user.profileType='teacher';user.needsProfileChoice=false}
- else if(type==='director'){user.profileType='director';user.needsProfileChoice=false;user.role='director';user.baseRole='director';user.permissions=['director'];user.classIds=[];user.classAccess={};user.subjectIds=[];user.sharedGrants={};user.activeSharedGrant='';user.workspaceMode='director'}
+ else if(type==='director'){user.profileType='director';user.needsProfileChoice=false;user.role='admin';user.baseRole='admin';user.permissions=['all'];user.classIds=[];user.classAccess={};user.subjectIds=[];user.sharedGrants={};user.activeSharedGrant='';user.workspaceMode='owned'}
  else{
   const seeded=[...new Set((Array.isArray(user.ownedSchoolIds)?user.ownedSchoolIds:(user.schoolId?[user.schoolId]:[])).map(String).filter(Boolean))];
   if(pool)for(const schoolId of seeded)if(await schoolHasDurableContent(schoolId))return res.status(409).json({error:'profile_type_school_has_data'});
