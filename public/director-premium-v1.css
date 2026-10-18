@@ -22,7 +22,7 @@ html.nataiji-director-mode body { background:#f4f8f8; }
 .director-app .director-actions button{
  background:#fff;border:1px solid #d9e9e7;border-radius:12px;color:#075e5c;
  min-height:40px;padding:9px 12px;display:inline-flex;align-items:center;
- justify-content:center;gap:7px;font:750 12px/1.35 inherit;cursor:pointer;white-space:normal;
+ justify-content:center;gap:7px;font-family:inherit;font-weight:750;font-size:12px;line-height:1.35;cursor:pointer;white-space:normal;
  transition:background .14s,border-color .14s;
 }
 .director-app .director-actions button:hover{background:#eff9f6;border-color:#8fd1c5}
@@ -61,7 +61,7 @@ html.nataiji-director-mode body { background:#f4f8f8; }
 .director-app .director-welcome button{
  z-index:1;display:inline-flex;align-items:center;justify-content:center;gap:7px;
  background:#ffffff13;border:1px solid #ffffffa4;color:#fff;min-height:40px;
- padding:9px 13px;font:750 12px/1.3 inherit;border-radius:12px;cursor:pointer;
+ padding:9px 13px;font-family:inherit;font-weight:750;font-size:12px;line-height:1.3;border-radius:12px;cursor:pointer;
 }
 .director-app .director-stats{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;margin:12px 0}
 .director-app .director-stats article{
@@ -76,7 +76,7 @@ html.nataiji-director-mode body { background:#f4f8f8; }
 .director-app .director-tools:has(#directorInvite){display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;margin:0 0 24px}
 .director-app .director-tools #directorInvite,.director-app .director-tools #directorMembers{
  min-height:46px;border-radius:13px;display:flex;align-items:center;justify-content:center;
- gap:7px;font:750 12px/1.25 inherit;cursor:pointer;padding:9px;
+ gap:7px;font-family:inherit;font-weight:750;font-size:12px;line-height:1.25;cursor:pointer;padding:9px;
 }
 .director-app .director-tools #directorInvite{background:linear-gradient(110deg,#08786c,#078c76);color:#fff;border:1px solid #087c6d}
 .director-app .director-tools #directorMembers{background:#fff;color:#096663;border:1px solid #cfe5e0}
