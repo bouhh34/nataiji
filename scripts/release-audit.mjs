@@ -161,7 +161,7 @@ assert('auth copy avoids ambiguous temporary storage', !/وضع تخزين مؤ�
 assert('French auth direction is explicit', /lang-fr \.auth-gate/.test(read('public/auth-access-v2.js')) || /lang-fr \.auth-gate/.test(read('public/interface-language-fix.js')));
 const authAccess = read('public/auth-access-v2.js');
 const professorV2 = read('public/professor-v2.js');
-assert('account setup offers teacher, professor and director paths', /data-profile-type=\\\"teacher\\\"/.test(professorV2) && /data-profile-type=\\\"professor\\\"/.test(professorV2) && /data-profile-type=\\\"director\\\"/.test(professorV2) && !/data-profile-type=\\\"(?:admin|manager)\\\"/.test(professorV2));
+assert('account setup offers teacher, professor and director paths', /data-profile-type=\"teacher\"/.test(professorV2) && /data-profile-type=\"professor\"/.test(professorV2) && /data-profile-type=\"director\"/.test(professorV2) && !/data-profile-type=\"(?:admin|manager)\"/.test(professorV2));
 assert('teacher UI and reports do not present a school director role', !/مدير \/ صلاحيات كاملة|ملاحظات المدير|Observations du Directeur|<b>المدير<\/b>/.test(appJs + professorV2 + read('public/official-bilingual-v1.js') + read('public/two-students-a4-v1.js')));
 assert('teacher workspaces are not labeled as principal managed schools', /مساحاتي الدراسية/.test(authAccess) && !/مدارسي/.test(authAccess));
 assert('auth exposes Arabic French language switch', /data-auth-lang="ar"/.test(authAccess) && /data-auth-lang="fr"/.test(authAccess));
