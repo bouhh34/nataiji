@@ -33,3 +33,5 @@ html.nataiji-director-mode body{background:#f5f8f7;color:#173a42}
 @media(max-width:790px){.director-grid{grid-template-columns:repeat(2,minmax(0,1fr))}.director-top{padding:12px 16px}.director-wrap{padding:20px 14px 65px}}
 @media(max-width:420px){.director-welcome{display:block;padding:20px}.director-welcome button{margin-top:12px}.director-grid{gap:9px}.director-card{min-height:120px;padding:12px}.director-stats article{display:grid;gap:5px}.director-brand b{font-size:14px}.director-brand small{font-size:10px}.director-actions button{padding:8px;font-size:11px}.director-wrap>h3{font-size:17px}}
 @media print{.director-top,.director-actions,.director-tools,#directorStaffJoin{display:none!important}.director-app{background:#fff}}
+
+#directorReturnButton{position:fixed;z-index:900;inset-inline-end:12px;bottom:94px;background:#087866;color:white;border:1px solid #fff;border-radius:999px;padding:10px 16px;font:700 13px system-ui,sans-serif;box-shadow:0 4px 16px #073c3233;cursor:pointer}html.nataiji-director-mode #directorReturnButton{display:none!important}
