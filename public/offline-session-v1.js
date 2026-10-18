@@ -10,15 +10,21 @@
    if(record.verifiedAt>Date.now()+60_000||Date.now()-record.verifiedAt>MAX_AGE||record.user.suspended)return null;
    if(storage.getItem('nataiji-active-user')!==String(record.user.id))return null;
    const professor=record.user.role==='professor'||record.user.profileType==='professor';
-   const snap=professor?storage.getItem('nataiji-professor-profile-v1:'+record.user.id):storage.getItem('nataiji-data');
+   const director=record.user.role==='director'&&record.user.profileType==='director';
+   const snap=director?storage.getItem('nataiji-director-cache-v1:'+record.user.id):professor?storage.getItem('nataiji-professor-profile-v1:'+record.user.id):storage.getItem('nataiji-data');
    if(!snap)return null;
-   if(!professor){
+   if(!professor&&!director){
     const expected=JSON.stringify([String(record.user.id),String(record.user.schoolId||''),String(record.user.activeSharedGrant||'')]);
     if(storage.getItem('nataiji-offline-school-scope-v1')!==expected)return null;
    }
    const parsed=JSON.parse(snap);
-   if(!parsed||typeof parsed!=='object'||professor&&!Array.isArray(parsed.profile?.classes)||!professor&&!Array.isArray(parsed.profile?.classes)&&!Array.isArray(parsed.pupils))return null;
-   return {user:record.user,professor};
+   if(!parsed||typeof parsed!=='object')return null;
+   if(director){
+    if(parsed.institution?.director_user_id!==record.user.id||parsed.overview?.institution?.id!==parsed.institution.id)return null;
+   }else if(professor){
+    if(!Array.isArray(parsed.profile?.classes))return null;
+   }else if(!Array.isArray(parsed.profile?.classes)&&!Array.isArray(parsed.pupils))return null;
+   return {user:record.user,professor,director};
   }catch{return null}
  }
  function remember(storage,user){
