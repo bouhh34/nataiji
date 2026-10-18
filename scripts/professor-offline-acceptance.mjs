@@ -37,7 +37,8 @@ try{
  assert.equal(await page.evaluate(()=>JSON.parse(localStorage.getItem('nataiji-grade-drafts-v1:'+currentUser.id)).rows.length),2,'offline navigation preserves two trimester drafts');
  assert.match(await page.locator('#profSyncStatus').innerText(),/محفوظ على الجهاز/);
  assert.ok(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth+2),'320px screen must not overflow');
- // Real offline cold reopening: cached shell, verified account and unsynced marks survive a reload.
+ // Real offline cold reopening after a month: cached shell, account and drafts survive.
+ await page.evaluate(()=>{const key='nataiji-offline-session-v1',saved=JSON.parse(localStorage.getItem(key));saved.verifiedAt=Date.now()-31*24*60*60*1000;localStorage.setItem(key,JSON.stringify(saved))});
  await page.reload({waitUntil:'domcontentloaded'});
  await page.locator('#profSyncStatus').waitFor({state:'visible'});
  assert.match(await page.locator('#profSyncStatus').innerText(),/محفوظ على الجهاز/);
@@ -84,10 +85,10 @@ try{
  await page.route('**/api/professor/assignments/*/grades',route=>route.abort());await context.setOffline(false);
  await request('/api/auth/logout','POST',{});
  const other=await request('/api/auth/register','POST',{name:'Other Professor',email:'offline.other@example.com',password:'OtherPass-9021'});assert.equal(other.status,201);await request('/api/account/profile-type','POST',{type:'professor'});
- await page.reload({waitUntil:'domcontentloaded'});await page.locator('#profSyncStatus').waitFor({state:'visible'});assert.match(await page.locator('#profSyncStatus').innerText(),/جميع التغييرات محفوظة/);
+ await page.reload({waitUntil:'domcontentloaded'});await page.waitForFunction(id=>currentUser?.id===id&&!window.__nataijiOfflineActive,other.user.id);await page.locator('#profSyncStatus').waitFor({state:'visible'});assert.match(await page.locator('#profSyncStatus').innerText(),/جميع التغييرات محفوظة/);
  assert.equal((await request('/api/professor/profile')).profile.assignments.length,0);
  assert.ok(await page.evaluate(id=>!!localStorage.getItem('nataiji-grade-drafts-v1:'+id),reg.user.id));
  await request('/api/auth/logout','POST',{});await request('/api/auth/login','POST',{email:'offline.professor@example.com',password:'OfflinePass-9021'});
- await page.reload({waitUntil:'domcontentloaded'});await page.locator('#profSyncStatus').waitFor({state:'visible'});assert.match(await page.locator('#profSyncStatus').innerText(),/بانتظار المزامنة/);
+ await page.reload({waitUntil:'domcontentloaded'});await page.waitForFunction(id=>currentUser?.id===id&&!window.__nataijiOfflineActive,reg.user.id);await page.locator('#profSyncStatus').waitFor({state:'visible'});assert.match(await page.locator('#profSyncStatus').innerText(),/بانتظار المزامنة/);
  console.log('PASS severe 16/8 kbps network with 4s latency, local input responsiveness, backup export/import, offline drafts, reload, account isolation, 25-pupil delta batching, atomic rejection, idempotency and concurrent-device conflict resolution');
 }catch(e){await fs.mkdir('artifacts/play',{recursive:true});await page.screenshot({path:'artifacts/play/offline-failure.png',fullPage:true}).catch(()=>{});console.error('Offline test page:',await page.locator('body').innerText().catch(()=>''));throw e}finally{await browser.close()}

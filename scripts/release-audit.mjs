@@ -33,7 +33,7 @@ const capacitor = read('capacitor.config.ts');
 const pkg = JSON.parse(read('package.json'));
 const lockPkg = JSON.parse(read('package-lock.json'));
 const manifest = JSON.parse(read('public/manifest.webmanifest'));
-assert('RC package version', pkg.version === '1.0.0-rc.5');
+assert('RC package version', pkg.version === '1.0.0-rc.6');
 assert('lockfile matches RC package version', lockPkg.version === pkg.version && lockPkg.packages?.['']?.version === pkg.version);
 assert('PWA stable app identity', manifest.id === '/' && manifest.name === 'نتائجي | Nataiji' && manifest.display === 'standalone');
 assert('release freeze document exists', exists('RELEASE.md') && /Nataiji v1\.0\.0 RC3/.test(read('RELEASE.md')));
