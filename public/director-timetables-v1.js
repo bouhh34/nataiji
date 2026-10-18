@@ -99,7 +99,8 @@ function start({frame,institution,user,t,esc,network,apiPost,icon,message}){
    '<label>'+t('الأستاذ / المعلم','Enseignant')+'<input name="teacher" maxlength="120" value="'+esc(entry?.teacher||'')+'" placeholder="'+t('الاسم (اختياري)','Nom (facultatif)')+'"></label>'+
    '<label>'+t('القاعة','Salle')+'<input name="room" maxlength="80" value="'+esc(entry?.room||'')+'"></label>'+
    '<div class="director-time-editor-actions"><button type="submit" class="director-primary">'+t('حفظ الحصة','Enregistrer')+'</button><button type="button" id="directorTimeCancel">'+t('إلغاء','Annuler')+'</button>'+(entry?'<button type="button" id="directorTimeDelete">'+t('حذف الحصة','Supprimer')+'</button>':'')+'</div></form>';
-  frame(entry?t('تعديل حصة','Modifier le cours'):t('إضافة حصة دراسية','Ajouter un cours'),html+'<p id="directorTimetableStatus" class="director-time-status" role="status"></p>');
+  frame(entry?t('تعديل حصة','Modifier le cours'):t('إضافة حصة دراسية','Ajouter un cours'),html+'<p id="directorTimetableStatus" class="director-time-status" role="status"></p>',{backAction:()=>{if(qs('#directorTimeLessonForm')?.dataset.dirty==='true'&&!confirm(t('لديك تعديلات لم تُحفظ. هل تريد الرجوع؟','Vos changements ne sont pas enregistrés. Revenir ?')))return;render()}});
+  qs('#directorTimeLessonForm')?.addEventListener('input',()=>{qs('#directorTimeLessonForm').dataset.dirty='true'});
   qs('#directorTimeCancel').onclick=render;
   async function save(next){
    const originalSaved=saved(selected),expected=originalSaved?.version||0,btn=qs('#directorTimeLessonForm button[type="submit"]');

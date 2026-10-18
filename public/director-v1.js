@@ -151,7 +151,18 @@ function message(value,bad=false){const el=$('#directorMessage');if(el){el.textC
 function network(url,options={}){if(navigator.onLine===false)throw Object.assign(Error('offline'),{code:'offline'});return api(url,options)}
 function apiPost(url,data,method='POST'){return network(url,{method,body:JSON.stringify(data)})}
 const formField=(name,label,value='',kind='text')=>'<label>'+label+'<input name="'+name+'" type="'+kind+'" value="'+esc(value)+'" maxlength="160" required></label>';
-function frame(title,contents){const el=show();el.innerHTML='<div class="director-shell"><header class="director-top"><div class="director-brand"><img src="/nataiji-brand-mark.png" alt="" width="46" height="46"><div><b>'+t('نتائجي | الإدارة','Nataiji | Direction')+'</b><small>'+esc(user?.name||'')+'</small></div></div><div class="director-actions"><button id="directorHome" type="button">'+t('الرئيسية','Accueil')+'</button><button id="directorTeacherArea" type="button">'+directorTeachingAreaLabel()+'</button><button id="directorLogout" type="button">'+t('الخروج','Quitter')+'</button></div></header><div class="director-wrap"><h1>'+esc(title)+'</h1><p id="directorMessage" role="status"></p>'+contents+'</div></div>';$('#directorHome',el).onclick=()=>{void dashboard()};$('#directorTeacherArea',el).onclick=openTeacherArea;$('#directorLogout',el).onclick=logout;return el}
+function frame(title,contents,options={}){
+ const isHome=options.home===true,el=show();
+ el.classList.toggle('director-subpage',!isHome);
+ const backButton=isHome?'':'<div class="director-subpage-nav"><button id="directorBack" class="director-back" type="button">'+(lang()?'<svg viewBox="0 0 24 24" width="19" height="19" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m15 18-6-6 6-6"/></svg>':'<svg viewBox="0 0 24 24" width="19" height="19" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m9 18 6-6-6-6"/></svg>')+'<span>'+t('رجوع','Retour')+'</span></button><span class="director-page-breadcrumb">'+t('الإدارة المدرسية','Administration scolaire')+'</span></div>';
+ el.innerHTML='<div class="director-shell"><header class="director-top"><div class="director-brand"><img src="/nataiji-brand-mark.png" alt="" width="46" height="46"><div><b>'+t('نتائجي | الإدارة','Nataiji | Direction')+'</b><small>'+esc(user?.name||'')+'</small></div></div><div class="director-actions"><button id="directorHome" type="button">'+t('الرئيسية','Accueil')+'</button><button id="directorTeacherArea" type="button">'+directorTeachingAreaLabel()+'</button><button id="directorLogout" type="button">'+t('الخروج','Quitter')+'</button></div></header><div class="director-wrap">'+backButton+'<h1>'+esc(title)+'</h1><p id="directorMessage" role="status"></p>'+contents+'</div></div>';
+ $('#directorHome',el).onclick=()=>{void dashboard()};
+ $('#directorTeacherArea',el).onclick=openTeacherArea;
+ $('#directorLogout',el).onclick=logout;
+ const back=$('#directorBack',el);
+ if(back)back.onclick=()=>options.backAction?options.backAction():void dashboard();
+ return el
+}
 async function logout(){try{await apiPost('/api/auth/logout',{})}catch{message(t('لإنهاء الجلسة بأمان اتصل بالإنترنت أولًا.','Reconnectez-vous pour vous déconnecter en toute sécurité.'),true);return}window.NataijiOfflineResume?.clear();currentUser=null;hide();location.reload()}
 function institutionForm(){
  const d=institution||{},edit=!!d.id;
@@ -164,7 +175,7 @@ function institutionForm(){
   '<label>'+t('المقاطعة','Moughataa')+'<input name="district" value="'+esc(d.district||'')+'" maxlength="160"></label>'+
   '<label>'+t('السنة الدراسية','Année scolaire')+'<input name="academicYear" value="'+esc(d.academic_year||'2026-2027')+'" maxlength="20"></label>'+
   '<button class="director-primary" type="submit">'+t('حفظ المؤسسة','Enregistrer')+'</button></form>';
- const el=frame(edit?t('إعدادات المؤسسة','Paramètres de l’établissement'):t('إنشاء مؤسسة','Créer un établissement'),body);
+ const el=frame(edit?t('إعدادات المؤسسة','Paramètres de l’établissement'):t('إنشاء مؤسسة','Créer un établissement'),body,{home:!edit});
  $('#directorSchoolForm',el).onsubmit=async e=>{e.preventDefault();const btn=$('button[type=submit]',e.currentTarget);btn.disabled=true;const data=Object.fromEntries(new FormData(e.currentTarget));try{const result=await apiPost('/api/director/institution',data,edit?'PATCH':'POST');institution=result.institution;await dashboard()}catch(error){message(err(error),true);btn.disabled=false}};
 }
 function cardButtons(){
@@ -187,14 +198,14 @@ async function dashboard(){
   '<div class="director-stats"><article><b>'+Number(overview.memberCount||0)+'</b><span>'+t('معلمون مرتبطون','Enseignants liés')+'</span></article><article><b>'+Object.values(overview.registerCounts||{}).reduce((a,b)=>a+Number(b||0),0)+'</b><span>'+t('قيود محفوظة','Entrées enregistrées')+'</span></article></div>'+
   '<div class="director-tools"><button type="button" id="directorInvite">＋ '+t('دعوة معلم','Inviter un enseignant')+'</button><button type="button" id="directorMembers">'+t('الحسابات المرتبطة','Comptes liés')+'</button></div>'+
   '<div class="director-timetable-link"><button id="directorTimetables" type="button"><span class="director-card-icon" aria-hidden="true">'+directorIcon('visits',23)+'</span><span><b>'+t('الجدول الدراسي للأقسام','Emplois du temps des classes')+'</b><small>'+t('جدول مستقل لكل قسم · الحصص والمواد والأساتذة','Un emploi du temps par classe · matières, horaires et enseignants')+'</small></span><span aria-hidden="true">'+directorIcon('arrow',18)+'</span></button></div>'+'<h3>'+t('السجلات الإدارية','Registres administratifs')+'</h3><div class="director-grid">'+cardButtons()+'</div>';
-  frame(t('الإدارة المدرسية','Administration scolaire'),body);
+  frame(t('الإدارة المدرسية','Administration scolaire'),body,{home:true});
   if(!window.__nataijiOfflineActive)void flushPending();
   $('#directorSettings').onclick=institutionForm;
   $('#directorInvite').onclick=invite;
   $('#directorMembers').onclick=members;
   $('#directorTimetables').onclick=()=>{if(!window.NataijiDirectorTimetables?.open){message(t('حدّث التطبيق لفتح الجداول الدراسية.','Actualisez pour ouvrir les emplois du temps.'),true);return}window.NataijiDirectorTimetables.open({frame,institution,user,t,esc,network,apiPost,icon:directorIcon,message})};
   $$('[data-director-register]').forEach(b=>b.onclick=()=>{currentCategory=b.dataset.directorRegister;if(health.has(currentCategory)){message(t('السجلات الصحية غير مفعلة حتى توفير الحماية والخصوصية اللازمة.','Registres médicaux désactivés jusqu’à mise en place des protections.'),true);return}void openRegister()});
- }catch(e){frame(t('الإدارة المدرسية','Administration scolaire'),'<p class="director-intro">'+err(e)+'</p><button type="button" id="directorRetry">'+t('إعادة المحاولة','Réessayer')+'</button>');$('#directorRetry').onclick=()=>void dashboard()}
+ }catch(e){frame(t('الإدارة المدرسية','Administration scolaire'),'<p class="director-intro">'+err(e)+'</p><button type="button" id="directorRetry">'+t('إعادة المحاولة','Réessayer')+'</button>',{home:true});$('#directorRetry').onclick=()=>void dashboard()}
 }
 async function invite(){
  frame(t('دعوة معلم أو أستاذ','Inviter un enseignant'),'<p class="director-intro">'+t('يستخدم المعلم حسابه الحالي ويدخل الرمز بنفسه للموافقة. لا يحصل المدير على درجات المعلم تلقائيًا.','L’enseignant accepte depuis son compte. Ses notes ne sont pas partagées automatiquement.')+'</p><button type="button" class="director-primary" id="generateInvite">'+t('إنشاء رمز دعوة','Créer un code')+'</button><p id="inviteResult"></p>');
@@ -206,7 +217,7 @@ async function members(){
 }
 async function openRegister(){
  const category=currentCategory,row=labels.find(r=>r[0]===category);
- frame(t(row[1],row[2]),'<div class="director-tools"><button type="button" class="director-primary" id="directorNewEntry">＋ '+t('إضافة قيد','Nouvelle entrée')+'</button><button type="button" id="directorSyncEntries">'+t('مزامنة القيود','Synchroniser')+'</button></div><div id="directorRecords">'+t('جاري تحميل السجلات...','Chargement...')+'</div>');
+ frame(t(row[1],row[2]),'<p class="director-register-intro">'+t('حفظ قيود المؤسسة وتنظيمها مع إمكانية التعديل والطباعة.','Enregistrez et organisez les documents, avec modification et impression.')+'</p><div class="director-tools director-register-tools"><button type="button" class="director-primary" id="directorNewEntry">'+directorIcon('plus',17)+t('إضافة قيد','Nouvelle entrée')+'</button><button type="button" id="directorSyncEntries">'+directorIcon('link',16)+t('مزامنة القيود','Synchroniser')+'</button></div><div id="directorRecords" aria-live="polite">'+t('جاري تحميل السجلات...','Chargement...')+'</div>');
  $('#directorNewEntry').onclick=()=>editEntry();
  $('#directorSyncEntries').onclick=async()=>{await flushPending();if($('#directorRecords'))await openRegister()};
  try{
@@ -222,7 +233,8 @@ async function openRegister(){
   const entries=(await pendingEntries().catch(()=>[])).filter(x=>x.payload?.category===category);
   const pendingHtml=entries.map(item=>'<article class="director-record director-pending"><div><b>'+esc(item.payload.subject)+'</b><small>'+t('محفوظ على الجهاز — بانتظار المزامنة','Enregistré sur cet appareil — en attente de synchronisation')+'</small></div></article>').join('');
   const savedHtml=records.map(x=>'<article class="director-record"><div><b>'+esc(x.subject)+'</b><small>'+esc(String(x.record_date).slice(0,10))+' · '+esc(x.reference||'—')+'</small></div><button data-director-edit="'+esc(x.id)+'" type="button">'+t('تعديل','Modifier')+'</button><button data-director-print="'+esc(x.id)+'" type="button">'+t('طباعة / PDF','Imprimer / PDF')+'</button></article>').join('');
-  $('#directorRecords').innerHTML=pendingHtml+savedHtml||'<div class="director-empty">'+t('لا توجد قيود في هذا السجل. ابدأ بإضافة أول قيد.','Aucune entrée. Ajoutez la première.')+'</div>';
+  $('#directorRecords').innerHTML=pendingHtml+savedHtml||'<div class="director-empty director-empty-register"><span class="director-empty-symbol" aria-hidden="true">'+directorIcon('bookmark',27)+'</span><h2>'+t('لا توجد قيود بعد','Aucune entrée pour le moment')+'</h2><p>'+t('ابدأ بإضافة أول قيد، وسيظهر هنا مع خيارات التعديل والطباعة.','Ajoutez une première entrée : elle apparaîtra ici avec les options de modification et d’impression.')+'</p><button id="directorEmptyAdd" class="director-primary" type="button">'+directorIcon('plus',18)+t('إضافة أول قيد','Ajouter la première entrée')+'</button></div>';
+  $('#directorEmptyAdd')?.addEventListener('click',()=>editEntry());
   $$('[data-director-edit]').forEach(b=>b.onclick=()=>editEntry(records.find(x=>x.id===b.dataset.directorEdit)));
   $$('[data-director-print]').forEach(b=>b.onclick=()=>{const item=records.find(x=>x.id===b.dataset.directorPrint);if(item)printDirectorRecord(item)});
  }catch(error){message(err(error),true)}
@@ -241,7 +253,8 @@ function editEntry(row=null){
   '<label>'+t('ملاحظات','Observations')+'<textarea name="notes" maxlength="4000" rows="5">'+esc(details.notes||'')+'</textarea></label>'+
   '<p class="director-intro">'+t('السجلات الإدارية قابلة للتعديل والطباعة. تُراجع نماذج المؤسسة الرسمية قبل اعتمادها.','Registres modifiables et imprimables, à adapter aux modèles officiels de votre établissement.')+'</p>'+
   '<button type="submit" class="director-primary">'+t('حفظ','Enregistrer')+'</button></form>';
- frame(title+' · '+t(labels.find(x=>x[0]===category)[1],labels.find(x=>x[0]===category)[2]),body);
+ frame(title+' · '+t(labels.find(x=>x[0]===category)[1],labels.find(x=>x[0]===category)[2]),body,{backAction:()=>{const form=$('#directorRecordForm');if(form?.dataset.dirty==='true'&&!confirm(t('لديك تعديلات لم تُحفظ. هل تريد الرجوع؟','Vos modifications ne sont pas enregistrées. Revenir ?')))return;void openRegister()}});
+ $('#directorRecordForm')?.addEventListener('input',()=>{$('#directorRecordForm').dataset.dirty='true'});
  let selectedStudentRef=row?.details?.studentRef||null;
  if(wantsPupil){
   const picker=$('#directorRosterPicker');

@@ -68,10 +68,22 @@ try{
  assert.equal(await page.locator('[data-director-register]').count(),14);
  assert.equal(await page.locator('#directorTeacherArea').count(),1);
  assert.match(await page.locator('#directorTeacherArea').innerText(),/مساحة المعلم/);
+ // Every register interior must provide an accessible back control and a useful empty state.
+ await page.locator('[data-director-register="model-lessons"]').click();
+ await page.locator('#directorEmptyAdd').waitFor({state:'visible'});
+ assert.match(await page.locator('.director-empty-register').innerText(),/لا توجد قيود بعد/);
+ assert.equal(await page.locator('#directorBack').isVisible(),true);
+ await page.locator('#directorBack').click();
+ await page.locator('#nataijiDirectorRoot .director-welcome').waitFor({state:'visible'});
+ assert.equal(await page.locator('#directorBack').count(),0);
  await page.locator('#directorTimetables').click();
  await page.locator('#directorTimeClass').waitFor({state:'visible'});
  assert.equal(await page.locator('.director-time-lesson').count(),1);
  assert.match(await page.locator('.director-time-lesson').first().innerText(),/الرياضيات/);
+ await page.locator('#directorTimeAdd').click();
+ assert.equal(await page.locator('#directorBack').isVisible(),true);
+ await page.locator('#directorBack').click();
+ await page.locator('#directorTimeClass').waitFor({state:'visible'});
  await page.locator('#directorTimeAdd').click();
  await page.locator('#directorTimeLessonForm [name="day"]').selectOption('tue');
  await page.locator('#directorTimeLessonForm [name="start"]').fill('10:00');
@@ -86,6 +98,10 @@ try{
  await page.locator('[data-director-register="enrolment"]').click();
  await page.locator('[data-director-edit]').waitFor({state:'visible'});
  assert.equal(await page.locator('[data-director-print]').count(),1);
+ await page.locator('[data-director-edit]').click();
+ assert.equal(await page.locator('#directorBack').isVisible(),true);
+ await page.locator('#directorBack').click();
+ await page.locator('[data-director-edit]').waitFor({state:'visible'});
  await page.locator('[data-director-edit]').click();
  await page.locator('#directorRecordForm [name="subject"]').fill('قيد تم تعديله');
  await page.locator('#directorRecordForm button[type="submit"]').click();
