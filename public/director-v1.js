@@ -122,12 +122,29 @@ window.addEventListener('online',()=>{setTimeout(()=>{if(!window.__nataijiOfflin
 function root(){let el=$('#nataijiDirectorRoot');if(!el){el=document.createElement('main');el.id='nataijiDirectorRoot';el.className='director-app';document.body.appendChild(el)}return el}
 function show(){document.documentElement.classList.add('nataiji-director-mode');$('#directorReturnButton')?.remove();$('#nataijiProfessorRoot')?.setAttribute('hidden','');const el=root();el.style.display='';return el}
 function hide(){document.documentElement.classList.remove('nataiji-director-mode');$('#directorReturnButton')?.remove();$('#nataijiDirectorRoot')?.remove()}
+function directorTeachingAreaLabel(){
+ const level=institution?.level;
+ return level==='middle'||level==='secondary'?t('مساحة الأستاذ','Espace professeur'):level==='primary'?t('مساحة المعلم','Espace enseignant'):t('مساحة التدريس','Espace pédagogique')
+}
 function openTeacherArea(){
+ if(!institution?.id){message(t('سجّل المؤسسة أولًا لتحديد مساحة التدريس المناسبة.','Enregistrez d’abord votre établissement.'),true);return}
+ const professorSpace=institution.level==='middle'||institution.level==='secondary';
+ if(professorSpace&&!window.NataijiProfessor?.openDirector){
+  message(t('مساحة الأستاذ غير متاحة حاليًا. أعد فتح التطبيق بعد التحديث.','Espace professeur indisponible. Rechargez l’application.'),true);return
+ }
  document.documentElement.classList.remove('nataiji-director-mode');const panel=root();panel.style.display='none';
  let back=$('#directorReturnButton');if(!back){back=document.createElement('button');back.id='directorReturnButton';back.type='button';document.body.appendChild(back)}
- back.textContent=t('↩ إدارة المؤسسة','↩ Direction');back.onclick=()=>{back.remove();void dashboard()};
- if(typeof startApp==='function')return startApp();
- back.remove();panel.style.display='';document.documentElement.classList.add('nataiji-director-mode');message(t('تعذر فتح مساحة المعلم','Espace enseignant indisponible'),true)
+ back.textContent=t('↩ إدارة المؤسسة','↩ Direction');
+ back.onclick=()=>{
+  if(professorSpace&&window.NataijiProfessor?.leaveToDirector?.()===false)return;
+  back.remove();void dashboard()
+ };
+ try{
+  if(professorSpace)return window.NataijiProfessor.openDirector(user);
+  if(typeof startApp==='function')return startApp();
+ }catch(error){console.warn('Cannot open teaching workspace',error)}
+ back.remove();panel.style.display='';document.documentElement.classList.add('nataiji-director-mode');
+ message(t('تعذر فتح مساحة التدريس، أعد المحاولة.','Impossible d’ouvrir l’espace pédagogique.'),true)
 }
 function err(e){return ({director_institution_missing:t('أنشئ المؤسسة أولًا','Créez votre établissement'),institution_already_exists:t('توجد مؤسسة مرتبطة بهذا الحساب','Un établissement est déjà associé'),record_version_conflict:t('تم تعديل السجل على جهاز آخر؛ أعد تحميله','Ce registre a été modifié sur un autre appareil'),sensitive_register_not_enabled:t('سيُفعّل السجل الصحي بعد توفير الحماية المطلوبة','Ce registre sera activé après sécurisation'),durable_storage_required:t('قاعدة البيانات غير متاحة حاليًا','Base de données indisponible')})[e?.code]||t('تعذر الحفظ؛ تحقق من الاتصال وأعد المحاولة','Enregistrement impossible, vérifiez votre connexion')}
 function message(value,bad=false){const el=$('#directorMessage');if(el){el.textContent=value;el.classList.toggle('bad',bad)}}
@@ -136,7 +153,7 @@ function apiPost(url,data,method='POST'){return network(url,{method,body:JSON.st
 const formField=(name,label,value='',kind='text')=>'<label>'+label+'<input name="'+name+'" type="'+kind+'" value="'+esc(value)+'" maxlength="160" required></label>';
 function frame(title,contents){
  const el=show();
- el.innerHTML='<div class="director-shell"><header class="director-top"><div class="director-brand"><img src="/nataiji-brand-mark.png" alt="" width="46" height="46"><div><b>'+t('نتائجي | الإدارة','Nataiji | Direction')+'</b><small>'+esc(user?.name||'')+'</small></div></div><nav class="director-actions" aria-label="'+t('خيارات الحساب','Actions du compte')+'"><button id="directorHome" class="director-top-home" type="button">'+directorIcon('home',17)+'<span>'+t('الرئيسية','Accueil')+'</span></button><button id="directorTeacherArea" type="button">'+directorIcon('users',17)+'<span>'+t('مساحة المعلم','Espace enseignant')+'</span></button><button id="directorLogout" class="director-logout" type="button">'+directorIcon('logout',17)+'<span>'+t('الخروج','Quitter')+'</span></button></nav></header><div class="director-wrap"><div class="director-page-title"><span class="director-heading-icon">'+directorIcon('school',22)+'</span><h1>'+esc(title)+'</h1></div><p id="directorMessage" role="status"></p>'+contents+'</div></div>';
+ el.innerHTML='<div class="director-shell"><header class="director-top"><div class="director-brand"><img src="/nataiji-brand-mark.png" alt="" width="46" height="46"><div><b>'+t('نتائجي | الإدارة','Nataiji | Direction')+'</b><small>'+esc(user?.name||'')+'</small></div></div><nav class="director-actions" aria-label="'+t('خيارات الحساب','Actions du compte')+'"><button id="directorHome" class="director-top-home" type="button">'+directorIcon('home',17)+'<span>'+t('الرئيسية','Accueil')+'</span></button><button id="directorTeacherArea" type="button">'+directorIcon('users',17)+'<span>'+directorTeachingAreaLabel()+'</span></button><button id="directorLogout" class="director-logout" type="button">'+directorIcon('logout',17)+'<span>'+t('الخروج','Quitter')+'</span></button></nav></header><div class="director-wrap"><div class="director-page-title"><span class="director-heading-icon">'+directorIcon('school',22)+'</span><h1>'+esc(title)+'</h1></div><p id="directorMessage" role="status"></p>'+contents+'</div></div>';
  $('#directorHome',el).onclick=()=>{void dashboard()};$('#directorTeacherArea',el).onclick=openTeacherArea;$('#directorLogout',el).onclick=logout;return el
 }
 async function logout(){try{await apiPost('/api/auth/logout',{})}catch{message(t('لإنهاء الجلسة بأمان اتصل بالإنترنت أولًا.','Reconnectez-vous pour vous déconnecter en toute sécurité.'),true);return}window.NataijiOfflineResume?.clear();currentUser=null;hide();location.reload()}
