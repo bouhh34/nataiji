@@ -1354,5 +1354,15 @@ async function logout(){
  try{await api('/api/auth/logout',{method:'POST',body:'{}'})}catch(e){if(![401,403].includes(e.status)){toast(tr('تعذر إنهاء الجلسة. اتصل بالإنترنت ثم أعد المحاولة.','Impossible de fermer la session. Reconnectez-vous à Internet et réessayez.'));return}}
  window.NataijiOfflineResume?.clear();professorUser=null;currentUser=null;location.reload()
 }
-window.NataijiProfessor={activate(user){if(user?.needsProfileChoice===true)return chooseAccountType(user);if(user?.role==='professor'||user?.profileType==='professor')return renderProfessor(user);return false},_calculateTerm:termResult,_calculateAnnual:annualSubjectResult,_ownListLandscape:professorOwnListLandscape,_classListLandscape:professorClassListLandscape};
+window.NataijiProfessor={activate(user){if(user?.needsProfileChoice===true)return chooseAccountType(user);if(user?.role==='professor'||user?.profileType==='professor')return renderProfessor(user);return false},
+ openDirector(user){
+  if(user?.profileType!=='director'||user?.role!=='admin')return false;
+  root().removeAttribute('hidden');return renderProfessor(user)
+ },
+ leaveToDirector(){
+  if(gradeJournal?.rows.size&&!confirm(tr('توجد مسودات نتائج لم تُزامن بعد. ستبقى محفوظة على هذا الجهاز عند العودة. هل تريد الرجوع للإدارة؟','Des brouillons de notes restent sur cet appareil. Retourner à la direction ?')))return false;
+  if(gradeSaveTimer){clearTimeout(gradeSaveTimer);gradeSaveTimer=null}
+  professorUser=null;showLegacy();return true
+ },
+ _calculateTerm:termResult,_calculateAnnual:annualSubjectResult,_ownListLandscape:professorOwnListLandscape,_classListLandscape:professorClassListLandscape};
 })();
