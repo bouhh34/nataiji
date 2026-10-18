@@ -22,12 +22,14 @@ export async function initializeDirectorSchema(pool) {
   await pool.query('CREATE INDEX IF NOT EXISTS nataiji_director_invites_school_idx ON nataiji_director_invites(school_id,created_at DESC)');
   await pool.query('CREATE TABLE IF NOT EXISTS nataiji_director_students (id uuid PRIMARY KEY,school_id text NOT NULL,school_year text NOT NULL,register_no text NOT NULL,name text NOT NULL,name_fr text NOT NULL DEFAULT \'\',class_name text NOT NULL DEFAULT \'\',created_at timestamptz NOT NULL DEFAULT now(),UNIQUE(school_id,school_year,register_no))');
   await pool.query('CREATE INDEX IF NOT EXISTS nataiji_director_students_school_idx ON nataiji_director_students(school_id,school_year)');
+  await pool.query('CREATE TABLE IF NOT EXISTS nataiji_director_audit (id bigserial PRIMARY KEY,school_id text NOT NULL,actor_user_id text NOT NULL,action text NOT NULL,entity_id text NOT NULL,old_record jsonb,new_record jsonb,created_at timestamptz NOT NULL DEFAULT now())');
+  await pool.query('CREATE INDEX IF NOT EXISTS nataiji_director_audit_school_idx ON nataiji_director_audit(school_id,created_at DESC)');
   await pool.query('CREATE TABLE IF NOT EXISTS nataiji_director_serials (school_id text NOT NULL,school_year text NOT NULL,type text NOT NULL,current_serial integer NOT NULL,PRIMARY KEY(school_id,school_year,type))');
   await pool.query('CREATE TABLE IF NOT EXISTS nataiji_director_registers (id uuid PRIMARY KEY,school_id text NOT NULL,school_year text NOT NULL,type text NOT NULL,subject text NOT NULL,entry_date date NOT NULL,serial integer NOT NULL,details jsonb NOT NULL DEFAULT \'{}\'::jsonb,created_by text NOT NULL,request_id uuid NOT NULL,version integer NOT NULL DEFAULT 1,created_at timestamptz NOT NULL DEFAULT now(),updated_at timestamptz NOT NULL DEFAULT now(),UNIQUE(school_id,request_id),UNIQUE(school_id,school_year,type,serial))');
   await pool.query('CREATE INDEX IF NOT EXISTS nataiji_director_registers_school_idx ON nataiji_director_registers(school_id,type,entry_date DESC)');
 }
 
-export function registerDirectorRoutes(app,{auth,getPool}) {
+export function registerDirectorRoutes(app,{auth,getPool,getUser=async()=>({})}) {
   function withDb(req,res,next) { if(!getPool()) return res.status(503).json({error:'durable_storage_required'}); next(); }
   async function ownInstitution(req) {
     return (await getPool().query('SELECT * FROM nataiji_director_institutions WHERE school_id=$1 AND owner_user_id=$2',[req.user.schoolId,req.user.id])).rows[0] || null;
@@ -83,6 +85,7 @@ export function registerDirectorRoutes(app,{auth,getPool}) {
   app.post('/api/director/registers',auth,manager,withDb,async(req,res)=>{
     const s=await mustOwn(req,res);if(!s)return;
     const type=field(req.body?.type,40),subject=field(req.body?.subject,250),date=field(req.body?.date,20),requestId=String(req.body?.requestId||''),details=req.body?.details;
+    if(type==='teacher_health'||type==='student_health')return res.status(403).json({error:'health_register_pending_security_review'});
     if(!REGISTER_SET.has(type)||!subject||!isUUID(requestId)||!/^20\d{2}-\d{2}-\d{2}$/.test(date)||!Number.isFinite(Date.parse(date))||!details||typeof details!=='object'||Array.isArray(details)||JSON.stringify(details).length>12000)return res.status(400).json({error:'invalid_register'});
     const client=await getPool().connect();
     try {
@@ -91,6 +94,7 @@ export function registerDirectorRoutes(app,{auth,getPool}) {
       if(duplicate.rowCount){await client.query('COMMIT');return res.json({ok:true,register:safeRecord(duplicate.rows[0]),duplicate:true});}
       const no=await client.query('INSERT INTO nataiji_director_serials(school_id,school_year,type,current_serial) VALUES($1,$2,$3,1) ON CONFLICT(school_id,school_year,type) DO UPDATE SET current_serial=nataiji_director_serials.current_serial+1 RETURNING current_serial',[s.school_id,s.academic_year,type]);
       const row=await client.query('INSERT INTO nataiji_director_registers(id,school_id,school_year,type,subject,entry_date,serial,details,created_by,request_id) VALUES($1,$2,$3,$4,$5,$6,$7,$8::jsonb,$9,$10) RETURNING *',[crypto.randomUUID(),s.school_id,s.academic_year,type,subject,date,no.rows[0].current_serial,JSON.stringify(details),req.user.id,requestId]);
+      await client.query('INSERT INTO nataiji_director_audit(school_id,actor_user_id,action,entity_id,new_record) VALUES($1,$2,$3,$4,$5::jsonb)',[s.school_id,req.user.id,'register_created',String(row.rows[0].id),JSON.stringify(safeRecord(row.rows[0]))]);
       await client.query('COMMIT');res.status(201).json({ok:true,register:safeRecord(row.rows[0])});
     } catch(e){await client.query('ROLLBACK');if(errorCode(e)===409)return res.status(409).json({error:'duplicate_request'});throw e;}finally{client.release();}
   });
@@ -98,14 +102,22 @@ export function registerDirectorRoutes(app,{auth,getPool}) {
     const s=await mustOwn(req,res);if(!s)return;
     const id=field(req.params.id,50),version=Number(req.body?.version),subject=field(req.body?.subject,250),details=req.body?.details;
     if(!isUUID(id)||!Number.isInteger(version)||version<1||!subject||!details||typeof details!=='object'||Array.isArray(details)||JSON.stringify(details).length>12000)return res.status(400).json({error:'invalid_register'});
-    const q=await getPool().query('UPDATE nataiji_director_registers SET subject=$3,details=$4::jsonb,version=version+1,updated_at=now() WHERE school_id=$1 AND id=$2 AND version=$5 RETURNING *',[s.school_id,id,subject,JSON.stringify(details),version]);
-    if(!q.rowCount)return res.status(409).json({error:'record_changed_or_missing'});
-    res.json({ok:true,register:safeRecord(q.rows[0])});
+    const client=await getPool().connect();
+    try{
+      await client.query('BEGIN');
+      const old=await client.query('SELECT * FROM nataiji_director_registers WHERE school_id=$1 AND id=$2 FOR UPDATE',[s.school_id,id]);
+      if(!old.rowCount||old.rows[0].version!==version){await client.query('ROLLBACK');return res.status(409).json({error:'record_changed_or_missing'});}
+      if(['teacher_health','student_health'].includes(old.rows[0].type)){await client.query('ROLLBACK');return res.status(403).json({error:'health_register_pending_security_review'});}
+      const q=await client.query('UPDATE nataiji_director_registers SET subject=$3,details=$4::jsonb,version=version+1,updated_at=now() WHERE school_id=$1 AND id=$2 AND version=$5 RETURNING *',[s.school_id,id,subject,JSON.stringify(details),version]);
+      await client.query('INSERT INTO nataiji_director_audit(school_id,actor_user_id,action,entity_id,old_record,new_record) VALUES($1,$2,$3,$4,$5::jsonb,$6::jsonb)',[s.school_id,req.user.id,'register_updated',id,JSON.stringify(safeRecord(old.rows[0])),JSON.stringify(safeRecord(q.rows[0]))]);
+      await client.query('COMMIT');res.json({ok:true,register:safeRecord(q.rows[0])});
+    }catch(e){await client.query('ROLLBACK');throw e;}finally{client.release();}
   });
   app.get('/api/director/members',auth,manager,withDb,async(req,res)=>{
     const s=await mustOwn(req,res);if(!s)return;
     const q=await getPool().query('SELECT user_id AS id,member_role AS role,joined_at FROM nataiji_director_members WHERE school_id=$1 ORDER BY joined_at DESC',[s.school_id]);
-    res.json({ok:true,members:q.rows});
+    const entries=await Promise.all(q.rows.map(async m=>{const u=await getUser(m.id);return {...m,name:field(u?.name,160)||m.member_role};}));
+    res.json({ok:true,members:entries});
   });
   app.post('/api/director/invites',auth,manager,withDb,async(req,res)=>{
     const s=await mustOwn(req,res);if(!s)return;
@@ -135,9 +147,15 @@ export function registerDirectorRoutes(app,{auth,getPool}) {
     const q=await getPool().query('SELECT m.school_id,i.name,i.level,m.member_role FROM nataiji_director_members m JOIN nataiji_director_institutions i ON i.school_id=m.school_id WHERE m.user_id=$1',[req.user.id]);
     res.json({ok:true,memberships:q.rows});
   });
+  app.get('/api/director/audit',auth,manager,withDb,async(req,res)=>{
+    const s=await mustOwn(req,res);if(!s)return;
+    const q=await getPool().query('SELECT action,actor_user_id,entity_id,created_at FROM nataiji_director_audit WHERE school_id=$1 ORDER BY created_at DESC LIMIT 100',[s.school_id]);
+    res.json({ok:true,events:q.rows});
+  });
   app.delete('/api/director/members/:id',auth,manager,withDb,async(req,res)=>{
     const s=await mustOwn(req,res);if(!s)return;
     const q=await getPool().query('DELETE FROM nataiji_director_members WHERE school_id=$1 AND user_id=$2 RETURNING user_id',[s.school_id,field(req.params.id,150)]);
+    if(q.rowCount)await getPool().query('INSERT INTO nataiji_director_audit(school_id,actor_user_id,action,entity_id) VALUES($1,$2,$3,$4)',[s.school_id,req.user.id,'member_detached',String(q.rows[0].user_id)]);
     res.json({ok:true,removed:q.rowCount>0});
   });
 }
