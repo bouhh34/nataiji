@@ -41,7 +41,7 @@ const ASSETS = [
   "/accessibility.css?v=5",
   "/vendor/feather.min.js",
   "/luxury-ui-v1.js?v=6",
-  "/offline-session-v1.js?v=2",
+  "/offline-session-v1.js?v=3",
   "/school-grade-journal.js?v=1",
   "/app.js?v=53",
   "/app-stability-v1.js?v=6",
