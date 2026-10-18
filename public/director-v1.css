@@ -1,0 +1,101 @@
+/* مدير المؤسسة — isolated from teacher and professor screens */
+html.nataiji-director-mode {background:#f5f8f7}
+.director-app {position:relative;z-index:8;min-height:100vh;background:#f5f8f7;color:#132f40;font-family:Tahoma,Arial,sans-serif;direction:inherit;line-height:1.6}
+.director-app * {box-sizing:border-box}
+.director-app button,.director-app input,.director-app textarea,.director-app select {font:inherit}
+.director-app button {cursor:pointer}
+.director-layout {display:grid;grid-template-columns:245px minmax(0,1fr);min-height:100vh;max-width:1580px;margin:auto}
+.director-side {padding:25px 14px;background:#073a50;color:#fff;display:flex;flex-direction:column;gap:14px}
+.director-brand {display:flex;align-items:center;gap:11px;padding:5px 9px 19px;border-bottom:1px solid #ffffff2b}
+.director-brand img {border-radius:14px}
+.director-brand b,.director-brand small {display:block}
+.director-brand b {font-size:21px}
+.director-brand small {font-size:9px;letter-spacing:1.5px;color:#b3d9de}
+.director-side nav {display:grid;gap:7px;margin-top:14px}
+.director-side button {text-align:start;border:0;border-radius:11px;min-height:45px;padding:9px 15px;color:#dfedf2;background:transparent;font-weight:700}
+.director-side nav button.active,.director-side nav button:hover {color:#fff;background:#176a79}
+#directorLanguage {margin-top:auto;border:1px solid #4a8c94}
+#directorLogout {color:#f2cfcf}
+.director-main {min-width:0}
+.director-top {padding:15px 26px;background:#fff;border-bottom:1px solid #dbe6e7;display:flex;justify-content:space-between;gap:15px;align-items:center;color:#486372;font-weight:700;font-size:13px}
+.director-content {max-width:1120px;margin:auto;padding:22px 22px 80px}
+.director-hero {padding:22px 25px;border-radius:20px;background:linear-gradient(120deg,#0d6571,#0d4155);color:#fff;display:flex;align-items:center;justify-content:space-between;gap:16px;box-shadow:0 9px 25px #0b506424}
+.director-hero span {font-size:10px;letter-spacing:1.3px;color:#bce2dd;font-weight:900}
+.director-hero h2 {font-size:23px;color:#fff;margin:4px 0}
+.director-hero p {margin:0;color:#dbeeed;font-size:13px}
+.director-hero-icon {font-size:54px}
+.director-stats {display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px;margin:17px 0 25px}
+.director-stats article {background:#fff;border:1px solid #e3eaea;border-radius:15px;min-height:100px;padding:16px;display:flex;flex-direction:column;justify-content:center}
+.director-stats strong {font-size:29px;color:#126978;line-height:1.2}
+.director-stats span {font-size:12px;color:#647c84;margin-top:5px}
+.director-content h2 {font-size:18px;margin:0 0 15px}
+.director-tiles {display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px}
+.director-tiles button {border:1px solid #e0e8e9;background:#fff;border-radius:15px;min-height:98px;padding:16px;text-align:start;color:#18394a;font-size:13px;font-weight:800;box-shadow:0 2px 10px #12435a07}
+.director-tiles button:hover {background:#f0faf6;border-color:#8ec7bd}
+.director-tiles span {display:block;font-size:23px;margin-bottom:8px}
+.director-section {background:#fff;border:1px solid #dfe9e9;border-radius:17px;padding:22px;box-shadow:0 3px 12px #12435a0a}
+.director-section>p {font-size:12px;color:#627985;margin:0 0 18px}
+.director-form {display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;margin:16px 0 20px}
+.director-form textarea {grid-column:1/-1}
+.director-app input,.director-app textarea,.director-app select {display:block;width:100%;border:1px solid #cddadd;border-radius:10px;padding:11px;background:#fff;color:#15394a;min-width:0}
+.director-app label {display:grid;gap:5px;color:#466370;font-size:12px;font-weight:800}
+.director-primary {border:0;border-radius:10px;background:#107569;color:white;padding:11px 19px;min-height:45px;font-weight:800}
+.director-primary:hover {background:#0c6459}
+.director-primary:disabled {opacity:.5;cursor:not-allowed}
+.director-secondary {border:1px solid #b9d1d3;background:#f4faf8;padding:10px 17px;border-radius:10px;color:#275968;font-weight:800}
+.director-table-scroll {overflow:auto;max-height:55vh;border:1px solid #e4eaec;border-radius:10px}
+.director-app table {border-collapse:collapse;width:100%;min-width:430px;text-align:start;font-size:12px}
+.director-app th,.director-app td {text-align:start;padding:11px;border-bottom:1px solid #e4ebec;white-space:normal;overflow-wrap:anywhere}
+.director-app th {background:#f3f7f6;color:#45606e}
+.director-notice {max-width:1075px;margin:14px auto;border-radius:10px;padding:10px 13px;font-size:12px}
+.director-notice.error {background:#fff0ed;color:#a5402e}
+.director-notice.ok {background:#eaf8f0;color:#176044}
+.director-notice[hidden] {display:none!important}
+.director-sensitive {padding:10px 14px;background:#fff6e6;border-radius:10px;color:#80541a!important}
+.director-members {display:grid;gap:9px;margin-top:20px}
+.director-members article {display:flex;align-items:center;justify-content:space-between;border:1px solid #e0e9e9;padding:12px;border-radius:11px;gap:8px}
+.director-members small {display:block;color:#81949d}
+.director-members button {border:1px solid #f0c7c0;background:#fff7f5;color:#a44d38;border-radius:9px;padding:8px 12px}
+.director-invite {display:flex;align-items:center;flex-wrap:wrap;gap:10px}
+.director-invite-code {padding:10px;background:#eef6f5;display:flex;gap:10px;align-items:center;flex-wrap:wrap;border-radius:10px}
+.director-invite-code code {direction:ltr;letter-spacing:2px}
+.director-invite-code button {padding:8px;border:1px solid #b7d4d0;border-radius:8px;background:white}
+.director-invite-code small {color:#647c84}
+.director-onboarding,.director-loading {min-height:100vh;display:grid;place-items:center;padding:18px}
+.director-onboarding-card {width:min(100%,510px);background:#fff;border-radius:23px;padding:27px;box-shadow:0 14px 45px #173c4d17}
+.director-onboarding-card>img {border-radius:17px}
+.director-onboarding-card>small {display:block;margin:10px 0;color:#116b77;letter-spacing:2px}
+.director-onboarding-card h1 {font-size:22px;margin:6px 0}
+.director-onboarding-card p {color:#617982;font-size:13px}
+.director-onboarding form {display:grid;gap:12px}
+.director-onboarding-card #directorExit {margin-top:15px;background:transparent;border:0;color:#627985}
+.director-loading {text-align:center;color:#28566a}
+.director-join-trigger {position:fixed;bottom:85px;left:15px;z-index:999;background:#106d65;color:#fff;border:0;border-radius:999px;padding:9px 13px;box-shadow:0 5px 18px #0344383a;font-size:12px;font-weight:800}
+@media(max-width:780px){
+ .director-layout {display:block;padding-bottom:63px}
+ .director-side {position:fixed;z-index:20;bottom:0;inset-inline:0;display:block;padding:4px 6px;background:#073a50}
+ .director-side .director-brand,.director-side #directorLanguage,.director-side #directorLogout {display:none}
+ .director-side nav {display:flex;margin:0;justify-content:space-around;gap:2px}
+ .director-side nav button {text-align:center;flex:1;padding:6px 3px;min-height:47px;font-size:11px}
+ .director-top {padding:13px 17px}
+ .director-content {padding:13px 12px 40px}
+ .director-hero {padding:18px}
+ .director-hero h2 {font-size:19px}
+ .director-stats {gap:7px}
+ .director-stats article {padding:10px;min-height:87px}
+ .director-stats strong {font-size:22px}
+ .director-stats span {font-size:10px}
+ .director-tiles {grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}
+ .director-tiles button {padding:12px;min-height:86px;font-size:12px}
+ .director-section {padding:15px}
+ .director-form {grid-template-columns:1fr}
+ .director-onboarding-card {padding:19px}
+}
+@media print {
+ .director-side,.director-top,.director-form,.director-primary,.director-secondary,.director-invite,.director-join-trigger,.director-app select {display:none!important}
+ .director-layout {display:block}
+ .director-content {padding:0}
+ .director-section {border:0;box-shadow:none}
+ .director-table-scroll {overflow:visible;max-height:none;border:0}
+ .director-app table {min-width:0;font-size:11px}
+}
