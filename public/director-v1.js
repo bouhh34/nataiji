@@ -149,31 +149,88 @@ async function members(){
  try{const r=await network('/api/director/members');$('#directorMembersList').innerHTML=r.members.length?r.members.map(m=>'<article class="director-member"><div><b>'+esc(m.name||t('حساب معلم','Compte enseignant'))+'</b><small>'+esc(m.member_role==='professor'?t('أستاذ','Professeur'):t('معلم','Enseignant'))+'</small></div><button type="button" data-unlink="'+esc(m.user_id)+'">'+t('فصل','Dissocier')+'</button></article>').join(''):'<p>'+t('لا توجد حسابات مرتبطة بعد','Aucun compte associé')+'</p>';$$('[data-unlink]').forEach(b=>b.onclick=async()=>{if(!confirm(t('إلغاء الربط دون حذف بيانات المعلم؟','Dissocier sans supprimer les données ?')))return;try{await network('/api/director/members/'+encodeURIComponent(b.dataset.unlink),{method:'DELETE'});await members()}catch(error){message(err(error),true)}})}catch(e){message(err(e),true)}
 }
 async function openRegister(){
- const row=labels.find(r=>r[0]===currentCategory);
- frame(t(row[1],row[2]),'<div class="director-tools"><button type="button" class="director-primary" id="directorNewEntry">＋ '+t('إضافة قيد','Nouvelle entrée')+'</button></div><div id="directorRecords">'+t('جاري تحميل السجلات...','Chargement...')+'</div>');
+ const category=currentCategory,row=labels.find(r=>r[0]===category);
+ frame(t(row[1],row[2]),'<div class="director-tools"><button type="button" class="director-primary" id="directorNewEntry">＋ '+t('إضافة قيد','Nouvelle entrée')+'</button><button type="button" id="directorSyncEntries">'+t('مزامنة القيود','Synchroniser')+'</button></div><div id="directorRecords">'+t('جاري تحميل السجلات...','Chargement...')+'</div>');
  $('#directorNewEntry').onclick=()=>editEntry();
- try{try{const r=await network('/api/director/registers?category='+encodeURIComponent(currentCategory));records=r.records||[];storeCachedRecords(currentCategory,records)}catch(error){const cached=readCachedRecords(currentCategory);if(!cached)throw error;records=cached}
- $('#directorRecords').innerHTML=records.length?records.map(x=>'<article class="director-record"><div><b>'+esc(x.subject)+'</b><small>'+esc(String(x.record_date).slice(0,10))+' · '+esc(x.reference||'—')+'</small></div><button data-director-edit="'+esc(x.id)+'" type="button">'+t('تعديل','Modifier')+'</button><button data-director-print="'+esc(x.id)+'" type="button">'+t('طباعة / PDF','Imprimer / PDF')+'</button></article>').join(''):'<div class="director-empty">'+t('لا توجد قيود في هذا السجل. ابدأ بإضافة أول قيد.','Aucune entrée. Ajoutez la première.')+'</div>';
- $('[data-director-edit]').forEach(b=>b.onclick=()=>editEntry(records.find(x=>x.id===b.dataset.directorEdit)));
- $('[data-director-print]').forEach(b=>b.onclick=()=>{const row=records.find(x=>x.id===b.dataset.directorPrint);if(row)printDirectorRecord(row)});
- }catch(e){message(err(e),true)}
+ $('#directorSyncEntries').onclick=async()=>{await flushPending();if($('#directorRecords'))await openRegister()};
+ try{
+  try{
+   const result=await network('/api/director/registers?category='+encodeURIComponent(category));records=result.records||[];
+   storeCachedRecords(category,records)
+  }catch(error){
+   const cached=readCachedRecords(category);
+   records=cached||[];
+   if(!cached)message(t('الاتصال غير متاح؛ القيود الجديدة محفوظة على هذا الجهاز إن وجدت.','Connexion indisponible ; les nouvelles entrées restent sur cet appareil.'),true)
+  }
+  if(currentCategory!==category||!$('#directorRecords'))return;
+  const entries=(await pendingEntries()).filter(x=>x.payload?.category===category);
+  const pendingHtml=entries.map(item=>'<article class="director-record director-pending"><div><b>'+esc(item.payload.subject)+'</b><small>'+t('محفوظ على الجهاز — بانتظار المزامنة','Enregistré sur cet appareil — en attente de synchronisation')+'</small></div></article>').join('');
+  const savedHtml=records.map(x=>'<article class="director-record"><div><b>'+esc(x.subject)+'</b><small>'+esc(String(x.record_date).slice(0,10))+' · '+esc(x.reference||'—')+'</small></div><button data-director-edit="'+esc(x.id)+'" type="button">'+t('تعديل','Modifier')+'</button><button data-director-print="'+esc(x.id)+'" type="button">'+t('طباعة / PDF','Imprimer / PDF')+'</button></article>').join('');
+  $('#directorRecords').innerHTML=pendingHtml+savedHtml||'<div class="director-empty">'+t('لا توجد قيود في هذا السجل. ابدأ بإضافة أول قيد.','Aucune entrée. Ajoutez la première.')+'</div>';
+  $$('[data-director-edit]').forEach(b=>b.onclick=()=>editEntry(records.find(x=>x.id===b.dataset.directorEdit)));
+  $$('[data-director-print]').forEach(b=>b.onclick=()=>{const item=records.find(x=>x.id===b.dataset.directorPrint);if(item)printDirectorRecord(item)});
+ }catch(error){message(err(error),true)}
 }
 function editEntry(row=null){
- const category=labels.find(r=>r[0]===currentCategory),title=row?t('تعديل القيد','Modifier une entrée'):t('إضافة قيد','Ajouter une entrée'),details=row?.details||{};
+ if(row&&(window.__nataijiOfflineActive||navigator.onLine===false)){message(t('تعديل قيد موجود يتطلب الاتصال لمنع تضارب النسخ.','La modification nécessite une connexion pour éviter les conflits.'),true);return}
+ const category=currentCategory,title=row?t('تعديل القيد','Modifier une entrée'):t('إضافة قيد','Ajouter une entrée'),details=row?.details||{};
+ const wantsPupil=['enrolment','student-absence','referrals'].includes(category);
+ const rosterField=wantsPupil?'<label id="directorRosterLabel">'+t('اختيار من تلاميذ المؤسسة (اختياري)','Choisir un élève déjà inscrit (facultatif)')+'<select id="directorRosterPicker"><option value="">'+t('تحميل قائمة التلاميذ...','Chargement des élèves...')+'</option></select></label>':'';
  const body='<form class="director-form" id="directorRecordForm">'+
   '<label>'+t('التاريخ','Date')+'<input name="recordDate" type="date" required value="'+esc(String(row?.record_date||new Date().toISOString()).slice(0,10))+'"></label>'+
   '<label>'+t('رقم القيد / المرجع','Référence')+'<input name="reference" maxlength="100" value="'+esc(row?.reference||'')+'"></label>'+
+  rosterField+
   formField('subject',t('الموضوع / الوصف','Objet / description'),row?.subject||'')+
-  registerCustomFields(currentCategory,details)+
+  registerCustomFields(category,details)+
   '<label>'+t('ملاحظات','Observations')+'<textarea name="notes" maxlength="4000" rows="5">'+esc(details.notes||'')+'</textarea></label>'+
-  '<p class="director-intro">'+t('هذا نموذج قيود أولي؛ ستضاف الحقول الرسمية الخاصة بكل سجل لاحقًا.','Formulaire initial; des champs spécialisés seront ajoutés ultérieurement.')+'</p>'+
+  '<p class="director-intro">'+t('السجلات الإدارية قابلة للتعديل والطباعة. تُراجع نماذج المؤسسة الرسمية قبل اعتمادها.','Registres modifiables et imprimables, à adapter aux modèles officiels de votre établissement.')+'</p>'+
   '<button type="submit" class="director-primary">'+t('حفظ','Enregistrer')+'</button></form>';
- frame(title+' · '+t(category[1],category[2]),body);
+ frame(title+' · '+t(labels.find(x=>x[0]===category)[1],labels.find(x=>x[0]===category)[2]),body);
+ let selectedStudentRef=row?.details?.studentRef||null;
+ if(wantsPupil){
+  const picker=$('#directorRosterPicker');
+  (async()=>{
+   try{
+    const result=await network('/api/director/roster');
+    if(!picker?.isConnected)return;
+    const pupils=result.students||[];
+    picker.innerHTML='<option value="">'+t('إدخال يدوي','Saisie manuelle')+'</option>'+pupils.map((p,i)=>'<option value="'+i+'">'+esc(p.name+' — '+(p.className||p.classId))+'</option>').join('');
+    const current=pupils.findIndex(p=>p.studentKey===selectedStudentRef?.studentKey&&p.classId===selectedStudentRef?.classId);
+    if(current>=0)picker.value=String(current);
+    picker.onchange=()=>{
+     const item=pupils[Number(picker.value)];
+     selectedStudentRef=picker.value!==''&&item?{studentKey:item.studentKey,classId:item.classId}:null;
+     if(!selectedStudentRef)return;
+     const nm=$('[name="custom-studentName"]'),cls=$('[name="custom-className"]');
+     if(nm)nm.value=item.name;if(cls)cls.value=item.className||item.classId
+    }
+   }catch(error){if(picker?.isConnected){picker.innerHTML='<option value="">'+t('إدخال يدوي — القائمة غير متاحة','Saisie manuelle — liste indisponible')+'</option>';picker.disabled=true}}
+  })()
+ }
+ const mutationId=crypto.randomUUID(); // Stable id across an ambiguous network retry.
  $('#directorRecordForm').onsubmit=async e=>{
-  e.preventDefault();const btn=$('button[type=submit]',e.currentTarget);btn.disabled=true;
-  const f=Object.fromEntries(new FormData(e.currentTarget)),details={notes:f.notes};for(const field of registerFields[currentCategory]||[])details[field[0]]=f['custom-'+field[0]]||'';const payload={category:currentCategory,subject:f.subject,reference:f.reference,recordDate:f.recordDate,details};
-  if(row)payload.version=row.version;else payload.clientMutationId=crypto.randomUUID();
-  try{await apiPost(row?'/api/director/registers/'+encodeURIComponent(row.id):'/api/director/registers',payload,row?'PATCH':'POST');await openRegister()}catch(error){message(err(error),true);btn.disabled=false}
+  e.preventDefault();const button=$('button[type=submit]',e.currentTarget);button.disabled=true;
+  const fields=Object.fromEntries(new FormData(e.currentTarget)),recordDetails={notes:fields.notes};
+  for(const field of registerFields[category]||[])recordDetails[field[0]]=fields['custom-'+field[0]]||'';
+  if(selectedStudentRef)recordDetails.studentRef=selectedStudentRef;
+  const payload={category,subject:fields.subject,reference:fields.reference,recordDate:fields.recordDate,details:recordDetails};
+  if(row)payload.version=row.version;else payload.clientMutationId=mutationId;
+  try{
+   const response=await apiPost(row?'/api/director/registers/'+encodeURIComponent(row.id):'/api/director/registers',payload,row?'PATCH':'POST');
+   if(!response?.ok||!response?.record)throw Error('save_not_verified');
+   await openRegister();
+  }catch(error){
+   const transient=!error?.status||[502,503,504].includes(error.status);
+   if(!row&&transient&&window.NataijiDirectorOutbox&&user?.id&&institution?.id){
+    try{
+     await window.NataijiDirectorOutbox.enqueue({userId:user.id,institutionId:institution.id,payload});
+     await openRegister();
+     message(t('تم حفظ القيد على هذا الجهاز. سيُرسل للخادم بعد عودة الاتصال وتأكيد الجلسة.','Entrée enregistrée sur cet appareil. Synchronisation après reconnexion et vérification de la session.'));
+     return
+    }catch(storageError){message(t('لم يمكن حفظ القيد على الجهاز؛ احتفظ بالمعلومات وأعد المحاولة.','Stockage local indisponible ; conservez les informations et réessayez.'),true)}
+   }else message(err(error),true);
+   button.disabled=false
+  }
  };
 }
 function staffLink(user){
