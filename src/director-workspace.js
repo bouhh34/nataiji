@@ -27,7 +27,7 @@ export async function initDirectorSchema(pool) {
 
 export function mountDirectorRoutes(app,{auth,getPool,loadMember=async()=>null}) {
  function db(req,res,next){if(!getPool())return res.status(503).json({error:'durable_storage_required'});next()}
- const requireDirector=(req,res,next)=>req.user?.role==='director' && req.user?.profileType==='director'
+ const requireDirector=(req,res,next)=>req.user?.role==='admin' && req.user?.profileType==='director'
   ?next():res.status(403).json({error:'director_required'});
  async function ownInstitution(req,res,next){
   const result=await getPool().query('SELECT * FROM nataiji_director_institutions WHERE director_user_id=$1',[req.user.id]);
