@@ -513,16 +513,27 @@ app.post('/api/account/profile-type',auth,async(req,res)=>{
  }
  await storeSet(userKey(user.id),JSON.stringify(user));res.json({ok:true,user:await createSession(res,user)})
 });
-app.get('/api/professor/catalog',auth,(req,res)=>{
+// Only a director of an established collège or lycée can open their own
+// professor workspace. The session remains a director/admin elsewhere.
+async function professorSpaceActor(req,res,next){
+ try{
+  if(req.user?.role==='professor')return next();
+  if(req.user?.role!=='admin'||req.user?.profileType!=='director'||req.user?.activeSharedGrant||!pool||!req.user?.schoolId)return next();
+  const access=await pool.query("SELECT id FROM nataiji_director_institutions WHERE director_user_id=$1 AND id=$2 AND level IN ('middle','secondary') LIMIT 1",[req.user.id,req.user.schoolId]);
+  if(access.rowCount)req.user={...req.user,role:'professor'};
+  next();
+ }catch(error){next(error)}
+}
+app.get('/api/professor/catalog',auth,professorSpaceActor,(req,res)=>{
  if(req.user.role!=='professor')return res.status(403).json({error:'forbidden'});
  res.json({ok:true,catalog:professorCatalog()})
 });
-app.get('/api/professor/profile',auth,async(req,res)=>{
+app.get('/api/professor/profile',auth,professorSpaceActor,async(req,res)=>{
  if(req.user.role!=='professor')return res.status(403).json({error:'forbidden'});if(!pool)return res.status(503).json({error:'durable_storage_required'});
  let profile=await loadProfessorProfile(req.user.id),classLinks=await professorClassLinks(profile,req.user.id);profile=cleanProfessorProfile(profile);
  res.json({ok:true,profile,classLinks})
 });
-app.put('/api/professor/profile',auth,async(req,res)=>{
+app.put('/api/professor/profile',auth,professorSpaceActor,async(req,res)=>{
  if(req.user.role!=='professor')return res.status(403).json({error:'forbidden'});if(!pool)return res.status(503).json({error:'durable_storage_required'});
  const before=await loadProfessorProfile(req.user.id),incoming={...(req.body?.profile||{})};
  // Older cached clients do not know these fields; preserve them when omitted.
@@ -533,7 +544,7 @@ app.put('/api/professor/profile',auth,async(req,res)=>{
  if(conflict)return res.status(409).json({error:'shared_subject_taken',subject:conflict.subject,subjectKey:conflict.subjectKey,sharedClassId:conflict.sharedClassId});
  let profile=await saveProfessorProfile(req.user.id,candidate),classLinks=await professorClassLinks(profile,req.user.id);profile=cleanProfessorProfile(profile);res.json({ok:true,profile,classLinks})
 });
-app.get('/api/professor/integrity',auth,async(req,res)=>{
+app.get('/api/professor/integrity',auth,professorSpaceActor,async(req,res)=>{
  if(req.user.role!=='professor')return res.status(403).json({error:'forbidden'});if(!pool)return res.status(503).json({error:'durable_storage_required'});
  const profile=await loadProfessorProfile(req.user.id),assignments=(profile.assignments||[]).length,students=(profile.classes||[]).reduce((n,c)=>n+(c.students||[]).length,0);
  let gradeRecords=0,enteredValues=0;for(const rows of Object.values(profile.marks||{}))for(const row of Object.values(rows||{}))for(const rec of Object.values(row?.terms||{})){gradeRecords++;const tests=Array.isArray(rec?.tests)?rec.tests:[];if(String(tests[0]??'')!=='')enteredValues++;if(String(rec?.exam??'')!=='')enteredValues++}
@@ -541,7 +552,7 @@ app.get('/api/professor/integrity',auth,async(req,res)=>{
  const versions=(await pool.query('SELECT count(*)::int AS n,max(created_at) AS latest FROM nataiji_professor_profile_versions WHERE user_id=$1',[req.user.id])).rows[0]||{};
  res.json({ok:true,assignments,students,gradeRecords,enteredValues,gradeHistoryCount:Number(history.n)||0,latestGradeHistory:history.latest||null,profileVersionCount:Number(versions.n)||0,latestProfileVersion:versions.latest||null})
 });
-app.put('/api/professor/assignments/:assignmentId/grades',auth,async(req,res)=>{
+app.put('/api/professor/assignments/:assignmentId/grades',auth,professorSpaceActor,async(req,res)=>{
  if(req.user.role!=='professor')return res.status(403).json({error:'forbidden'});if(!pool)return res.status(503).json({error:'durable_storage_required'});
  const assignmentId=String(req.params.assignmentId||'').trim(),term=Number(req.body?.term),rows=Array.isArray(req.body?.rows)&&req.body.rows.length<=800?req.body.rows:null;
  if(!assignmentId||![1,2,3].includes(term)||!rows)return res.status(400).json({error:'invalid_professor_grades'});
@@ -600,7 +611,7 @@ app.put('/api/professor/assignments/:assignmentId/grades',auth,async(req,res)=>{
   res.json({ok:true,verified:true,rowCount:rows.length,assignmentId,term,marks:confirmedMarks,savedAt:verify.rows[0]?.updated_at||new Date().toISOString()})
  }catch(e){try{await client.query('ROLLBACK')}catch{}throw e}finally{client.release()}
 });
-app.put('/api/professor/assignments/:assignmentId/students/:studentId/grades',auth,async(req,res)=>{
+app.put('/api/professor/assignments/:assignmentId/students/:studentId/grades',auth,professorSpaceActor,async(req,res)=>{
  if(req.user.role!=='professor')return res.status(403).json({error:'forbidden'});if(!pool)return res.status(503).json({error:'durable_storage_required'});
  const assignmentId=String(req.params.assignmentId||'').trim(),studentId=String(req.params.studentId||'').trim(),term=Number(req.body?.term);
  if(!assignmentId||!studentId||![1,2,3].includes(term))return res.status(400).json({error:'invalid_professor_grades'});
@@ -634,7 +645,7 @@ app.put('/api/professor/assignments/:assignmentId/students/:studentId/grades',au
   res.json({ok:true,verified:true,assignmentId,studentId,term,record:rec,savedAt:verify.rows[0]?.updated_at||new Date().toISOString()})
  }catch(e){try{await client.query('ROLLBACK')}catch{}throw e}finally{client.release()}
 });
-app.get('/api/professor/classes/:localClassId/results',auth,async(req,res)=>{
+app.get('/api/professor/classes/:localClassId/results',auth,professorSpaceActor,async(req,res)=>{
  if(req.user.role!=='professor')return res.status(403).json({error:'forbidden'});if(!pool)return res.status(503).json({error:'durable_storage_required'});
  const localClassId=String(req.params.localClassId||''),profile=await loadProfessorProfile(req.user.id),local=profile.classes.find(x=>String(x.id)===localClassId);
  if(!local)return res.status(404).json({error:'professor_class_not_found'});
@@ -643,7 +654,7 @@ app.get('/api/professor/classes/:localClassId/results',auth,async(req,res)=>{
  if(!result)return res.status(404).json({error:'professor_class_not_found'});
  res.json({ok:true,...result})
 });
-app.post('/api/professor/classes/:localClassId/share',auth,async(req,res)=>{
+app.post('/api/professor/classes/:localClassId/share',auth,professorSpaceActor,async(req,res)=>{
  if(req.user.role!=='professor')return res.status(403).json({error:'forbidden'});if(!pool)return res.status(503).json({error:'durable_storage_required'});
  const localClassId=String(req.params.localClassId||''),profile=await loadProfessorProfile(req.user.id),cls=profile.classes.find(x=>x.id===localClassId);if(!cls)return res.status(404).json({error:'professor_class_not_found'});
  if(cls.sharedClassId){
@@ -658,7 +669,7 @@ app.post('/api/professor/classes/:localClassId/share',auth,async(req,res)=>{
  try{await client.query('BEGIN');await client.query('INSERT INTO nataiji_professor_classrooms(class_id,owner_user_id,join_code,data) VALUES($1,$2,$3,$4::jsonb)',[sharedClassId,req.user.id,code,JSON.stringify({name:cls.name,levelCode:cls.levelCode||inferProfessorLevelCode(cls.name),branchCode:cls.branchCode||'',students:cls.students||[]})]);await client.query('INSERT INTO nataiji_professor_class_members(class_id,user_id,role) VALUES($1,$2,$3)',[sharedClassId,req.user.id,'owner']);cls.sharedClassId=sharedClassId;await client.query('INSERT INTO nataiji_professor_profiles(user_id,data,updated_at) VALUES($1,$2::jsonb,now()) ON CONFLICT(user_id) DO UPDATE SET data=EXCLUDED.data,updated_at=now()',[req.user.id,JSON.stringify(cleanProfessorProfile(profile))]);await client.query('COMMIT')}catch(e){await client.query('ROLLBACK');throw e}finally{client.release()}
  res.status(201).json({ok:true,localClassId,sharedClassId,code,memberCount:1,profile:cleanProfessorProfile(profile)})
 });
-app.post('/api/professor/classes/join',classJoinRate,auth,async(req,res)=>{
+app.post('/api/professor/classes/join',classJoinRate,auth,professorSpaceActor,async(req,res)=>{
  if(req.user.role!=='professor')return res.status(403).json({error:'forbidden'});if(!pool)return res.status(503).json({error:'durable_storage_required'});
  const code=String(req.body?.code||'').trim().toUpperCase(),requestedLocalId=String(req.body?.localClassId||'').trim();if(!/^CL-(?:[A-F0-9]{8}|[A-F0-9]{32})$/.test(code))return res.status(400).json({error:'invalid_class_code'});
  await loadProfessorProfile(req.user.id);const client=await pool.connect();let profile,cls,shared;
@@ -704,11 +715,11 @@ async function detachProfessorFromClass(actorId,targetId,localClassId){
   await client.query('COMMIT');return profile;
  }catch(e){await client.query('ROLLBACK');throw e}finally{client.release()}
 }
-app.delete('/api/professor/classes/:localClassId/link',auth,async(req,res)=>{
+app.delete('/api/professor/classes/:localClassId/link',auth,professorSpaceActor,async(req,res)=>{
  if(req.user.role!=='professor')return res.status(403).json({error:'forbidden'});if(!pool)return res.status(503).json({error:'durable_storage_required'});
  try{const profile=await detachProfessorFromClass(req.user.id,req.user.id,String(req.params.localClassId));res.json({ok:true,profile,classLinks:await professorClassLinks(profile,req.user.id)})}catch(e){if(e.status)return res.status(e.status).json({error:e.message});throw e}
 });
-app.post('/api/professor/assignments/:assignmentId/archive',auth,async(req,res)=>{
+app.post('/api/professor/assignments/:assignmentId/archive',auth,professorSpaceActor,async(req,res)=>{
  if(req.user.role!=='professor')return res.status(403).json({error:'forbidden'});if(!pool)return res.status(503).json({error:'durable_storage_required'});
  const client=await pool.connect();let profile;
  try{await client.query('BEGIN');const row=await client.query('SELECT data FROM nataiji_professor_profiles WHERE user_id=$1 FOR UPDATE',[req.user.id]);profile=cleanProfessorProfile(row.rows[0]?.data||{});
@@ -720,14 +731,14 @@ app.post('/api/professor/assignments/:assignmentId/archive',auth,async(req,res)=
  }catch(e){await client.query('ROLLBACK');throw e}finally{client.release()}
  res.json({ok:true,profile,classLinks:await professorClassLinks(profile,req.user.id)})
 });
-app.get('/api/professor/classes/:localClassId/members',auth,async(req,res)=>{
+app.get('/api/professor/classes/:localClassId/members',auth,professorSpaceActor,async(req,res)=>{
  if(req.user.role!=='professor')return res.status(403).json({error:'forbidden'});if(!pool)return res.status(503).json({error:'durable_storage_required'});
  const profile=await loadProfessorProfile(req.user.id),links=await professorClassLinks(profile,req.user.id),link=links[String(req.params.localClassId)];if(!link)return res.status(403).json({error:'forbidden'});
  const rows=(await pool.query('SELECT m.user_id,m.role,p.data FROM nataiji_professor_class_members m LEFT JOIN nataiji_professor_profiles p ON p.user_id=m.user_id WHERE m.class_id=$1 ORDER BY m.joined_at,m.user_id',[link.sharedClassId])).rows;
  const members=[];for(const row of rows){const userRaw=await storeGet(userKey(row.user_id));let user={};try{user=JSON.parse(userRaw||'{}')}catch{}const p=cleanProfessorProfile(row.data||{}),ids=new Set(p.classes.filter(c=>c.sharedClassId===link.sharedClassId).map(c=>c.id));members.push({userId:row.user_id,name:user.name||'أستاذ',role:row.role,own:row.user_id===req.user.id,subjects:p.assignments.filter(a=>!a.archived&&ids.has(a.classId)).map(a=>({subject:a.subject,subjectKey:a.subjectKey}))})}
  res.json({ok:true,members,role:link.role})
 });
-app.post('/api/professor/classes/:localClassId/owner',auth,async(req,res)=>{
+app.post('/api/professor/classes/:localClassId/owner',auth,professorSpaceActor,async(req,res)=>{
  if(req.user.role!=='professor')return res.status(403).json({error:'forbidden'});if(!pool)return res.status(503).json({error:'durable_storage_required'});
  const p=await loadProfessorProfile(req.user.id),cls=p.classes.find(c=>c.id===String(req.params.localClassId)),target=String(req.body?.userId||'');if(!cls?.sharedClassId)return res.status(404).json({error:'professor_class_not_found'});
  const client=await pool.connect();try{await client.query('BEGIN');const room=(await client.query('SELECT owner_user_id FROM nataiji_professor_classrooms WHERE class_id=$1 FOR UPDATE',[cls.sharedClassId])).rows[0];
@@ -737,7 +748,7 @@ app.post('/api/professor/classes/:localClassId/owner',auth,async(req,res)=>{
   await client.query('UPDATE nataiji_professor_classrooms SET owner_user_id=$2,updated_at=now() WHERE class_id=$1',[cls.sharedClassId,target]);await client.query('COMMIT');res.json({ok:true})
  }catch(e){await client.query('ROLLBACK');throw e}finally{client.release()}
 });
-app.delete('/api/professor/classes/:localClassId/members/:userId',auth,async(req,res)=>{
+app.delete('/api/professor/classes/:localClassId/members/:userId',auth,professorSpaceActor,async(req,res)=>{
  if(req.user.role!=='professor')return res.status(403).json({error:'forbidden'});if(!pool)return res.status(503).json({error:'durable_storage_required'});
  const p=await loadProfessorProfile(req.user.id),cls=p.classes.find(c=>c.id===String(req.params.localClassId)),target=String(req.params.userId);if(!cls?.sharedClassId||target===req.user.id)return res.status(403).json({error:'forbidden'});
  const targetProfile=await loadProfessorProfile(target),targetClass=targetProfile.classes.find(c=>c.sharedClassId===cls.sharedClassId);if(!targetClass)return res.status(404).json({error:'professor_class_not_found'});
