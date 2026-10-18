@@ -1,0 +1,169 @@
+/* Nataiji director polish — shared website + Capacitor Android WebView.
+   Scoped to director mode, keeps legacy professor/teacher and print unchanged. */
+html.nataiji-director-mode body { background:#f4f8f8; }
+.director-app {
+ --dir-ink:#102f40; --dir-subtle:#6e8189; --dir-stroke:#e2eaeb;
+ --dir-teal:#087c72; --dir-deep:#085568;
+ color:var(--dir-ink); background:linear-gradient(180deg,#f7faf9 0%,#f3f7f7 100%);
+ line-height:1.55; -webkit-font-smoothing:antialiased;
+}
+.director-app .director-shell { width:100%;min-height:100dvh; }
+.director-app .director-top {
+ box-sizing:border-box; margin:0 auto; max-width:1180px;
+ padding:14px 22px; background:#fff; border:1px solid #e7eeee;
+ border-radius:0 0 21px 21px; box-shadow:0 8px 28px #103e4d0a;
+ display:flex;align-items:center;justify-content:space-between;gap:18px;
+}
+.director-app .director-brand{display:flex;align-items:center;gap:12px;min-width:0}
+.director-app .director-brand img{width:45px;height:45px;object-fit:contain;flex-shrink:0;border-radius:10px}
+.director-app .director-brand b{color:#0b3045;font-size:17px;line-height:1.3;font-weight:850}
+.director-app .director-brand small{display:block;color:#82939b;font-size:11px;max-width:175px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.director-app .director-actions{display:flex;align-items:center;justify-content:flex-start;flex-wrap:wrap;gap:8px}
+.director-app .director-actions button{
+ background:#fff;border:1px solid #d9e9e7;border-radius:12px;color:#075e5c;
+ min-height:40px;padding:9px 12px;display:inline-flex;align-items:center;
+ justify-content:center;gap:7px;font:750 12px/1.35 inherit;cursor:pointer;white-space:normal;
+ transition:background .14s,border-color .14s;
+}
+.director-app .director-actions button:hover{background:#eff9f6;border-color:#8fd1c5}
+.director-app .director-actions .director-top-home{background:#e8f7f3;border-color:#dcf0eb}
+.director-app .director-actions .director-logout{background:#fff2f2;border-color:#ffeded;color:#b53838}
+.director-app .director-actions .director-logout:hover{background:#ffe7e7;border-color:#f8d0d0}
+.director-app .director-svg{display:inline-block;vertical-align:middle;flex:none;stroke:currentColor}
+.director-app .director-wrap{width:100%;max-width:1150px;box-sizing:border-box;padding:24px 20px 50px;margin:auto}
+.director-app .director-page-title{display:flex;align-items:center;gap:11px;margin:2px 0 15px}
+.director-app .director-page-title h1{font-size:clamp(19px,2.3vw,26px);font-weight:850;line-height:1.3;margin:0;color:#153849}
+.director-app .director-heading-icon,.director-app .director-register-icon{
+ width:37px;height:37px;flex:none;display:grid;place-items:center;
+ background:#e3f6f0;border-radius:13px;color:#08746f;
+}
+.director-app #directorMessage{font-size:12px;min-height:0;margin:0}
+.director-app #directorMessage:empty{display:none}
+.director-app .director-welcome{
+ position:relative;overflow:hidden;border:0;
+ display:flex;align-items:center;justify-content:space-between;gap:14px;
+ min-height:145px;padding:19px 21px;margin:0 0 14px;
+ background:linear-gradient(119deg,#087969,#075b69 75%,#06465b);
+ border-radius:20px;color:#fff;box-shadow:0 8px 26px #0b777315;
+}
+.director-app .director-welcome::before{
+ content:"";position:absolute;inset:-45px auto auto -85px;width:230px;height:220px;
+ background:radial-gradient(circle,#2db9a22a,transparent 70%);pointer-events:none;
+}
+.director-app .director-welcome-copy{z-index:1;position:relative;min-width:0;flex:1}
+.director-app .director-welcome small{font-size:11px;font-weight:750;opacity:.94}
+.director-app .director-welcome h2{font-size:clamp(22px,4.3vw,30px);margin:3px 0;color:#fff;font-weight:850}
+.director-app .director-welcome p{font-size:12px;line-height:1.6;margin:6px 0 0;opacity:.87;overflow-wrap:anywhere}
+.director-app .director-hero-decoration{
+ position:absolute;inset-inline-end:22%;top:22px;opacity:.14;
+ color:#d3fff3;pointer-events:none;transform:rotate(-4deg);
+}
+.director-app .director-welcome button{
+ z-index:1;display:inline-flex;align-items:center;justify-content:center;gap:7px;
+ background:#ffffff13;border:1px solid #ffffffa4;color:#fff;min-height:40px;
+ padding:9px 13px;font:750 12px/1.3 inherit;border-radius:12px;cursor:pointer;
+}
+.director-app .director-stats{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;margin:12px 0}
+.director-app .director-stats article{
+ display:grid;grid-template-columns:auto 1fr;grid-template-rows:1fr auto;
+ align-items:center;gap:0 9px;min-width:0;min-height:82px;
+ border:1px solid #e0eaeb;border-radius:17px;background:#fff;padding:13px;
+ box-shadow:0 2px 14px #154c5605;
+}
+.director-app .director-stat-icon{grid-row:1/3;grid-column:1;background:#e9f8f3;color:#0d8070;border-radius:12px;width:40px;height:40px;display:grid;place-items:center}
+.director-app .director-stats b{grid-row:1;grid-column:2;font-size:25px;line-height:1.2;font-variant-numeric:tabular-nums;color:#075e60}
+.director-app .director-stats span:not(.director-stat-icon){grid-column:2;grid-row:2;font-size:11px;color:#788990;font-weight:650;line-height:1.35}
+.director-app .director-tools:has(#directorInvite){display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;margin:0 0 24px}
+.director-app .director-tools #directorInvite,.director-app .director-tools #directorMembers{
+ min-height:46px;border-radius:13px;display:flex;align-items:center;justify-content:center;
+ gap:7px;font:750 12px/1.25 inherit;cursor:pointer;padding:9px;
+}
+.director-app .director-tools #directorInvite{background:linear-gradient(110deg,#08786c,#078c76);color:#fff;border:1px solid #087c6d}
+.director-app .director-tools #directorMembers{background:#fff;color:#096663;border:1px solid #cfe5e0}
+.director-app .director-register-header{display:flex;align-items:center;gap:10px;margin:14px 0 13px}
+.director-app .director-register-header h3{font-size:clamp(18px,2vw,21px);margin:0 0 2px;line-height:1.3;color:#18394a}
+.director-app .director-register-header p{font-size:11px;color:#738790;margin:0}
+.director-app .director-grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px;align-items:stretch}
+.director-app .director-card{
+ --dir-icon-bg:#e3f7f1;--dir-icon-fg:#0c8279;
+ position:relative;box-sizing:border-box;display:grid;grid-template-columns:minmax(0,1fr) auto;
+ grid-template-rows:38px auto 16px;align-items:center;
+ min-width:0;min-height:122px;gap:5px 5px;padding:12px 13px;
+ border:1px solid var(--dir-stroke);border-radius:18px;background:#fff;
+ box-shadow:0 2px 15px #103d4b06;color:#13444c;text-align:start;cursor:pointer;
+ transition:border-color .16s,box-shadow .16s,transform .16s;
+}
+.director-app .director-card:hover{border-color:#8ccfc5;box-shadow:0 8px 20px #196f6716;transform:translateY(-1px)}
+.director-app .director-card:focus-visible{outline:2px solid #058c7b;outline-offset:2px}
+.director-app .director-card-icon{
+ grid-column:1/-1;grid-row:1;justify-self:start;
+ width:38px;height:38px;border-radius:12px;
+ background:var(--dir-icon-bg);color:var(--dir-icon-fg);display:grid;place-items:center;
+}
+.director-app .director-card-title{grid-column:1;grid-row:2;font-size:13px;font-weight:850;line-height:1.4;color:#163c46;overflow-wrap:anywhere}
+.director-app .director-card small{grid-column:1;grid-row:3;font-size:10px;color:#7c8d95;font-weight:550;line-height:1.2}
+.director-app .director-card-arrow{grid-column:2;grid-row:2/4;align-self:center;justify-self:end;opacity:.7;color:#2b5c66}
+.director-app .director-tone-blue{--dir-icon-bg:#e7f3ff;--dir-icon-fg:#197cbd}
+.director-app .director-tone-purple{--dir-icon-bg:#f0eafe;--dir-icon-fg:#6650c9}
+.director-app .director-tone-amber{--dir-icon-bg:#fff4dc;--dir-icon-fg:#c77b15}
+.director-app .director-tone-red{--dir-icon-bg:#ffeded;--dir-icon-fg:#c64941}
+.director-app .director-tone-locked{--dir-icon-bg:#eaf5f1;--dir-icon-fg:#587c86}
+.director-app .director-card[aria-disabled="true"]{cursor:not-allowed}
+.director-app .director-card[aria-disabled="true"]:hover{transform:none;border-color:var(--dir-stroke);box-shadow:0 2px 15px #103d4b06}
+.director-app .director-card[aria-disabled="true"] small{color:#69828a}
+.director-app .director-card[aria-disabled="true"] .director-card-arrow{opacity:.25}
+.director-app .director-form,.director-app .director-record,.director-app .director-member{box-shadow:0 2px 14px #154c5608}
+.director-app .director-loading{margin-top:18px}
+@media(min-width:791px) and (max-width:1070px){
+ .director-app .director-grid{grid-template-columns:repeat(3,minmax(0,1fr))}
+}
+@media(max-width:790px){
+ .director-app .director-top{margin:9px 12px 0;border-radius:20px;padding:12px 14px}
+ .director-app .director-wrap{padding:22px 14px 34px}
+ .director-app .director-grid{grid-template-columns:repeat(2,minmax(0,1fr));gap:9px}
+}
+@media(max-width:530px){
+ .director-app .director-top{display:grid;grid-template-columns:minmax(115px,0.77fr) minmax(0,1.23fr);align-items:start;gap:10px;padding:12px}
+ .director-app .director-brand{gap:7px;min-width:0}
+ .director-app .director-brand img{width:33px;height:38px}
+ .director-app .director-brand b{font-size:13px}
+ .director-app .director-brand small{font-size:10px}
+ .director-app .director-actions{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:6px}
+ .director-app .director-actions button{width:100%;min-width:0;min-height:37px;padding:6px 4px;font-size:10px;line-height:1.2;gap:4px}
+ .director-app .director-actions .director-svg{width:14px;height:14px}
+ .director-app .director-actions .director-logout{grid-column:2}
+ .director-app .director-welcome{min-height:134px;padding:15px 17px}
+ .director-app .director-welcome h2{font-size:23px}
+ .director-app .director-welcome button{font-size:11px;padding:8px 10px}
+ .director-app .director-hero-decoration{inset-inline-end:25%;top:45px}
+ .director-app .director-page-title{margin:0 0 12px}
+ .director-app .director-stats article{min-height:75px;padding:11px;gap:0 6px}
+ .director-app .director-stat-icon{width:34px;height:34px}
+ .director-app .director-stats b{font-size:23px}
+ .director-app .director-stats span:not(.director-stat-icon){font-size:10px}
+ .director-app .director-tools:has(#directorInvite){margin-bottom:20px}
+ .director-app .director-card{min-height:112px;padding:10px;grid-template-rows:34px auto 15px;gap:4px}
+ .director-app .director-card-icon{width:34px;height:34px;border-radius:11px}
+ .director-app .director-card-icon .director-svg{width:21px;height:21px}
+ .director-app .director-card-title{font-size:12px}
+ .director-app .director-card small{font-size:9px}
+ .director-app .director-card-arrow .director-svg{width:13px;height:13px}
+}
+@media(max-width:350px){
+ .director-app .director-top{grid-template-columns:110px 1fr;padding:10px;gap:7px}
+ .director-app .director-actions button{font-size:9px}
+ .director-app .director-welcome{flex-wrap:wrap}
+ .director-app .director-card-title{font-size:11px}
+ .director-app .director-stats article{grid-template-columns:1fr;grid-template-rows:auto auto auto}
+ .director-app .director-stat-icon{grid-row:1;grid-column:1}
+ .director-app .director-stats b{grid-row:2;grid-column:1}
+ .director-app .director-stats span:not(.director-stat-icon){grid-row:3;grid-column:1}
+}
+@media(prefers-reduced-motion:reduce){
+ .director-app .director-card{transition:none}
+}
+@media print{
+ .director-app .director-top,.director-app .director-tools,.director-app .director-register-header,
+ .director-app #directorReturnButton{display:none!important}
+ .director-app .director-card,.director-app .director-welcome{box-shadow:none}
+}
