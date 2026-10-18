@@ -37,6 +37,16 @@ await teacher.call('/api/director/invitations/accept','POST',{code});
 await teacher.call('/api/director/invitations/accept','POST',{code},409);
 assert.equal((await director.call('/api/director/members')).members[0].name,'Linked Teacher QA');
 await teacher.call('/api/director/registers','GET',undefined,403);
+// Primary directors and regular teachers must not gain professor endpoints.
+await director.call('/api/professor/catalog','GET',undefined,403);
+await teacher.call('/api/professor/catalog','GET',undefined,403);
+const middle=await account('Middle School Director QA','director');
+await middle.call('/api/director/institution','POST',{name:'إعدادية اختبار',level:'middle',academicYear:'2026-2027'},201);
+assert.equal((await middle.call('/api/professor/catalog')).ok,true);
+assert.equal((await middle.call('/api/professor/profile')).ok,true);
+const secondary=await account('Secondary School Director QA','director');
+await secondary.call('/api/director/institution','POST',{name:'ثانوية اختبار',level:'secondary',academicYear:'2026-2027'},201);
+assert.equal((await secondary.call('/api/professor/catalog')).ok,true);
 await director.call('/api/director/members/'+teacher.id,'DELETE');
 assert.deepEqual((await director.call('/api/director/members')).members,[]);
 const browser=await chromium.launch({headless:true});
@@ -48,6 +58,7 @@ try{
  await page.locator('#nataijiDirectorRoot .director-welcome').waitFor({state:'visible',timeout:15000});
  assert.equal(await page.locator('[data-director-register]').count(),14);
  assert.equal(await page.locator('#directorTeacherArea').count(),1);
+ assert.match(await page.locator('#directorTeacherArea').innerText(),/مساحة المعلم/);
  await page.locator('[data-director-register="enrolment"]').click();
  await page.locator('[data-director-edit]').waitFor({state:'visible'});
  assert.equal(await page.locator('[data-director-print]').count(),1);
@@ -73,5 +84,20 @@ try{
  }
  assert.ok(synced,'Offline entry synced exactly once after reconnect');
  await context.close();
- console.log('Director browser acceptance passed: accounts, invitations, secure registers, editor, offline replay.');
+ for(const [account,expectedLabel] of [[middle,'مساحة الأستاذ'],[secondary,'مساحة الأستاذ']]){
+  const staffContext=await browser.newContext({viewport:{width:390,height:844},isMobile:true,hasTouch:true,locale:'ar'});
+  await staffContext.addCookies([{name:'nataiji_session',value:account.cookie().slice('nataiji_session='.length),url:base}]);
+  const screen=await staffContext.newPage();
+  await screen.goto(base,{waitUntil:'domcontentloaded'});
+  await screen.locator('#nataijiDirectorRoot .director-welcome').waitFor({state:'visible',timeout:15000});
+  assert.match(await screen.locator('#directorTeacherArea').innerText(),new RegExp(expectedLabel));
+  await screen.locator('#directorTeacherArea').click();
+  await screen.locator('#nataijiProfessorRoot').waitFor({state:'visible',timeout:15000});
+  assert.equal(await screen.locator('#directorReturnButton').count(),1);
+  await screen.locator('#directorReturnButton').click();
+  await screen.locator('#nataijiDirectorRoot .director-welcome').waitFor({state:'visible',timeout:15000});
+  assert.match(await screen.locator('#directorTeacherArea').innerText(),/مساحة الأستاذ/);
+  await staffContext.close();
+ }
+ console.log('Director browser acceptance passed: primary teacher / collège lycée professor spaces, secure APIs, records, offline replay.');
 }finally{await browser.close()}
