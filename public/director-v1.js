@@ -21,6 +21,7 @@ const labels=[
  ['student-health','الصحي للتلاميذ','Santé des élèves','heart']
 ];
 let user=null,institution=null,currentCategory='enrolment',overview=null,records=[];
+let pendingSyncBusy=false;
 const health=new Set(['teacher-health','student-health']);
 const registerFields={
  enrolment:[['studentName','اسم التلميذ','Nom de l’élève'],['className','القسم','Classe'],['studentCode','رقم القيد','N° matricule'],['birthDate','تاريخ الميلاد','Date de naissance'],['guardian','ولي الأمر','Responsable légal']],
@@ -57,6 +58,31 @@ function saveCachedHome(){if(!institution||!overview||window.__nataijiOfflineAct
 function readCachedHome(){try{const d=JSON.parse(localStorage.getItem(cacheKey())||'null');return d?.institution?.director_user_id===user?.id&&d?.overview?.institution?.id===d.institution.id?d:null}catch{return null}}
 function readCachedRecords(category){try{const d=JSON.parse(localStorage.getItem(cacheKey()+':'+category)||'null');return d?.institutionId===institution?.id&&Array.isArray(d.records)?d.records:null}catch{return null}}
 function storeCachedRecords(category,data){if(window.__nataijiOfflineActive)return;try{localStorage.setItem(cacheKey()+':'+category,JSON.stringify({institutionId:institution.id,records:data}))}catch{}}
+async function pendingEntries(){
+ if(!institution?.id||!user?.id)return [];
+ return window.NataijiDirectorOutbox?.pending?.({userId:user.id,institutionId:institution.id})||[]
+}
+async function flushPending(){
+ if(pendingSyncBusy||window.__nataijiOfflineActive||navigator.onLine===false||!institution?.id||!user?.id)return;
+ if(!window.NataijiDirectorOutbox)return;
+ const ownerId=String(user.id),schoolId=String(institution.id);
+ pendingSyncBusy=true;
+ try{
+  const result=await window.NataijiDirectorOutbox.flush({
+   userId:ownerId,institutionId:schoolId,
+   isCurrent:()=>!window.__nataijiOfflineActive&&navigator.onLine!==false&&String(currentUser?.id)===ownerId&&String(user?.id)===ownerId&&String(institution?.id)===schoolId,
+   submit:payload=>apiPost('/api/director/registers',payload)
+  });
+  if(result.sent&&String(user?.id)===ownerId){
+   message(t(result.sent+' قيد تمت مزامنته مع الخادم',result.sent+' entrée(s) synchronisée(s)'));
+   if($('#directorRecords'))void openRegister();
+  }else if(result.error&&result.remaining){
+   message(t('هناك قيود محلية لم تُزامن بعد. ستظل محفوظة على هذا الجهاز.','Des entrées restent enregistrées sur cet appareil et attendent la synchronisation.'),true)
+  }
+ }catch{message(t('تعذر فحص القيود المحلية. لن نحذف أي قيد.','Lecture des entrées locales impossible. Aucune donnée effacée.'),true)}finally{pendingSyncBusy=false}
+}
+window.addEventListener('online',()=>{setTimeout(()=>{if(!window.__nataijiOfflineActive)void flushPending()},1500)});
+
 
 function root(){let el=$('#nataijiDirectorRoot');if(!el){el=document.createElement('main');el.id='nataijiDirectorRoot';el.className='director-app';document.body.appendChild(el)}return el}
 function show(){document.documentElement.classList.add('nataiji-director-mode');$('#directorReturnButton')?.remove();$('#nataijiProfessorRoot')?.setAttribute('hidden','');const el=root();el.style.display='';return el}
@@ -107,6 +133,7 @@ async function dashboard(){
   '<div class="director-tools"><button type="button" id="directorInvite">＋ '+t('دعوة معلم','Inviter un enseignant')+'</button><button type="button" id="directorMembers">'+t('الحسابات المرتبطة','Comptes liés')+'</button></div>'+
   '<h3>'+t('السجلات الإدارية','Registres administratifs')+'</h3><div class="director-grid">'+cardButtons()+'</div>';
   frame(t('الإدارة المدرسية','Administration scolaire'),body);
+  if(!window.__nataijiOfflineActive)void flushPending();
   $('#directorSettings').onclick=institutionForm;
   $('#directorInvite').onclick=invite;
   $('#directorMembers').onclick=members;
