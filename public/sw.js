@@ -37,7 +37,7 @@ const ASSETS = [
   "/student-import-modal-v1.css?v=3",
   "/professor-v1.css?v=1",
   "/professor-v2.css?v=49",
-  "/director-v1.css?v=1",
+  "/director-v1.css?v=2",
   "/accessibility.css?v=5",
   "/vendor/feather.min.js",
   "/luxury-ui-v1.js?v=6",
