@@ -61,6 +61,30 @@ try{
  await owner.req('/api/owner/accounts/'+lu.id,{method:'DELETE',body:{confirm:'DELETE'}});assert.deepEqual(await a.req('/api/structure'),dataBefore);
  assert.ok((await owner.req('/api/owner/accounts/'+au.id+'/deletion-preview')).canDelete,'Deleted recipients must not block school owner forever');
  assert.equal((await owner.req('/api/owner/overview')).stats.teachers,1);
+ // Phone-only registrations must be discoverable and manageable by the owner.
+ const phoneTeacher=client(),phoneProfessor=client();
+ const phoneTeacherUser=(await phoneTeacher.req('/api/auth/register',{method:'POST',expected:201,body:{name:'Phone teacher',identifier:'44112233',password}})).user;
+ const phoneProfessorUser=(await phoneProfessor.req('/api/auth/register',{method:'POST',expected:201,body:{name:'Phone professor',identifier:'44112234',password}})).user;
+ await phoneTeacher.req('/api/account/profile-type',{method:'POST',body:{type:'teacher'}});
+ await phoneProfessor.req('/api/account/profile-type',{method:'POST',body:{type:'professor'}});
+ await login(client(),{email:'44112233'},password);
+ const phoneStaff=await owner.req('/api/owner/staff'),phoneOverview=await owner.req('/api/owner/overview');
+ assert.equal(phoneStaff.teachers.find(u=>u.id===phoneTeacherUser.id)?.phone,'44112233');
+ assert.equal(phoneStaff.professors.find(u=>u.id===phoneProfessorUser.id)?.phone,'44112234');
+ assert.equal(phoneOverview.accounts.find(u=>u.id===phoneTeacherUser.id)?.phone,'44112233');
+ assert.equal(phoneOverview.accounts.find(u=>u.id===phoneProfessorUser.id)?.phone,'44112234');
+ assert.equal(phoneOverview.accounts.find(u=>u.id===phoneTeacherUser.id)?.email,'');
+ assert.equal(phoneOverview.stats.users,5,'Two phone accounts should be counted along with owner, teacher and professor');
+ const phoneDetail=await owner.req('/api/owner/professors/'+phoneProfessorUser.id);
+ assert.equal(phoneDetail.professor.account.phone,'44112234');
+ assert.equal((await owner.req('/api/owner/accounts/'+phoneTeacherUser.id+'/deletion-preview')).account.phone,'44112233');
+ // A legacy account whose sign-in index is missing must still be visible for owner review.
+ const updatedIndex=JSON.parse((await db.query("SELECT value FROM kv_store WHERE key='nataiji:users:index'")).rows[0].value);
+ delete updatedIndex['phone:44112233'];
+ await db.query("UPDATE kv_store SET value=$1 WHERE key='nataiji:users:index'",[JSON.stringify(updatedIndex)]);
+ const orphanStaff=await owner.req('/api/owner/staff'),orphanOverview=await owner.req('/api/owner/overview');
+ assert.ok(orphanStaff.teachers.some(u=>u.id===phoneTeacherUser.id),'Owner must find canonical phone accounts even if an alias is missing');
+ assert.ok(orphanOverview.accounts.some(u=>u.id===phoneTeacherUser.id),'Owner overview must not depend solely on email/phone index');
  await owner.req('/api/owner/accounts/'+ou.id+'/action',{method:'POST',expected:403,body:{action:'suspend'}});
  console.log('Teacher account management acceptance passed: unique accounts, legacy and independent teachers, scopes, recovery, suspension, reactivation, deletion confirmation and school isolation');
 }finally{server.kill('SIGTERM');await db.end()}
