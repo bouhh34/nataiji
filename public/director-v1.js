@@ -22,6 +22,36 @@ const labels=[
 ];
 let user=null,institution=null,currentCategory='enrolment',overview=null,records=[];
 const health=new Set(['teacher-health','student-health']);
+const registerFields={
+ enrolment:[['studentName','اسم التلميذ','Nom de l’élève'],['className','القسم','Classe'],['studentCode','رقم القيد','N° matricule'],['birthDate','تاريخ الميلاد','Date de naissance'],['guardian','ولي الأمر','Responsable légal']],
+ correspondence:[['direction','وارد أم صادر','Entrant ou sortant'],['sender','الجهة المرسلة','Expéditeur'],['recipient','الجهة المستقبلة','Destinataire']],
+ visits:[['visitor','الزائر','Visiteur'],['visitPurpose','الغرض','Objet de la visite'],['visitTime','وقت الزيارة','Heure']],
+ 'visitor-log':[['personName','الاسم','Nom'],['purpose','سبب الدخول','Motif'],['entryTime','وقت الدخول','Entrée'],['exitTime','وقت الخروج','Sortie']],
+ 'daily-attendance':[['personName','اسم المعلم أو الموظف','Nom du personnel'],['status','حاضر / غائب / متأخر','Présent / absent / en retard'],['arrivalTime','وقت الحضور','Heure d’arrivée']],
+ supervision:[['teacherName','اسم المعلم','Enseignant'],['className','القسم','Classe'],['observations','ملاحظات الرقابة','Observations']],
+ 'student-absence':[['studentName','اسم التلميذ','Élève'],['className','القسم','Classe'],['status','مبرر / غير مبرر','Justifiée / non justifiée']],
+ 'staff-meetings':[['participants','الحاضرون','Participants'],['agenda','جدول الأعمال','Ordre du jour'],['decisions','القرارات','Décisions']],
+ inventory:[['itemName','اسم الأثاث','Désignation'],['quantity','الكمية','Quantité'],['condition','الحالة','État'],['location','الموقع','Emplacement']],
+ referrals:[['studentName','اسم التلميذ','Élève'],['recipient','جهة الإحالة','Destinataire'],['reason','سبب الإحالة','Motif']],
+ 'notice-board':[['postedBy','المعلق من طرف','Publié par'],['displayLocation','مكان التعليق','Lieu']],
+ 'model-lessons':[['teacherName','المعلم','Enseignant'],['className','القسم','Classe'],['subjectName','المادة','Matière'],['topic','الدرس','Leçon']]
+};
+function registerCustomFields(category,details){
+ return (registerFields[category]||[]).map(([key,ar,fr])=>'<label>'+t(ar,fr)+'<input name="custom-'+key+'" maxlength="180" value="'+esc(details[key]||'')+'"></label>').join('');
+}
+function printDirectorRecord(record){
+ const category=labels.find(x=>x[0]===record.category),rows=[...Object.entries(record.details||{}).map(([key,value])=>{
+  const field=(registerFields[record.category]||[]).find(x=>x[0]===key);
+  return [field?t(field[1],field[2]):key,String(value??'')];
+ })].filter(([_,v])=>v);
+ const html='<!doctype html><html lang="'+(lang()?'fr':'ar')+'" dir="'+(lang()?'ltr':'rtl')+'"><head><meta charset="utf-8"><style>@page{size:A4;margin:18mm}body{font-family:Arial,sans-serif;color:#183943;font-size:12pt}header{text-align:center;border-bottom:2px solid #174e65;padding-bottom:15px}h1{font-size:19pt}h2{font-size:15pt}table{width:100%;border-collapse:collapse;margin-top:22px}th,td{border:1px solid #b9c8ce;padding:12px;text-align:start;white-space:pre-wrap;overflow-wrap:anywhere}th{width:32%;background:#eef5f2}.foot{margin-top:48px;text-align:center}</style></head><body><header><h2>'+esc(institution?.name||'')+'</h2><h1>'+esc(category?t(category[1],category[2]):'')+'</h1><p>'+esc(institution?.academic_year||'')+'</p></header><table>'+
+  [['التاريخ','Date',String(record.record_date||'').slice(0,10)],['الرقم','Référence',record.reference||'—'],['الموضوع','Objet',record.subject||''],...rows.map(([key,val])=>[key,key,val])]
+  .map(([ar,fr,val])=>'<tr><th>'+esc(ar===fr?ar:t(ar,fr))+'</th><td>'+esc(val)+'</td></tr>').join('')+'</table><p class="foot">'+t('ختم وتوقيع الإدارة','Cachet et signature de la direction')+'</p></body></html>';
+ const iframe=document.createElement('iframe');iframe.setAttribute('title',t('طباعة سجل','Imprimer le registre'));iframe.style.cssText='position:fixed;inset:auto;width:1px;height:1px;opacity:0;pointer-events:none';document.body.appendChild(iframe);
+ const remove=()=>setTimeout(()=>iframe.remove(),1200);iframe.onload=()=>{try{iframe.contentWindow.onafterprint=remove;iframe.contentWindow.focus();iframe.contentWindow.print();setTimeout(remove,60000)}catch{remove();message(t('تعذر فتح الطباعة على هذا الجهاز','Impression indisponible'),true)}};
+ iframe.srcdoc=html;
+}
+
 const cacheKey=()=> 'nataiji-director-cache-v1:'+(user?.id||'');
 function saveCachedHome(){if(!institution||!overview||window.__nataijiOfflineActive)return;try{localStorage.setItem(cacheKey(),JSON.stringify({institution,overview,verifiedAt:Date.now()}));window.NataijiOfflineResume?.remember(user)}catch{}}
 function readCachedHome(){try{const d=JSON.parse(localStorage.getItem(cacheKey())||'null');return d?.institution?.director_user_id===user?.id&&d?.overview?.institution?.id===d.institution.id?d:null}catch{return null}}
@@ -89,8 +119,9 @@ async function openRegister(){
  frame(t(row[1],row[2]),'<div class="director-tools"><button type="button" class="director-primary" id="directorNewEntry">＋ '+t('إضافة قيد','Nouvelle entrée')+'</button></div><div id="directorRecords">'+t('جاري تحميل السجلات...','Chargement...')+'</div>');
  $('#directorNewEntry').onclick=()=>editEntry();
  try{try{const r=await network('/api/director/registers?category='+encodeURIComponent(currentCategory));records=r.records||[];storeCachedRecords(currentCategory,records)}catch(error){const cached=readCachedRecords(currentCategory);if(!cached)throw error;records=cached}
- $('#directorRecords').innerHTML=records.length?records.map(x=>'<article class="director-record"><div><b>'+esc(x.subject)+'</b><small>'+esc(String(x.record_date).slice(0,10))+' · '+esc(x.reference||'—')+'</small></div><button data-director-edit="'+esc(x.id)+'" type="button">'+t('تعديل','Modifier')+'</button></article>').join(''):'<div class="director-empty">'+t('لا توجد قيود في هذا السجل. ابدأ بإضافة أول قيد.','Aucune entrée. Ajoutez la première.')+'</div>';
- $$('[data-director-edit]').forEach(b=>b.onclick=()=>editEntry(records.find(x=>x.id===b.dataset.directorEdit)));
+ $('#directorRecords').innerHTML=records.length?records.map(x=>'<article class="director-record"><div><b>'+esc(x.subject)+'</b><small>'+esc(String(x.record_date).slice(0,10))+' · '+esc(x.reference||'—')+'</small></div><button data-director-edit="'+esc(x.id)+'" type="button">'+t('تعديل','Modifier')+'</button><button data-director-print="'+esc(x.id)+'" type="button">'+t('طباعة / PDF','Imprimer / PDF')+'</button></article>').join(''):'<div class="director-empty">'+t('لا توجد قيود في هذا السجل. ابدأ بإضافة أول قيد.','Aucune entrée. Ajoutez la première.')+'</div>';
+ $('[data-director-edit]').forEach(b=>b.onclick=()=>editEntry(records.find(x=>x.id===b.dataset.directorEdit)));
+ $('[data-director-print]').forEach(b=>b.onclick=()=>{const row=records.find(x=>x.id===b.dataset.directorPrint);if(row)printDirectorRecord(row)});
  }catch(e){message(err(e),true)}
 }
 function editEntry(row=null){
@@ -99,13 +130,14 @@ function editEntry(row=null){
   '<label>'+t('التاريخ','Date')+'<input name="recordDate" type="date" required value="'+esc(String(row?.record_date||new Date().toISOString()).slice(0,10))+'"></label>'+
   '<label>'+t('رقم القيد / المرجع','Référence')+'<input name="reference" maxlength="100" value="'+esc(row?.reference||'')+'"></label>'+
   formField('subject',t('الموضوع / الوصف','Objet / description'),row?.subject||'')+
+  registerCustomFields(currentCategory,details)+
   '<label>'+t('ملاحظات','Observations')+'<textarea name="notes" maxlength="4000" rows="5">'+esc(details.notes||'')+'</textarea></label>'+
   '<p class="director-intro">'+t('هذا نموذج قيود أولي؛ ستضاف الحقول الرسمية الخاصة بكل سجل لاحقًا.','Formulaire initial; des champs spécialisés seront ajoutés ultérieurement.')+'</p>'+
   '<button type="submit" class="director-primary">'+t('حفظ','Enregistrer')+'</button></form>';
  frame(title+' · '+t(category[1],category[2]),body);
  $('#directorRecordForm').onsubmit=async e=>{
   e.preventDefault();const btn=$('button[type=submit]',e.currentTarget);btn.disabled=true;
-  const f=Object.fromEntries(new FormData(e.currentTarget)),payload={category:currentCategory,subject:f.subject,reference:f.reference,recordDate:f.recordDate,details:{notes:f.notes}};
+  const f=Object.fromEntries(new FormData(e.currentTarget)),details={notes:f.notes};for(const field of registerFields[currentCategory]||[])details[field[0]]=f['custom-'+field[0]]||'';const payload={category:currentCategory,subject:f.subject,reference:f.reference,recordDate:f.recordDate,details};
   if(row)payload.version=row.version;else payload.clientMutationId=crypto.randomUUID();
   try{await apiPost(row?'/api/director/registers/'+encodeURIComponent(row.id):'/api/director/registers',payload,row?'PATCH':'POST');await openRegister()}catch(error){message(err(error),true);btn.disabled=false}
  };
