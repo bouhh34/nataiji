@@ -52,3 +52,35 @@ test('other accounts cannot request director records',async()=>{
  const r=await h.request('GET','/api/director/registers');
  assert.equal(r.status,403);assert.equal(h.calls.length,0);
 });
+
+test('health registers also reject direct list requests',async()=>{
+ const h=harness({id:'director-a',role:'admin',profileType:'director',schoolId:'school-a'}, {},{category:'student-health'});
+ const r=await h.request('GET','/api/director/registers');
+ assert.equal(r.status,403);
+ assert.equal(r.body.error,'sensitive_register_not_enabled');
+});
+test('roster reads only the requesting director institution and omits grades',async()=>{
+ const queries=[];
+ const pool={async query(sql,params){
+  queries.push([sql,params]);
+  if(sql.includes('FROM nataiji_director_institutions WHERE director_user_id'))return {rowCount:1,rows:[{id:'school-a',director_user_id:'director-a'}]};
+  if(sql.includes('FROM nataiji_structure'))return {rowCount:1,rows:[{data:{classes:[{id:'A',name:'1AF'}]}}]};
+  if(sql.includes('FROM nataiji_pupils'))return {rowCount:1,rows:[{class_id:'A',nns:'pupil-key',data:['nns','Test Student', 'other personal data']}]};
+  return {rowCount:0,rows:[]}
+ }};
+ const h=harness({id:'director-a',role:'admin',profileType:'director',schoolId:'school-a'}, {},{},pool);
+ const r=await h.request('GET','/api/director/roster');
+ assert.equal(r.status,200);
+ assert.deepEqual(r.body.students,[{studentKey:'pupil-key',name:'Test Student',classId:'A',className:'1AF'}]);
+ assert.equal(r.body.students[0].marks,undefined);
+ assert.ok(queries.filter(([sql])=>sql.includes('FROM nataiji_pupils')).every(([,params])=>params[0]==='school-a'));
+});
+test('reject forged pupil references before any register write',async()=>{
+ const h=harness({id:'director-a',role:'admin',profileType:'director',schoolId:'school-a'},{
+  category:'student-absence',subject:'Absence',recordDate:'2026-10-18',details:{studentRef:{studentKey:'foreign',classId:'X'}}
+ });
+ const r=await h.request('POST','/api/director/registers');
+ assert.equal(r.status,400);
+ assert.equal(r.body.error,'student_link_not_found');
+ assert.ok(!h.calls.some(c=>c.sql.includes('INSERT INTO nataiji_director_registers')));
+});
