@@ -31,6 +31,15 @@ await director.call('/api/director/registers','POST',{...payload,subject:'Confli
 assert.equal((await director.call('/api/director/registers?category=enrolment')).records.length,1);
 await director.call('/api/director/registers','POST',{...payload,category:'student-health',clientMutationId:'8de3ac2e-7b43-4a23-8823-ac23c34acfb1'},403);
 await director.call('/api/director/registers?category=student-health','GET',undefined,403);
+// Each class has a versioned timetable; teacher collisions are rejected.
+const timetableKey='manual:11111111-1111-4111-8111-111111111111';
+const otherClassKey='manual:22222222-2222-4222-8222-222222222222';
+assert.deepEqual((await director.call('/api/director/timetables')).classes,[]);
+const savedTimetable=(await director.call('/api/director/timetables/'+encodeURIComponent(timetableKey),'PUT',{className:'الأولى أ',expectedVersion:0,entries:[{day:'mon',start:'08:00',end:'10:00',subject:'الرياضيات',teacher:'أحمد',room:'A'}]})).timetable;
+assert.equal(savedTimetable.version,1);
+await director.call('/api/director/timetables/'+encodeURIComponent(otherClassKey),'PUT',{className:'الأولى ب',expectedVersion:0,entries:[{day:'mon',start:'09:00',end:'10:00',subject:'الفرنسية',teacher:'أحمد',room:'B'}]},409);
+assert.equal((await director.call('/api/director/timetables')).timetables.length,1);
+await director.call('/api/director/timetables/'+encodeURIComponent(timetableKey),'PUT',{className:'الأولى أ',expectedVersion:0,entries:[]},409);
 const code=(await director.call('/api/director/invitations','POST',{},201)).code;
 const teacher=await account('Linked Teacher QA','teacher');
 await teacher.call('/api/director/invitations/accept','POST',{code});
@@ -59,6 +68,21 @@ try{
  assert.equal(await page.locator('[data-director-register]').count(),14);
  assert.equal(await page.locator('#directorTeacherArea').count(),1);
  assert.match(await page.locator('#directorTeacherArea').innerText(),/مساحة المعلم/);
+ await page.locator('#directorTimetables').click();
+ await page.locator('#directorTimeClass').waitFor({state:'visible'});
+ assert.equal(await page.locator('.director-time-lesson').count(),1);
+ assert.match(await page.locator('.director-time-lesson').first().innerText(),/الرياضيات/);
+ await page.locator('#directorTimeAdd').click();
+ await page.locator('#directorTimeLessonForm [name="day"]').selectOption('tue');
+ await page.locator('#directorTimeLessonForm [name="start"]').fill('10:00');
+ await page.locator('#directorTimeLessonForm [name="end"]').fill('11:00');
+ await page.locator('#directorTimeLessonForm [name="subject"]').fill('اللغة العربية');
+ await page.locator('#directorTimeLessonForm [name="teacher"]').fill('خديجة');
+ await page.locator('#directorTimeLessonForm button[type="submit"]').click();
+ await page.locator('.director-time-lesson').nth(1).waitFor({state:'visible'});
+ assert.equal((await director.call('/api/director/timetables')).timetables[0].entries.length,2);
+ await page.locator('#directorHome').click();
+ await page.locator('#nataijiDirectorRoot .director-welcome').waitFor({state:'visible'});
  await page.locator('[data-director-register="enrolment"]').click();
  await page.locator('[data-director-edit]').waitFor({state:'visible'});
  assert.equal(await page.locator('[data-director-print]').count(),1);
