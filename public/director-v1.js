@@ -68,7 +68,7 @@ function cards(){
 function home(){
  const inst=overview.institution;
  return '<section class="director-hero"><div><span>NATAIJI · DIRECTOR</span><h2>'+esc(inst.name)+'</h2><p>'+esc(inst.wilaya||'')+(inst.district?' · '+esc(inst.district):'')+' · '+esc(inst.academic_year)+'</p></div><div class="director-hero-icon">🏫</div></section>'+cards()+'<h2>'+tr('إدارة المؤسسة','Gestion de l’établissement')+'</h2><div class="director-tiles">'+
-  '<button data-view="students"><span>👧</span>'+tr('قيد التلاميذ','Inscriptions')+'</button><button data-view="members"><span>👩‍🏫</span>'+tr('ربط المعلمين','Relier les enseignants')+'</button>'+
+  '<button data-view="students"><span>👧</span>'+tr('قيد التلاميذ','Inscriptions')+'</button><button data-view="members"><span>👩‍🏫</span>'+tr('ربط المعلمين','Relier les enseignants')+'</button>'+(inst.level==='primary'?'<button id="directorOpenGrades"><span>📊</span>'+tr('مسار نتائج الابتدائي','Résultats du primaire')+'</button>':'')+
   REGISTERS.slice(1).map((r,i)=>'<button data-type="'+esc(r[0])+'"><span>'+(['✉️','📋','🪪','📆','🔎','🗓️','📝','🪑','📤','📌','📖','🩺','🏥'][i])+'</span>'+esc(label(r[0]))+'</button>').join('')+'</div>';
 }
 function studentsPage(){
@@ -101,10 +101,23 @@ function render(){
  const select=$('#directorRegisterType',el);if(select)select.onchange=()=>{registerType=select.value;loadRegisters();};
  const studentForm=$('#directorStudentForm',el);if(studentForm)studentForm.onsubmit=saveStudent;
  const recordForm=$('#directorRegisterForm',el);if(recordForm)recordForm.onsubmit=saveRegister;
+ const grades=$('#directorOpenGrades',el);if(grades)grades.onclick=openPrimaryGrades;
  const invite=$('#directorInvite',el);if(invite)invite.onclick=createInvite;
  const copy=$('#directorCopy',el);if(copy)copy.onclick=()=>navigator.clipboard?.writeText(inviteCode).catch(()=>{});
  const print=$('#directorPrint',el);if(print)print.onclick=()=>window.print();
  el.querySelectorAll('[data-remove-member]').forEach(b=>b.onclick=()=>removeMember(b.dataset.removeMember));
+}
+function openPrimaryGrades(){
+ if(overview?.institution?.level!=='primary')return;
+ document.documentElement.classList.remove('nataiji-director-mode');
+ root().style.display='none';
+ $('.app-shell')?.style.removeProperty('display');
+ $('.bottom-nav')?.style.removeProperty('display');
+ let back=$('#directorBackToManagement');
+ if(!back){back=document.createElement('button');back.id='directorBackToManagement';back.className='director-join-trigger';back.type='button';document.body.appendChild(back);}
+ back.textContent=tr('عودة للإدارة','Retour à la direction');
+ back.onclick=()=>{back.remove();root().style.removeProperty('display');setMode();render();};
+ Promise.resolve(startApp()).catch(error=>{back.remove();root().style.removeProperty('display');setMode();render();notice(tr('تعذر فتح النتائج: ','Impossible d’ouvrir les résultats : ')+error.message);});
 }
 async function go(next){
  view=next;errorText='';try{
