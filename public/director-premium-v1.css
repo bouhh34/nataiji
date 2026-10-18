@@ -167,3 +167,11 @@ html.nataiji-director-mode body { background:#f4f8f8; }
  .director-app #directorReturnButton{display:none!important}
  .director-app .director-card,.director-app .director-welcome{box-shadow:none}
 }
+
+/* Let a director return even when the professor setup dialog is open. */
+html.nataiji-professor-mode #directorReturnButton{
+ z-index:2147483000!important;
+ bottom:calc(16px + env(safe-area-inset-bottom,0px));
+ inset-inline-end:16px;
+ pointer-events:auto;
+}
