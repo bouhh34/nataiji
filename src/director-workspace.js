@@ -12,6 +12,7 @@ const sha = value => crypto.createHash('sha256').update(value).digest('hex');
 const clean = (value,max=160) => String(value??'').trim().slice(0,max);
 const validDate = value => /^\d{4}-\d{2}-\d{2}$/.test(String(value||'')) && !Number.isNaN(Date.parse(String(value)));
 const isObject = value => value!==null && typeof value==='object' && !Array.isArray(value);
+const stableJson = value => JSON.stringify(value,(key,v)=>isObject(v)?Object.fromEntries(Object.keys(v).sort().map(k=>[k,v[k]])):v);
 async function checkStudentLink(pool,institutionId,details){
  const link=details?.studentRef;
  if(link===undefined||link===null)return true;
@@ -154,7 +155,7 @@ export function mountDirectorRoutes(app,{auth,getPool,loadMember=async()=>null})
    if(!record){await client.query('ROLLBACK');return res.status(409).json({error:'record_conflict'})}
    if(!inserted.rowCount){
     const sameDate=String(record.record_date instanceof Date?record.record_date.toISOString().slice(0,10):record.record_date).slice(0,10)===date;
-    const samePayload=record.category===category&&record.subject===subject&&record.reference===clean(input.reference,100)&&sameDate&&JSON.stringify(record.details)===JSON.stringify(details);
+    const samePayload=record.category===category&&record.subject===subject&&record.reference===clean(input.reference,100)&&sameDate&&stableJson(record.details)===stableJson(details);
     if(!samePayload){await client.query('ROLLBACK');return res.status(409).json({error:'mutation_id_payload_mismatch'})}
    }
    if(inserted.rowCount)await client.query('INSERT INTO nataiji_director_audit(institution_id,actor_id,record_id,action,after_data) VALUES($1,$2,$3,$4,$5::jsonb)',[institutionId,req.user.id,record.id,'create',JSON.stringify(record)]);
