@@ -40,3 +40,18 @@ test('school level routing and administrative features survive the presentation 
  assert.match(js,/function printDirectorRecord\(/);
  assert.match(css,/@media\(max-width:420px\)/);
 });
+
+
+test('every director subpage offers visible RTL-aware navigation without changing the homepage',()=>{
+ assert.match(js,/function frame\(title,contents,options=\{\}\)/);
+ assert.match(js,/id="directorBack"/);
+ assert.match(js,/options\.backAction\?options\.backAction\(\):void dashboard\(\)/);
+ assert.match(js,/directorTeachingAreaLabel\(\)/);
+ assert.match(js,/class="director-empty director-empty-register"/);
+ assert.match(js,/id="directorEmptyAdd"/);
+ assert.match(js,/\{home:true\}/);
+ assert.match(css,/\.director-app \.director-back\{/);
+ assert.match(css,/\.director-app\.director-subpage \.director-wrap>h1\{/);
+ assert.match(css,/\.director-app \.director-empty-register\{/);
+ assert.match(css,/@media\(max-width:540px\)/);
+});
