@@ -65,10 +65,10 @@ const studentShortcutCss=read('public/student-quick-import-v1.css');
 const studentImportModalJs=read('public/student-import.js');
 const studentImportModalCss=read('public/student-import-modal-v1.css');
 assert('teacher import modal visual layer is cached in Android and loaded on web',
-  /student-import-modal-v1\.css\?v=3/.test(index) &&
-  /student-import-modal-v1\.css\?v=3/.test(sw) &&
-  /student-import\.js\?v=13/.test(index) &&
-  /student-import\.js\?v=13/.test(sw));
+  /student-import-modal-v1\.css\?v=4/.test(index) &&
+  /student-import-modal-v1\.css\?v=4/.test(sw) &&
+  /student-import\.js\?v=14/.test(index) &&
+  /student-import\.js\?v=14/.test(sw));
 assert('student import modal preserves original parser, OCR and class save action',
   /window\.nataijiStudentImport=\{parse,open/.test(studentImportModalJs) &&
   /await onSave\(rows\)/.test(studentImportModalJs) &&
@@ -88,11 +88,12 @@ assert('unavailable Gemini never silently invokes local OCR',
   /pendingFile=null/.test(studentImportModalJs) &&
   /output.push\(await ocr\(canvas\)\)/.test(studentImportModalJs) &&
   /if\(visionProvider\(\)!=='Gemini'\)/.test(read('src/server.js')));
-assert('teacher-only importer has clear steps, file choices and safe touch targets',
+assert('student importer is scoped to both teacher and professor routes with safe touch targets',
   /nataiji-student-import-modal/.test(studentImportModalCss) &&
   /@media screen/.test(studentImportModalCss) &&
   !/@media print/.test(studentImportModalCss) &&
-  /html:not\(\.nataiji-professor-mode\)/.test(studentImportModalCss) &&
+  /html \.nataiji-student-import-modal/.test(studentImportModalCss) &&
+  !/html:not\(\.nataiji-professor-mode\)/.test(studentImportModalCss) &&
   /nti-upload-grid/.test(studentImportModalCss) &&
   /nti-steps/.test(studentImportModalCss));
 assert('student import shortcut is bundled and offline cached',
@@ -120,7 +121,7 @@ assert('student import menu is teacher-only and safe for print and no edit right
  /@media screen/.test(studentShortcutCss) &&
  !/@media print/.test(studentShortcutCss) &&
  /student-quick-import-ready/.test(studentShortcutCss));
-assert('PWA cache version current', /nataiji-shell-v184/.test(sw));
+assert('PWA cache version current', /nataiji-shell-v185/.test(sw));
 const commercialPlan = read('public/commercial-foundation-v1.js');
 assert('plan card script version is present in web and Android cache',
   /commercial-foundation-v1\.js\?v=4/.test(index) &&
@@ -140,7 +141,7 @@ assert('free plan card is informational, stable, and bilingual',
 assert('new Play tester shell installs atomically and activates after complete precache',
   /cache=>cache.addAll\(ASSETS\)\)\.then\(\(\)=>self.skipWaiting\(\)\)/.test(sw) &&
   /navigate/.test(sw) &&
-  /nataiji-shell-v184/.test(sw));
+  /nataiji-shell-v185/.test(sw));
 assert('native and web release check the newest SW URL on every start',
   /sw\.js\?v=4/.test(read('public/app-power-v1.js')) &&
   /app-power-v1\.js\?v=13/.test(index) &&
