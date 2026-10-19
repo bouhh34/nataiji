@@ -132,14 +132,14 @@ test('manual pasted names still advance review, and original class save handler 
  assert.match(source,/data-ar/);
  assert.match(source,/data-fr/);
 });
-test('responsive importer is scoped only to importer and works on professor and teacher routes',()=>{
- assert.match(styles,/@media screen/);
- assert.match(styles,/html \\.nataiji-student-import-modal/);
- assert.doesNotMatch(styles,/html:not\\(\\.nataiji-professor-mode\\) \\.nataiji-student-import-modal/);
- assert.match(styles,/nti-reading-choice\\[hidden\\]/);
- assert.match(styles,/nti-upload-icon svg/);
- assert.match(styles,/width:22px!important/);
- assert.match(styles,/nti-upload-choice input\\[type=file\\]/);
- assert.match(source,/class="nti-upload-copy"/);
- assert.doesNotMatch(styles,/@media print/);
+test('responsive importer is scoped to the student modal in teacher and professor routes',()=>{
+ assert.ok(styles.includes('@media screen'));
+ assert.ok(styles.includes('html .nataiji-student-import-modal'));
+ assert.ok(!styles.includes('html:not(.nataiji-professor-mode) .nataiji-student-import-modal'));
+ assert.ok(styles.includes('nti-reading-choice[hidden]'));
+ assert.ok(styles.includes('nti-upload-icon svg'));
+ assert.ok(styles.includes('width:22px!important'));
+ assert.ok(styles.includes('nti-upload-choice input[type=file]'));
+ assert.ok(source.includes('class="nti-upload-copy"'));
+ assert.ok(!styles.includes('@media print'));
 });
