@@ -94,12 +94,42 @@ function registerCustomFields(category,details){
   return '<label>'+t(ar,fr)+(required?' *':'')+control+'</label>';
  }).join('');
 }
+function directorOfficialHeader(className=''){
+ const d=institution||{},school={ar:d.name||'',fr:d.name_fr||d.name||''},region={ar:d.region||'',fr:d.region||''},district={ar:d.district||'',fr:d.district||''},cls={ar:className,fr:className};
+ const nns='',year=String(d.academic_year||'');
+ return `<header class="official-head">
+  <section class="official-side official-fr" dir="ltr" lang="fr">
+   <b class="official-strong">République Islamique de Mauritanie</b>
+   <strong>Honneur - Fraternité - Justice</strong>
+   <span>Ministère de l’Éducation et de la Réforme du Système Éducatif</span>
+   ${region.fr?`<span>Direction régionale de l’Éducation : <b>${esc(region.fr)}</b></span>`:''}
+   ${district.fr?`<span>Moughataa : <b>${esc(district.fr)}</b></span>`:''}
+   ${school.fr?`<span>Établissement : <b>${esc(school.fr)}</b></span>`:''}
+   ${nns?`<span>N° scolaire : <b dir="ltr">${esc(nns)}</b></span>`:''}
+   ${year?`<span>Année scolaire : <b dir="ltr">${esc(year)}</b></span>`:''}
+   ${className?`<span>Classe : <b>${esc(cls.fr)}</b></span>`:''}
+  </section>
+  <section class="official-center"><div class="basmala" lang="ar" dir="rtl">بسم الله الرحمن الرحيم</div><img src="${location.origin}/1280px-National_Seal_of_Mauritania.svg.png" alt="شعار الجمهورية الإسلامية الموريتانية"></section>
+  <section class="official-side official-ar" dir="rtl" lang="ar">
+   <b class="official-strong">الجمهورية الإسلامية الموريتانية</b>
+   <strong>شرف - إخاء - عدل</strong>
+   <span>وزارة التربية وإصلاح النظام التعليمي</span>
+   ${region.ar?`<span>الإدارة الجهوية للتربية بولاية: <b>${esc(region.ar)}</b></span>`:''}
+   ${district.ar?`<span>المقاطعة: <b>${esc(district.ar)}</b></span>`:''}
+   ${school.ar?`<span>المؤسسة: <b>${esc(school.ar)}</b></span>`:''}
+   ${nns?`<span>الرقم المدرسي: <b dir="ltr">${esc(nns)}</b></span>`:''}
+   ${year?`<span>السنة الدراسية: <b dir="ltr">${esc(year)}</b></span>`:''}
+   ${className?`<span>القسم: <b>${esc(cls.ar)}</b></span>`:''}
+  </section>
+ </header>`
+}
+
 function printDirectorRecord(record){
  const category=labels.find(x=>x[0]===record.category),rows=[...Object.entries(record.details||{}).filter(([key])=>key!=='studentRef').map(([key,value])=>{
   const field=(registerFields[record.category]||[]).find(x=>x[0]===key);
-  return [field?t(field[1],field[2]):key,String(value??'')];
+  return [key==='notes'?t('ملاحظات','Observations'):field?t(field[1],field[2]):key,String(value??'')];
  })].filter(([_,v])=>v);
- const html='<!doctype html><html lang="'+(lang()?'fr':'ar')+'" dir="'+(lang()?'ltr':'rtl')+'"><head><meta charset="utf-8"><style>@page{size:A4;margin:18mm}body{font-family:Arial,sans-serif;color:#183943;font-size:12pt}header{text-align:center;border-bottom:2px solid #174e65;padding-bottom:15px}h1{font-size:19pt}h2{font-size:15pt}table{width:100%;border-collapse:collapse;margin-top:22px}th,td{border:1px solid #b9c8ce;padding:12px;text-align:start;white-space:pre-wrap;overflow-wrap:anywhere}th{width:32%;background:#eef5f2}.foot{margin-top:48px;text-align:center}</style></head><body><header><h2>'+esc(institution?.name||'')+'</h2><h1>'+esc(category?t(category[1],category[2]):'')+'</h1><p>'+esc(institution?.academic_year||'')+'</p></header><table>'+
+ const html='<!doctype html><html lang="'+(lang()?'fr':'ar')+'" dir="'+(lang()?'ltr':'rtl')+'"><head><meta charset="utf-8"><style>@page{size:A4;margin:12mm}body{font-family:Arial,sans-serif;color:#183943;font-size:12pt}.official-head{display:grid;grid-template-columns:minmax(0,1fr) 34mm minmax(0,1fr);grid-template-areas:"fr center ar";gap:5mm;align-items:start;width:100%;font-size:8.7pt;line-height:1.34;margin-bottom:3mm}.official-side{min-width:0;display:flex;flex-direction:column;gap:.35mm}.official-fr{grid-area:fr;text-align:left;direction:ltr}.official-ar{grid-area:ar;text-align:right;direction:rtl}.official-strong{font-weight:800}.official-center{grid-area:center;display:flex;flex-direction:column;align-items:center;text-align:center}.basmala{width:100%;font-size:8.7pt;font-weight:800;line-height:1.3;margin:0 0 .8mm;white-space:nowrap;text-align:center;direction:rtl}.official-center img{width:23mm;height:23mm;object-fit:contain}h1{text-align:center;border-bottom:2px solid #174e65;padding-bottom:12px}tr{break-inside:avoid}h1{font-size:19pt}h2{font-size:15pt}table{width:100%;border-collapse:collapse;margin-top:22px}th,td{border:1px solid #b9c8ce;padding:12px;text-align:start;white-space:pre-wrap;overflow-wrap:anywhere}th{width:32%;background:#eef5f2}.foot{margin-top:48px;text-align:center}</style></head><body>'+directorOfficialHeader(record.details?.className||'')+'<h1>'+esc(category?t(category[1],category[2]):'')+'</h1><table>'+
   [['التاريخ','Date',String(record.record_date||'').slice(0,10)],['الرقم','Référence',record.reference||'—'],['الموضوع','Objet',record.subject||''],...rows.map(([key,val])=>[key,key,val])]
   .map(([ar,fr,val])=>'<tr><th>'+esc(ar===fr?ar:t(ar,fr))+'</th><td>'+esc(val)+'</td></tr>').join('')+'</table><p class="foot">'+t('ختم وتوقيع الإدارة','Cachet et signature de la direction')+'</p></body></html>';
  const iframe=document.createElement('iframe');iframe.setAttribute('title',t('طباعة سجل','Imprimer le registre'));iframe.style.cssText='position:fixed;inset:auto;width:1px;height:1px;opacity:0;pointer-events:none';document.body.appendChild(iframe);
