@@ -103,24 +103,25 @@ try{
  await page.locator('#directorBack').click();
  await page.locator('[data-director-edit]').waitFor({state:'visible'});
  await page.locator('[data-director-edit]').click();
- await page.locator('#directorRecordForm [name="subject"]').fill('قيد تم تعديله');
+ await page.locator('#directorRecordForm [name="custom-studentName"]').fill('تلميذ تم تعديله');
  await page.locator('#directorRecordForm button[type="submit"]').click();
  await page.locator('[data-director-edit]').waitFor({state:'visible'});
- assert.equal((await director.call('/api/director/registers?category=enrolment')).records[0].subject,'قيد تم تعديله');
+ const revised=(await director.call('/api/director/registers?category=enrolment')).records[0];
+ assert.equal(revised.subject,'قيد التلميذ الأول');
+ assert.equal(revised.details.studentName,'تلميذ تم تعديله');
  await context.setOffline(true);
  await page.locator('#directorNewEntry').click();
- await page.locator('#directorRecordForm [name="subject"]').fill('قيد دون إنترنت');
- await page.locator('#directorRecordForm [name="custom-studentName"]').fill('تلميذ آخر');
+ await page.locator('#directorRecordForm [name="custom-studentName"]').fill('تلميذ دون إنترنت');
  await page.locator('#directorRecordForm button[type="submit"]').click();
  await page.locator('.director-pending').waitFor({state:'visible',timeout:10000});
- assert.match(await page.locator('.director-pending').innerText(),/قيد دون إنترنت/);
+ assert.match(await page.locator('.director-pending').innerText(),/تلميذ دون إنترنت/);
  assert.equal((await director.call('/api/director/registers?category=enrolment')).records.length,1);
  await context.setOffline(false);
  let synced=false;
  for(let i=0;i<24;i++){
   await page.waitForTimeout(500);
   const rows=(await director.call('/api/director/registers?category=enrolment')).records;
-  if(rows.some(x=>x.subject==='قيد دون إنترنت')){synced=rows.length===2;break}
+  if(rows.some(x=>x.subject==='تلميذ دون إنترنت'&&x.details?.studentName==='تلميذ دون إنترنت')){synced=rows.length===2;break}
  }
  assert.ok(synced,'Offline entry synced exactly once after reconnect');
  await context.close();
