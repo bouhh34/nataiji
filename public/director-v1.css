@@ -138,3 +138,19 @@ html.nataiji-professor-mode #directorReturnButton{
 .director-app [data-director-register="teacher-health"]{--icon-ink:#475569;--icon-tint:#e8edf5;--icon-edge:#cbd5e1;--icon-shadow:#47556922}
 .director-app [data-director-register="student-health"]{--icon-ink:#8b5e3c;--icon-tint:#f5eade;--icon-edge:#e3cdb6;--icon-shadow:#8b5e3c22}
 @media print{.director-app .director-card-icon{box-shadow:none}}
+
+/* Form controls optimized for daily school administration. */
+.director-app .director-sync-help{font-size:12px;color:#526e72;margin:0 0 10px}
+.director-app .director-sync-help summary{cursor:pointer;min-height:36px;padding:6px 0}
+.director-app .director-sync-help p{margin:5px 0 10px}
+.director-app .director-search{display:grid;gap:7px;margin:12px 0 16px;font-size:13px;color:#355661;max-width:720px}
+.director-app .director-search input{width:100%;min-height:44px;padding:11px 13px;border:1px solid #cedddc;border-radius:12px;font:inherit;background:#fff;color:#21434a}
+.director-app .director-search input:focus-visible{outline:2px solid #087866;outline-offset:2px}
+.director-app .director-search small{font-size:12px;color:#526e72}
+.director-app .director-record[hidden]{display:none!important}
+.director-app .director-save-bar{position:sticky;bottom:0;z-index:3;background:#fff;border-top:1px solid #dfe9e6;padding:10px 0 max(10px,env(safe-area-inset-bottom));display:flex}
+.director-app .director-save-bar button{width:100%;font-family:inherit;min-height:48px;border:1px solid #087866}
+.director-app #directorRecordForm .director-intro{font-size:12px;margin:0;line-height:1.6}
+.director-app #directorRecordForm>label,.director-app .director-form-section label{gap:6px}
+.director-app #directorRecordForm{gap:12px}
+@media print{.director-save-bar,.director-search,.director-sync-help{display:none!important}}

@@ -73,7 +73,26 @@ const registerFields={
  'model-lessons':[['teacherName','المعلم','Enseignant'],['className','القسم','Classe'],['subjectName','المادة','Matière'],['topic','الدرس','Leçon']]
 };
 function registerCustomFields(category,details){
- return (registerFields[category]||[]).map(([key,ar,fr])=>'<label>'+t(ar,fr)+(category==='enrolment'&&key==='studentName'?' *':'')+'<input '+(category==='enrolment'&&key==='studentName'?'required ':'')+'name="custom-'+key+'" maxlength="180" value="'+esc(details[key]||'')+'"></label>').join('');
+ const choices={direction:[['وارد','Entrant'],['صادر','Sortant']],status:category==='daily-attendance'?[['حاضر','Présent'],['غائب','Absent'],['متأخر','En retard']]:category==='student-absence'?[['مبرر','Justifiée'],['غير مبرر','Non justifiée']]:null};
+ const longFields=new Set(['participants','agenda','decisions','observations','reason']);
+ return (registerFields[category]||[]).map(([key,ar,fr])=>{
+  const value=String(details[key]??''),required=category==='enrolment'&&key==='studentName',name='custom-'+key;
+  let control;
+  if(choices[key]){
+   const options=choices[key],known=options.some(pair=>pair.includes(value));
+   control='<select name="'+name+'"><option value="">'+t('اختر الحالة','Choisir')+'</option>'+
+    (value&&!known?'<option selected value="'+esc(value)+'">'+esc(value)+'</option>':'')+
+    options.map(([ar,fr])=>'<option value="'+ar+'"'+([ar,fr].includes(value)?' selected':'')+'>'+t(ar,fr)+'</option>').join('')+'</select>';
+  }else if(longFields.has(key)){
+   control='<textarea name="'+name+'" rows="3" maxlength="1000">'+esc(value)+'</textarea>';
+  }else{
+   let type=key==='birthDate'?'date':/Time$/.test(key)?'time':key==='quantity'?'number':'text';
+   // Keep legacy free-text dates/times intact when editing an older record.
+   if(value&&((type==='date'&&!/^\d{4}-\d{2}-\d{2}$/.test(value))||(type==='time'&&!/^\d{2}:\d{2}(:\d{2})?$/.test(value))||(type==='number'&&!/^\d+$/.test(value))))type='text';
+   control='<input name="'+name+'" type="'+type+'" '+(required?'required ':'')+(type==='number'?'min="0" step="1" ':'')+'maxlength="180" value="'+esc(value)+'">';
+  }
+  return '<label>'+t(ar,fr)+(required?' *':'')+control+'</label>';
+ }).join('');
 }
 function printDirectorRecord(record){
  const category=labels.find(x=>x[0]===record.category),rows=[...Object.entries(record.details||{}).filter(([key])=>key!=='studentRef').map(([key,value])=>{
@@ -217,7 +236,7 @@ async function members(){
 }
 async function openRegister(){
  const category=currentCategory,row=labels.find(r=>r[0]===category);
- frame(t(row[1],row[2]),'<p class="director-register-intro">'+t('حفظ قيود المؤسسة وتنظيمها مع إمكانية التعديل والطباعة.','Enregistrez et organisez les documents, avec modification et impression.')+'</p><div class="director-tools director-register-tools"><button type="button" class="director-primary" id="directorNewEntry">'+directorIcon('plus',17)+t('إضافة قيد','Nouvelle entrée')+'</button><button type="button" id="directorSyncEntries">'+directorIcon('link',16)+t('مزامنة القيود','Synchroniser')+'</button></div><p class="director-sync-hint">'+t('ترسل المزامنة القيود المحفوظة على هذا الجهاز إلى حساب مؤسستك، ثم تُحدّث القائمة من الخادم.','La synchronisation envoie les entrées locales à votre établissement, puis actualise la liste depuis le serveur.')+'</p><p id="directorSyncStatus" role="status"></p><div id="directorRecords" aria-live="polite">'+t('جاري تحميل السجلات...','Chargement...')+'</div>');
+ frame(t(row[1],row[2]),'<p class="director-register-intro">'+t('حفظ قيود المؤسسة وتنظيمها مع إمكانية التعديل والطباعة.','Enregistrez et organisez les documents, avec modification et impression.')+'</p><div class="director-tools director-register-tools"><button type="button" class="director-primary" id="directorNewEntry">'+directorIcon('plus',17)+t('إضافة قيد','Nouvelle entrée')+'</button><button type="button" id="directorSyncEntries">'+directorIcon('link',16)+t('مزامنة القيود','Synchroniser')+'</button></div><details class="director-sync-help"><summary>'+t('كيف تعمل المزامنة؟','Comment synchroniser ?')+'</summary><p class="director-sync-hint">'+t('ترسل المزامنة القيود المحفوظة على هذا الجهاز إلى حساب مؤسستك، ثم تُحدّث القائمة من الخادم.','La synchronisation envoie les entrées locales à votre établissement, puis actualise la liste depuis le serveur.')+'</p></details><p id="directorSyncStatus" role="status"></p><div id="directorRecords" aria-live="polite">'+t('جاري تحميل السجلات...','Chargement...')+'</div>');
  $('#directorNewEntry').onclick=()=>editEntry();
  $('#directorSyncEntries').onclick=async()=>{await flushPending();if($('#directorRecords'))await openRegister()};
  try{
@@ -234,6 +253,16 @@ async function openRegister(){
   const pendingHtml=entries.map(item=>'<article class="director-record director-pending"><div><b>'+esc(item.payload.subject)+'</b><small>'+t('محفوظ على الجهاز — بانتظار المزامنة','Enregistré sur cet appareil — en attente de synchronisation')+'</small></div></article>').join('');
   const savedHtml=records.map(x=>'<article class="director-record"><div><b>'+esc(x.subject)+'</b><small>'+esc(String(x.record_date).slice(0,10))+' · '+esc(x.reference||'—')+'</small></div><button data-director-edit="'+esc(x.id)+'" type="button">'+t('تعديل','Modifier')+'</button><button data-director-print="'+esc(x.id)+'" type="button">'+t('طباعة / PDF','Imprimer / PDF')+'</button></article>').join('');
   $('#directorRecords').innerHTML=pendingHtml+savedHtml||'<div class="director-empty director-empty-register"><span class="director-empty-symbol" aria-hidden="true">'+directorIcon('bookmark',27)+'</span><h2>'+t('لا توجد قيود بعد','Aucune entrée pour le moment')+'</h2><p>'+t('ابدأ بإضافة أول قيد، وسيظهر هنا مع خيارات التعديل والطباعة.','Ajoutez une première entrée : elle apparaîtra ici avec les options de modification et d’impression.')+'</p><button id="directorEmptyAdd" class="director-primary" type="button">'+directorIcon('plus',18)+t('إضافة أول قيد','Ajouter la première entrée')+'</button></div>';
+  if(records.length||entries.length){
+   const container=$('#directorRecords'),search=document.createElement('label');search.className='director-search';
+   search.innerHTML='<span>'+t('البحث في السجلات المحمّلة','Rechercher dans les entrées chargées')+'</span><input type="search" id="directorRecordSearch" placeholder="'+t('الاسم أو المرجع أو بيانات السجل','Nom, référence ou contenu')+'"><small id="directorSearchCount" role="status"></small>';
+   container.before(search);
+   const cards=$$('.director-record',container),data=[...entries.map(x=>x.payload),...records];
+   const update=()=>{const query=$('#directorRecordSearch').value.trim().toLocaleLowerCase();let count=0;
+    cards.forEach((card,i)=>{const row=data[i];const hay=[row.subject,row.reference,...Object.values(row.details||{}).filter(v=>typeof v==='string')].join(' ').toLocaleLowerCase();card.hidden=!!query&&!hay.includes(query);if(!card.hidden)count++});
+    $('#directorSearchCount').textContent=t('السجلات الظاهرة: ','Entrées affichées : ')+count+' / '+cards.length;
+   };$('#directorRecordSearch').oninput=update;update();
+  }
   $('#directorEmptyAdd')?.addEventListener('click',()=>editEntry());
   $$('[data-director-edit]').forEach(b=>b.onclick=()=>editEntry(records.find(x=>x.id===b.dataset.directorEdit)));
   $$('[data-director-print]').forEach(b=>b.onclick=()=>{const item=records.find(x=>x.id===b.dataset.directorPrint);if(item)printDirectorRecord(item)});
@@ -250,8 +279,8 @@ function editEntry(row=null){
   (isEnrolment?'<fieldset class="director-form-section"><legend>'+t('بيانات التلميذ','Informations de l’élève')+'</legend>'+rosterField+registerCustomFields(category,details)+'</fieldset><fieldset class="director-form-section"><legend>'+t('بيانات التسجيل','Inscription')+'</legend>'+registrationFields+'</fieldset>':registrationFields+rosterField+formField('subject',t('الموضوع / الوصف *','Objet / description *'),row?.subject||'')+registerCustomFields(category,details))+
   '<label>'+t('ملاحظات','Observations')+'<textarea name="notes" maxlength="4000" rows="3">'+esc(details.notes||'')+'</textarea></label>'+
   '<p class="director-intro">'+t('السجلات الإدارية قابلة للتعديل والطباعة. تُراجع نماذج المؤسسة الرسمية قبل اعتمادها.','Registres modifiables et imprimables, à adapter aux modèles officiels de votre établissement.')+'</p>'+
-  '<button type="submit" class="director-primary">'+t('حفظ','Enregistrer')+'</button></form>';
- frame(isEnrolment?(row?t('تعديل تسجيل التلميذ','Modifier l’inscription'):t('تسجيل تلميذ جديد','Inscrire un élève')):title+' · '+t(labels.find(x=>x[0]===category)[1],labels.find(x=>x[0]===category)[2]),body,{backAction:()=>{const form=$('#directorRecordForm');if(form?.dataset.dirty==='true'&&!confirm(t('لديك تعديلات لم تُحفظ. هل تريد الرجوع؟','Vos modifications ne sont pas enregistrées. Revenir ?')))return;void openRegister()}});
+  '<div class="director-save-bar"><button type="submit" class="director-primary">'+t('حفظ السجل','Enregistrer le registre')+'</button></div></form>';
+ frame(isEnrolment?(row?t('تعديل تسجيل التلميذ','Modifier l’inscription'):t('تسجيل تلميذ جديد','Inscrire un élève')):(row?t('تعديل: ','Modifier : '):t('إضافة: ','Ajouter : '))+t(labels.find(x=>x[0]===category)[1],labels.find(x=>x[0]===category)[2]),body,{backAction:()=>{const form=$('#directorRecordForm');if(form?.dataset.dirty==='true'&&!confirm(t('لديك تعديلات لم تُحفظ. هل تريد الرجوع؟','Vos modifications ne sont pas enregistrées. Revenir ?')))return;void openRegister()}});
  $('#directorRecordForm')?.addEventListener('input',()=>{$('#directorRecordForm').dataset.dirty='true'});
  let selectedStudentRef=row?.details?.studentRef||null;
  if(wantsPupil){
@@ -280,6 +309,7 @@ function editEntry(row=null){
   const fields=Object.fromEntries(new FormData(e.currentTarget)),recordDetails={notes:fields.notes};
   for(const field of registerFields[category]||[])recordDetails[field[0]]=fields['custom-'+field[0]]||'';
   if(selectedStudentRef)recordDetails.studentRef=selectedStudentRef;
+  if(JSON.stringify(recordDetails).length>8000){message(t('النص طويل جدًا؛ اختصر الملاحظات أو تفاصيل المحضر قبل الحفظ.','Texte trop long : raccourcissez les observations ou le compte rendu.'),true);button.disabled=false;return}
   const payload={category,subject:isEnrolment?(row?.subject||recordDetails.studentName.trim()):fields.subject,reference:fields.reference,recordDate:fields.recordDate,details:recordDetails};
   if(row)payload.version=row.version;else payload.clientMutationId=mutationId;
   try{
