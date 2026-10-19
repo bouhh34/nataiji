@@ -85,6 +85,26 @@ try{
  const orphanStaff=await owner.req('/api/owner/staff'),orphanOverview=await owner.req('/api/owner/overview');
  assert.ok(orphanStaff.teachers.some(u=>u.id===phoneTeacherUser.id),'Owner must find canonical phone accounts even if an alias is missing');
  assert.ok(orphanOverview.accounts.some(u=>u.id===phoneTeacherUser.id),'Owner overview must not depend solely on email/phone index');
+ // Director profiles, including phone-only registrations, have their own owner-control section.
+ const directorClient=client();
+ const directorUser=(await directorClient.req('/api/auth/register',{method:'POST',expected:201,body:{name:'Phone director',identifier:'44112235',password}})).user;
+ await directorClient.req('/api/account/profile-type',{method:'POST',body:{type:'director'}});
+ const directorStaff=await owner.req('/api/owner/staff'),directorOverview=await owner.req('/api/owner/overview');
+ assert.equal(directorStaff.directors.length,1,'Director accounts must have a separate list');
+ assert.equal(directorStaff.directors[0].id,directorUser.id);
+ assert.equal(directorStaff.directors[0].phone,'44112235');
+ assert.equal(directorStaff.directors[0].role,'director');
+ assert.equal(directorStaff.directors[0].schoolCount,1);
+ assert.ok(!directorStaff.teachers.some(u=>u.id===directorUser.id),'Director must not appear as a teacher');
+ assert.equal(directorOverview.stats.directors,1);
+ assert.equal(directorOverview.accounts.find(u=>u.id===directorUser.id).role,'director');
+ assert.equal(directorOverview.stats.teachers,2,'Director accounts must not inflate teacher count');
+ assert.equal((await owner.req('/api/owner/accounts/'+directorUser.id+'/deletion-preview')).account.phone,'44112235');
+ assert.equal((await owner.req('/api/owner/accounts/'+directorUser.id+'/action',{method:'POST',body:{action:'reset_code'}})).expiresInMinutes,30);
+ await action(directorUser.id,'suspend');
+ assert.equal((await owner.req('/api/owner/staff')).directors[0].suspended,true);
+ await action(directorUser.id,'activate');
+ assert.equal((await owner.req('/api/owner/staff')).directors[0].suspended,false);
  await owner.req('/api/owner/accounts/'+ou.id+'/action',{method:'POST',expected:403,body:{action:'suspend'}});
  console.log('Teacher account management acceptance passed: unique accounts, legacy and independent teachers, scopes, recovery, suspension, reactivation, deletion confirmation and school isolation');
 }finally{server.kill('SIGTERM');await db.end()}
