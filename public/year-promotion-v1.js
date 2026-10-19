@@ -21,27 +21,30 @@ async function open(archive){
  if(typeof currentUser==='undefined'||currentUser?.role!=='admin'||!archive?.id)return;
  if(navigator.onLine===false||window.__nataijiOfflineActive){alert(tr('يتطلب إعداد السنة الجديدة الاتصال بالإنترنت.','Une connexion Internet est requise.'));return}
  const p=modal(tr('إعداد تلاميذ السنة القادمة','Préparer les élèves de l’année suivante'),`
- <p>${tr('هذه مرحلة إعداد منفصلة؛ لا تغيّر سنة العمل ولا التلاميذ أو الدرجات الحالية. ستكون درجات السنة الجديدة فارغة.','Cette préparation est isolée : ni l’année en cours, ni les élèves ou leurs notes ne sont modifiés. Les notes futures seront vides.')}</p>
- <p>${tr('يجب أن يكون الأرشيف قد أُنشئ بعد مزامنة جميع درجات السنة الأصلية.','L’archive doit être créée après la synchronisation de toutes les notes de l’année source.')}</p>
- <div id="promotionYearHeader" dir="ltr" style="text-align:center;font-weight:750;margin:10px 0"></div>
+ <p class="year-helper">${tr('هذه مرحلة إعداد منفصلة؛ لا تغيّر سنة العمل ولا التلاميذ أو الدرجات الحالية. ستكون درجات السنة الجديدة فارغة.','Cette préparation est isolée : ni l’année en cours, ni les élèves ou leurs notes ne sont modifiés. Les notes futures seront vides.')}</p>
+ <p class="year-helper year-caution">${tr('يجب أن يكون الأرشيف قد أُنشئ بعد مزامنة جميع درجات السنة الأصلية.','L’archive doit être créée après la synchronisation de toutes les notes de l’année source.')}</p>
+ <div id="promotionYearHeader" class="promotion-year-banner" dir="ltr"></div>
  <div id="promotionLoading" role="status">${tr('جارٍ تحميل بيانات الأرشيف…','Chargement de l’archive…')}</div>
  <section id="promotionForm" hidden>
-  <label>${tr('القسم الأصلي','Classe source')}<select id="promotionSource"></select></label>
-  <label>${tr('رمز القسم في السنة الجديدة (مثلاً 2AF)','Code de la classe future (ex. 2AF)')}<input id="promotionTarget" type="text" maxlength="20" dir="ltr" style="text-transform:uppercase" placeholder="2AF" autocomplete="off"></label>
-  <label style="display:flex;align-items:center;gap:9px;margin-top:10px"><input type="checkbox" id="promotionAll" checked> ${tr('اختيار جميع التلاميذ','Sélectionner tous les élèves')}</label>
-  <div class="roster-check-list" id="promotionPupils" style="max-height:32vh;overflow:auto"></div>
+  <div class="promotion-form-fields"><label>${tr('القسم الأصلي','Classe source')}<select id="promotionSource"></select></label>
+  <label>${tr('رمز القسم في السنة الجديدة (مثلاً 2AF)','Code de la classe future (ex. 2AF)')}<input id="promotionTarget" type="text" maxlength="20" dir="ltr" style="text-transform:uppercase" placeholder="2AF" autocomplete="off"></label></div>
+  <div class="promotion-selection-heading"><strong>${tr('التلاميذ المراد ترحيلهم','Élèves à préparer')}</strong><span id="promotionSelectionCount" class="promotion-selected-count"></span></div>
+  <label class="promotion-toggle-row"><input type="checkbox" id="promotionAll" checked><span>${tr('اختيار جميع التلاميذ','Sélectionner tous les élèves')}</span></label>
+  <div class="roster-check-list" id="promotionPupils"></div>
   <p id="promotionStatus" role="status" aria-live="polite"></p>
-  <div style="display:flex;flex-wrap:wrap;gap:8px;margin:12px 0">
+  <div class="promotion-actions">
    <button type="button" id="promotionPreview">${tr('معاينة الترحيل','Prévisualiser')}</button>
    <button type="button" id="promotionStage" class="primary" disabled>${tr('تأكيد إعداد القائمة','Confirmer la préparation')}</button>
   </div>
-  <h3 style="font-size:16px">${tr('الأقسام التي أُعدت للسنة الجديدة','Classes déjà préparées')}</h3>
+  <h3 class="year-section-title">${tr('الأقسام التي أُعدت للسنة الجديدة','Classes déjà préparées')}</h3>
   <div id="promotionPrepared"></div>
  </section>`);
+ p.classList.add('nataiji-year-dialog','nataiji-promotion-dialog');
  const status=q('#promotionStatus',p),form=q('#promotionForm',p),sourceEl=q('#promotionSource',p),target=q('#promotionTarget',p),
   selection=q('#promotionPupils',p),checkAll=q('#promotionAll',p),previewBtn=q('#promotionPreview',p),stageBtn=q('#promotionStage',p);
  let snapshot=null,sourceClasses=[],pupils=[],lastPreview=null,working=false;
- const invalid=()=>{lastPreview=null;stageBtn.disabled=true;status.textContent=''};
+ const updateSelectedCount=()=>{const count=currentSelections().length;const label=q('#promotionSelectionCount',p);if(label)label.textContent=tr(count+' تلاميذ محددون',count+' élève(s) sélectionné(s)');};
+ const invalid=()=>{lastPreview=null;stageBtn.disabled=true;status.textContent='';updateSelectedCount()};
  function currentSelections(){
   return [...selection.querySelectorAll('[data-promotion-key]')].filter(x=>x.checked).map(x=>x.dataset.promotionKey)
  }
@@ -49,8 +52,8 @@ async function open(archive){
   invalid();
   const classId=sourceEl.value;
   const rows=pupils.filter(x=>String(x.class_id)===classId);
-  selection.innerHTML=rows.length?rows.map(row=>`<label style="display:flex;gap:9px;align-items:center;padding:7px 0"><input type="checkbox" data-promotion-key="${esc(row.nns)}" checked><span>${esc(row.data?.[1]||'—')}</span></label>`).join(''):`<p>${tr('لا يوجد تلاميذ مؤرشفون لهذا القسم.','Aucun élève archivé pour cette classe.')}</p>`;
-  checkAll.checked=true;status.textContent=tr('تم العثور على '+rows.length+' تلميذًا في القسم.','Élèves trouvés : '+rows.length);
+  selection.innerHTML=rows.length?rows.map(row=>`<label class="promotion-pupil-row"><input type="checkbox" data-promotion-key="${esc(row.nns)}" checked><span>${esc(row.data?.[1]||'—')}</span></label>`).join(''):`<p>${tr('لا يوجد تلاميذ مؤرشفون لهذا القسم.','Aucun élève archivé pour cette classe.')}</p>`;
+  checkAll.checked=rows.length>0;updateSelectedCount();status.textContent=tr('تم العثور على '+rows.length+' تلميذًا في القسم.','Élèves trouvés : '+rows.length);
  }
  const displayPrepared=async()=>{
   const data=await api('/api/year-promotion');
