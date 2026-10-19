@@ -83,3 +83,58 @@ html.nataiji-professor-mode #directorReturnButton{
  .director-app .director-register-tools button{font-size:12px;padding:9px 11px}
 }
 @media print{.director-app .director-subpage-nav,.director-app .director-register-tools,.director-app .director-empty-register button{display:none!important}}
+
+/* Compact director navigation and raised icons, preserving the classic palette. */
+.director-app .director-top{padding:12px 18px;gap:12px}
+.director-app .director-brand{min-width:0;gap:8px}
+.director-app .director-brand img{width:36px;height:36px;object-fit:contain}
+.director-app .director-brand b{font-size:15px;white-space:nowrap}
+.director-app .director-brand small{max-width:160px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.director-app .director-actions{gap:7px}
+.director-account{position:relative}
+.director-account summary{cursor:pointer;min-height:44px;display:flex;align-items:center;padding:9px 12px;border:1px solid #c9ded9;border-radius:12px;color:#086d65;font-size:13px;font-weight:700}
+.director-account summary:focus-visible{outline:2px solid #087866;outline-offset:2px}
+.director-account-menu{position:absolute;inset-inline-end:0;top:calc(100% + 6px);min-width:140px;background:#fff;padding:8px;border:1px solid #dfe9e6;border-radius:14px;box-shadow:0 8px 25px #173a4220;z-index:20}
+.director-account-menu button{width:100%}
+.director-app .director-card{min-height:116px;padding:14px;gap:9px}
+.director-app .director-card-icon{background:linear-gradient(145deg,#f3fff9,#d9f0e7);border:1px solid #cce7dc;box-shadow:0 4px 0 #c5dfd5,0 7px 12px #086d651c,inset 0 1px 0 #fff;margin-bottom:3px}
+.director-app .director-card-icon .director-svg{filter:drop-shadow(0 1px 0 #fff)}
+.director-app .director-card b{line-height:1.5;overflow-wrap:anywhere}
+.director-form-section{border:0;border-top:1px solid #dfe9e6;padding:14px 0 0;margin:0;min-width:0;display:grid;gap:14px}
+.director-form-section legend{padding-inline-end:12px;color:#087866;font-size:16px;font-weight:750}
+.director-form-hint,.director-sync-hint,#directorSyncStatus{font-size:12px;line-height:1.7;color:#526e72;margin:0 0 12px}
+.director-app .director-form{gap:14px}
+@media(max-width:600px){
+ .director-app .director-top,.director-app.director-subpage .director-top{display:flex;flex-wrap:wrap;align-items:center;padding:12px;gap:10px}
+ .director-app .director-brand b,.director-app.director-subpage .director-brand b{font-size:14px}
+ .director-app .director-actions,.director-app.director-subpage .director-actions{width:100%;display:flex;flex-wrap:wrap;gap:6px}
+ .director-app .director-actions button,.director-app.director-subpage .director-actions button,.director-account summary{min-height:44px;font-size:11px;padding:8px 10px}
+ .director-app #directorTeacherArea{flex:1}
+ .director-app .director-card{min-height:114px;padding:12px;gap:8px}
+ .director-app .director-wrap{padding-top:18px}
+ .director-app .director-form{padding:17px}
+}
+@media print{.director-app .director-card-icon{box-shadow:none;filter:none}.director-sync-hint,#directorSyncStatus{display:none}}
+
+/* Distinct register icon colors; card surfaces keep the established theme. */
+.director-app .director-card-icon{
+ color:var(--icon-ink,#087462);
+ background:linear-gradient(145deg,#fff,var(--icon-tint,#d9f0e7));
+ border-color:var(--icon-edge,#cce7dc);
+ box-shadow:0 4px 0 var(--icon-edge,#c5dfd5),0 7px 12px var(--icon-shadow,#086d651c),inset 0 1px 0 #fff;
+}
+.director-app [data-director-register="enrolment"]{--icon-ink:#087462;--icon-tint:#daf3e9;--icon-edge:#b8dfd0;--icon-shadow:#08746222}
+.director-app [data-director-register="correspondence"]{--icon-ink:#1d4ed8;--icon-tint:#e0eaff;--icon-edge:#bdcefa;--icon-shadow:#1d4ed822}
+.director-app [data-director-register="visits"]{--icon-ink:#b45309;--icon-tint:#fff0d0;--icon-edge:#efd59e;--icon-shadow:#b4530922}
+.director-app [data-director-register="visitor-log"]{--icon-ink:#7c3aed;--icon-tint:#eee4ff;--icon-edge:#d6c0f5;--icon-shadow:#7c3aed22}
+.director-app [data-director-register="daily-attendance"]{--icon-ink:#0e7490;--icon-tint:#dbf5fc;--icon-edge:#afe0eb;--icon-shadow:#0e749022}
+.director-app [data-director-register="supervision"]{--icon-ink:#4338ca;--icon-tint:#e7e7ff;--icon-edge:#c9c6f4;--icon-shadow:#4338ca22}
+.director-app [data-director-register="student-absence"]{--icon-ink:#be123c;--icon-tint:#ffe2e9;--icon-edge:#f3bdca;--icon-shadow:#be123c22}
+.director-app [data-director-register="staff-meetings"]{--icon-ink:#a21caf;--icon-tint:#f9e1fb;--icon-edge:#e9bcec;--icon-shadow:#a21caf22}
+.director-app [data-director-register="inventory"]{--icon-ink:#9a3412;--icon-tint:#ffeadc;--icon-edge:#efc8ad;--icon-shadow:#9a341222}
+.director-app [data-director-register="referrals"]{--icon-ink:#0369a1;--icon-tint:#dff2ff;--icon-edge:#b4d9f0;--icon-shadow:#0369a122}
+.director-app [data-director-register="notice-board"]{--icon-ink:#be185d;--icon-tint:#fce3f0;--icon-edge:#efbdd6;--icon-shadow:#be185d22}
+.director-app [data-director-register="model-lessons"]{--icon-ink:#4d7c0f;--icon-tint:#edf6d9;--icon-edge:#d1e5ab;--icon-shadow:#4d7c0f22}
+.director-app [data-director-register="teacher-health"]{--icon-ink:#475569;--icon-tint:#e8edf5;--icon-edge:#cbd5e1;--icon-shadow:#47556922}
+.director-app [data-director-register="student-health"]{--icon-ink:#8b5e3c;--icon-tint:#f5eade;--icon-edge:#e3cdb6;--icon-shadow:#8b5e3c22}
+@media print{.director-app .director-card-icon{box-shadow:none}}

@@ -12,13 +12,13 @@ const labels=[
  ['daily-attendance','الحضور اليومي','Présences quotidiennes','check'],
  ['supervision','الرقابة','Suivi et inspection','clipboard'],
  ['student-absence','غياب التلاميذ','Absences des élèves','user-x'],
- ['staff-meetings','اجتماع المعلمين','Réunions pédagogiques','users'],
+ ['staff-meetings','محاضر اجتماعات المعلمين','Réunions pédagogiques','users'],
  ['inventory','الأثاث','Inventaire du mobilier','archive'],
  ['referrals','الإحالات','Orientations et renvois','file-text'],
  ['notice-board','المعلقات','Affichages','bell'],
  ['model-lessons','الدروس النموذجية','Leçons modèles','book-open'],
- ['teacher-health','الصحي للمعلمين','Santé du personnel','heart'],
- ['student-health','الصحي للتلاميذ','Santé des élèves','heart']
+ ['teacher-health','السجل الصحي للمعلمين','Santé du personnel','heart'],
+ ['student-health','السجل الصحي للتلاميذ','Santé des élèves','heart']
 ];
 let user=null,institution=null,currentCategory='enrolment',overview=null,records=[];
 
@@ -73,7 +73,7 @@ const registerFields={
  'model-lessons':[['teacherName','المعلم','Enseignant'],['className','القسم','Classe'],['subjectName','المادة','Matière'],['topic','الدرس','Leçon']]
 };
 function registerCustomFields(category,details){
- return (registerFields[category]||[]).map(([key,ar,fr])=>'<label>'+t(ar,fr)+'<input name="custom-'+key+'" maxlength="180" value="'+esc(details[key]||'')+'"></label>').join('');
+ return (registerFields[category]||[]).map(([key,ar,fr])=>'<label>'+t(ar,fr)+(category==='enrolment'&&key==='studentName'?' *':'')+'<input '+(category==='enrolment'&&key==='studentName'?'required ':'')+'name="custom-'+key+'" maxlength="180" value="'+esc(details[key]||'')+'"></label>').join('');
 }
 function printDirectorRecord(record){
  const category=labels.find(x=>x[0]===record.category),rows=[...Object.entries(record.details||{}).filter(([key])=>key!=='studentRef').map(([key,value])=>{
@@ -124,7 +124,7 @@ function show(){document.documentElement.classList.add('nataiji-director-mode');
 function hide(){document.documentElement.classList.remove('nataiji-director-mode');$('#directorReturnButton')?.remove();$('#nataijiDirectorRoot')?.remove()}
 function directorTeachingAreaLabel(){
  const level=institution?.level;
- return level==='middle'||level==='secondary'?t('مساحة الأستاذ','Espace professeur'):level==='primary'?t('مساحة المعلم','Espace enseignant'):t('مساحة التدريس','Espace pédagogique')
+ return level==='middle'||level==='secondary'?t('الانتقال إلى مساحة الأستاذ','Passer à l’espace professeur'):level==='primary'?t('الانتقال إلى مساحة المعلم','Passer à l’espace enseignant'):t('الانتقال إلى مساحة التدريس','Passer à l’espace pédagogique')
 }
 function openTeacherArea(){
  if(!institution?.id){message(t('سجّل المؤسسة أولًا لتحديد مساحة التدريس المناسبة.','Enregistrez d’abord votre établissement.'),true);return}
@@ -155,7 +155,7 @@ function frame(title,contents,options={}){
  const isHome=options.home===true,el=show();
  el.classList.toggle('director-subpage',!isHome);
  const backButton=isHome?'':'<div class="director-subpage-nav"><button id="directorBack" class="director-back" type="button">'+(lang()?'<svg viewBox="0 0 24 24" width="19" height="19" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m15 18-6-6 6-6"/></svg>':'<svg viewBox="0 0 24 24" width="19" height="19" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m9 18 6-6-6-6"/></svg>')+'<span>'+t('رجوع','Retour')+'</span></button><span class="director-page-breadcrumb">'+t('الإدارة المدرسية','Administration scolaire')+'</span></div>';
- el.innerHTML='<div class="director-shell"><header class="director-top"><div class="director-brand"><img src="/nataiji-brand-mark.png" alt="" width="46" height="46"><div><b>'+t('نتائجي | الإدارة','Nataiji | Direction')+'</b><small>'+esc(user?.name||'')+'</small></div></div><div class="director-actions"><button id="directorHome" type="button">'+t('الرئيسية','Accueil')+'</button><button id="directorTeacherArea" type="button">'+directorTeachingAreaLabel()+'</button><button id="directorLogout" type="button">'+t('الخروج','Quitter')+'</button></div></header><div class="director-wrap">'+backButton+'<h1>'+esc(title)+'</h1><p id="directorMessage" role="status"></p>'+contents+'</div></div>';
+ el.innerHTML='<div class="director-shell"><header class="director-top"><div class="director-brand"><img src="/nataiji-brand-mark.png" alt="" width="46" height="46"><div><b>'+t('نتائجي | الإدارة','Nataiji | Direction')+'</b><small>'+esc(user?.name||'')+'</small></div></div><div class="director-actions"><button id="directorHome" type="button">'+t('الرئيسية','Accueil')+'</button><button id="directorTeacherArea" type="button">'+directorTeachingAreaLabel()+'</button><details class="director-account"><summary>'+t('الحساب','Compte')+'</summary><div class="director-account-menu"><button id="directorLogout" type="button">'+t('الخروج','Quitter')+'</button></div></details></div></header><div class="director-wrap">'+backButton+'<h1>'+esc(title)+'</h1><p id="directorMessage" role="status"></p>'+contents+'</div></div>';
  $('#directorHome',el).onclick=()=>{void dashboard()};
  $('#directorTeacherArea',el).onclick=openTeacherArea;
  $('#directorLogout',el).onclick=logout;
@@ -217,16 +217,16 @@ async function members(){
 }
 async function openRegister(){
  const category=currentCategory,row=labels.find(r=>r[0]===category);
- frame(t(row[1],row[2]),'<p class="director-register-intro">'+t('حفظ قيود المؤسسة وتنظيمها مع إمكانية التعديل والطباعة.','Enregistrez et organisez les documents, avec modification et impression.')+'</p><div class="director-tools director-register-tools"><button type="button" class="director-primary" id="directorNewEntry">'+directorIcon('plus',17)+t('إضافة قيد','Nouvelle entrée')+'</button><button type="button" id="directorSyncEntries">'+directorIcon('link',16)+t('مزامنة القيود','Synchroniser')+'</button></div><div id="directorRecords" aria-live="polite">'+t('جاري تحميل السجلات...','Chargement...')+'</div>');
+ frame(t(row[1],row[2]),'<p class="director-register-intro">'+t('حفظ قيود المؤسسة وتنظيمها مع إمكانية التعديل والطباعة.','Enregistrez et organisez les documents, avec modification et impression.')+'</p><div class="director-tools director-register-tools"><button type="button" class="director-primary" id="directorNewEntry">'+directorIcon('plus',17)+t('إضافة قيد','Nouvelle entrée')+'</button><button type="button" id="directorSyncEntries">'+directorIcon('link',16)+t('مزامنة القيود','Synchroniser')+'</button></div><p class="director-sync-hint">'+t('ترسل المزامنة القيود المحفوظة على هذا الجهاز إلى حساب مؤسستك، ثم تُحدّث القائمة من الخادم.','La synchronisation envoie les entrées locales à votre établissement, puis actualise la liste depuis le serveur.')+'</p><p id="directorSyncStatus" role="status"></p><div id="directorRecords" aria-live="polite">'+t('جاري تحميل السجلات...','Chargement...')+'</div>');
  $('#directorNewEntry').onclick=()=>editEntry();
  $('#directorSyncEntries').onclick=async()=>{await flushPending();if($('#directorRecords'))await openRegister()};
  try{
   try{
    const result=await network('/api/director/registers?category='+encodeURIComponent(category));records=result.records||[];
-   storeCachedRecords(category,records)
+   storeCachedRecords(category,records);const status=$('#directorSyncStatus');if(status)status.textContent=t('آخر تحديث من الخادم: ','Dernière actualisation : ')+new Date().toLocaleTimeString(lang()?'fr':'ar',{hour:'2-digit',minute:'2-digit'})
   }catch(error){
    const cached=readCachedRecords(category);
-   records=cached||[];
+   records=cached||[];const status=$('#directorSyncStatus');if(status)status.textContent=t('تعذر الاتصال بالخادم؛ لم تُؤكّد المزامنة.','Serveur indisponible ; synchronisation non confirmée.');
    if(!cached)message(t('الاتصال غير متاح؛ القيود الجديدة محفوظة على هذا الجهاز إن وجدت.','Connexion indisponible ; les nouvelles entrées restent sur cet appareil.'),true)
   }
   if(currentCategory!==category||!$('#directorRecords'))return;
@@ -241,19 +241,17 @@ async function openRegister(){
 }
 function editEntry(row=null){
  if(row&&(window.__nataijiOfflineActive||navigator.onLine===false)){message(t('تعديل قيد موجود يتطلب الاتصال لمنع تضارب النسخ.','La modification nécessite une connexion pour éviter les conflits.'),true);return}
- const category=currentCategory,title=row?t('تعديل القيد','Modifier une entrée'):t('إضافة قيد','Ajouter une entrée'),details=row?.details||{};
+ const category=currentCategory,isEnrolment=category==='enrolment',title=row?t('تعديل القيد','Modifier une entrée'):t('إضافة قيد','Ajouter une entrée'),details=row?.details||{};
  const wantsPupil=['enrolment','student-absence','referrals'].includes(category);
  const rosterField=wantsPupil?'<label id="directorRosterLabel">'+t('اختيار من تلاميذ المؤسسة (اختياري)','Choisir un élève déjà inscrit (facultatif)')+'<select id="directorRosterPicker"><option value="">'+t('تحميل قائمة التلاميذ...','Chargement des élèves...')+'</option></select></label>':'';
- const body='<form class="director-form" id="directorRecordForm">'+
-  '<label>'+t('التاريخ','Date')+'<input name="recordDate" type="date" required value="'+esc(String(row?.record_date||new Date().toISOString()).slice(0,10))+'"></label>'+
-  '<label>'+t('رقم القيد / المرجع','Référence')+'<input name="reference" maxlength="100" value="'+esc(row?.reference||'')+'"></label>'+
-  rosterField+
-  formField('subject',t('الموضوع / الوصف','Objet / description'),row?.subject||'')+
-  registerCustomFields(category,details)+
-  '<label>'+t('ملاحظات','Observations')+'<textarea name="notes" maxlength="4000" rows="5">'+esc(details.notes||'')+'</textarea></label>'+
+ const registrationFields='<label>'+t(isEnrolment?'تاريخ التسجيل *':'التاريخ *',isEnrolment?'Date d’inscription *':'Date *')+'<input name="recordDate" type="date" required value="'+esc(String(row?.record_date||new Date().toISOString()).slice(0,10))+'"></label>'+
+  '<label>'+t(isEnrolment?'مرجع الوثيقة (اختياري)':'رقم القيد / المرجع',isEnrolment?'Référence du document (facultatif)':'Référence')+'<input name="reference" maxlength="100" value="'+esc(row?.reference||'')+'"></label>';
+ const body='<form class="director-form" id="directorRecordForm"><p class="director-form-hint">'+t('الحقول المميزة بـ * مطلوبة.','Les champs marqués * sont obligatoires.')+'</p>'+
+  (isEnrolment?'<fieldset class="director-form-section"><legend>'+t('بيانات التلميذ','Informations de l’élève')+'</legend>'+rosterField+registerCustomFields(category,details)+'</fieldset><fieldset class="director-form-section"><legend>'+t('بيانات التسجيل','Inscription')+'</legend>'+registrationFields+'</fieldset>':registrationFields+rosterField+formField('subject',t('الموضوع / الوصف *','Objet / description *'),row?.subject||'')+registerCustomFields(category,details))+
+  '<label>'+t('ملاحظات','Observations')+'<textarea name="notes" maxlength="4000" rows="3">'+esc(details.notes||'')+'</textarea></label>'+
   '<p class="director-intro">'+t('السجلات الإدارية قابلة للتعديل والطباعة. تُراجع نماذج المؤسسة الرسمية قبل اعتمادها.','Registres modifiables et imprimables, à adapter aux modèles officiels de votre établissement.')+'</p>'+
   '<button type="submit" class="director-primary">'+t('حفظ','Enregistrer')+'</button></form>';
- frame(title+' · '+t(labels.find(x=>x[0]===category)[1],labels.find(x=>x[0]===category)[2]),body,{backAction:()=>{const form=$('#directorRecordForm');if(form?.dataset.dirty==='true'&&!confirm(t('لديك تعديلات لم تُحفظ. هل تريد الرجوع؟','Vos modifications ne sont pas enregistrées. Revenir ?')))return;void openRegister()}});
+ frame(isEnrolment?(row?t('تعديل تسجيل التلميذ','Modifier l’inscription'):t('تسجيل تلميذ جديد','Inscrire un élève')):title+' · '+t(labels.find(x=>x[0]===category)[1],labels.find(x=>x[0]===category)[2]),body,{backAction:()=>{const form=$('#directorRecordForm');if(form?.dataset.dirty==='true'&&!confirm(t('لديك تعديلات لم تُحفظ. هل تريد الرجوع؟','Vos modifications ne sont pas enregistrées. Revenir ?')))return;void openRegister()}});
  $('#directorRecordForm')?.addEventListener('input',()=>{$('#directorRecordForm').dataset.dirty='true'});
  let selectedStudentRef=row?.details?.studentRef||null;
  if(wantsPupil){
@@ -271,7 +269,7 @@ function editEntry(row=null){
      selectedStudentRef=picker.value!==''&&item?{studentKey:item.studentKey,classId:item.classId}:null;
      if(!selectedStudentRef)return;
      const nm=$('[name="custom-studentName"]'),cls=$('[name="custom-className"]');
-     if(nm)nm.value=item.name;if(cls)cls.value=item.className||item.classId
+     if(nm)nm.value=item.name;if(cls)cls.value=item.className||item.classId;$('#directorRecordForm').dataset.dirty='true'
     }
    }catch(error){if(picker?.isConnected){picker.innerHTML='<option value="">'+t('إدخال يدوي — القائمة غير متاحة','Saisie manuelle — liste indisponible')+'</option>';picker.disabled=true}}
   })()
@@ -282,7 +280,7 @@ function editEntry(row=null){
   const fields=Object.fromEntries(new FormData(e.currentTarget)),recordDetails={notes:fields.notes};
   for(const field of registerFields[category]||[])recordDetails[field[0]]=fields['custom-'+field[0]]||'';
   if(selectedStudentRef)recordDetails.studentRef=selectedStudentRef;
-  const payload={category,subject:fields.subject,reference:fields.reference,recordDate:fields.recordDate,details:recordDetails};
+  const payload={category,subject:isEnrolment?(row?.subject||recordDetails.studentName.trim()):fields.subject,reference:fields.reference,recordDate:fields.recordDate,details:recordDetails};
   if(row)payload.version=row.version;else payload.clientMutationId=mutationId;
   try{
    const response=await apiPost(row?'/api/director/registers/'+encodeURIComponent(row.id):'/api/director/registers',payload,row?'PATCH':'POST');
