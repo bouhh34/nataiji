@@ -33,12 +33,13 @@ function saveJson(data,year){
 function openArchive(){
  if(currentUser?.role!=='admin')return;
  const year=String(state?.year||'').trim(),p=modal(tr('أرشيف السنوات الدراسية','Archives des années scolaires'),`
- <p>${tr('احفظ نسخة مستقلة من نتائج السنة الحالية على الخادم ثم نزّلها على جهازك. الأرشفة لا تغيّر السنة، ولا تنقل التلاميذ أو تحذف أي درجة.','Conservez une copie indépendante des résultats scolaires et téléchargez-la. Aucune note, classe ou année active ne sera modifiée.')}</p>
- <p>${tr('مهم: الأرشيف يحتوي فقط على ما وصل إلى الخادم لحظة إنشائه. مسودات المعلمين على أجهزة أخرى قد تكون غير متزامنة.','Important : seules les notes arrivées au serveur sont archivées. D’autres appareils peuvent avoir des brouillons non synchronisés.')}</p>
- <div class="school-year-archive-current"><strong dir="ltr" style="unicode-bidi:isolate">${esc(year||'—')}</strong>
- <button id="schoolYearArchiveCreate" class="primary" type="button">${tr('حفظ أرشيف السنة الحالية','Archiver l’année courante')}</button></div>
+ <p class="year-helper">${tr('احفظ نسخة مستقلة من نتائج السنة الحالية على الخادم ثم نزّلها على جهازك. الأرشفة لا تغيّر السنة، ولا تنقل التلاميذ أو تحذف أي درجة.','Conservez une copie indépendante des résultats scolaires et téléchargez-la. Aucune note, classe ou année active ne sera modifiée.')}</p>
+ <p class="year-helper year-caution">${tr('مهم: الأرشيف يحتوي فقط على ما وصل إلى الخادم لحظة إنشائه. مسودات المعلمين على أجهزة أخرى قد تكون غير متزامنة.','Important : seules les notes arrivées au serveur sont archivées. D’autres appareils peuvent avoir des brouillons non synchronisés.')}</p>
+ <div class="school-year-archive-current"><div><span class="year-current-label">${tr('السنة الحالية','Année en cours')}</span><strong dir="ltr" style="unicode-bidi:isolate">${esc(year||'—')}</strong></div>
+ <button id="schoolYearArchiveCreate" class="primary year-primary" type="button">${tr('حفظ أرشيف السنة الحالية','Archiver l’année courante')}</button></div>
  <p id="schoolYearArchiveMessage" role="status" aria-live="polite"></p><div id="schoolYearArchivesList" aria-live="polite">${tr('جارٍ تحميل الأرشيف…','Chargement des archives…')}</div>
  <button type="button" id="schoolYearArchiveRetry" hidden>${tr('إعادة المحاولة','Réessayer')}</button>`);
+ p.classList.add('nataiji-year-dialog','nataiji-archive-dialog');
  const msg=q('#schoolYearArchiveMessage',p),list=q('#schoolYearArchivesList',p),create=q('#schoolYearArchiveCreate',p),retry=q('#schoolYearArchiveRetry',p);
  const yearIsValid=validAcademicYear(year);
  let refreshing=false,ready=false;
@@ -54,7 +55,14 @@ function openArchive(){
    ready=true;create.disabled=!yearIsValid;
    if(!msg.dataset.keepMessage)msg.textContent='';
    const rows=data.archives||[];
-   list.innerHTML=rows.length?rows.map(item=>`<div class="school-year-archive-row"><span><b>${esc(item.year)}</b><small>${esc(new Date(item.createdAt).toLocaleString(fr()?'fr-FR':'ar-MR'))} · ${tr('تلاميذ','Élèves')} ${Number(item.counts?.pupils||0)} · ${tr('درجات','Notes')} ${Number(item.counts?.marks||0)}</small></span><button type="button" data-archive-export="${esc(item.id)}" data-archive-year="${esc(item.year)}">${tr('تنزيل نسخة','Télécharger')}</button>${yearKey(item.year)===yearKey(year)?'<button type="button" data-archive-promote="'+esc(item.id)+'">'+tr('إعداد السنة القادمة','Préparer l’année suivante')+'</button>':''}</div>`).join(''):`<p>${tr('لا توجد أرشيفات بعد.','Aucune archive enregistrée.')}</p>`;
+   list.innerHTML=rows.length?rows.map(item=>`<div class="school-year-archive-row">
+    <div class="year-archive-detail"><b dir="ltr">${esc(item.year)}</b>
+     <small>${esc(new Date(item.createdAt).toLocaleString(fr()?'fr-FR':'ar-MR'))}</small>
+     <small>${tr('التلاميذ','Élèves')}: ${Number(item.counts?.pupils||0)} · ${tr('الدرجات','Notes')}: ${Number(item.counts?.marks||0)}</small></div>
+    <div class="year-archive-actions">
+     <button type="button" data-archive-export="${esc(item.id)}" data-archive-year="${esc(item.year)}">${tr('تنزيل نسخة','Télécharger')}</button>
+     ${yearKey(item.year)===yearKey(year)?'<button type="button" class="year-primary" data-archive-promote="'+esc(item.id)+'">'+tr('إعداد السنة القادمة','Préparer l’année suivante')+'</button>':''}
+    </div></div>`).join(''):`<p>${tr('لا توجد أرشيفات بعد.','Aucune archive enregistrée.')}</p>`;
    for(const button of p.querySelectorAll('[data-archive-promote]'))button.onclick=()=>{
     const archived=rows.find(x=>x.id===button.dataset.archivePromote);
     if(archived)window.nataijiOpenYearPromotion?.(archived)
