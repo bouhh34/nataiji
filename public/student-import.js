@@ -52,15 +52,13 @@ window.nataijiStudentImport={parse,open({toAr,toFr,onSave}){
    <div class="nti-upload-grid">
      <label class="nti-upload-choice">
        <span class="nti-upload-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6M8 13h8M8 17h5"/></svg></span>
-       <strong>${t('اختيار PDF أو صورة','Choisir un PDF ou une photo')}</strong>
-       <small>PDF · JPG · PNG · WebP</small>
+       <span class="nti-upload-copy"><strong>${t('اختيار PDF أو صورة','Choisir un PDF ou une photo')}</strong><small>PDF · JPG · PNG · WebP</small></span>
        <input type="file" data-file accept="application/pdf,image/jpeg,image/png,image/webp,image/bmp,.pdf" aria-label="${t('اختيار ملف PDF أو صورة','Sélectionner un PDF ou une photo')}">
        <output data-file-feedback aria-live="polite"></output>
      </label>
      <label class="nti-upload-choice">
        <span class="nti-upload-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 7h4l2-3h4l2 3h4a2 2 0 0 1 2 2v10a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V9a2 2 0 0 1 2-2Z"/><circle cx="12" cy="13.5" r="3.5"/></svg></span>
-       <strong>${t('التقاط صورة بالكاميرا','Prendre une photo')}</strong>
-       <small>${t('تصوير لائحة التلاميذ','Photographier la liste')}</small>
+       <span class="nti-upload-copy"><strong>${t('التقاط صورة بالكاميرا','Prendre une photo')}</strong><small>${t('تصوير لائحة التلاميذ','Photographier la liste')}</small></span>
        <input type="file" data-camera accept="image/*" capture="environment" aria-label="${t('تصوير لائحة التلاميذ','Photographier la liste des élèves')}">
        <output data-camera-feedback aria-live="polite"></output>
      </label>
