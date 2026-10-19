@@ -132,9 +132,14 @@ test('manual pasted names still advance review, and original class save handler 
  assert.match(source,/data-ar/);
  assert.match(source,/data-fr/);
 });
-test('new design is teacher-only and screen-only',()=>{
+test('responsive importer is scoped only to importer and works on professor and teacher routes',()=>{
  assert.match(styles,/@media screen/);
- assert.match(styles,/html:not\(\.nataiji-professor-mode\) \.nataiji-student-import-modal/);
- assert.match(styles,/nti-reading-choice\[hidden\]/);
+ assert.match(styles,/html \\.nataiji-student-import-modal/);
+ assert.doesNotMatch(styles,/html:not\\(\\.nataiji-professor-mode\\) \\.nataiji-student-import-modal/);
+ assert.match(styles,/nti-reading-choice\\[hidden\\]/);
+ assert.match(styles,/nti-upload-icon svg/);
+ assert.match(styles,/width:22px!important/);
+ assert.match(styles,/nti-upload-choice input\\[type=file\\]/);
+ assert.match(source,/class="nti-upload-copy"/);
  assert.doesNotMatch(styles,/@media print/);
 });
