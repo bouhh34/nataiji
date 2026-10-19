@@ -6,7 +6,7 @@ on:
       version_code:
         description: 'Android versionCode (must exceed the last uploaded Play version)'
         required: true
-        default: '6'
+        default: '7'
         type: string
   push:
     branches:
@@ -15,6 +15,11 @@ on:
       - '.github/workflows/mobile-android-release.yml'
       - 'public/professor-v2.js'
       - 'public/accessibility.css'
+      - 'public/index.html'
+      - 'public/sw.js'
+      - 'public/school-year-modern-v1.css'
+      - 'public/school-year-archive-v1.js'
+      - 'public/year-promotion-v1.js'
 
 permissions:
   contents: read
@@ -24,7 +29,7 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 35
     env:
-      ANDROID_VERSION_CODE: ${{ inputs.version_code || '6' }}
+      ANDROID_VERSION_CODE: ${{ inputs.version_code || '7' }}
       ANDROID_KEYSTORE_BASE64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
       ANDROID_KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
       ANDROID_KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
