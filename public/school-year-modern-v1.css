@@ -1,0 +1,163 @@
+/* Nataiji • archive & year transition UX. Scoped: does not restyle other modals. */
+@media screen {
+  .modal.nataiji-year-dialog {
+    --year-navy:#082b4b; --year-emerald:#0b8d73; --year-dark:#08735f;
+    --year-gold:#d4a83d; --year-border:#dfe9e7; --year-ink:#17384f;
+    --year-muted:#68808c; --year-soft:#f4f9f7;
+    z-index:11020; background:rgba(6,27,43,.64);
+    -webkit-backdrop-filter:blur(5px); backdrop-filter:blur(5px);
+    padding:16px; align-items:center; justify-content:center;
+  }
+  .modal.nataiji-promotion-dialog { z-index:11021; }
+  .nataiji-year-dialog > .modal-card {
+    box-sizing:border-box; width:min(100%,660px); max-width:660px;
+    max-height:min(92dvh,850px); overflow-y:auto; overscroll-behavior:contain;
+    padding:0 22px 22px; border:1px solid rgba(223,233,231,.9);
+    border-radius:24px; background:#fff; color:var(--year-ink);
+    box-shadow:0 28px 75px rgba(3,27,45,.27); scrollbar-width:thin;
+    scrollbar-color:#c2d6d1 transparent;
+  }
+  .nataiji-year-dialog .modal-head {
+    position:sticky; top:0; z-index:2; min-height:76px; display:flex;
+    flex-direction:row; align-items:center; justify-content:space-between; gap:12px;
+    margin:0 -22px 14px; padding:14px 22px;
+    background:linear-gradient(110deg,#fff 68%,#f0f8f5);
+    border-bottom:1px solid var(--year-border);
+  }
+  .nataiji-year-dialog .modal-head h2 { margin:0; font-size:clamp(18px,3.8vw,23px); line-height:1.45; color:var(--year-navy); font-weight:800; }
+  .nataiji-year-dialog .modal-head .x {
+    flex:none; display:grid;place-items:center; width:42px;height:42px;min-width:42px;
+    padding:0; border-radius:14px; border:1px solid var(--year-border);
+    background:#f2f7f7; color:var(--year-navy);font-size:26px;box-shadow:none;
+  }
+  .nataiji-year-dialog .modal-head .x:focus-visible,
+  .nataiji-year-dialog button:focus-visible,
+  .nataiji-year-dialog input:focus-visible,
+  .nataiji-year-dialog select:focus-visible { outline:3px solid #d4a83d;outline-offset:2px; }
+  .nataiji-year-dialog .year-helper {
+    margin:10px 0; padding:12px 14px; border-radius:14px;
+    background:var(--year-soft); color:#4c6773; font-size:13px;
+    line-height:1.95; border:1px solid #e5efed;
+  }
+  .nataiji-year-dialog .year-caution { background:#fffaf0; border-color:#f3e7c8; color:#806132; }
+  .nataiji-year-dialog .year-section-title { color:var(--year-navy); font-size:16px; margin:18px 0 12px; font-weight:800; }
+  .nataiji-year-dialog button {
+    font:inherit; font-weight:750; line-height:1.45; min-height:43px;
+    padding:10px 15px; border:1px solid var(--year-border); border-radius:12px;
+    color:var(--year-navy); background:#fff; cursor:pointer;
+    box-shadow:0 3px 9px rgba(8,43,75,.05); transition:background .16s ease,transform .16s ease;
+  }
+  .nataiji-year-dialog button:not(:disabled):active { transform:translateY(1px); }
+  .nataiji-year-dialog button.primary, .nataiji-year-dialog button.year-primary {
+    border-color:transparent; color:#fff;
+    background:linear-gradient(130deg,#119e82,#087b66);
+    box-shadow:0 9px 20px rgba(8,121,97,.18);
+  }
+  .nataiji-year-dialog button:disabled { cursor:not-allowed;opacity:.52;box-shadow:none; }
+  .nataiji-year-dialog .school-year-archive-current {
+    display:flex;flex-wrap:wrap;gap:12px;align-items:center;justify-content:space-between;
+    border:1px solid var(--year-border);border-radius:18px;padding:16px;
+    background:linear-gradient(130deg,#fff,#f2f9f6);
+  }
+  .nataiji-year-dialog .year-current-label { display:block; font-size:12px; font-weight:600;color:var(--year-muted);margin-bottom:4px; }
+  .nataiji-year-dialog .school-year-archive-current strong { display:block; font-size:22px; color:var(--year-navy); }
+  .nataiji-year-dialog .school-year-archive-current button { max-width:100%; }
+  .nataiji-year-dialog .school-year-archive-row {
+    padding:15px; margin:10px 0; border-radius:16px; border:1px solid var(--year-border);
+    display:flex;flex-wrap:wrap;justify-content:space-between;align-items:center;gap:12px;
+    background:#fff;box-shadow:0 4px 16px rgba(8,43,75,.045);
+  }
+  .nataiji-year-dialog .year-archive-detail {flex:1 1 180px; min-width:0;}
+  .nataiji-year-dialog .year-archive-detail b {font-size:17px;color:var(--year-navy);}
+  .nataiji-year-dialog .year-archive-detail small {display:block;color:var(--year-muted);font-size:12px;line-height:1.8;margin-top:5px;}
+  .nataiji-year-dialog .year-archive-actions {display:flex;gap:8px;flex-wrap:wrap;}
+  .nataiji-year-dialog #schoolYearArchiveMessage,
+  .nataiji-year-dialog #promotionStatus {
+    color:var(--year-ink);line-height:1.8;min-height:0; font-size:13px;
+  }
+  .nataiji-year-dialog #schoolYearArchiveMessage:not(:empty),
+  .nataiji-year-dialog #promotionStatus:not(:empty) {
+    background:#f2f8f6; border:1px solid #dfeee8; border-radius:12px;
+    padding:10px 12px; margin:12px 0;
+  }
+  .nataiji-year-dialog #schoolYearArchivesList > p {color:var(--year-muted);line-height:1.75;}
+  .nataiji-year-dialog .promotion-year-banner {
+    display:flex;justify-content:center;align-items:center;gap:14px;
+    direction:ltr;text-align:center;font-weight:800;font-size:19px;
+    color:var(--year-navy);background:#f1f8f6;border:1px solid #e0eee9;
+    border-radius:14px;margin:12px 0 17px;padding:12px;
+  }
+  .nataiji-year-dialog .promotion-year-banner::first-letter {color:var(--year-emerald);}
+  .nataiji-year-dialog .promotion-form-fields {display:grid;grid-template-columns:1fr 1fr; gap:12px;}
+  .nataiji-year-dialog .promotion-form-fields > label {display:block;min-width:0;font-size:13px;font-weight:750;color:var(--year-navy);margin:0;}
+  .nataiji-year-dialog .promotion-form-fields input,
+  .nataiji-year-dialog .promotion-form-fields select {
+    width:100%;height:46px;min-width:0; margin-top:7px;padding:0 12px;
+    font-size:14px; border:1px solid #cddfdb; border-radius:12px;
+    background:#fff; color:var(--year-ink); box-shadow:none;
+  }
+  .nataiji-year-dialog .promotion-selection-heading {
+    display:flex;justify-content:space-between;align-items:center;gap:8px;
+    margin:16px 0 9px;flex-wrap:wrap;
+  }
+  .nataiji-year-dialog .promotion-selection-heading strong {color:var(--year-navy);font-size:15px;}
+  .nataiji-year-dialog .promotion-selected-count {font-weight:650;font-size:12px;color:var(--year-emerald);background:#e9f6f1;border-radius:100px;padding:5px 11px;}
+  .nataiji-year-dialog label.promotion-toggle-row,
+  .nataiji-year-dialog label.promotion-pupil-row {
+    display:flex!important;flex-direction:row!important;align-items:center!important;
+    justify-content:flex-start;gap:12px!important; margin:0!important;
+    padding:11px 13px!important;min-height:51px;
+    border-radius:12px;border:1px solid var(--year-border);
+    font-size:14px;font-weight:650;line-height:1.7;color:var(--year-ink);
+    background:#fff; cursor:pointer; text-align:start;
+  }
+  .nataiji-year-dialog label.promotion-toggle-row {background:#eaf6f2;border-color:#d3eae2;margin-bottom:8px!important;}
+  .nataiji-year-dialog label.promotion-pupil-row + label.promotion-pupil-row {margin-top:7px!important;}
+  .nataiji-year-dialog input[type="checkbox"],
+  .nataiji-year-dialog label.promotion-toggle-row input[type="checkbox"],
+  .nataiji-year-dialog label.promotion-pupil-row input[type="checkbox"] {
+    display:inline-block!important;flex:0 0 19px!important;
+    width:19px!important;height:19px!important;min-width:19px!important;
+    max-width:19px!important;min-height:19px!important;max-height:19px!important;
+    padding:0!important;margin:0!important;box-sizing:border-box!important;
+    border-radius:5px!important;accent-color:#0b8d73!important;
+    box-shadow:none!important;transform:none!important;position:static!important;
+    appearance:auto!important;-webkit-appearance:checkbox!important;
+    vertical-align:middle!important;
+  }
+  .nataiji-year-dialog .roster-check-list {
+    max-height:min(33dvh,330px);overflow-y:auto;overscroll-behavior:contain;
+    border:1px solid #e5edeb;border-radius:15px;background:#f8fbfa;padding:9px;
+    scrollbar-width:thin;
+  }
+  .nataiji-year-dialog .promotion-actions {display:flex;gap:9px;flex-wrap:wrap;margin:14px 0;}
+  .nataiji-year-dialog .promotion-actions button {flex:1 1 175px;}
+  .nataiji-year-dialog #promotionPrepared p {
+    margin:8px 0;padding:10px 13px;border:1px solid var(--year-border);
+    border-radius:12px;background:#f7faf9;line-height:1.7;color:var(--year-ink);
+  }
+  .nataiji-year-dialog .year-section-title + #promotionPrepared {margin-bottom:10px;}
+}
+@media screen and (max-width:680px) {
+  .modal.nataiji-year-dialog {
+    align-items:flex-end;justify-content:center;padding:0;
+  }
+  .nataiji-year-dialog > .modal-card {
+    width:100%;max-width:none;max-height:calc(100dvh - 68px);
+    border-radius:24px 24px 0 0;padding:0 16px calc(16px + env(safe-area-inset-bottom,0px));
+    border-bottom:0;overflow-y:auto;
+  }
+  .nataiji-year-dialog .modal-head {
+    min-height:68px;padding:12px 16px;margin:0 -16px 12px;
+  }
+  .nataiji-year-dialog .modal-head h2 {font-size:19px;}
+  .nataiji-year-dialog .school-year-archive-row {align-items:stretch;}
+  .nataiji-year-dialog .year-archive-actions {width:100%;}
+  .nataiji-year-dialog .year-archive-actions button {flex:1 1 130px;min-width:0;}
+  .nataiji-year-dialog .school-year-archive-current button {flex:1 1 170px;}
+  .nataiji-year-dialog .promotion-form-fields {grid-template-columns:minmax(0,1fr);}
+  .nataiji-year-dialog .promotion-year-banner {font-size:16px;}
+}
+@media screen and (prefers-reduced-motion:reduce) {
+  .nataiji-year-dialog button {transition:none!important;}
+}
