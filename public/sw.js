@@ -1,4 +1,4 @@
-const CACHE = "nataiji-shell-v184";
+const CACHE = "nataiji-shell-v185";
 const ASSETS = [
   "/teacher-touchups-v1.css?v=1",
   "/teacher-account-sheet-v1.css?v=1",
@@ -9,7 +9,7 @@ const ASSETS = [
   "/koutoubi-resources.css?v=1",
   "/koutoubi-catalog.js?v=1",
   "/koutoubi-resources.js?v=1",
-  "/student-import.js?v=13",
+  "/student-import.js?v=14",
   "/",
   "/privacy.html",
   "/delete-account.html",
@@ -35,7 +35,7 @@ const ASSETS = [
   "/more-page-v1.css?v=4",
   "/more-page-polish-v2.css?v=1",
   "/student-quick-import-v1.css?v=2",
-  "/student-import-modal-v1.css?v=3",
+  "/student-import-modal-v1.css?v=4",
   "/professor-v1.css?v=1",
   "/professor-v2.css?v=49",
   "/director-v1.css?v=6",
