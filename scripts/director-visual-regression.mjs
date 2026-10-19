@@ -11,7 +11,7 @@ test('the original director theme, not the premium redesign, loads on web and An
  }
  assert.doesNotMatch(html,/director-premium-v1\.css/);
  assert.doesNotMatch(sw,/director-premium-v1\.css/);
- assert.match(sw,/nataiji-shell-v180/);
+ assert.match(sw,/nataiji-shell-v181/);
 });
 test('the classic large register cards and original dashboard are restored',()=>{
  assert.match(css,/\.director-card\{[^}]*min-height:130px/);
