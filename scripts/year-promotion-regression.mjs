@@ -1,5 +1,6 @@
 import {test} from 'node:test';
 import assert from 'node:assert/strict';
+import fs from 'node:fs';
 import {academicYearNext,normalizeAcademicYear,planNextYearRoster} from '../src/year-promotion-tools.js';
 const row=(key,name,nns='',call=1)=>({nns:key,data:[nns,name,'ذكر','',name,call,'',key],class_id:'class-1',position:call});
 test('academic years advance exactly once',()=>{
@@ -28,4 +29,18 @@ test('destination duplicates and forged source keys are rejected',()=>{
  assert.throws(()=>planNextYearRoster(source,[],['p3'],()=> 'new-id'),/pupil_not_found/);
  assert.throws(()=>planNextYearRoster(source,[],['p1','p1'],()=> 'new-id'),/invalid_selection/);
  assert.throws(()=>planNextYearRoster([{nns:'bad',data:{name:'not-array'}}],[],['bad'],()=> 'x'),/invalid_archived_pupil/);
+});
+
+test('year archive and promotion use scoped mobile dialogs and ordinary-sized checkboxes',()=>{
+ const archive=fs.readFileSync(new URL('../public/school-year-archive-v1.js',import.meta.url),'utf8');
+ const promotion=fs.readFileSync(new URL('../public/year-promotion-v1.js',import.meta.url),'utf8');
+ const style=fs.readFileSync(new URL('../public/school-year-modern-v1.css',import.meta.url),'utf8');
+ assert.match(archive,/nataiji-archive-dialog/);
+ assert.match(archive,/year-archive-detail/);
+ assert.match(promotion,/nataiji-promotion-dialog/);
+ assert.match(promotion,/promotion-pupil-row/);
+ assert.match(promotion,/promotionSelectionCount/);
+ assert.match(style,/\.nataiji-year-dialog input\[type="checkbox"\]/);
+ assert.match(style,/width:19px!important/);
+ assert.match(style,/max-height:calc\(100dvh - 68px\)/);
 });
