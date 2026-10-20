@@ -83,4 +83,5 @@ test('director record actions present edit, delete, and PDF in that order',()=>{
  assert.ok(row.indexOf('data-director-edit')<row.indexOf('data-director-delete'));
  assert.ok(row.indexOf('data-director-delete')<row.indexOf('data-director-print'));
  assert.match(js,/confirm\(t\('حذف هذا السجل من القائمة؟'/);
+ assert.ok(js.includes("$('[data-director-delete]').forEach"));
 });
