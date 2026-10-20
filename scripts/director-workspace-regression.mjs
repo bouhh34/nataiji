@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {DIRECTOR_REGISTER_CATEGORIES,mountDirectorRoutes} from '../src/director-workspace.js';
+import {DIRECTOR_REGISTER_CATEGORIES,mountDirectorRoutes,validRegisterDetails} from '../src/director-workspace.js';
 
 function harness(user,body={},query={},poolOverride){
  const routes=new Map();
@@ -83,4 +83,37 @@ test('reject forged pupil references before any register write',async()=>{
  assert.equal(r.status,400);
  assert.equal(r.body.error,'student_link_not_found');
  assert.ok(!h.calls.some(c=>c.sql.includes('INSERT INTO nataiji_director_registers')));
+});
+
+const collectiveDetails={kind:'staff-attendance-v1',staff:[{key:'manual:a',name:'محمد',status:'present',time:'08:00',notes:''},{key:'manual:b',name:'فاطمة',status:'absent',time:'',notes:'إجازة'}]};
+test('collective attendance validates every teacher and rejects incomplete or duplicate rows',()=>{
+ assert.equal(validRegisterDetails(collectiveDetails),true);
+ for(const change of [{status:''},{time:'29:99'},{name:' '},{notes:'x'.repeat(301)}])assert.equal(validRegisterDetails({...collectiveDetails,staff:[{...collectiveDetails.staff[0],...change}]}),false);
+ assert.equal(validRegisterDetails({...collectiveDetails,staff:[collectiveDetails.staff[0],collectiveDetails.staff[0]]}),false);
+ assert.equal(validRegisterDetails({...collectiveDetails,staff:[]}),false);
+ assert.equal(validRegisterDetails({notes:'x'.repeat(8001)}),false);
+ const large=Array.from({length:200},(_,i)=>({...collectiveDetails.staff[0],key:'manual:'+i,notes:'ن'.repeat(300)}));
+ assert.equal(validRegisterDetails({...collectiveDetails,staff:large}),true);
+ assert.equal(validRegisterDetails({...collectiveDetails,staff:[...large,{...large[0],key:'extra'}]}),false);
+});
+test('daily attendance lookup stays scoped to institution and selected date',async()=>{
+ const h=harness({id:'director-a',role:'admin',profileType:'director'}, {},{category:'daily-attendance',recordDate:'2026-10-20'});
+ const r=await h.request('GET','/api/director/registers');assert.equal(r.status,200);
+ const call=h.calls.find(c=>c.sql.includes('FROM nataiji_director_registers'));
+ assert.deepEqual(call.params,['school-a','daily-attendance',30,'2026-10-20']);
+});
+test('same-day collective saves are idempotent and conflicting second saves do not overwrite',async()=>{
+ let saved=null;const institution={id:'school-a',director_user_id:'director-a',academic_year:'2026-2027'};
+ const pool={async query(sql,p){
+  if(sql.includes('FROM nataiji_director_institutions'))return {rows:[institution],rowCount:1};
+  if(sql.startsWith('INSERT INTO nataiji_director_registers')){if(saved)return {rows:[],rowCount:0};assert.equal(p[8],'staff-attendance:2026-10-20');saved={id:p[0],category:p[3],record_date:p[4],reference:p[5],subject:p[6],details:JSON.parse(p[7])};return {rows:[saved],rowCount:1}}
+  if(sql.startsWith('SELECT * FROM nataiji_director_registers'))return {rows:[saved],rowCount:1};
+  return {rows:[],rowCount:0}
+ },async connect(){return {...this,release(){}}}};
+ const user={id:'director-a',role:'admin',profileType:'director'};
+ const payload={category:'daily-attendance',subject:'Attendance',recordDate:'2026-10-20',details:collectiveDetails,clientMutationId:'arbitrary'};
+ assert.equal((await harness(user,payload,{},pool).request('POST','/api/director/registers')).status,201);
+ assert.equal((await harness(user,{...payload,clientMutationId:'other'}, {},pool).request('POST','/api/director/registers')).status,200);
+ assert.equal((await harness(user,{...payload,details:{...collectiveDetails,staff:[{...collectiveDetails.staff[0],status:'late'}]}},{},pool).request('POST','/api/director/registers')).status,409);
+ assert.equal(saved.details.staff.length,2);
 });

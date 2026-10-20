@@ -13,6 +13,11 @@ const clean = (value,max=160) => String(value??'').trim().slice(0,max);
 const validDate = value => /^\d{4}-\d{2}-\d{2}$/.test(String(value||'')) && !Number.isNaN(Date.parse(String(value)));
 const isObject = value => value!==null && typeof value==='object' && !Array.isArray(value);
 const stableJson = value => JSON.stringify(value,(key,v)=>isObject(v)?Object.fromEntries(Object.keys(v).sort().map(k=>[k,v[k]])):v);
+export function validRegisterDetails(details){
+ if(!isObject(details))return false;
+ if(details.kind!=='staff-attendance-v1')return JSON.stringify(details).length<=8000;
+ return JSON.stringify(details).length<=120000&&Array.isArray(details.staff)&&details.staff.length>0&&details.staff.length<=200&&new Set(details.staff.map(r=>r?.key)).size===details.staff.length&&details.staff.every(r=>isObject(r)&&typeof r.name==='string'&&r.name.trim().length>0&&r.name.length<=160&&['present','absent','late'].includes(r.status)&&typeof r.time==='string'&&(!r.time||/^([01]\d|2[0-3]):[0-5]\d$/.test(r.time))&&typeof r.notes==='string'&&r.notes.length<=300&&typeof r.key==='string'&&r.key.length>0&&r.key.length<=100);
+}
 async function checkStudentLink(pool,institutionId,details){
  const link=details?.studentRef;
  if(link===undefined||link===null)return true;
@@ -136,14 +141,17 @@ export function mountDirectorRoutes(app,{auth,getPool,loadMember=async()=>null})
   const category=clean(req.query.category,40),limit=Math.min(100,Math.max(1,Number(req.query.limit)||30));
   if(category&&!DIRECTOR_REGISTER_CATEGORIES.includes(category))return res.status(400).json({error:'invalid_register_category'});
   if(category&&sensitive.has(category))return res.status(403).json({error:'sensitive_register_not_enabled'});
-  const result=await getPool().query("SELECT id,category,academic_year,record_date,reference,subject,details,version,created_at,updated_at FROM nataiji_director_registers WHERE institution_id=$1 AND deleted_at IS NULL AND category NOT IN ('teacher-health','student-health') AND ($2::text IS NULL OR category=$2) ORDER BY record_date DESC,created_at DESC LIMIT $3",[req.directorInstitution.id,category||null,limit]);
+  const recordDate=clean(req.query.recordDate,20);
+  if(recordDate&&!validDate(recordDate))return res.status(400).json({error:'invalid_date'});
+  const result=await getPool().query("SELECT id,category,academic_year,record_date,reference,subject,details,version,created_at,updated_at FROM nataiji_director_registers WHERE institution_id=$1 AND deleted_at IS NULL AND category NOT IN ('teacher-health','student-health') AND ($2::text IS NULL OR category=$2) AND ($4::date IS NULL OR record_date=$4) ORDER BY record_date DESC,created_at DESC LIMIT $3",[req.directorInstitution.id,category||null,limit,recordDate||null]);
   res.json({ok:true,records:result.rows});
  }));
  app.post('/api/director/registers',auth,requireDirector,db,wrap(ownInstitution),wrap(async(req,res)=>{
-  const input=req.body||{},category=clean(input.category,40),subject=clean(input.subject,240),date=clean(input.recordDate,20),details=input.details||{},mutationId=clean(input.clientMutationId,64);
+  const input=req.body||{},category=clean(input.category,40),subject=clean(input.subject,240),date=clean(input.recordDate,20),details=input.details||{},mutationId=category==='daily-attendance'&&details.kind==='staff-attendance-v1'?'staff-attendance:'+date:clean(input.clientMutationId,64);
   if(!DIRECTOR_REGISTER_CATEGORIES.includes(category))return res.status(400).json({error:'invalid_register_category'});
   if(sensitive.has(category))return res.status(403).json({error:'sensitive_register_not_enabled'});
-  if(!subject||!validDate(date)||!isObject(details)||JSON.stringify(details).length>8000)return res.status(400).json({error:'invalid_register_record'});
+  if(details.kind==='staff-attendance-v1'&&category!=='daily-attendance')return res.status(400).json({error:'invalid_register_category'});
+  if(!subject||!validDate(date)||!validRegisterDetails(details))return res.status(400).json({error:'invalid_register_record'});
   const id=crypto.randomUUID(),institutionId=req.directorInstitution.id,pool=getPool();
   if(!await checkStudentLink(pool,institutionId,details))return res.status(400).json({error:'student_link_not_found'});
   const client=await pool.connect();
@@ -164,13 +172,15 @@ export function mountDirectorRoutes(app,{auth,getPool,loadMember=async()=>null})
  }));
  app.patch('/api/director/registers/:id',auth,requireDirector,db,wrap(ownInstitution),wrap(async(req,res)=>{
   const input=req.body||{},version=Number(input.version),subject=clean(input.subject,240),date=clean(input.recordDate,20),details=input.details||{};
-  if(!Number.isInteger(version)||version<1||!subject||!validDate(date)||!isObject(details)||JSON.stringify(details).length>8000)return res.status(400).json({error:'invalid_register_record'});
+  if(!Number.isInteger(version)||version<1||!subject||!validDate(date)||!validRegisterDetails(details))return res.status(400).json({error:'invalid_register_record'});
   const pool=getPool(),client=await pool.connect();
   try{
    await client.query('BEGIN');
    const prev=await client.query('SELECT * FROM nataiji_director_registers WHERE id=$1 AND institution_id=$2 AND deleted_at IS NULL FOR UPDATE',[req.params.id,req.directorInstitution.id]);
    if(!prev.rowCount){await client.query('ROLLBACK');return res.status(404).json({error:'register_record_not_found'})}
    if(sensitive.has(prev.rows[0].category)){await client.query('ROLLBACK');return res.status(403).json({error:'sensitive_register_not_enabled'})}
+   if(details.kind==='staff-attendance-v1'&&(prev.rows[0].category!=='daily-attendance'||prev.rows[0].details?.kind!=='staff-attendance-v1')){await client.query('ROLLBACK');return res.status(400).json({error:'invalid_register_category'})}
+   if(prev.rows[0].details?.kind==='staff-attendance-v1'&&(details.kind!=='staff-attendance-v1'||String(prev.rows[0].record_date instanceof Date?prev.rows[0].record_date.toISOString():prev.rows[0].record_date).slice(0,10)!==date)){await client.query('ROLLBACK');return res.status(400).json({error:'attendance_date_locked'})}
    if(prev.rows[0].version!==version){await client.query('ROLLBACK');return res.status(409).json({error:'record_version_conflict'})}
    if(!await checkStudentLink(client,req.directorInstitution.id,details)){await client.query('ROLLBACK');return res.status(400).json({error:'student_link_not_found'})}
    const result=await client.query('UPDATE nataiji_director_registers SET subject=$3,record_date=$4,reference=$5,details=$6::jsonb,version=version+1,updated_by=$7,updated_at=now() WHERE id=$1 AND institution_id=$2 RETURNING *',[req.params.id,req.directorInstitution.id,subject,date,clean(input.reference,100),JSON.stringify(details),req.user.id]);

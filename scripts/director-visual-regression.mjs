@@ -1,3 +1,4 @@
+import vm from 'node:vm';
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
@@ -5,13 +6,13 @@ const read=path=>fs.readFileSync(new URL('../'+path,import.meta.url),'utf8');
 const html=read('public/index.html'),sw=read('public/sw.js'),css=read('public/director-v1.css'),js=read('public/director-v1.js');
 
 test('the original director theme, not the premium redesign, loads on web and Android offline',()=>{
- for(const asset of ['director-v1.css?v=7','director-v1.js?v=11']){
+ for(const asset of ['director-v1.css?v=8','director-v1.js?v=12']){
   assert.ok(html.includes('/'+asset),'index missing '+asset);
   assert.ok(sw.includes('/'+asset),'offline shell missing '+asset);
  }
  assert.doesNotMatch(html,/director-premium-v1\.css/);
  assert.doesNotMatch(sw,/director-premium-v1\.css/);
- assert.match(sw,/nataiji-shell-v188/);
+ assert.match(sw,/nataiji-shell-v189/);
 });
 test('the classic large register cards and original dashboard are restored',()=>{
  assert.match(css,/\.director-card\{[^}]*min-height:130px/);
@@ -54,4 +55,11 @@ test('every director subpage offers visible RTL-aware navigation without changin
  assert.match(css,/\.director-app\.director-subpage \.director-wrap>h1\{/);
  assert.match(css,/\.director-app \.director-empty-register\{/);
  assert.match(css,/@media\(max-width:540px\)/);
+});
+
+test('collective attendance print includes every teacher and escapes user text',()=>{
+ const context={esc:v=>String(v).replaceAll('&','&amp;').replaceAll('<','&lt;').replaceAll('>','&gt;')};
+ vm.createContext(context);vm.runInContext(js.slice(js.indexOf('const staffStatuses='),js.indexOf('async function editStaffAttendance')),context);
+ const output=context.staffAttendanceTable({record_date:'2026-10-20',details:{staff:[{name:'محمد',status:'present',time:'08:00',notes:'<script>bad</script>'},{name:'Fatima',status:'absent',time:'',notes:''}]}});
+ assert.match(output,/محمد/);assert.match(output,/Fatima/);assert.match(output,/حاضر \/ Présent/);assert.match(output,/غائب \/ Absent/);assert.match(output,/<thead>/);assert.match(output,/2026-10-20/);assert.doesNotMatch(output,/<script>/);assert.match(output,/&lt;script&gt;/);
 });

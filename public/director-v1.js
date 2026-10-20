@@ -125,13 +125,16 @@ function directorOfficialHeader(className=''){
 }
 
 function printDirectorRecord(record){
- const category=labels.find(x=>x[0]===record.category),rows=[...Object.entries(record.details||{}).filter(([key])=>key!=='studentRef').map(([key,value])=>{
+ return printRegisterDocument(record,record.details?.kind==='staff-attendance-v1'?staffAttendanceTable(record):null);
+}
+function printRegisterDocument(record,tableHtml=null){
+ const category=labels.find(x=>x[0]===record.category),rows=[...Object.entries(record.details||{}).filter(([key])=>!['studentRef','staff','kind'].includes(key)).map(([key,value])=>{
   const field=(registerFields[record.category]||[]).find(x=>x[0]===key);
-  return [key==='notes'?t('ملاحظات','Observations'):field?t(field[1],field[2]):key,String(value??'')];
+  return [key==='notes'?'ملاحظات / Observations':field?field[1]+' / '+field[2]:key,String(value??'')];
  })].filter(([_,v])=>v);
- const html='<!doctype html><html lang="'+(lang()?'fr':'ar')+'" dir="'+(lang()?'ltr':'rtl')+'"><head><meta charset="utf-8"><style>@page{size:A4;margin:12mm}body{font-family:Arial,sans-serif;color:#183943;font-size:12pt}.official-head{direction:ltr;display:grid;grid-template-columns:minmax(0,1fr) 34mm minmax(0,1fr);grid-template-areas:"fr center ar";gap:5mm;align-items:start;width:100%;font-size:8.7pt;line-height:1.34;margin-bottom:3mm}.official-side{min-width:0;display:flex;flex-direction:column;gap:.35mm}.official-fr{grid-area:fr;text-align:left;direction:ltr}.official-ar{grid-area:ar;text-align:right;direction:rtl}.official-strong{font-weight:800}.official-center{grid-area:center;display:flex;flex-direction:column;align-items:center;text-align:center}.basmala{width:100%;font-size:8.7pt;font-weight:800;line-height:1.3;margin:0 0 .8mm;white-space:nowrap;text-align:center;direction:rtl}.official-center img{width:23mm;height:23mm;object-fit:contain}h1{text-align:center;border-bottom:2px solid #174e65;padding-bottom:12px}tr{break-inside:avoid}h1{font-size:19pt}h2{font-size:15pt}table{width:100%;border-collapse:collapse;margin-top:22px}th,td{border:1px solid #b9c8ce;padding:12px;text-align:start;white-space:pre-wrap;overflow-wrap:anywhere}th{width:32%;background:#eef5f2}.foot{margin-top:48px;text-align:center}</style></head><body>'+directorOfficialHeader(record.details?.className||'')+'<h1>'+esc(category?t(category[1],category[2]):'')+'</h1><table>'+
+ const html='<!doctype html><html lang="'+(lang()?'fr':'ar')+'" dir="'+(lang()?'ltr':'rtl')+'"><head><meta charset="utf-8"><style>@page{size:A4;margin:12mm}body{font-family:Arial,sans-serif;color:#183943;font-size:12pt}.official-head{direction:ltr;display:grid;grid-template-columns:minmax(0,1fr) 34mm minmax(0,1fr);grid-template-areas:"fr center ar";gap:5mm;align-items:start;width:100%;font-size:8.7pt;line-height:1.34;margin-bottom:3mm}.official-side{min-width:0;display:flex;flex-direction:column;gap:.35mm}.official-fr{grid-area:fr;text-align:left;direction:ltr}.official-ar{grid-area:ar;text-align:right;direction:rtl}.official-strong{font-weight:800}.official-center{grid-area:center;display:flex;flex-direction:column;align-items:center;text-align:center}.basmala{width:100%;font-size:8.7pt;font-weight:800;line-height:1.3;margin:0 0 .8mm;white-space:nowrap;text-align:center;direction:rtl}.official-center img{width:23mm;height:23mm;object-fit:contain}h1{text-align:center;border-bottom:2px solid #174e65;padding-bottom:12px}tr{break-inside:avoid}h1{font-size:19pt}h2{font-size:15pt}table{width:100%;border-collapse:collapse;margin-top:22px}th,td{border:1px solid #b9c8ce;padding:12px;text-align:start;white-space:pre-wrap;overflow-wrap:anywhere}th{background:#eef5f2}thead{display:table-header-group}.attendance-print{font-size:10pt}.attendance-print th,.attendance-print td{padding:8px}.attendance-print td:first-child{width:5%}.foot{margin-top:48px;text-align:center}</style></head><body>'+directorOfficialHeader(record.details?.className||'')+'<h1>'+esc(category?category[1]+' / '+category[2]:'')+'</h1>'+ (tableHtml||'<table>'+
   [['التاريخ','Date',String(record.record_date||'').slice(0,10)],['الرقم','Référence',record.reference||'—'],['الموضوع','Objet',record.subject||''],...rows.map(([key,val])=>[key,key,val])]
-  .map(([ar,fr,val])=>'<tr><th>'+esc(ar===fr?ar:t(ar,fr))+'</th><td>'+esc(val)+'</td></tr>').join('')+'</table><p class="foot">'+t('ختم وتوقيع الإدارة','Cachet et signature de la direction')+'</p></body></html>';
+  .map(([ar,fr,val])=>'<tr><th>'+esc(ar===fr?ar:ar+' / '+fr)+'</th><td>'+esc(val)+'</td></tr>').join('')+'</table>')+'<p class="foot">'+'ختم وتوقيع الإدارة / Cachet et signature de la direction'+'</p></body></html>';
  const iframe=document.createElement('iframe');iframe.setAttribute('title',t('طباعة سجل','Imprimer le registre'));iframe.style.cssText='position:fixed;inset:auto;width:1px;height:1px;opacity:0;pointer-events:none';document.body.appendChild(iframe);
  const remove=()=>setTimeout(()=>iframe.remove(),1200);iframe.onload=()=>{try{iframe.contentWindow.onafterprint=remove;iframe.contentWindow.focus();iframe.contentWindow.print();setTimeout(remove,60000)}catch{remove();message(t('تعذر فتح الطباعة على هذا الجهاز','Impression indisponible'),true)}};
  iframe.srcdoc=html;
@@ -268,6 +271,7 @@ async function openRegister(){
  const category=currentCategory,row=labels.find(r=>r[0]===category);
  frame(t(row[1],row[2]),'<p class="director-register-intro">'+t('حفظ قيود المؤسسة وتنظيمها مع إمكانية التعديل والطباعة.','Enregistrez et organisez les documents, avec modification et impression.')+'</p><div class="director-tools director-register-tools"><button type="button" class="director-primary" id="directorNewEntry">'+directorIcon('plus',17)+t('إضافة قيد','Nouvelle entrée')+'</button><button type="button" id="directorSyncEntries">'+directorIcon('link',16)+t('مزامنة القيود','Synchroniser')+'</button></div><details class="director-sync-help"><summary>'+t('كيف تعمل المزامنة؟','Comment synchroniser ?')+'</summary><p class="director-sync-hint">'+t('ترسل المزامنة القيود المحفوظة على هذا الجهاز إلى حساب مؤسستك، ثم تُحدّث القائمة من الخادم.','La synchronisation envoie les entrées locales à votre établissement, puis actualise la liste depuis le serveur.')+'</p></details><p id="directorSyncStatus" role="status"></p><div id="directorRecords" aria-live="polite">'+t('جاري تحميل السجلات...','Chargement...')+'</div>');
  $('#directorNewEntry').onclick=()=>editEntry();
+ if(category==='daily-attendance')$('#directorNewEntry').textContent=t('فتح سجل يوم','Ouvrir un registre journalier');
  $('#directorSyncEntries').onclick=async()=>{await flushPending();if($('#directorRecords'))await openRegister()};
  try{
   try{
@@ -289,16 +293,18 @@ async function openRegister(){
    container.before(search);
    const cards=$$('.director-record',container),data=[...entries.map(x=>x.payload),...records];
    const update=()=>{const query=$('#directorRecordSearch').value.trim().toLocaleLowerCase();let count=0;
-    cards.forEach((card,i)=>{const row=data[i];const hay=[row.subject,row.reference,...Object.values(row.details||{}).filter(v=>typeof v==='string')].join(' ').toLocaleLowerCase();card.hidden=!!query&&!hay.includes(query);if(!card.hidden)count++});
+    cards.forEach((card,i)=>{const row=data[i];const hay=[row.subject,row.reference,...Object.values(row.details||{}).filter(v=>typeof v==='string'),...(row.details?.staff||[]).map(r=>r.name)].join(' ').toLocaleLowerCase();card.hidden=!!query&&!hay.includes(query);if(!card.hidden)count++});
     $('#directorSearchCount').textContent=t('السجلات الظاهرة: ','Entrées affichées : ')+count+' / '+cards.length;
    };$('#directorRecordSearch').oninput=update;update();
   }
   $('#directorEmptyAdd')?.addEventListener('click',()=>editEntry());
+  if(category==='daily-attendance'&&$('#directorEmptyAdd'))$('#directorEmptyAdd').textContent=t('إنشاء سجل حضور الجميع','Créer le registre collectif');
   $$('[data-director-edit]').forEach(b=>b.onclick=()=>editEntry(records.find(x=>x.id===b.dataset.directorEdit)));
   $$('[data-director-print]').forEach(b=>b.onclick=()=>{const item=records.find(x=>x.id===b.dataset.directorPrint);if(item)printDirectorRecord(item)});
  }catch(error){message(err(error),true)}
 }
 function editEntry(row=null){
+ if(currentCategory==='daily-attendance'&&(!row||row.details?.kind==='staff-attendance-v1'))return editStaffAttendance(row);
  if(row&&(window.__nataijiOfflineActive||navigator.onLine===false)){message(t('تعديل قيد موجود يتطلب الاتصال لمنع تضارب النسخ.','La modification nécessite une connexion pour éviter les conflits.'),true);return}
  const category=currentCategory,isEnrolment=category==='enrolment',title=row?t('تعديل القيد','Modifier une entrée'):t('إضافة قيد','Ajouter une entrée'),details=row?.details||{};
  const wantsPupil=['enrolment','student-absence','referrals'].includes(category);
@@ -358,6 +364,52 @@ function editEntry(row=null){
    }else message(err(error),true);
    button.disabled=false
   }
+ };
+}
+const staffStatuses={present:['حاضر','Présent'],absent:['غائب','Absent'],late:['متأخر','En retard']};
+function staffAttendanceTable(record){
+ return '<p style="text-align:center">التاريخ / Date: '+esc(String(record.record_date).slice(0,10))+'</p><table class="attendance-print" dir="rtl"><thead><tr>'+['رقم / N°','المعلم / Enseignant','الحالة / Présence','الوقت / Heure','ملاحظات / Observations'].map(x=>'<th>'+x+'</th>').join('')+'</tr></thead><tbody>'+record.details.staff.map((r,i)=>'<tr><td>'+(i+1)+'</td><td>'+esc(r.name)+'</td><td>'+esc((staffStatuses[r.status]||['—','—']).join(' / '))+'</td><td dir="ltr">'+esc(r.time||'—')+'</td><td>'+esc(r.notes||'—')+'</td></tr>').join('')+'</tbody></table>';
+}
+async function editStaffAttendance(existing=null,selectedDate=null){
+ if(window.__nataijiOfflineActive||navigator.onLine===false){message(t('السجل الجماعي يحتاج اتصالًا للتحقق من سجل اليوم وحفظ الجميع معًا.','Une connexion est nécessaire pour vérifier et enregistrer le registre collectif.'),true);return}
+ const date=selectedDate||String(existing?.record_date||new Date().toISOString()).slice(0,10),schoolId=institution.id;
+ let row=existing,staff=[],membersList=[],membersFailed=false;
+ frame(t('حضور المعلمين — سجل جماعي','Présences — registre collectif'),'<p id="staffLoading" role="status">'+t('تحميل سجل اليوم والمعلمين...','Chargement du registre et des enseignants...')+'</p>',{backAction:()=>void openRegister()});
+ const root=$('#staffLoading');
+ try{
+  const result=await network('/api/director/registers?category=daily-attendance&recordDate='+encodeURIComponent(date)+'&limit=100');
+  if(!row)row=(result.records||[]).find(r=>r.details?.kind==='staff-attendance-v1');
+  if(row)staff=row.details.staff.map(r=>({...r}));
+  else{
+   const recent=await network('/api/director/registers?category=daily-attendance&limit=100');
+   const previous=(recent.records||[]).find(r=>r.details?.kind==='staff-attendance-v1');
+   staff=(previous?.details.staff||[]).map(r=>({...r,status:'',time:'',notes:''}));
+  }
+  try{membersList=(await network('/api/director/members')).members||[]}catch{membersFailed=true}
+  if(institution?.id!==schoolId||!root.isConnected||currentCategory!=='daily-attendance')return;
+  // Saved days are historical snapshots. New days include linked staff and the previous manual list.
+  if(!row)for(const m of membersList){if(!staff.some(r=>r.key==='user:'+m.user_id))staff.push({key:'user:'+m.user_id,name:m.name||t('معلم','Enseignant'),status:'',time:'',notes:''})}
+ }catch(error){message(t('تعذر تحميل سجل اليوم. أعد المحاولة لتجنب إنشاء سجل مكرر.','Chargement impossible. Réessayez pour éviter un doublon.'),true);return}
+ let dirty=false,busy=false;
+ const leave=()=>{if(busy)return;if(dirty&&!confirm(t('الرجوع دون حفظ التعديلات؟','Quitter sans enregistrer ?')))return;void openRegister()};
+ frame(t('حضور المعلمين — سجل جماعي','Présences — registre collectif'),'<form id="staffAttendanceForm" class="director-form"><label>'+t('تاريخ السجل','Date du registre')+'<input id="staffDate" type="date" required value="'+esc(date)+'"></label><p>'+t('جميع المعلمين في سجل واحد. اختر حالة كل معلم ثم احفظ الجميع. تُستعاد الأسماء في اليوم التالي.','Tous les enseignants dans un registre. Indiquez chaque présence puis enregistrez. Les noms seront repris le jour suivant.')+'</p>'+(membersFailed?'<p role="alert">'+t('تعذر تحميل الحسابات المرتبطة؛ تحقق من اكتمال الأسماء قبل الحفظ.','Comptes liés indisponibles ; vérifiez la liste avant de sauvegarder.')+'</p>':'')+'<div class="director-tools"><button type="button" id="staffAdd">＋ '+t('إضافة معلم','Ajouter un enseignant')+'</button><button type="button" id="staffImport">'+t('إضافة المعلمين المرتبطين','Ajouter les enseignants liés')+'</button></div><div class="staff-attendance-scroll"><table class="staff-attendance-table"><thead><tr><th>'+t('المعلم','Enseignant')+'</th><th>'+t('الحالة','Présence')+'</th><th>'+t('الوقت','Heure')+'</th><th>'+t('ملاحظات','Observations')+'</th><th>'+t('حذف','Retirer')+'</th></tr></thead><tbody id="staffRows"></tbody></table></div><p id="staffCount" role="status"></p><div class="director-save-bar"><button class="director-primary" type="submit">'+t('حفظ حضور الجميع','Enregistrer toutes les présences')+'</button></div></form>',{backAction:leave});
+ const form=$('#staffAttendanceForm');
+ const read=()=>$$('#staffRows tr').map(tr=>({key:tr.dataset.key,name:$('[data-field="name"]',tr).value.trim(),status:$('[data-field="status"]',tr).value,time:$('[data-field="time"]',tr).value,notes:$('[data-field="notes"]',tr).value.trim()}));
+ const render=()=>{
+  $('#staffRows').innerHTML=staff.map(r=>'<tr data-key="'+esc(r.key)+'"><td><input data-field="name" aria-label="'+t('اسم المعلم','Nom')+'" required maxlength="160" value="'+esc(r.name)+'"></td><td><select data-field="status" aria-label="'+t('حالة الحضور','Présence')+'" required><option value="">'+t('اختر','Choisir')+'</option>'+Object.entries(staffStatuses).map(([key,pair])=>'<option value="'+key+'"'+(r.status===key?' selected':'')+'>'+t(...pair)+'</option>').join('')+'</select></td><td><input data-field="time" aria-label="'+t('وقت الحضور','Heure')+'" type="time" value="'+esc(r.time)+'"></td><td><input data-field="notes" aria-label="'+t('ملاحظات','Observations')+'" maxlength="300" value="'+esc(r.notes)+'"></td><td><button type="button" data-remove>'+t('حذف','Retirer')+'</button></td></tr>').join('');
+  $('#staffCount').textContent=t('عدد المعلمين: ','Enseignants : ')+staff.length;
+  $$('[data-remove]',form).forEach(b=>b.onclick=()=>{if(busy)return;staff=read().filter(r=>r.key!==b.closest('tr').dataset.key);dirty=true;render()});
+ };
+ render();form.addEventListener('input',e=>{if(e.target.id!=='staffDate')dirty=true});
+ $('#staffDate').onchange=()=>{const next=$('#staffDate').value;if(!next)return;if(dirty&&!confirm(t('تغيير اليوم دون حفظ التعديلات؟','Changer de date sans enregistrer ?'))){$('#staffDate').value=date;return}void editStaffAttendance(null,next)};
+ $('#staffAdd').onclick=()=>{staff=read();if(staff.length>=200){message(t('الحد الأقصى 200 معلم في السجل.','Maximum de 200 enseignants.'),true);return}staff.push({key:'manual:'+crypto.randomUUID(),name:'',status:'',time:'',notes:''});dirty=true;render();$$('[data-field="name"]',form).at(-1)?.focus()};
+ $('#staffImport').onclick=async()=>{try{const m=(await network('/api/director/members')).members||[];if(!form.isConnected)return;staff=read();for(const x of m)if(!staff.some(r=>r.key==='user:'+x.user_id))staff.push({key:'user:'+x.user_id,name:x.name||'',status:'',time:'',notes:''});dirty=true;render()}catch(e){message(err(e),true)}};
+ form.onsubmit=async e=>{
+  e.preventDefault();if(busy)return;staff=read();if(!staff.length||staff.length>200){message(t('أضف من 1 إلى 200 معلم.','Ajoutez entre 1 et 200 enseignants.'),true);return}
+  busy=true;const controls=$$('input,select,button',form);controls.forEach(c=>c.disabled=true);
+  const payload={category:'daily-attendance',recordDate:date,subject:'حضور المعلمين / Présences des enseignants',reference:'',details:{kind:'staff-attendance-v1',staff},...(row?{version:row.version}:{clientMutationId:'staff-attendance:'+date})};
+  try{const result=await apiPost(row?'/api/director/registers/'+encodeURIComponent(row.id):'/api/director/registers',payload,row?'PATCH':'POST');if(!result?.ok||!result.record)throw Error('save_not_verified');dirty=false;await openRegister();message(t('تم حفظ حضور الجميع في سجل واحد.','Toutes les présences sont enregistrées dans un seul registre.'))}
+  catch(error){message(error.status===409?t('حُفظ أو عُدّل سجل هذا اليوم من جلسة أخرى. احتفظ بتعديلاتك ثم أعد فتح سجل اليوم.','Ce registre a été enregistré ou modifié ailleurs. Conservez vos changements puis rouvrez le registre.'):err(error),true);controls.forEach(c=>c.disabled=false)}finally{busy=false}
  };
 }
 function staffLink(user){
