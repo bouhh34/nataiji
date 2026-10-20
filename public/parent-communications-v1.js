@@ -207,5 +207,6 @@
    shell();setBody('<p class="nta-hint">'+esc(t('جار تحميل البيانات...','Chargement…'))+'</p>');await render();
   }catch(e){alert(t('سجّل الدخول واتصل بالإنترنت أولًا.','Connectez-vous à votre compte et à Internet.'))}
  }
+ document.getElementById('parentCommunicationsBtn')?.addEventListener('click',open);
  window.NataijiParentComms={open};
 })();
