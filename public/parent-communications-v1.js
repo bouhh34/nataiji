@@ -135,6 +135,7 @@
     html+='<article class="nta-message"><div class="nta-message-title"><b>'+esc(item.pupil_name)+'</b><small>'+esc(item.school_name)+' · '+esc(item.class_name)+'</small></div>'+
      '<small dir="ltr">'+esc(item.phone)+'</small><pre>'+esc(message(item))+'</pre>'+
      '<div class="nta-message-actions">'+button(t('نسخ الرسالة','Copier'),'ntaCopy-'+item.id)+
+     (item.kind==='award'?button(t('عرض الشهادة','Voir le certificat'),'ntaOwnerCertificate-'+item.id):'')+
      (status==='pending'?button(t('فتح واتساب الأعمال','Ouvrir WhatsApp Business'),'ntaOpen-'+item.id,'primary')+button(t('تأكيد الإرسال','Confirmer envoi'),'ntaSent-'+item.id):'')+'</div></article>';
    }
    if(outbox.length===100)html+='<p class="nta-hint">'+esc(t('تظهر أول 100 رسالة؛ عالجها لعرض البقية.','Affichage des 100 premiers messages.'))+'</p>';
@@ -143,6 +144,7 @@
    q('#ntaSent').onclick=async()=>{status='sent';await official()};
    for(const item of outbox){
     q('#ntaCopy-'+item.id).onclick=async()=>{try{await navigator.clipboard.writeText(message(item));note(t('تم نسخ الرسالة.','Message copié.'))}catch{note(t('تعذر النسخ.','Copie indisponible.'),true)}};
+    if(item.kind==='award')q('#ntaOwnerCertificate-'+item.id).onclick=()=>certificate(item.id);
     if(status!=='pending')continue;
     q('#ntaOpen-'+item.id).onclick=()=>{
      const phone=String(item.phone||'').replace(/\D/g,'');
