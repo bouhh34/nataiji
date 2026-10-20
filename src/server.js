@@ -1554,6 +1554,8 @@ mountFamilyRoutes(app,{auth,ownerOnly,getPool:()=>pool,loadProfessorProfile,assi
     const rows=await pool.query('SELECT class_id,nns,data FROM nataiji_pupils WHERE school_id=$1 ORDER BY position',[schoolId]);
     const groups=new Map();
     for(const row of rows){const arr=groups.get(String(row.class_id))||[],p=Array.isArray(row.data)?structuredClone(row.data):[];p[7]=String(p[7]||row.nns);arr.push(p);groups.set(String(row.class_id),arr)}
+    const migrated=await pool.query("SELECT class_id FROM nataiji_migrations WHERE school_id=$1 AND resource='pupils'",[schoolId]);
+    for(const row of migrated.rows){const classId=String(row.class_id),d=s.classData[classId]||(s.classData[classId]={pupils:[]});d.pupils=groups.get(classId)||[]}
     for(const [classId,students] of groups){const d=s.classData[classId]||(s.classData[classId]={pupils:[]});d.pupils=students}
     return s
   }
