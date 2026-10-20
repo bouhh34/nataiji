@@ -56,22 +56,25 @@ export function mountFamilyRoutes(app,{auth,ownerOnly,getPool,loadProfessorProfi
     const p=(data.pupils||[]).find(p=>String(p?.[7]||p?.[0])===studentKey);
     return p?{name:cleanText(p[1],160),className:cleanText(cls.name,120),schoolName:cleanText(school.school,160)}:null;
   }
-  async function classAuthorized(user,classId){
+  async function activeStudentKeys(user,classId){
     if(user.role==='professor'){
       const profile=await loadProfessorProfile(user.id);
-      return (profile.classes||[]).some(x=>String(x.id)===classId)
+      const cls=(profile.classes||[]).find(x=>String(x.id)===classId);
+      return cls?new Set((cls.students||[]).map(st=>String(st.id))):null;
     }
     const school=await loadTeacherSchool(user.schoolId);
-    if(user.role==='teacher'&&!assignedClassIds(user,school).some(x=>String(x)===classId))return false;
-    return (school.classes||[]).some(x=>String(x.id)===classId)
+    if(user.role==='teacher'&&!assignedClassIds(user,school).some(x=>String(x)===classId))return null;
+    if(!(school.classes||[]).some(x=>String(x.id)===classId))return null;
+    return new Set((school.classData?.[classId]?.pupils||[]).map(p=>String(p?.[7]||p?.[0]||'')));
   }
   const author=(req,res,next)=>allowedUser(req.user)?next():res.status(403).json({error:'forbidden'});
   app.get('/api/family/contacts',auth,db,author,async(req,res)=>{
     const classId=cleanText(req.query.classId,120);
     if(!classId)return res.status(400).json({error:'missing_class'});
-    if(!await classAuthorized(req.user,classId))return res.status(403).json({error:'forbidden_class'});
+    const validKeys=await activeStudentKeys(req.user,classId);
+    if(!validKeys)return res.status(403).json({error:'forbidden_class'});
     const rows=await getPool().query('SELECT student_key,phone,consent FROM nataiji_family_contacts WHERE actor_id=$1 AND class_id=$2',[req.user.id,classId]);
-    res.json({ok:true,contacts:rows.rows});
+    res.json({ok:true,contacts:rows.rows.filter(row=>validKeys.has(String(row.student_key)))});
   });
   app.put('/api/family/contacts',auth,db,author,async(req,res)=>{
     const classId=cleanText(req.body?.classId,120),studentKey=cleanText(req.body?.studentKey,120);
