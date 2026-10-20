@@ -1,0 +1,46 @@
+/* Self-contained mobile family engagement sheets. No modifications to grades or reports. */
+.family-overlay{position:fixed;inset:0;z-index:99999;background:rgba(8,26,40,.65);display:flex;align-items:center;justify-content:center;padding:10px;box-sizing:border-box}
+.family-dialog{width:min(560px,100%);height:auto;max-height:calc(100dvh - 20px);overflow:auto;overscroll-behavior:contain;background:#f7fbfa;color:#173c4d;border-radius:19px;box-shadow:0 20px 80px #001a2b55;direction:rtl}
+html[lang=fr] .family-dialog{direction:ltr}
+.family-dialog>header{position:sticky;top:0;z-index:5;background:#f7fbfa;border-bottom:1px solid #d4e7e4;padding:14px 16px;display:flex;align-items:center;justify-content:space-between;gap:12px}
+.family-dialog>header small{display:block;font-size:10px;color:#0a8671;font-weight:800;letter-spacing:.04em}
+.family-dialog>header h2{font-size:19px;margin:3px 0 0;line-height:1.35}
+.family-close{flex:none;width:40px;height:40px;border-radius:12px;background:#fff;border:1px solid #dbe9e7;font-size:27px;color:#375b6c}
+.family-body{display:grid;gap:11px;padding:15px 16px 24px}
+.family-body label:not(.family-checkbox){display:grid;gap:5px;font-weight:700;font-size:13px;min-width:0}
+.family-body input:not([type=checkbox]):not([type=radio]),.family-body select,.family-body textarea{font-family:inherit;font-size:15px;min-width:0;width:100%;box-sizing:border-box;border-radius:11px;border:1px solid #c4d8dc;background:#fff;color:#103950;padding:12px;min-height:43px}
+.family-body textarea{resize:vertical;line-height:1.6}
+.family-body input:focus-visible,.family-body select:focus-visible,.family-body textarea:focus-visible,.family-body button:focus-visible{outline:2px solid #087b72;outline-offset:2px}
+.family-kind{display:grid;gap:8px;border:1px solid #cce0dc;border-radius:14px;padding:12px}
+.family-kind legend{font-weight:800;font-size:13px;padding:0 6px}
+.family-kind label{display:flex;gap:6px;align-items:center;font-size:13px}
+.family-contact{background:#eef8f4;padding:13px;border-radius:14px;display:grid;gap:9px;border:1px solid #d5e8e1}
+.family-contact h3,.family-history h3{margin:0;font-size:15px;color:#0c6358}
+.family-checkbox{display:flex;align-items:flex-start;gap:8px;font-size:12px;line-height:1.6;font-weight:650}
+.family-checkbox input{width:20px;height:20px;accent-color:#128263;flex:0 0 20px;margin-top:1px}
+.family-hint{margin:0;padding:12px;background:#fff9e9;color:#735116;border:1px solid #e9d8a2;border-radius:12px;line-height:1.7;font-size:12px}
+.family-tiny{margin:3px 0;color:#56717a;font-size:12px;line-height:1.6}
+.family-primary,.family-secondary{font-family:inherit;font-weight:850;cursor:pointer;border-radius:12px;border:0;padding:11px 14px;min-height:46px}
+.family-primary{background:#096c58;color:white}
+.family-secondary{background:#e6f2f0;color:#0b6253;border:1px solid #bcd8ce}
+.family-primary:disabled,.family-secondary:disabled{opacity:.58;cursor:wait}
+.family-message{min-height:0;margin:0;font-size:13px;font-weight:800;line-height:1.6}
+.family-message:empty{display:none}
+.family-message.good{color:#08713f}.family-message.bad{color:#a73d2c}
+.family-history{display:grid;gap:8px;border-top:1px solid #d8e4e7;padding-top:15px;margin-top:3px}
+.family-history-row{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:10px;background:#fff;border:1px solid #d7e5e8;border-radius:12px}
+.family-history-row span{display:grid;gap:2px;min-width:0}
+.family-history-row b{font-size:13px}.family-history-row small{font-size:11px;color:#63767f}
+.family-history-row button{border-radius:9px;padding:8px;border:1px solid #b9d6d3;background:#eefaf5;color:#096b53;font-weight:800}
+.family-queue-card{display:grid;gap:8px;border:1px solid #d4e4e6;border-radius:14px;background:white;padding:12px;margin:9px 0}
+.family-queue-card>b{font-size:15px}.family-queue-card>small{font-size:11px;line-height:1.5;color:#607b86;overflow-wrap:anywhere}
+.family-message-preview{white-space:pre-wrap;overflow-wrap:anywhere;background:#f5faf9;border-radius:10px;padding:10px;font-size:13px;line-height:1.75;max-height:210px;overflow:auto}
+.family-actions,.family-tabs{display:flex;gap:7px;flex-wrap:wrap}
+.family-actions button{flex:1 1 105px;font-size:12px;padding:9px 6px}
+.family-tabs button{flex:1 1 75px;background:#e9f4f3;border:1px solid #c6dcd7;padding:11px 5px;border-radius:10px;color:#275f59;font-weight:800}
+.family-tabs button.on{background:#0b745c;color:#fff}
+.family-award-preview{border:1px solid #d1b779;border-radius:10px;overflow:hidden;background:#fff;box-shadow:0 6px 22px #162a3015}
+.family-award-preview svg{display:block;width:100%;height:auto}
+.family-launch-button{display:flex;align-items:center;justify-content:space-between;gap:8px;border-radius:13px;border:1px solid #cae4db;background:#eaf9f1;color:#096d58;padding:13px 14px;text-align:inherit;font-weight:900;min-height:49px;width:100%;cursor:pointer}
+#familyTeacherBtn{margin-block:7px}
+@media(max-width:500px){.family-overlay{align-items:end;padding:0}.family-dialog{width:100%;max-height:96dvh;border-radius:19px 19px 0 0}.family-dialog>header{padding-top:18px}.family-dialog>header h2{font-size:17px}}
