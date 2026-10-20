@@ -103,7 +103,7 @@ export function mountFamilyRoutes(app,{auth,ownerOnly,getPool,loadProfessorProfi
     const student=await studentFor(req.user,classId,studentKey);
     if(!student)return res.status(403).json({error:'student_not_authorized'});
     const contact=await getPool().query('SELECT phone FROM nataiji_family_contacts WHERE actor_id=$1 AND class_id=$2 AND student_key=$3 AND consent=true',[req.user.id,classId,studentKey]);
-    if(!contact.rowCount)return res.status(400).json({error:'parent_contact_and_consent_required'});
+    if(!contact.rowCount&&kind==='results')return res.status(400).json({error:'parent_contact_and_consent_required'});
     let data={};
     if(kind==='daily'){
       if(!attendanceTypes.has(raw.attendance)||!assessmentTypes.has(raw.assessment))return res.status(400).json({error:'invalid_daily_assessment'});
@@ -115,20 +115,33 @@ export function mountFamilyRoutes(app,{auth,ownerOnly,getPool,loadProfessorProfi
     }else {
       data={term:cleanText(raw.term,100),note:cleanText(raw.note,300),date:new Date().toISOString().slice(0,10)};
     }
-    const phone=contact.rows[0].phone;
+    const phone=contact.rows[0]?.phone||'',messageStatus=phone?'pending':'private';
     const result=await getPool().query(`INSERT INTO nataiji_family_records
-       (id,actor_id,actor_name,actor_role,school_name,class_id,class_name,student_key,student_name,guardian_phone,kind,data)
-       VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12::jsonb)
+       (id,actor_id,actor_name,actor_role,school_name,class_id,class_name,student_key,student_name,guardian_phone,kind,data,status)
+       VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12::jsonb,$13)
        ON CONFLICT(id) DO NOTHING RETURNING id`,
-       [id,req.user.id,cleanText(req.user.name,160),req.user.role,student.schoolName,classId,student.className,studentKey,student.name,phone,kind,JSON.stringify(data)]);
+       [id,req.user.id,cleanText(req.user.name,160),req.user.role,student.schoolName,classId,student.className,studentKey,student.name,phone,kind,JSON.stringify(data),messageStatus]);
     if(!result.rowCount){
       const existing=await getPool().query('SELECT id,actor_id FROM nataiji_family_records WHERE id=$1',[id]);
       if(existing.rows[0]?.actor_id!==req.user.id)return res.status(409).json({error:'record_id_conflict'});
     }
-    res.status(201).json({ok:true,id,queued:true,sent:false,studentName:student.name,schoolName:student.schoolName,className:student.className,data});
+    res.status(201).json({ok:true,id,queued:!!phone,status:messageStatus,sent:false,studentName:student.name,schoolName:student.schoolName,className:student.className,data});
+  });
+  app.post('/api/family/records/:id/queue',auth,db,author,async(req,res)=>{
+    const id=String(req.params.id||'');
+    if(!isUuid(id))return res.status(400).json({error:'invalid_record'});
+    const r=await getPool().query("SELECT class_id,student_key,status FROM nataiji_family_records WHERE id=$1 AND actor_id=$2",[id,req.user.id]);
+    const row=r.rows[0];if(!row||row.status!=='private')return res.status(409).json({error:'record_not_private'});
+    const allowed=await studentFor(req.user,String(row.class_id),String(row.student_key));
+    if(!allowed)return res.status(403).json({error:'student_not_authorized'});
+    const contact=await getPool().query('SELECT phone FROM nataiji_family_contacts WHERE actor_id=$1 AND class_id=$2 AND student_key=$3 AND consent=true',[req.user.id,row.class_id,row.student_key]);
+    if(!contact.rowCount)return res.status(409).json({error:'parent_contact_and_consent_required'});
+    const saved=await getPool().query("UPDATE nataiji_family_records SET guardian_phone=$3,status='pending' WHERE id=$1 AND actor_id=$2 AND status='private' RETURNING id,status",[id,req.user.id,contact.rows[0].phone]);
+    if(!saved.rowCount)return res.status(409).json({error:'record_status_changed'});
+    res.json({ok:true,record:saved.rows[0]});
   });
   app.get('/api/family/records',auth,db,author,async(req,res)=>{
-    const rows=await getPool().query(`SELECT id,student_name,class_name,school_name,kind,data,status,created_at
+    const rows=await getPool().query(`SELECT id,class_id,student_key,student_name,class_name,school_name,kind,data,status,created_at
       FROM nataiji_family_records WHERE actor_id=$1 ORDER BY created_at DESC LIMIT 60`,[req.user.id]);
     res.json({ok:true,records:rows.rows});
   });

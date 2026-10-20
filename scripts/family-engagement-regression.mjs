@@ -39,13 +39,15 @@ test('teacher/professor may award independently; only queued, never auto-sent',a
     }
     if(q.includes('INSERT INTO nataiji_family_records')){
       if(records.has(args[0]))return {rowCount:0,rows:[]};
-      const [id,actor_id,actor_name,actor_role,school_name,class_id,class_name,student_key,student_name,guardian_phone,kind,data]=args;
-      records.set(id,{id,actor_id,actor_name,actor_role,school_name,class_id,class_name,student_key,student_name,guardian_phone,kind,data:JSON.parse(data),status:'pending'});
+      const [id,actor_id,actor_name,actor_role,school_name,class_id,class_name,student_key,student_name,guardian_phone,kind,data,status]=args;
+      records.set(id,{id,actor_id,actor_name,actor_role,school_name,class_id,class_name,student_key,student_name,guardian_phone,kind,data:JSON.parse(data),status});
       return {rowCount:1,rows:[{id}]}
     }
+    if(q.includes('SELECT class_id,student_key,status FROM nataiji_family_records')){const record=records.get(args[0]);return{rowCount:record&&record.actor_id===args[1]?1:0,rows:record&&record.actor_id===args[1]?[record]:[]}}
     if(q.includes('SELECT id,actor_id FROM nataiji_family_records')){
       const r=records.get(args[0]);return{rowCount:r?1:0,rows:r?[r]:[]}
     }
+    if(q.includes("SET guardian_phone=$3,status='pending'")){const record=records.get(args[0]);if(!record||record.status!=='private'||record.actor_id!==args[1])return{rowCount:0,rows:[]};record.guardian_phone=args[2];record.status='pending';return{rowCount:1,rows:[record]}}
     if(q.includes('UPDATE nataiji_family_records')){
       const r=records.get(args[0]);if(!r)return{rowCount:0,rows:[]};
       r.status=args[1];return{rowCount:1,rows:[{id:r.id,status:r.status}]}
@@ -77,15 +79,22 @@ test('teacher/professor may award independently; only queued, never auto-sent',a
   }
   assert.equal((await invoke('GET','/api/family/contacts',{},user,{classId:'other'})).code,403);
   assert.equal((await invoke('PUT','/api/family/contacts',{classId:'c1',studentKey:'s1',phone:'34123456',consent:false})).code,400);
-  assert.equal((await invoke('PUT','/api/family/contacts',{classId:'c1',studentKey:'s1',phone:'34123456',consent:true})).code,200);
   const id='bead1234-1234-4123-8123-123456789abc';
   const body={id,classId:'c1',studentKey:'s1',kind:'award',data:{awardType:'progress',reason:'اجتهاد ملحوظ'}};
   const created=await invoke('POST','/api/family/records',body);
   assert.equal(created.code,201);assert.equal(created.data.sent,false);
-  assert.equal(records.get(id).status,'pending');
+  assert.equal(created.data.queued,false);
+  assert.equal(records.get(id).status,'private');
+  const owner={id:'owner-1',role:'admin',isSuperAdmin:true};
+  const beforeConsent=await invoke('GET','/api/family/owner/queue',{},owner,{status:'pending'});
+  assert.equal(beforeConsent.data.records.length,0);
+  const prematureShare=await invoke('POST','/api/family/records/:id/queue',{},user,{}, {id});
+  assert.equal(prematureShare.code,409);
+  assert.equal((await invoke('PUT','/api/family/contacts',{classId:'c1',studentKey:'s1',phone:'34123456',consent:true})).code,200);
+  const ready=await invoke('POST','/api/family/records/:id/queue',{},user,{}, {id});
+  assert.equal(ready.code,200);assert.equal(records.get(id).status,'pending');
   const ownQueue=await invoke('GET','/api/family/owner/queue',{},user,{status:'pending'});
   assert.equal(ownQueue.code,403);
-  const owner={id:'owner-1',role:'admin',isSuperAdmin:true};
   const pending=await invoke('GET','/api/family/owner/queue',{},owner,{status:'pending'});
   assert.equal(pending.data.records.length,1);
   assert.equal(pending.data.records[0].guardian_phone,'22234123456');
