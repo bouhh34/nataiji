@@ -14,7 +14,7 @@ const GROUPS=[
     fr:'Paramètres académiques',
     subAr:'إدارة المحتوى الدراسي',
     subFr:'Gérez le contenu scolaire',
-    ids:['structureBtn','subjectsBtn','schoolYearArchiveBtn']
+    ids:['structureBtn','subjectsBtn','parentCommunicationsBtn','schoolYearArchiveBtn']
   },
   {
     key:'collaboration',
@@ -39,7 +39,7 @@ const GROUPS=[
 /* Presentation-only icons for cards not covered by the existing luxury icon layer.
    Reuse the original card nodes and click handlers; no extra controls are introduced. */
 const MORE_ICONS=Object.freeze({
-  structureBtn:'layers', subjectsBtn:'book-open',
+  structureBtn:'layers', subjectsBtn:'book-open',parentCommunicationsBtn:'award',
   schoolYearArchiveBtn:'archive', teacherTimetableMoreBtn:'calendar',
   koutoubiResourcesBtn:'book-open', inviteBtn:'user-plus',
   sharesBtn:'share-2',joinInviteBtn:'link',ownerDashboardBtn:'shield',
