@@ -38,8 +38,9 @@
 .nta-cert-sheet h2{font-size:19px;margin:8px 0 0}.nta-cert-sheet>p{font-size:17px;margin:5px 0}.nta-cert-sheet h1{font-size:clamp(25px,7vw,38px);color:#a2782a;margin:15px 0}.nta-cert-sheet h3{font-size:20px;margin:5px}.nta-cert-note{font-size:14px!important}.nta-cert-sheet footer{font-size:13px;line-height:2}
 .nta-cert-tools{display:flex;gap:8px;justify-content:center;flex-wrap:wrap;padding:6px}
 @media print{
- body > *:not(.nta-cert-preview){display:none!important}
- body > .nta-cert-preview{position:static!important;display:block!important;background:#fff!important;padding:0!important;overflow:visible!important}
+ body.nta-printing-certificate > *:not(.nta-cert-preview){display:none!important}
+ body > .nta-cert-preview{display:none!important}
+ body.nta-printing-certificate > .nta-cert-preview{position:static!important;display:block!important;background:#fff!important;padding:0!important;overflow:visible!important}
  .nta-cert-preview .nta-cert-tools{display:none!important}
  .nta-cert-sheet{margin:0 auto!important;width:100%!important;min-height:245mm!important;box-shadow:none!important;break-inside:avoid}
  @page{size:A4;margin:12mm}
