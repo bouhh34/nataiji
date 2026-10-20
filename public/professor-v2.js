@@ -671,6 +671,7 @@ function renderMore(){
    ${row('profMoreBackup','shield',tr('نسخة احتياطية ومسودات','Sauvegarde et brouillons'),tr('تنزيل بياناتك ومراجعة المزامنة','Télécharger vos données et vérifier la synchronisation'))}
    ${row('profMoreAccount','account',tr('إعدادات الحساب','Paramètres du compte'),tr('الملف الشخصي، كلمة المرور وتفضيلات الحساب','Profil, mot de passe et préférences du compte'))}
    ${row('profMoreSettings','school',tr('إعدادات المؤسسة','Paramètres de l’établissement'),tr('معلومات المؤسسة والجهات الرسمية','Informations de l’établissement et autorités officielles'))}
+   ${row('profMoreComms','chat',tr('التقييم اليومي والتكريم','Évaluations, distinctions et familles'),tr('شهادات مستقلة ورسائل أولياء الأمور','Certificats autonomes et messages aux parents'))}
    ${row('profMoreSubjects','books',tr('إدارة المواد والأقسام','Gestion des matières et classes'),tr('إضافة وإدارة المواد والأقسام','Ajouter et gérer les matières et les classes'))}
    ${row('profMoreJoin','link',tr('الانضمام برمز القسم','Rejoindre avec un code de classe'),tr('ربط أستاذ آخر بنفس القسم','Relier un autre professeur à la même classe'))}
    ${row('profMoreRefresh','refresh',tr('تحديث البيانات','Actualiser les données'),tr('تحميل أحدث نسخة محفوظة من الخادم','Charger la dernière version enregistrée sur le serveur'))}
@@ -686,6 +687,7 @@ function renderMore(){
  </div>`;
  bindTop(el);bindNav(el);
  q('#profMoreBackup',el).onclick=reviewGradeDrafts;
+ q('#profMoreComms',el).onclick=()=>window.NataijiParentComms?.open();
  q('#profMoreAccount',el).onclick=openProfessorAccountSettings;
  q('#profMoreSettings',el).onclick=openSettings;
  q('#profMoreSubjects',el).onclick=()=>{currentView='grades';renderGrades()};
