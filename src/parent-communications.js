@@ -73,7 +73,8 @@ export function mountParentCommunications(app,{auth,professorSpaceActor,getPool,
   const {w,classId,pupil}=await selected(req),kind=text(req.body?.kind,25);
   if(!['daily','award','result'].includes(kind))return res.status(400).json({error:'invalid_message_kind'});
   const contact=(await getPool().query('SELECT phone,consent FROM nataiji_parent_contacts WHERE scope_key=$1 AND class_id=$2 AND pupil_key=$3',[w.scope,classId,pupil.id])).rows[0];
-  if(!contact?.consent||!validPhone(contact.phone))return res.status(409).json({error:'guardian_consent_required'});
+  const hasRecipient=contact?.consent===true&&!!validPhone(contact.phone);
+  if(kind==='result'&&!hasRecipient)return res.status(409).json({error:'guardian_consent_required'});
   let payload={};
   if(kind==='daily'){
    const attendance=text(req.body?.attendance,30),rating=text(req.body?.rating,30);
@@ -86,9 +87,22 @@ export function mountParentCommunications(app,{auth,professorSpaceActor,getPool,
   }else{
    payload={date:new Date().toISOString().slice(0,10),noticeOnly:true};
   }
-  const id=crypto.randomUUID(),className=w.classes.find(c=>c.id===classId).name;
-  await getPool().query("INSERT INTO nataiji_parent_outbox(id,scope_key,school_name,class_id,class_name,pupil_key,pupil_name,phone,kind,payload,issued_by,issued_by_name) VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9,$10::jsonb,$11,$12)",[id,w.scope,w.school,classId,className,pupil.id,pupil.name,contact.phone,kind,JSON.stringify(payload),req.user.id,text(req.user.name,160)]);
-  res.status(201).json({ok:true,id,kind,status:'pending'});
+  const id=crypto.randomUUID(),className=w.classes.find(c=>c.id===classId).name,messageStatus=hasRecipient?'pending':'private';
+  await getPool().query("INSERT INTO nataiji_parent_outbox(id,scope_key,school_name,class_id,class_name,pupil_key,pupil_name,phone,kind,payload,issued_by,issued_by_name,status) VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9,$10::jsonb,$11,$12,$13)",[id,w.scope,w.school,classId,className,pupil.id,pupil.name,hasRecipient?contact.phone:'',kind,JSON.stringify(payload),req.user.id,text(req.user.name,160),messageStatus]);
+  res.status(201).json({ok:true,id,kind,status:messageStatus});
+ }));
+ app.post('/api/parent-communications/mine/:id/share',...protectedRoutes,guarded(async(req,res)=>{
+  const id=String(req.params.id||'');
+  if(!/^[0-9a-f-]{36}$/i.test(id))return res.status(400).json({error:'invalid_message'});
+  const row=(await getPool().query("SELECT id,scope_key,class_id,pupil_key,status FROM nataiji_parent_outbox WHERE id=$1 AND issued_by=$2",[id,req.user.id])).rows[0];
+  if(!row||row.status!=='private')return res.status(409).json({error:'message_not_private'});
+  const w=await workspace(req),classId=String(row.class_id),pupils=await roster(req,w,classId);
+  if(row.scope_key!==w.scope||!pupils.some(p=>p.id===row.pupil_key))return res.status(403).json({error:'forbidden_class'});
+  const contact=(await getPool().query("SELECT phone,consent FROM nataiji_parent_contacts WHERE scope_key=$1 AND class_id=$2 AND pupil_key=$3",[w.scope,classId,row.pupil_key])).rows[0];
+  if(!contact?.consent||!validPhone(contact.phone))return res.status(409).json({error:'guardian_consent_required'});
+  const updated=await getPool().query("UPDATE nataiji_parent_outbox SET status='pending',phone=$3 WHERE id=$1 AND issued_by=$2 AND status='private' RETURNING id,status",[id,req.user.id,contact.phone]);
+  if(!updated.rowCount)return res.status(409).json({error:'message_status_changed'});
+  res.json({ok:true,item:updated.rows[0]});
  }));
  app.get('/api/parent-communications/mine',...protectedRoutes,guarded(async(req,res)=>{
   const rows=(await getPool().query("SELECT id,kind,pupil_name,class_name,payload,status,created_at FROM nataiji_parent_outbox WHERE issued_by=$1 ORDER BY created_at DESC LIMIT 50",[req.user.id])).rows;
