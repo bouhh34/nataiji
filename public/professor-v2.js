@@ -668,7 +668,8 @@ function renderMore(){
   <section class="prof-more-reference-hero"><div><small>${tr('المزيد','Plus')}</small><h1>${tr('الإعدادات والأدوات','Paramètres et outils')}</h1><p>${tr('جميع الخيارات المهمة لحسابك في مكان واحد.','Toutes les options importantes de votre compte au même endroit.')}</p></div><span class="prof-more-hero-icon">${professorMoreIcon('settings')}</span></section>
   <section class="prof-more-list">
    ${row('profMoreKoutoubi','books',tr('التحضير والكتب','Préparations et manuels'),tr('كتبي الرسمي • الكتب حسب السنة وأدلة المدرس','Koutoubi officiel • Manuels par année et guides'))}
-   ${row('profMoreBackup','shield',tr('نسخة احتياطية ومسودات','Sauvegarde et brouillons'),tr('تنزيل بياناتك ومراجعة المزامنة','Télécharger vos données et vérifier la synchronisation'))}
+   ${row('profMoreFamily','students',tr('التقييم اليومي وشهادات التكريم','Évaluation quotidienne et certificats'),tr('أصدر شهاداتك بنفسك وأعد رسائل أولياء الأمور','Délivrez vos certificats et préparez les messages aux parents'))}
+    ${row('profMoreBackup','shield',tr('نسخة احتياطية ومسودات','Sauvegarde et brouillons'),tr('تنزيل بياناتك ومراجعة المزامنة','Télécharger vos données et vérifier la synchronisation'))}
    ${row('profMoreAccount','account',tr('إعدادات الحساب','Paramètres du compte'),tr('الملف الشخصي، كلمة المرور وتفضيلات الحساب','Profil, mot de passe et préférences du compte'))}
    ${row('profMoreSettings','school',tr('إعدادات المؤسسة','Paramètres de l’établissement'),tr('معلومات المؤسسة والجهات الرسمية','Informations de l’établissement et autorités officielles'))}
    ${row('profMoreSubjects','books',tr('إدارة المواد والأقسام','Gestion des matières et classes'),tr('إضافة وإدارة المواد والأقسام','Ajouter et gérer les matières et les classes'))}
@@ -685,7 +686,8 @@ function renderMore(){
   ${nav('more')}
  </div>`;
  bindTop(el);bindNav(el);
- q('#profMoreBackup',el).onclick=reviewGradeDrafts;
+ q('#profMoreFamily',el).onclick=()=>window.NataijiFamily?.openProfessor(professorUser,profile);
+  q('#profMoreBackup',el).onclick=reviewGradeDrafts;
  q('#profMoreAccount',el).onclick=openProfessorAccountSettings;
  q('#profMoreSettings',el).onclick=openSettings;
  q('#profMoreSubjects',el).onclick=()=>{currentView='grades';renderGrades()};
