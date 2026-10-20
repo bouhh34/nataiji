@@ -100,21 +100,39 @@
      try{
        const r=await request('/api/family/records');history=r.records||[];
        const list=$('#familyHistory',body);if(!list)return;
-       list.innerHTML=history.length?history.slice(0,12).map((x,i)=>`<article class="family-history-row"><span><b>${esc(x.student_name)}</b><small>${x.kind==='award'?t('شهادة تكريم','Certificat'):x.kind==='daily'?t('تقييم يومي','Évaluation'):t('إشعار نتائج','Résultats')} · ${esc(x.status)}</small></span>${x.kind==='award'?`<button type="button" data-award-history="${i}">${t('الشهادة','Certificat')}</button>`:''}</article>`).join(''):`<p class="family-tiny">${t('لا توجد عمليات بعد','Aucune opération pour le moment')}</p>`;
-       $$('[data-award-history]',list).forEach(btn=>btn.onclick=()=>{const x=history[Number(btn.dataset.awardHistory)];void showAward({...x,actor_name:user.name})});
+       list.innerHTML=history.length?history.slice(0,12).map((x,i)=>`<article class="family-history-row"><span><b>${esc(x.student_name)}</b><small>${x.kind==='award'?t('شهادة تكريم','Certificat'):x.kind==='daily'?t('تقييم يومي','Évaluation'):t('إشعار نتائج','Résultats')} · ${esc(x.status)}</small></span>${(x.kind==='award'?`<button type="button" data-award-history="${i}">${t('الشهادة','Certificat')}</button>`:'')+(x.status==='private'?`<button type="button" data-ready-history="${i}">${t('إعداد الإرسال','Préparer l’envoi')}</button>`:'')}</article>`).join(''):`<p class="family-tiny">${t('لا توجد عمليات بعد','Aucune opération pour le moment')}</p>`;
+       $('[data-award-history]',list).forEach(btn=>btn.onclick=()=>{const x=history[Number(btn.dataset.awardHistory)];void showAward({...x,actor_name:user.name})});
+       $('[data-ready-history]',list).forEach(btn=>btn.onclick=async()=>{
+         const x=history[Number(btn.dataset.readyHistory)],ph=phoneNum(phone.value);
+         if(x.class_id!==classEl.value||x.student_key!==studentEl.value){note(body,t('اختر التلميذ صاحب الشهادة أو التقييم أولًا.','Sélectionnez d’abord l’élève concerné.'));return}
+         if(!/^[0-9]{8}$/.test(ph)||!consent.checked){note(body,t('أدخل رقم ولي الأمر ووافق على التواصل قبل إعداد الرسالة.','Numéro et consentement requis.'));return}
+         btn.disabled=true;
+         try{
+           await request('/api/family/contacts','PUT',{classId:classEl.value,studentKey:studentEl.value,phone:ph,consent:true});
+           contacts[studentEl.value]={phone:'222'+ph,consent:true};
+           await request('/api/family/records/'+encodeURIComponent(x.id)+'/queue','POST');
+           note(body,t('تمت إضافة الرسالة إلى قائمة واتساب نتائجي الرسمية؛ لم تُرسل بعد.','Message ajouté à la boîte officielle, non envoyé.'),true);
+           await refreshHistory()
+         }catch{note(body,t('تعذر تجهيز الرسالة. تحقق من الرقم والموافقة.','Impossible de préparer le message.'))}
+         finally{btn.disabled=false}
+       });
      }catch{const list=$('#familyHistory',body);if(list)list.textContent=t('تعذر جلب السجل الآن','Historique indisponible')}
    }
    $('button#familyQueue',body).onclick=async()=>{
      const btn=$('#familyQueue',body),kind=$('input[name=familyKind]:checked',body).value,id=uuid();
      const classId=classEl.value,studentKey=studentEl.value,ph=phoneNum(phone.value);
-     if(!studentKey||!/^[0-9]{8}$/.test(ph)||!consent.checked){note(body,t('اختر التلميذ وأدخل رقمًا موريتانيًا صحيحًا مع تأكيد موافقة ولي الأمر.','Choisissez un élève, indiquez 8 chiffres et confirmez le consentement.'));return}
+     if(!studentKey){note(body,t('اختر التلميذ أولًا.','Sélectionnez un élève.'));return}
+     const withConsent=/^[0-9]{8}$/.test(ph)&&consent.checked;
+     if(kind==='results'&&!withConsent){note(body,t('يجب إدخال رقم ولي الأمر وموافقته لإشعار النتائج.','Numéro et consentement requis pour les résultats.'));return}
      if(navigator.onLine===false){note(body,t('يلزم الإنترنت لحفظ الرسالة لدى نتائجي. لم تُرسل أي رسالة.','Une connexion est nécessaire pour enregistrer le message. Aucun message envoyé.'));return}
      btn.disabled=true;
      try{
-       await request('/api/family/contacts','PUT',{classId,studentKey,phone:ph,consent:true});
-       contacts[studentKey]={phone:'222'+ph,consent:true};
+       if(withConsent){
+         await request('/api/family/contacts','PUT',{classId,studentKey,phone:ph,consent:true});
+         contacts[studentKey]={phone:'222'+ph,consent:true};
+       }
        const saved=await request('/api/family/records','POST',{id,classId,studentKey,kind,data:bodyData(kind)});
-       note(body,t('✓ حُفظت العملية في نتائجي، وأُضيف الإشعار إلى قائمة المسؤول. لم تُرسل رسالة واتساب بعد.','✓ Enregistré et placé dans la file du responsable. Aucun message WhatsApp envoyé.'),true);
+       note(body,saved.queued?t('✓ حُفظت العملية وأُضيفت إلى قائمة مسؤول نتائجي، ولم تُرسل بعد.','✓ Enregistré dans la file du responsable, non envoyé.'):t('✓ حُفظت الشهادة أو التقييم باسمك دون الحاجة إلى موافقة المدير، ولم تُرسل إلى ولي الأمر.','✓ Certificat ou évaluation enregistré indépendamment, sans envoi WhatsApp.'),true);
        await refreshHistory();
        if(kind==='award'){const cls=classes.find(c=>String(c.id)===classId);void showAward({student_name:saved.studentName,class_name:saved.className,school_name:saved.schoolName,actor_name:user.name||'',data:saved.data})}
      }catch(error){
