@@ -19,7 +19,7 @@
  const ATT={present:['حاضر','Présent'],late:['متأخر','En retard'],absent:['غائب','Absent'],excused:['غياب مبرر','Absence justifiée'],'not-recorded':['لم يسجل','Non renseigné']};
  const RATE={excellent:['ممتاز','Excellent'],'very-good':['جيد جدًا','Très bien'],good:['جيد','Bien'],'needs-support':['يحتاج دعمًا','À accompagner'],'not-recorded':['لم يسجل','Non renseigné']};
  const pair=(map,key)=>map[key]?.[fr()?1:0]||String(key||'');
- const today=()=>new Date().toLocaleDateString('en-CA');
+ const today=()=>new Date().toISOString().slice(0,10);
  const uuid=()=>crypto.randomUUID();
  const phoneNum=v=>{const digits=String(v||'').replace(/[^0-9]/g,'').replace(/^00/,'');return digits.startsWith('222')&&digits.length===11?digits.slice(3):digits};
  async function request(url,method='GET',body){
@@ -122,6 +122,7 @@
      }finally{btn.disabled=false}
    };
    classEl.onchange=changeClass;studentEl.onchange=syncContact;
+   phone.oninput=()=>{if(phoneNum(phone.value)!==phoneNum(contacts[studentEl.value]?.phone))consent.checked=false};
    $$('input[name=familyKind]',body).forEach(x=>x.onchange=drawFields);
    drawFields();fillStudents();void changeClass();void refreshHistory();
  }
@@ -189,6 +190,7 @@
           <div class="family-message-preview">${esc(formatMessage(rec))}</div>
           <div class="family-actions"><button data-open="${i}" class="family-primary">${t('فتح في واتساب','Ouvrir WhatsApp')}</button>
           <button data-sent="${i}" class="family-secondary">${t('تأكيد الإرسال','Confirmer l’envoi')}</button>
+          <button data-copy="${i}" class="family-secondary">${t('نسخ الرسالة','Copier le message')}</button>
           ${rec.kind==='award'?`<button data-certificate="${i}" class="family-secondary">${t('الشهادة','Certificat')}</button>`:''}</div>
           </article>`).join(''):`<p class="family-tiny">${t('لا توجد رسائل في هذه القائمة','Aucun message dans cette liste')}</p>`;
        $$('[data-open]',list).forEach(button=>button.onclick=async()=>{
@@ -199,7 +201,8 @@
          const a=document.createElement('a');a.href=url;a.target='_blank';a.rel='noopener noreferrer';document.body.appendChild(a);a.click();a.remove();
          try{await request('/api/family/owner/records/'+encodeURIComponent(rec.id)+'/status','POST',{status:'opened'});await refresh()}catch{note(body,t('فتحت واتساب، لكن تعذر تحديث حالة الرسالة.','WhatsApp ouvert, mais mise à jour impossible.'))}
        });
-       $$('[data-sent]',list).forEach(button=>button.onclick=async()=>{
+       $('[data-copy]',list).forEach(button=>button.onclick=async()=>{const rec=rows[Number(button.dataset.copy)],value=formatMessage(rec);try{await navigator.clipboard.writeText(value);note(body,t('تم نسخ الرسالة. الصقها داخل واتساب أعمال نتائجي.','Message copié. Collez-le dans WhatsApp Business Nataiji.'),true)}catch{window.prompt(t('انسخ الرسالة من هنا','Copiez le message'),value)}});
+       $('[data-sent]',list).forEach(button=>button.onclick=async()=>{
          const rec=rows[Number(button.dataset.sent)];
          if(!confirm(t('هل تحققت بنفسك من إرسال هذه الرسالة من واتساب أعمال نتائجي الرسمي؟','Avez-vous réellement envoyé ce message depuis WhatsApp Business Nataiji ?')))return;
          try{await request('/api/family/owner/records/'+encodeURIComponent(rec.id)+'/status','POST',{status:'sent'});await refresh()}catch{note(body,t('تعذر تأكيد الحالة.','Mise à jour impossible.'))}
