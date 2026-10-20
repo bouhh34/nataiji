@@ -155,9 +155,19 @@
    const w=modal(t('شهادة تكريم','Certificat de distinction'));
    w.body.innerHTML=`<p class="family-hint">${preview?t('معاينة فقط: لم تُحفظ الشهادة بعد.','Aperçu uniquement, non enregistré.'):t('تم إنشاء الشهادة من طرف المعلم أو الأستاذ دون اعتماد المدير.','Certificat créé par l’enseignant sans validation du directeur.')}</p>
    <div class="family-award-preview"></div><button type="button" id="familyAwardDownload" class="family-primary">${t('حفظ شهادة PNG على الهاتف','Enregistrer le certificat PNG')}</button>
+   <button type="button" id="familyAwardPDF" class="family-secondary">${t('طباعة أو حفظ PDF على الهاتف','Imprimer ou enregistrer en PDF')}</button>
    <p class="family-message" aria-live="polite"></p>`;
    const raw=awardSVG(record),previewHost=$('.family-award-preview',w.body);
    previewHost.innerHTML=raw.replace('<svg ','<svg role="img" aria-label="'+t('شهادة تكريم','Certificat')+'" ');
+   $('#familyAwardPDF',w.body).onclick=()=>{
+     const doc='<!doctype html><html lang="ar" dir="rtl"><head><meta charset="utf-8"><title>شهادة تكريم | نتائجي</title><style>@page{size:A4 landscape;margin:0}html,body{padding:0;margin:0;background:#fff}svg{display:block;width:100vw;height:auto;max-height:100vh;margin:auto}</style></head><body>'+raw+'</body></html>';
+     const native=window.Capacitor?.isNativePlatform?.()===true||window.Capacitor?.getPlatform?.()==='android';
+     if(native&&typeof window.nataijiPrintDocument==='function'){void window.nataijiPrintDocument({html:doc,title:'Nataiji - Certificat',landscape:true});return}
+     const tab=window.open('about:blank','_blank');
+     if(!tab){note(w.body,t('اسمح بفتح صفحة الطباعة من المتصفح.','Autorisez la fenêtre d’impression.'));return}
+     tab.document.open();tab.document.write(doc);tab.document.close();
+     tab.focus();setTimeout(()=>{try{tab.print()}catch{}},400)
+   };
    $('#familyAwardDownload',w.body).onclick=async()=>{
      const button=$('#familyAwardDownload',w.body);button.disabled=true;
      try{
