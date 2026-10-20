@@ -6,13 +6,13 @@ const read=path=>fs.readFileSync(new URL('../'+path,import.meta.url),'utf8');
 const html=read('public/index.html'),sw=read('public/sw.js'),css=read('public/director-v1.css'),js=read('public/director-v1.js');
 
 test('the original director theme, not the premium redesign, loads on web and Android offline',()=>{
- for(const asset of ['director-v1.css?v=8','director-v1.js?v=12']){
+ for(const asset of ['director-v1.css?v=9','director-v1.js?v=13']){
   assert.ok(html.includes('/'+asset),'index missing '+asset);
   assert.ok(sw.includes('/'+asset),'offline shell missing '+asset);
  }
  assert.doesNotMatch(html,/director-premium-v1\.css/);
  assert.doesNotMatch(sw,/director-premium-v1\.css/);
- assert.match(sw,/nataiji-shell-v189/);
+ assert.match(sw,/nataiji-shell-v190/);
 });
 test('the classic large register cards and original dashboard are restored',()=>{
  assert.match(css,/\.director-card\{[^}]*min-height:130px/);
@@ -62,4 +62,17 @@ test('collective attendance print includes every teacher and escapes user text',
  vm.createContext(context);vm.runInContext(js.slice(js.indexOf('const staffStatuses='),js.indexOf('async function editStaffAttendance')),context);
  const output=context.staffAttendanceTable({record_date:'2026-10-20',details:{staff:[{name:'محمد',status:'present',time:'08:00',notes:'<script>bad</script>'},{name:'Fatima',status:'absent',time:'',notes:''}]}});
  assert.match(output,/محمد/);assert.match(output,/Fatima/);assert.match(output,/حاضر \/ Présent/);assert.match(output,/غائب \/ Absent/);assert.match(output,/<thead>/);assert.match(output,/2026-10-20/);assert.doesNotMatch(output,/<script>/);assert.match(output,/&lt;script&gt;/);
+});
+
+test('director reads share in-flight requests and writes invalidate short-lived cache',async()=>{
+ let calls=0;
+ const ctx={api:async()=>{calls++;return {ok:true}},navigator:{onLine:true},user:{id:'director-a'},institution:{id:'school-a'},Date,Map,Promise,Error};
+ vm.createContext(ctx);
+ vm.runInContext(js.slice(js.indexOf('const directorReadCache='),js.indexOf('function apiPost')),ctx);
+ await Promise.all([ctx.network('/api/director/overview'),ctx.network('/api/director/overview')]);assert.equal(calls,1);
+ await ctx.network('/api/director/overview');assert.equal(calls,1);
+ await ctx.network('/api/director/registers/one',{method:'DELETE'});
+ await ctx.network('/api/director/overview');assert.equal(calls,3);
+ ctx.user={id:'director-b'};await ctx.network('/api/director/overview');assert.equal(calls,4);
+ ctx.navigator.onLine=false;await assert.rejects(()=>ctx.network('/api/director/overview'),/offline/);
 });

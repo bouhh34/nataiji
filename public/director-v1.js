@@ -200,7 +200,26 @@ function openTeacherArea(){
 }
 function err(e){return ({director_institution_missing:t('أنشئ المؤسسة أولًا','Créez votre établissement'),institution_already_exists:t('توجد مؤسسة مرتبطة بهذا الحساب','Un établissement est déjà associé'),record_version_conflict:t('تم تعديل السجل على جهاز آخر؛ أعد تحميله','Ce registre a été modifié sur un autre appareil'),sensitive_register_not_enabled:t('سيُفعّل السجل الصحي بعد توفير الحماية المطلوبة','Ce registre sera activé après sécurisation'),durable_storage_required:t('قاعدة البيانات غير متاحة حاليًا','Base de données indisponible')})[e?.code]||t('تعذر الحفظ؛ تحقق من الاتصال وأعد المحاولة','Enregistrement impossible, vérifiez votre connexion')}
 function message(value,bad=false){const el=$('#directorMessage');if(el){el.textContent=value;el.classList.toggle('bad',bad)}}
-function network(url,options={}){if(navigator.onLine===false)throw Object.assign(Error('offline'),{code:'offline'});return api(url,options)}
+const directorReadCache=new Map(),directorReadPending=new Map();
+let directorReadEpoch=0;
+function clearDirectorReads(){directorReadEpoch++;directorReadCache.clear();directorReadPending.clear()}
+async function network(url,options={}){
+ if(navigator.onLine===false)throw Object.assign(Error('offline'),{code:'offline'});
+ const method=String(options.method||'GET').toUpperCase();
+ if(method!=='GET'){clearDirectorReads();try{return await api(url,options)}finally{clearDirectorReads()}}
+ const cacheable=['/api/director/overview','/api/director/members'].includes(url)||url.startsWith('/api/director/registers?');
+ if(!cacheable)return api(url,options);
+ const key=String(user?.id||'')+':'+String(institution?.id||'')+':'+url,cached=directorReadCache.get(key);
+ if(cached&&Date.now()-cached.time<20000)return cached.data;
+ if(directorReadPending.has(key))return directorReadPending.get(key);
+ const epoch=directorReadEpoch;
+ const pending=Promise.resolve().then(()=>api(url,options)).then(data=>{
+  const value={...data,_directorFetchedAt:Date.now()};
+  if(epoch===directorReadEpoch)directorReadCache.set(key,{data:value,time:Date.now()});
+  return value;
+ }).finally(()=>{if(directorReadPending.get(key)===pending)directorReadPending.delete(key)});
+ directorReadPending.set(key,pending);return pending;
+}
 function apiPost(url,data,method='POST'){return network(url,{method,body:JSON.stringify(data)})}
 const formField=(name,label,value='',kind='text')=>'<label>'+label+'<input name="'+name+'" type="'+kind+'" value="'+esc(value)+'" maxlength="160" required></label>';
 function frame(title,contents,options={}){
@@ -241,10 +260,10 @@ async function dashboard(){
  const el=show();el.innerHTML='<div class="director-loading">'+t('جاري تحميل الإدارة...','Chargement...')+'</div>';
  try{
   try{
-   const r=await network('/api/director/institution');institution=r.institution;
+   overview=await network('/api/director/overview');institution=overview.institution;
    if(!institution)return institutionForm();
-   overview=await network('/api/director/overview');saveCachedHome();
-  }catch(error){const cached=readCachedHome();if(!cached)throw error;institution=cached.institution;overview=cached.overview}
+   saveCachedHome();
+  }catch(error){if(error?.status===404)return institutionForm();const cached=readCachedHome();if(!cached)throw error;institution=cached.institution;overview=cached.overview}
 
   const body=(window.__nataijiOfflineActive||navigator.onLine===false?'<p class="director-offline-notice">'+t('وضع دون إنترنت: البيانات المحفوظة متاحة للقراءة، ويلزم الاتصال لحفظ التعديلات.','Hors connexion : consultation disponible, enregistrement après reconnexion.')+'</p>':'')+'<div class="director-welcome"><div><small>'+t('لوحة المدير','Espace direction')+'</small><h2>'+esc(institution.name)+'</h2><p>'+esc(institution.academic_year||'')+' · '+t('إدارة مستقلة مع ربط اختياري للمعلمين','Gestion autonome et partage facultatif')+'</p></div><button type="button" id="directorSettings">'+t('الإعدادات','Paramètres')+'</button></div>'+
   '<div class="director-stats"><article><b>'+Number(overview.memberCount||0)+'</b><span>'+t('معلمون مرتبطون','Enseignants liés')+'</span></article><article><b>'+Object.values(overview.registerCounts||{}).reduce((a,b)=>a+Number(b||0),0)+'</b><span>'+t('قيود محفوظة','Entrées enregistrées')+'</span></article></div>'+
@@ -272,11 +291,11 @@ async function openRegister(){
  frame(t(row[1],row[2]),'<p class="director-register-intro">'+t('حفظ قيود المؤسسة وتنظيمها مع إمكانية التعديل والطباعة.','Enregistrez et organisez les documents, avec modification et impression.')+'</p><div class="director-tools director-register-tools"><button type="button" class="director-primary" id="directorNewEntry">'+directorIcon('plus',17)+t('إضافة قيد','Nouvelle entrée')+'</button><button type="button" id="directorSyncEntries">'+directorIcon('link',16)+t('مزامنة القيود','Synchroniser')+'</button></div><details class="director-sync-help"><summary>'+t('كيف تعمل المزامنة؟','Comment synchroniser ?')+'</summary><p class="director-sync-hint">'+t('ترسل المزامنة القيود المحفوظة على هذا الجهاز إلى حساب مؤسستك، ثم تُحدّث القائمة من الخادم.','La synchronisation envoie les entrées locales à votre établissement, puis actualise la liste depuis le serveur.')+'</p></details><p id="directorSyncStatus" role="status"></p><div id="directorRecords" aria-live="polite">'+t('جاري تحميل السجلات...','Chargement...')+'</div>');
  $('#directorNewEntry').onclick=()=>editEntry();
  if(category==='daily-attendance')$('#directorNewEntry').textContent=t('فتح سجل يوم','Ouvrir un registre journalier');
- $('#directorSyncEntries').onclick=async()=>{await flushPending();if($('#directorRecords'))await openRegister()};
+ $('#directorSyncEntries').onclick=async()=>{clearDirectorReads();await flushPending();if($('#directorRecords'))await openRegister()};
  try{
   try{
    const result=await network('/api/director/registers?category='+encodeURIComponent(category));records=result.records||[];
-   storeCachedRecords(category,records);const status=$('#directorSyncStatus');if(status)status.textContent=t('آخر تحديث من الخادم: ','Dernière actualisation : ')+new Date().toLocaleTimeString(lang()?'fr':'ar',{hour:'2-digit',minute:'2-digit'})
+   storeCachedRecords(category,records);const status=$('#directorSyncStatus');if(status)status.textContent=t('آخر تحديث من الخادم: ','Dernière actualisation : ')+new Date(result._directorFetchedAt||Date.now()).toLocaleTimeString(lang()?'fr':'ar',{hour:'2-digit',minute:'2-digit'})
   }catch(error){
    const cached=readCachedRecords(category);
    records=cached||[];const status=$('#directorSyncStatus');if(status)status.textContent=t('تعذر الاتصال بالخادم؛ لم تُؤكّد المزامنة.','Serveur indisponible ; synchronisation non confirmée.');
@@ -285,7 +304,7 @@ async function openRegister(){
   if(currentCategory!==category||!$('#directorRecords'))return;
   const entries=(await pendingEntries().catch(()=>[])).filter(x=>x.payload?.category===category);
   const pendingHtml=entries.map(item=>'<article class="director-record director-pending"><div><b>'+esc(item.payload.subject)+'</b><small>'+t('محفوظ على الجهاز — بانتظار المزامنة','Enregistré sur cet appareil — en attente de synchronisation')+'</small></div></article>').join('');
-  const savedHtml=records.map(x=>'<article class="director-record"><div><b>'+esc(x.subject)+'</b><small>'+esc(String(x.record_date).slice(0,10))+' · '+esc(x.reference||'—')+'</small></div><button data-director-edit="'+esc(x.id)+'" type="button">'+t('تعديل','Modifier')+'</button><button data-director-print="'+esc(x.id)+'" type="button">'+t('طباعة / PDF','Imprimer / PDF')+'</button></article>').join('');
+  const savedHtml=records.map(x=>'<article class="director-record"><div><b>'+esc(x.subject)+'</b><small>'+esc(String(x.record_date).slice(0,10))+' · '+esc(x.reference||'—')+'</small></div><button data-director-edit="'+esc(x.id)+'" type="button">'+t('تعديل','Modifier')+'</button><button data-director-print="'+esc(x.id)+'" type="button">'+t('طباعة / PDF','Imprimer / PDF')+'</button><button class="director-delete" data-director-delete="'+esc(x.id)+'" type="button">'+t('حذف','Supprimer')+'</button></article>').join('');
   $('#directorRecords').innerHTML=pendingHtml+savedHtml||'<div class="director-empty director-empty-register"><span class="director-empty-symbol" aria-hidden="true">'+directorIcon('bookmark',27)+'</span><h2>'+t('لا توجد قيود بعد','Aucune entrée pour le moment')+'</h2><p>'+t('ابدأ بإضافة أول قيد، وسيظهر هنا مع خيارات التعديل والطباعة.','Ajoutez une première entrée : elle apparaîtra ici avec les options de modification et d’impression.')+'</p><button id="directorEmptyAdd" class="director-primary" type="button">'+directorIcon('plus',18)+t('إضافة أول قيد','Ajouter la première entrée')+'</button></div>';
   if(records.length||entries.length){
    const container=$('#directorRecords'),search=document.createElement('label');search.className='director-search';
@@ -300,7 +319,18 @@ async function openRegister(){
   $('#directorEmptyAdd')?.addEventListener('click',()=>editEntry());
   if(category==='daily-attendance'&&$('#directorEmptyAdd'))$('#directorEmptyAdd').textContent=t('إنشاء سجل حضور الجميع','Créer le registre collectif');
   $$('[data-director-edit]').forEach(b=>b.onclick=()=>editEntry(records.find(x=>x.id===b.dataset.directorEdit)));
-  $$('[data-director-print]').forEach(b=>b.onclick=()=>{const item=records.find(x=>x.id===b.dataset.directorPrint);if(item)printDirectorRecord(item)});
+  $('[data-director-delete]').forEach(b=>b.onclick=async()=>{
+   const item=records.find(x=>x.id===b.dataset.directorDelete);
+   if(!item||!confirm(t('حذف هذا السجل من القائمة؟','Supprimer ce registre de la liste ?')+'\n'+item.subject))return;
+   b.disabled=true;
+   try{
+    const response=await apiPost('/api/director/registers/'+encodeURIComponent(item.id),{version:item.version},'DELETE');
+    if(!response?.ok)throw Error('delete_not_verified');
+    records=records.filter(x=>x.id!==item.id);storeCachedRecords(category,records);
+    if(currentCategory===category&&b.isConnected)await openRegister();
+   }catch(error){b.disabled=false;message(error.status===409?t('عُدّل السجل. حدّث القائمة قبل الحذف.','Registre modifié. Actualisez avant de supprimer.'):err(error),true)}
+  });
+  $('[data-director-print]').forEach(b=>b.onclick=()=>{const item=records.find(x=>x.id===b.dataset.directorPrint);if(item)printDirectorRecord(item)});
  }catch(error){message(err(error),true)}
 }
 function editEntry(row=null){
@@ -377,15 +407,18 @@ async function editStaffAttendance(existing=null,selectedDate=null){
  frame(t('حضور المعلمين — سجل جماعي','Présences — registre collectif'),'<p id="staffLoading" role="status">'+t('تحميل سجل اليوم والمعلمين...','Chargement du registre et des enseignants...')+'</p>',{backAction:()=>void openRegister()});
  const root=$('#staffLoading');
  try{
-  const result=await network('/api/director/registers?category=daily-attendance&recordDate='+encodeURIComponent(date)+'&limit=100');
-  if(!row)row=(result.records||[]).find(r=>r.details?.kind==='staff-attendance-v1');
-  if(row)staff=row.details.staff.map(r=>({...r}));
+  if(row){staff=row.details.staff.map(r=>({...r}))}
   else{
-   const recent=await network('/api/director/registers?category=daily-attendance&limit=100');
+   const [result,recent,membersResult]=await Promise.all([
+    network('/api/director/registers?category=daily-attendance&recordDate='+encodeURIComponent(date)+'&limit=100'),
+    network('/api/director/registers?category=daily-attendance&limit=100'),
+    network('/api/director/members').catch(()=>{membersFailed=true;return {members:[]}})
+   ]);
+   row=(result.records||[]).find(r=>r.details?.kind==='staff-attendance-v1');
    const previous=(recent.records||[]).find(r=>r.details?.kind==='staff-attendance-v1');
-   staff=(previous?.details.staff||[]).map(r=>({...r,status:'',time:'',notes:''}));
+   staff=row?row.details.staff.map(r=>({...r})):(previous?.details.staff||[]).map(r=>({...r,status:'',time:'',notes:''}));
+   membersList=membersResult.members||[];
   }
-  try{membersList=(await network('/api/director/members')).members||[]}catch{membersFailed=true}
   if(institution?.id!==schoolId||!root.isConnected||currentCategory!=='daily-attendance')return;
   // Saved days are historical snapshots. New days include linked staff and the previous manual list.
   if(!row)for(const m of membersList){if(!staff.some(r=>r.key==='user:'+m.user_id))staff.push({key:'user:'+m.user_id,name:m.name||t('معلم','Enseignant'),status:'',time:'',notes:''})}

@@ -156,3 +156,5 @@ html.nataiji-professor-mode #directorReturnButton{
 @media print{.director-save-bar,.director-search,.director-sync-help{display:none!important}}
 
 .staff-attendance-scroll{overflow-x:auto;max-width:100%}.staff-attendance-table{width:100%;min-width:680px;border-collapse:collapse}.staff-attendance-table th,.staff-attendance-table td{padding:8px;border:1px solid #dce7e4;text-align:start}.staff-attendance-table th{background:#eef8f4}.staff-attendance-table input,.staff-attendance-table select{min-width:100px;width:100%;min-height:44px}.staff-attendance-table td:first-child{min-width:190px}#staffAttendanceForm{max-width:1100px}
+
+.director-app .director-delete{color:#a32424;border-color:#e2aaaa}.director-app .director-record{flex-wrap:wrap}.director-app .director-record>div{flex:1 1 180px}

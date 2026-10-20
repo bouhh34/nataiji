@@ -68,7 +68,7 @@ test('web and Android cache the same timetable files and the original director d
  const html=fs.readFileSync(new URL('../public/index.html',import.meta.url),'utf8');
  const sw=fs.readFileSync(new URL('../public/sw.js',import.meta.url),'utf8');
  const front=fs.readFileSync(new URL('../public/director-v1.js',import.meta.url),'utf8');
- for(const a of ['director-timetables-v1.js?v=2','director-timetables-v1.css?v=1','director-v1.js?v=12']){assert.ok(html.includes(a));assert.ok(sw.includes(a))}
+ for(const a of ['director-timetables-v1.js?v=2','director-timetables-v1.css?v=1','director-v1.js?v=13']){assert.ok(html.includes(a));assert.ok(sw.includes(a))}
  assert.match(front,/id="directorTimetables"/);
  assert.match(front,/window\.NataijiDirectorTimetables\.open/);
  assert.doesNotMatch(html,/director-premium-v1\.css/);

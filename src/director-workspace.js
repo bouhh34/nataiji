@@ -188,6 +188,21 @@ export function mountDirectorRoutes(app,{auth,getPool,loadMember=async()=>null})
    await client.query('COMMIT');res.json({ok:true,record:result.rows[0]});
   }catch(e){await client.query('ROLLBACK');throw e}finally{client.release()}
  }));
+ app.delete('/api/director/registers/:id',auth,requireDirector,db,wrap(ownInstitution),wrap(async(req,res)=>{
+  const version=Number(req.body?.version);
+  if(!Number.isInteger(version)||version<1)return res.status(400).json({error:'invalid_register_version'});
+  const client=await getPool().connect();
+  try{
+   await client.query('BEGIN');
+   const prev=await client.query('SELECT * FROM nataiji_director_registers WHERE id=$1 AND institution_id=$2 AND deleted_at IS NULL FOR UPDATE',[req.params.id,req.directorInstitution.id]);
+   if(!prev.rowCount){await client.query('ROLLBACK');return res.status(404).json({error:'register_record_not_found'})}
+   if(sensitive.has(prev.rows[0].category)){await client.query('ROLLBACK');return res.status(403).json({error:'sensitive_register_not_enabled'})}
+   if(prev.rows[0].version!==version){await client.query('ROLLBACK');return res.status(409).json({error:'record_version_conflict'})}
+   await client.query('UPDATE nataiji_director_registers SET deleted_at=now(),client_mutation_id=NULL,version=version+1,updated_by=$3,updated_at=now() WHERE id=$1 AND institution_id=$2',[req.params.id,req.directorInstitution.id,req.user.id]);
+   await client.query('INSERT INTO nataiji_director_audit(institution_id,actor_id,record_id,action,before_data) VALUES($1,$2,$3,$4,$5::jsonb)',[req.directorInstitution.id,req.user.id,req.params.id,'delete',JSON.stringify(prev.rows[0])]);
+   await client.query('COMMIT');res.json({ok:true});
+  }catch(error){await client.query('ROLLBACK');throw error}finally{client.release()}
+ }));
  app.get('/api/director/audit',auth,requireDirector,db,wrap(ownInstitution),wrap(async(req,res)=>{
   const rows=await getPool().query('SELECT id,actor_id,record_id,action,occurred_at FROM nataiji_director_audit WHERE institution_id=$1 ORDER BY occurred_at DESC LIMIT 100',[req.directorInstitution.id]);
   res.json({ok:true,events:rows.rows});

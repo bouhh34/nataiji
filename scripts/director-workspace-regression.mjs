@@ -117,3 +117,28 @@ test('same-day collective saves are idempotent and conflicting second saves do n
  assert.equal((await harness(user,{...payload,details:{...collectiveDetails,staff:[{...collectiveDetails.staff[0],status:'late'}]}},{},pool).request('POST','/api/director/registers')).status,409);
  assert.equal(saved.details.staff.length,2);
 });
+
+test('register deletion is institution scoped, version checked, audited and soft',async()=>{
+ for(const mode of ['ok','missing','stale','health']){
+  const calls=[],record={id:'record-a',category:mode==='health'?'teacher-health':'daily-attendance',version:2};
+  const pool={async query(sql,p){calls.push({sql,p});
+   if(sql.includes('FROM nataiji_director_institutions'))return {rowCount:1,rows:[{id:'school-a',director_user_id:'director-a'}]};
+   if(sql.includes('FOR UPDATE')){assert.equal(p[1],'school-a');return {rowCount:mode==='missing'?0:1,rows:mode==='missing'?[]:[record]}}
+   return {rowCount:1,rows:[]};
+  },async connect(){return {...this,release(){}}}};
+  const h=harness({id:'director-a',role:'admin',profileType:'director'},{version:mode==='stale'?1:2},{},pool);
+  const r=await h.request('DELETE','/api/director/registers/:id');
+  assert.equal(r.status,{ok:200,missing:404,stale:409,health:403}[mode]);
+  const updates=calls.filter(c=>c.sql.startsWith('UPDATE nataiji_director_registers'));
+  assert.equal(updates.length,mode==='ok'?1:0);
+  if(mode==='ok'){
+   assert.match(updates[0].sql,/deleted_at=now\(\)/);
+   assert.match(updates[0].sql,/client_mutation_id=NULL/);
+   assert.ok(calls.some(c=>c.sql.includes('nataiji_director_audit')&&c.p[3]==='delete'));
+  }
+ }
+});
+test('teachers cannot delete director registers and deletion requires a version',async()=>{
+ assert.equal((await harness({id:'teacher',role:'teacher',profileType:'teacher'},{version:1}).request('DELETE','/api/director/registers/:id')).status,403);
+ assert.equal((await harness({id:'director-a',role:'admin',profileType:'director'},{}).request('DELETE','/api/director/registers/:id')).status,400);
+});
