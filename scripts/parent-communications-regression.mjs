@@ -23,10 +23,12 @@ function setup(){
    return {rows:[...contacts.values()].filter(c=>c.updated_by===teacher.id),rowCount:contacts.size};
   }
   if(sql.startsWith('INSERT INTO nataiji_parent_outbox')){
-   const [id,scope,school,classId,className,pupilId,pupilName,phone,kind,payload,issuedBy,issuedByName]=args;
-   outbox.set(id,{id,scope_key:scope,school_name:school,class_id:classId,class_name:className,pupil_key:pupilId,pupil_name:pupilName,phone,kind,payload:JSON.parse(payload),issued_by:issuedBy,issued_by_name:issuedByName,status:'pending'});
+   const [id,scope,school,classId,className,pupilId,pupilName,phone,kind,payload,issuedBy,issuedByName,status]=args;
+   outbox.set(id,{id,scope_key:scope,school_name:school,class_id:classId,class_name:className,pupil_key:pupilId,pupil_name:pupilName,phone,kind,payload:JSON.parse(payload),issued_by:issuedBy,issued_by_name:issuedByName,status});
    return {rows:[],rowCount:1};
   }
+  if(sql.includes('FROM nataiji_parent_outbox WHERE id=$1 AND issued_by=$2')){const row=outbox.get(args[0]);return {rows:row&&row.issued_by===args[1]?[row]:[],rowCount:row&&row.issued_by===args[1]?1:0}}
+  if(sql.startsWith("UPDATE nataiji_parent_outbox SET status='pending'")){const row=outbox.get(args[0]);if(!row||row.status!=='private'||row.issued_by!==args[1])return {rows:[],rowCount:0};row.status='pending';row.phone=args[2];return {rows:[row],rowCount:1}}
   if(sql.includes('FROM nataiji_parent_outbox WHERE issued_by=$1')){
    const items=[...outbox.values()].filter(x=>x.issued_by===args[0]);
    return {rows:items,rowCount:items.length};
@@ -66,11 +68,11 @@ test('Contact consent and teacher-issued award are scoped without director appro
  const forbidden=await x.request('GET','/api/parent-communications/students',{query:{classId:'class-b'}});
  assert.equal(forbidden.code,403);
  const premature=await x.request('POST','/api/parent-communications/queue',{body:{classId:'class-a',pupilKey:'p-123',kind:'award',award:'excellence'}});
- assert.equal(premature.code,409);
+ assert.equal(premature.code,201);assert.equal(premature.payload.status,'private');
  const contact=await x.request('PUT','/api/parent-communications/contacts/:pupilKey',{params:{pupilKey:'p-123'},body:{classId:'class-a',phone:'44112233',consent:true}});
  assert.equal(contact.payload.phone,'+22244112233');
  const award=await x.request('POST','/api/parent-communications/queue',{body:{classId:'class-a',pupilKey:'p-123',kind:'award',award:'excellence',note:'أحسنت'}});
- assert.equal(award.code,201);assert.equal(award.payload.status,'pending');assert.equal(x.outbox.size,1);
+ assert.equal(award.code,201);assert.equal(award.payload.status,'pending');assert.equal(x.outbox.size,2);
  assert.equal([...x.outbox.values()][0].issued_by,teacher.id);
  const cert=await x.request('GET','/api/parent-communications/awards/:id',{params:{id:award.payload.id}});
  assert.equal(cert.code,200);
@@ -88,8 +90,13 @@ test('Daily data is validated; ordinary teacher cannot access unrelated class',a
  const valid=await x.request('PUT','/api/parent-communications/contacts/:pupilKey',{params:{pupilKey:'p-123'},body:{classId:'class-a',phone:'44112233',consent:false}});
  assert.equal(valid.code,200);
  const blocked=await x.request('POST','/api/parent-communications/queue',{body:{classId:'class-a',pupilKey:'p-123',kind:'daily',attendance:'present',rating:'good'}});
- assert.equal(blocked.code,409);
- assert.equal(x.outbox.size,0);
+ assert.equal(blocked.code,201);assert.equal(blocked.payload.status,'private');
+ assert.equal(x.outbox.size,1);
+ const withoutConsent=await x.request('POST','/api/parent-communications/mine/:id/share',{params:{id:blocked.payload.id}});
+ assert.equal(withoutConsent.code,409);
+ await x.request('PUT','/api/parent-communications/contacts/:pupilKey',{params:{pupilKey:'p-123'},body:{classId:'class-a',phone:'44112233',consent:true}});
+ const ready=await x.request('POST','/api/parent-communications/mine/:id/share',{params:{id:blocked.payload.id}});
+ assert.equal(ready.code,200);assert.equal(ready.payload.item.status,'pending');
 });
 test('Mobile source uses manual WhatsApp handoff, not background API sending',()=>{
  const client=readFileSync(new URL('../public/parent-communications-v1.js',import.meta.url),'utf8');
