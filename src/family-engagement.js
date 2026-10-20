@@ -150,7 +150,13 @@ export function mountFamilyRoutes(app,{auth,ownerOnly,getPool,loadProfessorProfi
     const rows=await getPool().query(`UPDATE nataiji_family_records
        SET status=$2,opened_at=CASE WHEN $2='opened' THEN now() ELSE opened_at END,
        marked_sent_at=CASE WHEN $2='sent' THEN now() ELSE NULL END
-       WHERE id=$1 RETURNING id,status`,[id,status]);
+       WHERE id=$1 AND status <> 'cancelled'
+       AND EXISTS(SELECT 1 FROM nataiji_family_contacts c
+         WHERE c.actor_id=nataiji_family_records.actor_id
+         AND c.class_id=nataiji_family_records.class_id
+         AND c.student_key=nataiji_family_records.student_key
+         AND c.phone=nataiji_family_records.guardian_phone AND c.consent=true)
+       RETURNING id,status`,[id,status]);
     if(!rows.rowCount)return res.status(404).json({error:'record_not_found'});
     res.json({ok:true,record:rows.rows[0]});
   });
