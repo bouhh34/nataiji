@@ -6,13 +6,13 @@ const read=path=>fs.readFileSync(new URL('../'+path,import.meta.url),'utf8');
 const html=read('public/index.html'),sw=read('public/sw.js'),css=read('public/director-v1.css'),js=read('public/director-v1.js');
 
 test('the original director theme, not the premium redesign, loads on web and Android offline',()=>{
- for(const asset of ['director-v1.css?v=9','director-v1.js?v=13']){
+ for(const asset of ['director-v1.css?v=9','director-v1.js?v=14']){
   assert.ok(html.includes('/'+asset),'index missing '+asset);
   assert.ok(sw.includes('/'+asset),'offline shell missing '+asset);
  }
  assert.doesNotMatch(html,/director-premium-v1\.css/);
  assert.doesNotMatch(sw,/director-premium-v1\.css/);
- assert.match(sw,/nataiji-shell-v190/);
+ assert.match(sw,/nataiji-shell-v191/);
 });
 test('the classic large register cards and original dashboard are restored',()=>{
  assert.match(css,/\.director-card\{[^}]*min-height:130px/);
@@ -75,4 +75,12 @@ test('director reads share in-flight requests and writes invalidate short-lived 
  await ctx.network('/api/director/overview');assert.equal(calls,3);
  ctx.user={id:'director-b'};await ctx.network('/api/director/overview');assert.equal(calls,4);
  ctx.navigator.onLine=false;await assert.rejects(()=>ctx.network('/api/director/overview'),/offline/);
+});
+
+
+test('director record actions present edit, delete, and PDF in that order',()=>{
+ const row=js.slice(js.indexOf('const savedHtml='),js.indexOf("$('#directorRecords').innerHTML="));
+ assert.ok(row.indexOf('data-director-edit')<row.indexOf('data-director-delete'));
+ assert.ok(row.indexOf('data-director-delete')<row.indexOf('data-director-print'));
+ assert.match(js,/confirm\(t\('حذف هذا السجل من القائمة؟'/);
 });
