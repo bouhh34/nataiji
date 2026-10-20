@@ -107,7 +107,7 @@ export function mountParentCommunications(app,{auth,professorSpaceActor,getPool,
   res.json({ok:true,item:r.rows[0]});
  }));
  app.get('/api/parent-communications/awards/:id',...protectedRoutes,guarded(async(req,res)=>{
-  const r=await getPool().query("SELECT id,school_name,class_name,pupil_name,payload,issued_by_name,created_at FROM nataiji_parent_outbox WHERE id=$1 AND kind='award' AND issued_by=$2",[req.params.id,req.user.id]);
+  const r=req.user.isSuperAdmin?await getPool().query("SELECT id,school_name,class_name,pupil_name,payload,issued_by_name,created_at FROM nataiji_parent_outbox WHERE id=$1 AND kind='award'",[req.params.id]):await getPool().query("SELECT id,school_name,class_name,pupil_name,payload,issued_by_name,created_at FROM nataiji_parent_outbox WHERE id=$1 AND kind='award' AND issued_by=$2",[req.params.id,req.user.id]);
   if(!r.rowCount)return res.status(404).json({error:'award_not_found'});
   res.json({ok:true,award:r.rows[0]});
  }));
