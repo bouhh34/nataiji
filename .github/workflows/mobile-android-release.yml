@@ -24,7 +24,7 @@ on:
       - 'public/year-promotion-v1.js'
 
 permissions:
-  contents: read
+  contents: write
 
 jobs:
   build-release-aab:
@@ -162,3 +162,24 @@ jobs:
             release-build.txt
           if-no-files-found: error
           retention-days: 14
+
+      - name: Prepare direct AAB download
+        if: env.BUNDLE_SIGNED == 'true'
+        run: |
+          cp android/app/build/outputs/bundle/release/app-release.aab "Nataiji-v$ANDROID_VERSION_CODE.aab"
+          echo "PLAY_RELEASE_TAG=android-play-v$ANDROID_VERSION_CODE-${GITHUB_SHA:0:8}" >> "$GITHUB_ENV"
+      - name: Publish signed AAB download
+        if: env.BUNDLE_SIGNED == 'true'
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ env.PLAY_RELEASE_TAG }}
+          target_commitish: ${{ github.sha }}
+          name: Nataiji signed Android bundle v${{ env.ANDROID_VERSION_CODE }}
+          prerelease: true
+          make_latest: false
+          body: |
+            Signed Android App Bundle built from the source commit identified by this release.
+            For Google Play upload. This does not publish an update to Google Play automatically.
+          files: |
+            Nataiji-v${{ env.ANDROID_VERSION_CODE }}.aab
+            release-build.txt
