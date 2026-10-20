@@ -129,7 +129,7 @@
   try{
    outbox=(await api('/api/parent-communications/outbox?status='+status)).items||[];
    let html='<p class="nta-hint">'+esc(t('افتح هذه الشاشة من الهاتف المرتبط برقم WhatsApp Business الرسمي لنتائجي، وليس واتساب المعلم. فتح المحادثة لا يعني أن الرسالة أُرسلت.','Ouvrez depuis le téléphone lié au compte WhatsApp Business officiel, pas celui de l’enseignant. Ouvrir la conversation ne confirme pas l’envoi.'))+'</p>'+
-    '<div class="nta-filter"><button id="ntaPending" class="'+(status==='pending'?'active':'')+'">'+esc(t('بانتظار الإرسال','En attente'))+'</button><button id="ntaSent" class="'+(status==='sent'?'active':'')+'">'+esc(t('المعلّم كمرسل','Marqués envoyés'))+'</button></div>';
+    '<div class="nta-filter"><button id="ntaPending" class="'+(status==='pending'?'active':'')+'">'+esc(t('بانتظار الإرسال','En attente'))+'</button><button id="ntaSent" class="'+(status==='sent'?'active':'')+'">'+esc(t('وُسمت مرسلة','Marqués envoyés'))+'</button></div>';
    if(!outbox.length)html+='<p class="nta-empty">'+esc(t('لا توجد رسائل في هذه القائمة.','Aucun message dans cette liste.'))+'</p>';
    for(const item of outbox){
     html+='<article class="nta-message"><div class="nta-message-title"><b>'+esc(item.pupil_name)+'</b><small>'+esc(item.school_name)+' · '+esc(item.class_name)+'</small></div>'+
@@ -149,8 +149,9 @@
      if(!phone)return;
      // Trigger navigation in the direct click gesture; never mark sent here.
      const url='https://wa.me/'+phone+'?text='+encodeURIComponent(message(item));
-     const opened=window.open(url,'_blank','noopener,noreferrer');
-     if(!opened)location.href=url;
+     const opened=window.open(url,'_blank');
+     if(opened)opened.opener=null;
+     else location.href=url;
     };
     q('#ntaSent-'+item.id).onclick=async()=>{
      if(!confirm(t('هل أرسلت الرسالة فعلًا من حساب نتائجي الرسمي على هاتفك؟','Avez-vous réellement envoyé ce message depuis le compte officiel Nataiji ?')))return;
