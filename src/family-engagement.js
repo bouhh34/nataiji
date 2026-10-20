@@ -7,7 +7,7 @@ const awardTypes = new Set(['excellence','effort','behavior','attendance','progr
 const attendanceTypes = new Set(['present','late','absent','excused','not-recorded']);
 const assessmentTypes = new Set(['excellent','very-good','good','needs-support','not-recorded']);
 const cleanText = (value,max) => String(value ?? '').trim().slice(0,max);
-function normalizeMauritaniaPhone(input) {
+export function normalizeMauritaniaPhone(input) {
   const raw=String(input||'').replace(/[\s().-]/g,'');
   const digits=raw.replace(/^\+/,'').replace(/^00/,'');
   const eight=digits.startsWith('222')&&digits.length===11?digits.slice(3):digits;
