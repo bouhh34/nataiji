@@ -53,6 +53,7 @@
     <section class="family-contact"><h3>${t('بيانات ولي الأمر','Contact du parent')}</h3>
       <label>${t('رقم واتساب ولي الأمر (موريتانيا)','WhatsApp du parent (Mauritanie)')}<input id="familyPhone" type="tel" inputmode="tel" autocomplete="off" placeholder="+222 34 00 00 00"></label>
       <label class="family-checkbox"><input id="familyConsent" type="checkbox"> ${t('أؤكد أن ولي الأمر وافق على استقبال الرسائل المدرسية من نتائجي على هذا الرقم.','Je confirme le consentement du parent à recevoir les messages scolaires de Nataiji.')}</label>
+      <button type="button" id="familyRevoke" class="family-secondary">${t('إلغاء موافقة ولي الأمر وإيقاف الرسائل','Révoquer le consentement et bloquer les messages')}</button>
       <p class="family-tiny">${t('لا يظهر رقم المعلم لولي الأمر. ولا تُرسل رسالة بمجرد الحفظ.','Le numéro de l’enseignant n’est pas partagé. L’enregistrement ne déclenche aucun envoi.')}</p></section>
     <button type="button" id="familyQueue" class="family-primary">${t('حفظ وتجهيز رسالة لنتائجي','Enregistrer et préparer le message')}</button>
     <p class="family-message" aria-live="polite"></p>
@@ -120,6 +121,16 @@
        const errors={parent_contact_and_consent_required:t('يجب تسجيل موافقة ولي الأمر أولًا','Consentement requis'),student_not_authorized:t('ليس لديك صلاحية على هذا التلميذ','Accès non autorisé'),durable_storage_required:t('قاعدة البيانات غير متاحة','Base de données indisponible')};
        note(body,errors[error.message]||t('تعذر حفظ العملية. حاول لاحقًا.','Enregistrement impossible. Réessayez.'))
      }finally{btn.disabled=false}
+   };
+   $('#familyRevoke',body).onclick=async()=>{
+     const classId=classEl.value,studentKey=studentEl.value;
+     if(!contacts[studentKey]){note(body,t('لا توجد موافقة محفوظة لهذا التلميذ.','Aucun consentement enregistré pour cet élève.'));return}
+     if(!confirm(t('ستُلغى الموافقة وتُوقف الرسائل المعلقة على هذا الرقم. تأكيد؟','Le consentement et les messages en attente seront annulés. Confirmer ?')))return;
+     try{
+       await request('/api/family/contacts','DELETE',{classId,studentKey});
+       delete contacts[studentKey];syncContact();
+       note(body,t('أُلغي الإذن وأُوقفت الرسائل التي لم تُرسل.','Consentement révoqué et messages non envoyés bloqués.'),true)
+     }catch{note(body,t('تعذر إلغاء الموافقة. تحقق من الاتصال.','Révocation impossible. Vérifiez la connexion.'))}
    };
    classEl.onchange=changeClass;studentEl.onchange=syncContact;
    phone.oninput=()=>{if(phoneNum(phone.value)!==phoneNum(contacts[studentEl.value]?.phone))consent.checked=false};
