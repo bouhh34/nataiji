@@ -91,15 +91,15 @@
  }
  async function queue(){
   if(busy)return;
-  if(!current()?.consent){note(t('احفظ رقم ولي الأمر وموافقته أولًا.','Enregistrez d’abord le numéro et le consentement.'),true);return}
   const kind=q('#ntaKind').value;
+  if(kind==='result'&&!current()?.consent){note(t('احفظ رقم ولي الأمر وموافقته أولًا لإشعار النتائج.','Enregistrez le numéro et le consentement avant une notification de résultats.'),true);return}
   if(kind==='result'&&!confirm(t('هل تم اعتماد النتائج ونشرها فعلًا؟','Les résultats ont-ils été validés et publiés ?')))return;
   lock(true);try{
    const data={classId:chosenClass,pupilKey:chosenPupil,kind};
    if(kind==='daily')Object.assign(data,{attendance:q('#ntaAttendance').value,rating:q('#ntaRating').value,note:q('#ntaNote').value});
    if(kind==='award')Object.assign(data,{award:q('#ntaAwardType').value,note:q('#ntaNote').value});
-   await api('/api/parent-communications/queue',{method:'POST',body:JSON.stringify(data)});
-   note(t('تم إعداد الرسالة وحفظها؛ مسؤول نتائجي سيرسلها من الهاتف الرسمي.','Message préparé et enregistré pour l’opérateur officiel.'));
+   const saved=await api('/api/parent-communications/queue',{method:'POST',body:JSON.stringify(data)});
+   note(saved.status==='private'?t('تم حفظ التقييم أو الشهادة باسم المعلم. لن تُرسل قبل تسجيل موافقة ولي الأمر.','Évaluation ou certificat enregistré, non partageable sans consentement.'):t('تم إعداد الرسالة وحفظها؛ مسؤول نتائجي سيرسلها من الهاتف الرسمي.','Message préparé et enregistré pour l’opérateur officiel.'));
    if(q('#ntaNote'))q('#ntaNote').value='';
   }catch(e){note(e.message==='guardian_consent_required'?t('تحتاج أولًا إلى موافقة ولي الأمر ورقم محفوظ.','Consentement et numéro requis.'):t('تعذر حفظ الرسالة. حاول من جديد.','Impossible d’enregistrer le message.'),true)}
   finally{lock(false)}
@@ -170,11 +170,15 @@
    for(const item of mine){
     html+='<article class="nta-message"><div class="nta-message-title"><b>'+esc(item.pupil_name)+'</b><small>'+esc(item.class_name)+' · '+esc(String(item.created_at).slice(0,10))+'</small></div>'+
     '<p>'+esc(item.kind==='award'?translated(awards,item.payload?.award):item.kind==='daily'?t('تقييم يومي','Évaluation quotidienne'):t('إشعار بنتائج','Notification des résultats'))+'</p>'+
-    '<small>'+esc(item.status==='sent'?t('وُسمت مرسلة يدويًا','Marqué envoyé manuellement'):t('بانتظار مسؤول نتائجي','En attente de l’opérateur'))+'</small>'+
+    '<small>'+esc(item.status==='sent'?t('وُسمت مرسلة يدويًا','Marqué envoyé manuellement'):item.status==='private'?t('محفوظة ولا تُرسل دون موافقة ولي الأمر','Enregistré sans envoi, consentement requis'):t('بانتظار مسؤول نتائجي','En attente de l’opérateur'))+'</small>'+ 
+    (item.status==='private'?button(t('تحضير إرسالها بعد تسجيل الموافقة','Préparer après consentement'),'ntaShare-'+item.id):'')+
     (item.kind==='award'?button(t('عرض / طباعة الشهادة','Voir / imprimer le certificat'),'ntaCertificate-'+item.id):'')+'</article>';
    }
    setBody(html);
-   for(const item of mine)if(item.kind==='award')q('#ntaCertificate-'+item.id).onclick=()=>certificate(item.id);
+   for(const item of mine){
+    if(item.kind==='award')q('#ntaCertificate-'+item.id).onclick=()=>certificate(item.id);
+    if(item.status==='private')q('#ntaShare-'+item.id).onclick=async()=>{try{await api('/api/parent-communications/mine/'+encodeURIComponent(item.id)+'/share',{method:'POST',body:'{}'});await history();note(t('أُضيفت الرسالة إلى صندوق نتائجي الرسمي.','Message ajouté à la boîte officielle.'))}catch{note(t('تحقق من رقم ولي الأمر وموافقته ثم أعد المحاولة.','Vérifiez le numéro et le consentement, puis réessayez.'),true)}};
+   }
   }catch{setBody('<p class="nta-error">'+esc(t('تعذر تحميل السجل.','Impossible de charger l’historique.'))+'</p>')}
  }
  async function certificate(id){
