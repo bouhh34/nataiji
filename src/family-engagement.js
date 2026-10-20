@@ -86,14 +86,14 @@ export function mountFamilyRoutes(app,{auth,ownerOnly,getPool,loadProfessorProfi
       VALUES($1,$2,$3,$4,true,now()) ON CONFLICT(actor_id,class_id,student_key)
       DO UPDATE SET phone=EXCLUDED.phone,consent=true,updated_at=now()`,[req.user.id,classId,studentKey,phone]);
     // A changed destination invalidates queued messages for the previous phone.
-    await getPool().query("UPDATE nataiji_family_records SET status='cancelled' WHERE actor_id=$1 AND class_id=$2 AND student_key=$3 AND guardian_phone<>$4 AND status IN ('pending','opened')",[req.user.id,classId,studentKey,phone]);
+    await getPool().query("UPDATE nataiji_family_records SET status='cancelled',guardian_phone='' WHERE actor_id=$1 AND class_id=$2 AND student_key=$3 AND guardian_phone<>$4 AND status IN ('pending','opened')",[req.user.id,classId,studentKey,phone]);
     res.json({ok:true,phone});
   });
   app.delete('/api/family/contacts',auth,db,author,async(req,res)=>{
     const classId=cleanText(req.body?.classId,120),studentKey=cleanText(req.body?.studentKey,120);
     if(!classId||!studentKey)return res.status(400).json({error:'invalid_contact'});
     await getPool().query('DELETE FROM nataiji_family_contacts WHERE actor_id=$1 AND class_id=$2 AND student_key=$3',[req.user.id,classId,studentKey]);
-    await getPool().query("UPDATE nataiji_family_records SET status='cancelled' WHERE actor_id=$1 AND class_id=$2 AND student_key=$3 AND status IN ('pending','opened')",[req.user.id,classId,studentKey]);
+    await getPool().query("UPDATE nataiji_family_records SET status='cancelled',guardian_phone='' WHERE actor_id=$1 AND class_id=$2 AND student_key=$3 AND status IN ('pending','opened')",[req.user.id,classId,studentKey]);
     res.json({ok:true,revoked:true})
   });
   app.post('/api/family/records',auth,db,author,async(req,res)=>{
