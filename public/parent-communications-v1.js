@@ -195,7 +195,20 @@
      '<footer>'+esc(t('الأستاذ / المعلم','Enseignant'))+': '+esc(a.issued_by_name)+' · '+esc(String(a.created_at).slice(0,10))+'</footer></section>'+
      '<div class="nta-cert-tools">'+button(t('طباعة / حفظ كـ PDF','Imprimer / Enregistrer PDF'),'ntaPrintCert','primary')+button(t('إغلاق','Fermer'),'ntaCloseCert')+'</div>';
    document.body.appendChild(wrap);
-   q('#ntaPrintCert',wrap).onclick=()=>{document.body.classList.add('nta-printing-certificate');window.print()};
+   q('#ntaPrintCert',wrap).onclick=async()=>{
+    const sheet=q('.nta-cert-sheet',wrap);
+    const page='<!doctype html><html lang="'+(fr()?'fr':'ar')+'" dir="'+(fr()?'ltr':'rtl')+'"><head><meta charset="utf-8"><base href="'+location.origin+'/"><style>'+
+      '@page{size:A4;margin:14mm}*{box-sizing:border-box}body{font-family:Arial,sans-serif;color:#123d52;margin:0;background:white}'+
+      '.nta-cert-sheet{width:100%;min-height:255mm;border:11px double #bb9042;outline:2px solid #143d53;outline-offset:-20px;display:flex;align-items:center;flex-direction:column;justify-content:space-around;text-align:center;padding:36px 25px}'+
+      'h1{font-size:34px;color:#a2782a}h2{font-size:19px}h3{font-size:21px}p{font-size:17px}.nta-cert-note{font-size:14px}footer{font-size:13px;line-height:2}'+
+      '</style></head><body>'+sheet.outerHTML+'</body></html>';
+    if(typeof window.nataijiPrintDocument==='function'){
+     const handled=await window.nataijiPrintDocument({html:page,title:t('شهادة تكريم','Certificat de distinction'),landscape:false});
+     if(handled)return;
+    }
+    document.body.classList.add('nta-printing-certificate');
+    window.print();
+   };
    q('#ntaCloseCert',wrap).onclick=()=>{document.body.classList.remove('nta-printing-certificate');wrap.remove()};
   }catch{note(t('تعذر تحميل الشهادة.','Impossible de charger le certificat.'),true)}
  }
