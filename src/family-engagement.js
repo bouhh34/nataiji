@@ -56,10 +56,20 @@ export function mountFamilyRoutes(app,{auth,ownerOnly,getPool,loadProfessorProfi
     const p=(data.pupils||[]).find(p=>String(p?.[7]||p?.[0])===studentKey);
     return p?{name:cleanText(p[1],160),className:cleanText(cls.name,120),schoolName:cleanText(school.school,160)}:null;
   }
+  async function classAuthorized(user,classId){
+    if(user.role==='professor'){
+      const profile=await loadProfessorProfile(user.id);
+      return (profile.classes||[]).some(x=>String(x.id)===classId)
+    }
+    const school=await loadTeacherSchool(user.schoolId);
+    if(user.role==='teacher'&&!assignedClassIds(user,school).some(x=>String(x)===classId))return false;
+    return (school.classes||[]).some(x=>String(x.id)===classId)
+  }
   const author=(req,res,next)=>allowedUser(req.user)?next():res.status(403).json({error:'forbidden'});
   app.get('/api/family/contacts',auth,db,author,async(req,res)=>{
     const classId=cleanText(req.query.classId,120);
     if(!classId)return res.status(400).json({error:'missing_class'});
+    if(!await classAuthorized(req.user,classId))return res.status(403).json({error:'forbidden_class'});
     const rows=await getPool().query('SELECT student_key,phone,consent FROM nataiji_family_contacts WHERE actor_id=$1 AND class_id=$2',[req.user.id,classId]);
     res.json({ok:true,contacts:rows.rows});
   });
