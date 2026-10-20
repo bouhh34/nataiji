@@ -20,9 +20,12 @@ test('schema prepares audited queue with contacts',async()=>{
 test('teacher/professor may award independently; only queued, never auto-sent',async()=>{
   const routes=new Map(),contacts=new Map(),records=new Map();
   const reg=method=>(url,...handlers)=>routes.set(method+' '+url,handlers);
-  const app={get:reg('GET'),post:reg('POST'),put:reg('PUT')};
+  const app={get:reg('GET'),post:reg('POST'),put:reg('PUT'),delete:reg('DELETE')};
   const db={query:async(sql,args=[])=>{
     const q=String(sql).replace(/\s+/g,' ');
+    if(q.includes('DELETE FROM nataiji_family_contacts')){
+      contacts.delete(args.join('/'));return {rowCount:1,rows:[]};
+    }
     if(q.includes('INSERT INTO nataiji_family_contacts')){
       contacts.set(args.slice(0,3).join('/'),{phone:args[3],consent:true});
       return {rowCount:1,rows:[]};
@@ -47,7 +50,7 @@ test('teacher/professor may award independently; only queued, never auto-sent',a
       const r=records.get(args[0]);if(!r)return{rowCount:0,rows:[]};
       r.status=args[1];return{rowCount:1,rows:[{id:r.id,status:r.status}]}
     }
-    if(q.includes('FROM nataiji_family_records WHERE status=')){
+    if(q.includes('FROM nataiji_family_records r INNER JOIN')&&q.includes('WHERE r.status=')){
       const rows=[...records.values()].filter(r=>r.status===args[0]);return{rowCount:rows.length,rows}
     }
     if(q.includes('FROM nataiji_family_records WHERE actor_id=')){
@@ -91,4 +94,7 @@ test('teacher/professor may award independently; only queued, never auto-sent',a
   const sent=await invoke('POST','/api/family/owner/records/:id/status',{status:'sent'},owner,{}, {id});
   assert.equal(sent.data.record.status,'sent');
   assert.equal(records.get(id).status,'sent');
+  const revoked=await invoke('DELETE','/api/family/contacts',{classId:'c1',studentKey:'s1'});
+  assert.equal(revoked.data.revoked,true);
+  assert.equal(contacts.size,0);
 });
