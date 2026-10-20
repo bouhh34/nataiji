@@ -191,8 +191,8 @@
      '<footer>'+esc(t('الأستاذ / المعلم','Enseignant'))+': '+esc(a.issued_by_name)+' · '+esc(String(a.created_at).slice(0,10))+'</footer></section>'+
      '<div class="nta-cert-tools">'+button(t('طباعة / حفظ كـ PDF','Imprimer / Enregistrer PDF'),'ntaPrintCert','primary')+button(t('إغلاق','Fermer'),'ntaCloseCert')+'</div>';
    document.body.appendChild(wrap);
-   q('#ntaPrintCert',wrap).onclick=()=>window.print();
-   q('#ntaCloseCert',wrap).onclick=()=>wrap.remove();
+   q('#ntaPrintCert',wrap).onclick=()=>{document.body.classList.add('nta-printing-certificate');window.print()};
+   q('#ntaCloseCert',wrap).onclick=()=>{document.body.classList.remove('nta-printing-certificate');wrap.remove()};
   }catch{note(t('تعذر تحميل الشهادة.','Impossible de charger le certificat.'),true)}
  }
  async function render(){
@@ -211,5 +211,6 @@
   }catch(e){alert(t('سجّل الدخول واتصل بالإنترنت أولًا.','Connectez-vous à votre compte et à Internet.'))}
  }
  document.getElementById('parentCommunicationsBtn')?.addEventListener('click',open);
+ window.addEventListener('afterprint',()=>document.body.classList.remove('nta-printing-certificate'));
  window.NataijiParentComms={open};
 })();
