@@ -137,6 +137,8 @@ function renderStaff(root,overview,staff,tab){
 }
 async function open(){
  if(!currentUser?.isSuperAdmin)return;const root=shell();
+  const familyButton=document.createElement('button');familyButton.type='button';familyButton.className='family-launch-button';familyButton.textContent=t('📨 صندوق رسائل أولياء الأمور · من واتساب نتائجي','📨 Messages aux parents · WhatsApp Nataiji');
+  q('.modal-card',root).insertBefore(familyButton,q('.staff-loading',root));familyButton.onclick=()=>window.NataijiFamily?.openOutbox();
  try{const [overview,staff]=await Promise.all([api('/api/owner/overview'),api('/api/owner/staff')]);renderStaff(root,overview,staff,'professor')}catch{const el=q('.staff-loading',root);if(el)el.textContent=t('تعذر تحميل الطاقم التعليمي الآن.','Impossible de charger le personnel éducatif.')}
 }
 document.addEventListener('click',e=>{
