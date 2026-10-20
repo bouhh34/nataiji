@@ -105,18 +105,23 @@
   finally{lock(false)}
  }
  function message(item){
-  const p=item.payload||{},header=fr()?'Nataiji | Communication scolaire':'نتائجي | إشعار مدرسي';
-  let lines=[header,(fr()?'Établissement : ':'المؤسسة: ')+item.school_name,(fr()?'Élève : ':'التلميذ: ')+item.pupil_name,(fr()?'Classe : ':'القسم: ')+item.class_name];
+  const p=item.payload||{};
+  const lines=[t('نتائجي | إشعار مدرسي','Nataiji | Communication scolaire')];
+  lines.push(t('المؤسسة: ','Établissement : ')+item.school_name);
+  lines.push(t('التلميذ: ','Élève : ')+item.pupil_name);
+  lines.push(t('القسم: ','Classe : ')+item.class_name);
   if(item.kind==='daily'){
-   lines.push(fr()?'Évaluation quotidienne':'التقييم اليومي');
-   lines.push((fr()?'Présence : ':'الحضور: ')+translated(attendance,p.attendance));
-   lines.push((fr()?'Appréciation : ':'التقييم: ')+translated(ratings,p.rating));
+   lines.push(t('التقييم اليومي','Évaluation quotidienne'));
+   lines.push(t('الحضور: ','Présence : ')+translated(attendance,p.attendance));
+   lines.push(t('التقييم: ','Appréciation : ')+translated(ratings,p.rating));
   }else if(item.kind==='award'){
-   lines.push((fr()?'Distinction : ':'شهادة تكريم: ')+translated(awards,p.award));
-  }else lines.push(fr()?'Les résultats sont disponibles auprès de votre établissement.':'تتوفر النتائج المعتمدة لدى المؤسسة؛ يرجى الاطلاع عليها عبر القنوات المدرسية.';
-  if(p.note)lines.push((fr()?'Observation : ':'ملاحظة: ')+p.note);
-  if(item.kind==='award')lines.push(fr()?'Délivrée par : '+item.issued_by_name:'صادرة عن المعلم/الأستاذ: '+item.issued_by_name);
-  lines.push(fr()?'Message préparé par Nataiji.':'رسالة من نظام نتائجي.');
+   lines.push(t('شهادة تكريم: ','Distinction : ')+translated(awards,p.award));
+  }else{
+   lines.push(t('تتوفر النتائج المعتمدة لدى المؤسسة؛ يرجى الاطلاع عليها عبر القنوات المدرسية.','Les résultats sont disponibles auprès de votre établissement.'));
+  }
+  if(p.note)lines.push(t('ملاحظة: ','Observation : ')+p.note);
+  if(item.kind==='award')lines.push(t('صادرة عن المعلم/الأستاذ: ','Délivrée par : ')+item.issued_by_name);
+  lines.push(t('رسالة من نظام نتائجي.','Message préparé par Nataiji.'));
   return lines.join('\n');
  }
  async function official(){
