@@ -447,7 +447,8 @@ $('#saveGrades').onclick=async()=>{
  }finally{button.textContent=old;button.disabled=false}
 };
 $('#student').onchange=renderReports;const showResultBtn=$('#showResult');if(showResultBtn)showResultBtn.onclick=renderReports;$('#addStudent').onclick=addStudent;$('#settingsBtn').onclick=openSettings;$('#subjectsBtn').onclick=openSubjects;
-$('#logoutBtn').onclick=async()=>{try{await api('/api/auth/logout',{method:'POST',body:'{}'})}catch{}window.NataijiOfflineResume?.clear();currentUser=null;await showAuth('login')};
+$('#familyTeacherBtn').onclick=()=>window.NataijiFamily?.openTeacher(currentUser,state);
+ $('#logoutBtn').onclick=async()=>{try{await api('/api/auth/logout',{method:'POST',body:'{}'})}catch{}window.NataijiOfflineResume?.clear();currentUser=null;await showAuth('login')};
 $('#printResult').onclick=()=>printOnly('student');$('#printList').onclick=()=>{setView('reports');showReport('list');setTimeout(()=>printOnly('list'),50)};
 $('#importBtn').onclick=()=>$('#importFile').click();$('#importFile').onchange=e=>{if(e.target.files[0])importCsv(e.target.files[0])};
 $$('[data-report]').forEach(b=>b.onclick=()=>showReport(b.dataset.report));$$('.report-print').forEach(b=>b.onclick=()=>printOnly(b.dataset.print));
