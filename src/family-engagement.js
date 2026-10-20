@@ -85,7 +85,16 @@ export function mountFamilyRoutes(app,{auth,ownerOnly,getPool,loadProfessorProfi
     await getPool().query(`INSERT INTO nataiji_family_contacts(actor_id,class_id,student_key,phone,consent,updated_at)
       VALUES($1,$2,$3,$4,true,now()) ON CONFLICT(actor_id,class_id,student_key)
       DO UPDATE SET phone=EXCLUDED.phone,consent=true,updated_at=now()`,[req.user.id,classId,studentKey,phone]);
+    // A changed destination invalidates queued messages for the previous phone.
+    await getPool().query("UPDATE nataiji_family_records SET status='cancelled' WHERE actor_id=$1 AND class_id=$2 AND student_key=$3 AND guardian_phone<>$4 AND status IN ('pending','opened')",[req.user.id,classId,studentKey,phone]);
     res.json({ok:true,phone});
+  });
+  app.delete('/api/family/contacts',auth,db,author,async(req,res)=>{
+    const classId=cleanText(req.body?.classId,120),studentKey=cleanText(req.body?.studentKey,120);
+    if(!classId||!studentKey)return res.status(400).json({error:'invalid_contact'});
+    await getPool().query('DELETE FROM nataiji_family_contacts WHERE actor_id=$1 AND class_id=$2 AND student_key=$3',[req.user.id,classId,studentKey]);
+    await getPool().query("UPDATE nataiji_family_records SET status='cancelled' WHERE actor_id=$1 AND class_id=$2 AND student_key=$3 AND status IN ('pending','opened')",[req.user.id,classId,studentKey]);
+    res.json({ok:true,revoked:true})
   });
   app.post('/api/family/records',auth,db,author,async(req,res)=>{
     const {id}=req.body||{},classId=cleanText(req.body?.classId,120),studentKey=cleanText(req.body?.studentKey,120),
@@ -126,9 +135,12 @@ export function mountFamilyRoutes(app,{auth,ownerOnly,getPool,loadProfessorProfi
   app.get('/api/family/owner/queue',auth,ownerOnly,db,async(req,res)=>{
     const statuses=['pending','opened','sent'];
     const status=statuses.includes(req.query.status)?req.query.status:'pending';
-    const rows=await getPool().query(`SELECT id,actor_id,actor_name,actor_role,student_name,class_name,school_name,
-      guardian_phone,kind,data,status,created_at,opened_at,marked_sent_at
-      FROM nataiji_family_records WHERE status=$1 ORDER BY created_at ASC LIMIT 100`,[status]);
+    const rows=await getPool().query(`SELECT r.id,r.actor_id,r.actor_name,r.actor_role,r.student_name,r.class_name,r.school_name,
+      r.guardian_phone,r.kind,r.data,r.status,r.created_at,r.opened_at,r.marked_sent_at
+      FROM nataiji_family_records r INNER JOIN nataiji_family_contacts c
+      ON c.actor_id=r.actor_id AND c.class_id=r.class_id AND c.student_key=r.student_key
+      AND c.phone=r.guardian_phone AND c.consent=true
+      WHERE r.status=$1 ORDER BY r.created_at ASC LIMIT 100`,[status]);
     res.setHeader('Cache-Control','no-store');
     res.json({ok:true,records:rows.rows,status});
   });
