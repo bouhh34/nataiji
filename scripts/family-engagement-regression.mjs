@@ -137,7 +137,7 @@ test('certificate is luxurious, school-branded, safely escaped, and has no app b
  const script=readFileSync(new URL('../public/family-engagement-v1.js',import.meta.url),'utf8');
  const start=script.indexOf('function premiumAwardSVG('),end=script.indexOf('function awardSVG(',start);
  assert(start>=0&&end>start,'Premium certificate renderer must be present');
- const premiumAwardSVG=new Function(script.slice(start,end)+'\\nreturn premiumAwardSVG')();
+ const premiumAwardSVG=new Function(script.slice(start,end)+'\nreturn premiumAwardSVG')();
  const svg=premiumAwardSVG({school_name:'مدرسة الأمل',student_name:'محمد & محمود',class_name:'الأولى',actor_name:'أستاذ',data:{awardType:'excellence',date:'2026-10-21'}});
  assert.match(svg,/مدرسة الأمل/);
  assert.match(svg,/محمد &amp; محمود/);
