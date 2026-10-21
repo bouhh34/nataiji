@@ -132,7 +132,7 @@
            contacts[studentEl.value]={phone:'222'+ph,consent:true};
            await request('/api/family/records/'+encodeURIComponent(x.id)+'/queue','POST');
            note(body,t('تمت إضافة الرسالة إلى رسائلك الجاهزة؛ لم تُرسل بعد.','Message ajouté à votre boîte d'envoi, non envoyé.'),true);
-           await refreshHistory()
+           await refreshHistory();await refreshOutbox()
          }catch{note(body,t('تعذر تجهيز الرسالة. تحقق من الرقم والموافقة.','Impossible de préparer le message.'))}
          finally{btn.disabled=false}
        });
@@ -205,6 +205,7 @@
    w.body.innerHTML=`<p class="family-hint">${preview?t('معاينة فقط: لم تُحفظ الشهادة بعد.','Aperçu uniquement, non enregistré.'):t('تم إنشاء الشهادة من طرف المعلم أو الأستاذ دون اعتماد المدير.','Certificat créé par l’enseignant sans validation du directeur.')}</p>
    <div class="family-award-preview"></div><button type="button" id="familyAwardDownload" class="family-primary">${t('حفظ شهادة PNG على الهاتف','Enregistrer le certificat PNG')}</button>
    <button type="button" id="familyAwardPDF" class="family-secondary">${t('طباعة أو حفظ PDF على الهاتف','Imprimer ou enregistrer en PDF')}</button>
+    <button type="button" id="familyAwardShare" class="family-secondary">${t('مشاركة التكريم في واتساب أو مجموعة','Partager le certificat dans WhatsApp ou un groupe')}</button>
    <p class="family-message" aria-live="polite"></p>`;
    const raw=awardSVG(record),previewHost=$('.family-award-preview',w.body);
    previewHost.innerHTML=raw.replace('<svg ','<svg role="img" aria-label="'+t('شهادة تكريم','Certificat')+'" ');
@@ -217,7 +218,16 @@
      tab.document.open();tab.document.write(doc);tab.document.close();
      tab.focus();setTimeout(()=>{try{tab.print()}catch{}},400)
    };
-   $('#familyAwardDownload',w.body).onclick=async()=>{
+   $('#familyAwardShare',w.body).onclick=async()=>{
+      if(!confirm(t('تأكد من موافقة ولي الأمر قبل مشاركة شهادة التكريم في مجموعة. متابعة؟','Vérifiez le consentement du parent avant un partage dans un groupe. Continuer ?')))return;
+      try{
+        const blob=await imageBlob(raw),file=new File([blob],'nataiji-award-'+today()+'.png',{type:'image/png'});
+        const shareData=navigator.canShare?.({files:[file]})?{files:[file],title:t('شهادة تكريم','Certificat')}:{title:t('شهادة تكريم','Certificat'),text:formatMessage({...record,kind:'award'})};
+        if(!navigator.share)throw Error('share_unavailable');
+        await navigator.share(shareData);
+      }catch(error){if(error?.name==='AbortError')return;note(w.body,t('احفظ الشهادة على هاتفك ثم شاركها في مجموعة واتساب من تطبيق واتساب.','Enregistrez le certificat, puis partagez-le depuis WhatsApp.'))}
+    };
+    $('#familyAwardDownload',w.body).onclick=async()=>{
      const button=$('#familyAwardDownload',w.body);button.disabled=true;
      try{
        const blob=await imageBlob(raw),fileName='nataiji-award-'+today()+'.png',file=new File([blob],fileName,{type:'image/png'});
@@ -229,8 +239,8 @@
  }
  function formatMessage(rec){
    const d=rec.data||{},name=rec.student_name,school=rec.school_name||'نتائجي';
-   if(rec.kind==='award')return '🏅 نتائجي | Nataiji\n'+school+'\nيسعدنا تكريم التلميذ/ة '+name+'\n'+(AWARDS[d.awardType]?.[0]||'شهادة تكريم')+(d.reason?'\nالسبب: '+d.reason:'')+'\nمع تحيات فريق نتائجي.';
-   if(rec.kind==='daily')return '📚 نتائجي | Nataiji\n'+school+'\nالتقرير اليومي للتلميذ/ة: '+name+'\nالتاريخ: '+(d.date||'')+'\nالحضور: '+pair(ATT,d.attendance)+'\nالتقييم: '+pair(RATE,d.assessment)+(d.note?'\nالملاحظة: '+d.note:'')+'\nمع تحيات نتائجي.';
+   if(rec.kind==='award')return '🏅 نتائجي | Nataiji\n'+school+'\nيسعدنا تكريم التلميذ/ة '+name+'\n'+(AWARDS[d.awardType]?.[0]||'شهادة تكريم')+(d.reason?'\nالسبب: '+d.reason:'')+'\nمع تحيات المعلم أو الأستاذ المُصدِر للشهادة.';
+   if(rec.kind==='daily')return '📚 نتائجي | Nataiji\n'+school+'\nالتقرير اليومي للتلميذ/ة: '+name+'\nالتاريخ: '+(d.date||'')+'\nالحضور: '+pair(ATT,d.attendance)+'\nالتقييم: '+pair(RATE,d.assessment)+(d.note?'\nالملاحظة: '+d.note:'')+'\nمع تحيات المعلم أو الأستاذ.';
    return '📄 نتائجي | Nataiji\n'+school+'\nإشعار بنتائج التلميذ/ة: '+name+(d.term?'\nالفصل: '+d.term:'')+(d.note?'\n'+d.note:'')+'\nيمكنكم التواصل مع المؤسسة للاطلاع على الكشف المعتمد.';
  }
  function openWhatsApp(rec,phone){
