@@ -330,7 +330,7 @@
    w.body.innerHTML=`<p class="family-hint">${preview?t('معاينة فقط: لم تُحفظ الشهادة بعد.','Aperçu uniquement, non enregistré.'):t('تم إنشاء الشهادة من طرف المعلم أو الأستاذ دون اعتماد المدير.','Certificat créé par l’enseignant sans validation du directeur.')}</p>
    <div class="family-award-preview"></div><button type="button" id="familyAwardDownload" class="family-primary">${t('حفظ شهادة PNG على الهاتف','Enregistrer le certificat PNG')}</button>
    <button type="button" id="familyAwardPDF" class="family-primary">${t('حفظ PDF أفقي A4 على الهاتف','Enregistrer PDF A4 paysage')}</button>
-   <button type="button" id="familyAwardPrint" class="family-secondary">${t('طباعة الشهادة (اختر أفقي)','Imprimer le certificat (paysage)')}</button>
+   <button type="button" id="familyAwardPrint" class="family-secondary">${t('فتح PDF للطباعة (أفقي A4)','Ouvrir le PDF pour imprimer (A4 paysage)')}</button>
     <button type="button" id="familyAwardShare" class="family-secondary">${t('مشاركة التكريم في واتساب أو مجموعة','Partager le certificat dans WhatsApp ou un groupe')}</button>
    <p class="family-message" aria-live="polite"></p>`;
    const raw=awardSVG(record),previewHost=$('.family-award-preview',w.body);
@@ -348,17 +348,21 @@
      }catch(error){note(w.body,t('تعذر تجهيز PDF. استخدم طباعة الشهادة واختر وضع أفقي.','Impossible de préparer le PDF. Utilisez Imprimer et choisissez Paysage.'))}
      finally{button.disabled=false}
    };
-   $('#familyAwardPrint',w.body).onclick=()=>{
-     // Printing stays optional: the system print dialog may override orientation.
-     const doc='<!doctype html><html lang="ar" dir="rtl"><head><meta charset="utf-8"><title>شهادة تكريم</title><style>@page{size:297mm 210mm;margin:0!important}*{box-sizing:border-box}html,body{padding:0!important;margin:0!important;width:297mm!important;height:210mm!important;background:#fff;overflow:hidden}svg{display:block!important;width:297mm!important;height:210mm!important;max-width:none!important;max-height:none!important;margin:0!important;break-inside:avoid;page-break-inside:avoid}</style></head><body>'+raw+'</body></html>';
-     const native=window.Capacitor?.isNativePlatform?.()===true||window.Capacitor?.getPlatform?.()==='android';
-     if(native&&typeof window.nataijiPrintDocument==='function'){void window.nataijiPrintDocument({html:doc,title:'Certificat scolaire',landscape:true});return}
-     const tab=window.open('about:blank','_blank');
-     if(!tab){note(w.body,t('اسمح بفتح صفحة الطباعة من المتصفح.','Autorisez la fenêtre d’impression.'));return}
-     tab.document.open();tab.document.write(doc);tab.document.close();
-     tab.focus();setTimeout(()=>{try{tab.print()}catch{}},400)
-   };
-   $('#familyAwardShare',w.body).onclick=async()=>{
+   $('#familyAwardPrint',w.body).onclick=async()=>{
+      // An actual A4 landscape PDF avoids Android's tall portrait HTML print preview.
+      const button=$('#familyAwardPrint',w.body);button.disabled=true;
+      try{
+        const blob=await awardPdfBlob(raw),filename='Certificat-'+today()+'.pdf';
+        const file=new File([blob],filename,{type:'application/pdf'});
+        if(navigator.share&&navigator.canShare?.({files:[file]})){
+          try{await navigator.share({files:[file],title:t('شهادة مدرسية للطباعة','Certificat scolaire à imprimer')})}
+          catch(e){if(e?.name==='AbortError')return;saveLocalFile(blob,filename)}
+        }else saveLocalFile(blob,filename);
+        note(w.body,t('✓ ملف A4 أفقي جاهز. افتح PDF واختر طباعة من هاتفك.','✓ PDF A4 paysage prêt. Ouvrez le PDF et choisissez Imprimer.'),true);
+      }catch{note(w.body,t('تعذر تجهيز شهادة الطباعة. جرّب حفظ PDF.','Préparation impossible. Essayez Enregistrer PDF.'))}
+      finally{button.disabled=false}
+    };
+    $('#familyAwardShare',w.body).onclick=async()=>{
       if(!confirm(t('تأكد من موافقة ولي الأمر قبل مشاركة شهادة التكريم في مجموعة. متابعة؟','Vérifiez le consentement du parent avant un partage dans un groupe. Continuer ?')))return;
       try{
         const blob=await imageBlob(raw),file=new File([blob],'certificat-'+today()+'.png',{type:'image/png'});
