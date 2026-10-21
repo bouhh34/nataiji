@@ -283,16 +283,28 @@
    $$('[data-status]',body).forEach(btn=>btn.onclick=()=>{selected=btn.dataset.status;$$('[data-status]',body).forEach(x=>x.classList.toggle('on',x===btn));void refresh()});
    await refresh()
  }
- function openTeacher(user,state){
+ async function openTeacher(user,state){
    if(!state)return;
+   try{
+     const server=await request('/api/family/classes');
+     if(server.classes?.length)return openAuthor({user,classes:server.classes});
+   }catch{}
    const cid=String(state.activeClassId||'');
    const cls=(state.classes||[]).find(c=>String(c.id)===cid);
    const students=(state.pupils||[]).map(p=>({id:String(p?.[7]||p?.[0]||''),name:String(p?.[1]||'')}));
    return openAuthor({user,classes:[{id:cid,name:String(cls?.name||state.className||''),schoolName:String(state.school||''),students}]});
  }
+ async function openDirector(user){
+   if(!user?.id||user.role!=='admin'){alert(t('غير مصرح بالدخول','Accès non autorisé'));return}
+   try{
+     const data=await request('/api/family/classes');
+     if(!data.classes?.length){alert(t('لم يُعثر على تلاميذ مرتبطين بحسابك.','Aucun élève lié à votre compte.'));return}
+     return openAuthor({user,classes:data.classes});
+   }catch{alert(t('تعذر تحميل تلاميذ المؤسسة. تحقق من الاتصال.','Impossible de charger les élèves de votre établissement.'))}
+ }
  function openProfessor(user,profile){
    const classes=(profile?.classes||[]).map(c=>({id:String(c.id),name:String(c.name),schoolName:String(profile.schoolName||''),students:(c.students||[]).map(s=>({id:String(s.id),name:String(s.name||s.nameFr||'')}))}));
    return openAuthor({user,classes});
  }
- window.NataijiFamily={openTeacher,openProfessor,openOutbox,_message:formatMessage,_awardSVG:awardSVG};
+ window.NataijiFamily={openTeacher,openProfessor,openDirector,openOutbox,_message:formatMessage,_awardSVG:awardSVG};
 })();
