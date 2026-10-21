@@ -6,13 +6,13 @@ const read=path=>fs.readFileSync(new URL('../'+path,import.meta.url),'utf8');
 const html=read('public/index.html'),sw=read('public/sw.js'),css=read('public/director-v1.css'),js=read('public/director-v1.js');
 
 test('the original director theme, not the premium redesign, loads on web and Android offline',()=>{
- for(const asset of ['director-v1.css?v=9','director-v1.js?v=14']){
+ for(const asset of ['director-v1.css?v=9','director-v1.js?v=15']){
   assert.ok(html.includes('/'+asset),'index missing '+asset);
   assert.ok(sw.includes('/'+asset),'offline shell missing '+asset);
  }
  assert.doesNotMatch(html,/director-premium-v1\.css/);
  assert.doesNotMatch(sw,/director-premium-v1\.css/);
- assert.match(sw,/nataiji-shell-v193/);
+ assert.match(sw,/nataiji-shell-v195/);
 });
 test('the classic large register cards and original dashboard are restored',()=>{
  assert.match(css,/\.director-card\{[^}]*min-height:130px/);
