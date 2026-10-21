@@ -920,10 +920,13 @@ function studentEditor(classId,studentId,onDone){
   <label class="prof-student-field"><b>N° d’appel / رقم النداء</b><input id="pv2StudentCall" type="number" inputmode="numeric" min="1" max="9999" step="1" value="${esc(nextCall)}" dir="ltr"><small>رقم ثابت بعد الحفظ وقابل للتعديل يدويًا / Numéro modifiable manuellement.</small></label>
   <label class="prof-student-field"><b>Sexe / الجنس</b><select id="pv2StudentSex"><option value="male" ${existing?.sex==='male'?'selected':''}>Garçon / ذكر</option><option value="female" ${existing?.sex==='female'?'selected':''}>Fille / أنثى</option></select></label>
   <label class="prof-student-field"><b>Date de naissance / تاريخ الميلاد</b><span class="prof-field-optional">Facultatif / اختياري — يمكن تركه فارغًا</span><input id="pv2StudentBirthDate" type="date" dir="ltr" value="${esc(existing?.birthDate||'')}"></label>
+  <label class="prof-student-field"><b>رقم واتساب ولي الأمر / WhatsApp du parent (+222)</b><input id="pv2GuardianPhone" type="tel" inputmode="tel" autocomplete="off" placeholder="+222 34 12 34 56" dir="ltr"></label>
+  <label class="prof-student-field"><span style="display:flex;gap:8px;align-items:center"><input id="pv2GuardianConsent" type="checkbox"> موافقة ولي الأمر على تلقي المراسلات المدرسية / Accord du parent</span></label>
   <div class="prof-student-save-row"><button class="primary" id="pv2StudentSave">${existing?'Enregistrer les modifications / حفظ التعديلات':'Enregistrer / حفظ'}</button></div>
   <p class="professor-msg prof-student-msg"></p>
  </div>`);
  m.wrap.classList.add('prof-student-modal');
+ if(existing)void api('/api/family/contacts?classId='+encodeURIComponent(classId)).then(r=>{if(!m.wrap.isConnected)return;const contact=(r.contacts||[]).find(x=>String(x.student_key)===String(existing.id));if(contact){q('#pv2GuardianPhone',m.wrap).value='+'+contact.phone;q('#pv2GuardianConsent',m.wrap).checked=!!contact.consent}}).catch(()=>{});
  const ar=q('#pv2StudentName',m.wrap),frInput=q('#pv2StudentNameFr',m.wrap),arHint=q('#pv2StudentArHint',m.wrap),frHint=q('#pv2StudentFrHint',m.wrap);let arManual=!!existing?.name&&!!existing?.nameFr&&String(existing.name).trim()!==profNameAr(existing.nameFr),frenchManual=!!existing?.nameFr&&String(existing.nameFr).trim()!==profNameFr(existing.name),syncing=false;
  const fromArabic=()=>{if(frenchManual)return;syncing=true;frInput.value=profNameFr(ar.value);syncing=false};
  const fromFrench=()=>{if(arManual)return;syncing=true;ar.value=profNameAr(frInput.value);syncing=false};
@@ -947,10 +950,19 @@ function studentEditor(classId,studentId,onDone){
   if(nns&&cls.students.some(s=>String(s.id)!==String(existing?.id||'')&&String(s.nns||'')===nns)){msg.textContent='هذا NNS موجود في القسم / Ce NNS existe déjà dans la classe';return}
   if(!Number.isInteger(callNumber)||callNumber<1||callNumber>9999){msg.textContent='رقم النداء غير صحيح / Numéro d’appel invalide';return}
   if(cls.students.some(s=>String(s.id)!==String(existing?.id||'')&&Number(s.callNumber)===callNumber)){msg.textContent='رقم النداء مستخدم بالفعل / Ce numéro d’appel est déjà utilisé';return}
+  const phoneRaw=q('#pv2GuardianPhone',m.wrap).value.trim(),guardianConsent=q('#pv2GuardianConsent',m.wrap).checked;
+  if(phoneRaw&&!guardianConsent){msg.textContent='يلزم تأكيد موافقة ولي الأمر / Accord du parent obligatoire';return}
+  const phoneDigits=phoneRaw.replace(/[^0-9]/g,'').replace(/^00/,'');
+  if(phoneRaw&&!/^[0-9]{8}$/.test(phoneDigits)&&!/^222[0-9]{8}$/.test(phoneDigits)){msg.textContent='رقم واتساب غير صحيح / Numéro WhatsApp invalide';return}
   const snapshot=structuredClone(profile),payload={id:existing?.id||uid(),name:name||profNameAr(nameFr),nameFr:nameFr||profNameFr(name),nns,callNumber,sex:['male','female'].includes(sex)?sex:'',birthDate};
   if(existing)Object.assign(existing,payload);else cls.students.push(payload);
-  try{await saveProfile(existing?tr('تم تعديل التلميذ','Élève modifié'):tr('تمت إضافة التلميذ','Élève ajouté'));m.close();onDone?.()}
-  catch{profile=normalize(snapshot);msg.textContent=existing?'تعذر حفظ التعديلات على الخادم / Impossible d’enregistrer les modifications':'تعذر تثبيت الطالب على الخادم — لم يتم الحفظ / Impossible d’enregistrer l’élève sur le serveur'}
+  try{await saveProfile(existing?tr('تم تعديل التلميذ','Élève modifié'):tr('تمت إضافة التلميذ','Élève ajouté'))}
+  catch{profile=normalize(snapshot);msg.textContent=existing?'تعذر حفظ التعديلات على الخادم / Impossible d’enregistrer les modifications':'تعذر تثبيت الطالب على الخادم — لم يتم الحفظ / Impossible d’enregistrer l’élève sur le serveur';return}
+  if(phoneRaw){
+   try{await api('/api/family/contacts',{method:'PUT',body:JSON.stringify({classId,studentKey:payload.id,phone:phoneDigits,consent:true})})}
+   catch{msg.textContent='تم حفظ التلميذ، لكن لم يُحفظ رقم ولي الأمر. أعد المحاولة أو سجله من قسم المراسلات / Élève enregistré, numéro parent non enregistré';return}
+  }
+  m.close();onDone?.()
  }
 }
 
