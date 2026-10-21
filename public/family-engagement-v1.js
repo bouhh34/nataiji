@@ -23,7 +23,7 @@
  async function request(url,method='GET',body){
    const r=await fetch(url,{method,credentials:'same-origin',cache:'no-store',headers:{'Content-Type':'application/json'},...(body?{body:JSON.stringify(body)}:{})});
    const data=await r.json().catch(()=>({}));
-   if(!r.ok)throw Error(data.error||'request_failed');
+   if(!r.ok)throw Object.assign(Error(data.error||'request_failed'),{status:r.status});
    return data;
  }
  function modal(title){
@@ -39,7 +39,7 @@
  async function openAuthor({user,classes}){
    if(!user?.id||!classes?.length){alert(t('أضف قسمًا وتلاميذ أولًا','Ajoutez une classe et des élèves'));return}
    const win=modal(t('التقييم والتكريم','Évaluation et récompenses'));
-   const body=win.body;let contacts={},cachedClass='',history=[],outbox=[];
+   const body=win.body;let contacts={},cachedClass='',history=[],outbox=[],contactsLoaded=false;
    body.innerHTML=`<p class="family-hint">${t('يمكن إصدار التكريم دون موافقة المدير. تُرسل الرسائل يدويًا من حساب واتساب الموجود على هاتفك.','Vous délivrez les certificats sans validation, puis envoyez depuis votre propre WhatsApp.')}</p>
     <label>${t('القسم','Classe')}<select id="familyClass"></select></label>
     <label>${t('التلميذ','Élève')}<select id="familyStudent"></select></label>
@@ -50,14 +50,25 @@
     <div id="familyFields"></div>
     <section class="family-contact"><h3>${t('بيانات ولي الأمر','Contact du parent')}</h3>
       <label>${t('رقم واتساب ولي الأمر (موريتانيا)','WhatsApp du parent (Mauritanie)')}<input id="familyPhone" type="tel" inputmode="tel" autocomplete="off" placeholder="+222 34 00 00 00"></label>
-      <label class="family-checkbox"><input id="familyConsent" type="checkbox"> ${t('أؤكد أن ولي الأمر وافق على استقبال الرسائل المدرسية من نتائجي على هذا الرقم.','Je confirme le consentement du parent à recevoir les messages scolaires de Nataiji.')}</label>
+      <label class="family-checkbox"><input id="familyConsent" type="checkbox"> ${t('أؤكد موافقة ولي الأمر على استقبال الرسائل المدرسية من المعلم أو الإدارة عبر نتائجي.','Le parent accepte les messages scolaires de son enseignant ou de la direction via Nataiji.')}</label>
+      <button type="button" id="familySavePhone" class="family-primary">${t('حفظ رقم ولي الأمر','Enregistrer le numéro du parent')}</button>
       <button type="button" id="familyRevoke" class="family-secondary">${t('إلغاء موافقة ولي الأمر وإيقاف الرسائل','Révoquer le consentement et bloquer les messages')}</button>
       <p class="family-tiny">${t('يظهر رقم واتساب المُرسل للولي. حفظ التقييم لا يرسل شيئًا تلقائيًا.','Le parent voit le numéro WhatsApp de l’expéditeur. Pas d’envoi automatique.')}</p></section>
+    <div id="familySync" class="family-sync-status" role="status" aria-live="polite"><span id="familySyncText"></span><button id="familyRetry" type="button" class="family-retry-button">${t('إعادة المحاولة','Réessayer')}</button></div>
     <section class="family-roster"><div class="family-roster-title"><h3>قائمة أولياء التلاميذ · Liste des parents</h3><button type="button" id="familyOpenOutbox" class="family-secondary">الرسائل الجاهزة · Messages prêts</button></div><p class="family-tiny">اضغط إرسال بجانب كل تلميذ دون حفظ الأرقام في الهاتف. حضّر تقييمه أو شهادته أولًا.</p><div id="familyRosterList"></div></section>
     <button type="button" id="familyQueue" class="family-primary">${t('حفظ وتجهيز الرسالة لإرسالها من هاتفي','Enregistrer et préparer le message')}</button>
     <p class="family-message" aria-live="polite"></p>
     <section class="family-history"><h3>${t('أحدث العمليات','Dernières opérations')}</h3><div id="familyHistory">${t('جارٍ التحميل','Chargement…')}</div></section>`;
-   const classEl=$('#familyClass',body),studentEl=$('#familyStudent',body),phone=$('#familyPhone',body),consent=$('#familyConsent',body);
+   const classEl=$('#familyClass',body),studentEl=$('#familyStudent',body),phone=$('#familyPhone',body),consent=$('#familyConsent',body),syncEl=$('#familySync',body);
+   const errorMessage=e=>{
+     if(e?.status===401)return t('انتهت جلسة تسجيل الدخول. سجّل الدخول مجددًا.','Votre session a expiré. Reconnectez-vous.');
+     if(e?.status===403)return t('لا يتيح الخادم الوصول إلى بيانات هذا القسم. تحقق من ربط القسم بالحساب وأعد المزامنة.','Accès refusé aux données de cette classe. Vérifiez les droits et synchronisez.');
+     if(e?.status===404||e?.message==='not_found')return t('واجهة المراسلات غير متاحة على الخادم حاليًا. يلزم نشر نسخة الخادم المحدّثة.','Le serveur ne dispose pas encore de cette fonction. Déployez la mise à jour.');
+     if(e?.status===503)return t('قاعدة البيانات غير متاحة حاليًا. لم تُحفظ أي أرقام جديدة.','La base de données est indisponible. Aucun nouveau numéro enregistré.');
+     if(navigator.onLine===false)return t('الهاتف غير متصل بالإنترنت. أعد المحاولة بعد الاتصال.','Vous êtes hors ligne. Réessayez après connexion.');
+     return t('تعذر الاتصال بخدمة أرقام أولياء الأمور.','Impossible de joindre le service des contacts.')+(e?.status?' (HTTP '+e.status+')':'');
+   };
+   const syncMessage=message=>{syncEl.classList.toggle('is-visible',!!message);$('#familySyncText',body).textContent=message||''};
    classEl.innerHTML=classes.map(c=>`<option value="${esc(c.id)}">${esc(c.name)}</option>`).join('');
    function fillStudents(){
      const cls=classes.find(c=>String(c.id)===classEl.value),students=studentInfo(cls?.students||[]),previous=studentEl.value;
@@ -74,9 +85,9 @@
      const cls=classes.find(c=>String(c.id)===classEl.value),students=studentInfo(cls?.students||[]);
      host.innerHTML=students.length?students.map((st,i)=>{
        const c=contacts[st.id],rec=findSendable(st.id),label=rec?t('إرسال','Envoyer'):c?.consent?t('إعداد','Préparer'):t('إضافة رقم','Ajouter');
-       return '<article class="family-roster-row"><span><b>'+esc(st.name)+'</b><small>'+(c?.consent?t('رقم ولي الأمر مسجل','Numéro enregistré'):t('الرقم غير مسجل','Numéro manquant'))+'</small></span><button type="button" class="family-secondary" data-family-edit="'+i+'">'+t('تعديل','Modifier')+'</button><button type="button" class="family-primary" data-family-send="'+i+'">'+label+'</button></article>';
+       return '<article class="family-roster-row"><span><b>'+esc(st.name)+'</b><small>'+(c?.consent?t('رقم ولي الأمر مسجل','Numéro enregistré'):contactsLoaded?t('الرقم غير مسجل','Numéro manquant'):t('لم يُتحقق من الرقم بعد','Numéro non vérifié'))+'</small></span><button type="button" class="family-secondary" data-family-edit="'+i+'">'+t('تعديل','Modifier')+'</button><button type="button" class="family-primary" data-family-send="'+i+'">'+label+'</button></article>';
      }).join(''):'<p class="family-tiny">'+t('لا يوجد تلاميذ','Aucun élève')+'</p>';
-     const focus=i=>{studentEl.value=students[i].id;syncContact();studentEl.scrollIntoView({behavior:'smooth',block:'center'})};
+     const focus=i=>{studentEl.value=students[i].id;syncContact();phone.scrollIntoView({behavior:'smooth',block:'center'});phone.focus({preventScroll:true})};
      $$('[data-family-edit]',host).forEach(b=>b.onclick=()=>focus(Number(b.dataset.familyEdit)));
      $$('[data-family-send]',host).forEach(b=>b.onclick=()=>{const i=Number(b.dataset.familySend),st=students[i],rec=findSendable(st.id),c=contacts[st.id];
        if(rec&&c?.consent){openWhatsApp(rec,c.phone);return}
@@ -89,13 +100,36 @@
    }
    $('#familyOpenOutbox',body).onclick=()=>openOutbox();
    async function changeClass(){
-     cachedClass=classEl.value;contacts={};fillStudents();note(body,'');
+     cachedClass=classEl.value;const targetClass=cachedClass;
+     contactsLoaded=false;contacts={};outbox=[];fillStudents();note(body,'');syncMessage('');
      try{
-       const r=await request('/api/family/contacts?classId='+encodeURIComponent(cachedClass));
-       if(cachedClass!==classEl.value||!body.isConnected)return;
-       contacts=Object.fromEntries((r.contacts||[]).map(x=>[String(x.student_key),x]));syncContact();await refreshOutbox()
-     }catch{note(body,t('تعذر تحميل أرقام أولياء الأمور. تحقق من الإنترنت.','Chargement des numéros impossible. Vérifiez votre connexion.'))}
+       if(!targetClass)throw Object.assign(Error('missing_class'),{status:400});
+       const r=await request('/api/family/contacts?classId='+encodeURIComponent(targetClass));
+       if(targetClass!==classEl.value||!body.isConnected)return;
+       contacts=Object.fromEntries((r.contacts||[]).map(x=>[String(x.student_key),x]));
+       contactsLoaded=true;syncContact();renderRoster();await refreshOutbox();
+     }catch(e){
+       if(targetClass!==classEl.value||!body.isConnected)return;
+       contactsLoaded=false;renderRoster();syncMessage(errorMessage(e));
+     }
    }
+   $('#familyRetry',body).onclick=()=>void changeClass();
+   $('#familySavePhone',body).onclick=async()=>{
+     const button=$('#familySavePhone',body),classId=classEl.value,studentKey=studentEl.value;
+     const digits=phoneNum(phone.value);
+     if(!classId||!studentKey){note(body,t('اختر القسم والتلميذ أولًا.','Choisissez d’abord une classe et un élève.'));return}
+     if(!/^[0-9]{8}$/.test(digits)){note(body,t('أدخل رقم واتساب موريتانيًا صحيحًا من 8 أرقام.','Saisissez un numéro mauritanien de 8 chiffres.'));return}
+     if(!consent.checked){note(body,t('أكد موافقة ولي الأمر قبل الحفظ.','Confirmez le consentement du parent.'));return}
+     button.disabled=true;
+     try{
+       await request('/api/family/contacts','PUT',{classId,studentKey,phone:digits,consent:true});
+       contacts[studentKey]={phone:'222'+digits,consent:true};contactsLoaded=true;
+       if(studentEl.value===studentKey)syncContact();
+       renderRoster();await refreshOutbox();syncMessage('');
+       note(body,t('✓ حُفظ رقم ولي الأمر في الخادم ويمكن استخدامه للإرسال دون إضافته لجهات الاتصال.','✓ Numéro enregistré sur le serveur, sans ajout aux contacts du téléphone.'),true);
+     }catch(e){note(body,errorMessage(e))}
+     finally{button.disabled=false}
+   };
    const fields=$('#familyFields',body);
    function drawFields(){
      const kind=$('input[name=familyKind]:checked',body)?.value||'daily';
