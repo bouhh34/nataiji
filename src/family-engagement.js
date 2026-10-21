@@ -79,6 +79,31 @@ export function mountFamilyRoutes(app,{auth,ownerOnly,getPool,loadProfessorProfi
     return new Set((school.classData?.[classId]?.pupils||[]).map(p=>String(p?.[7]||p?.[0]||'')));
   }
   const author=(req,res,next)=>allowedUser(req.user)?next():res.status(403).json({error:'forbidden'});
+  app.get('/api/family/classes',auth,db,author,async(req,res)=>{
+    const classes=[];
+    if(req.user.role==='professor'||req.user.profileType==='director'){
+      const profile=await loadProfessorProfile(req.user.id);
+      for(const c of profile.classes||[]){
+        classes.push({id:String(c.id),name:cleanText(c.name,120),schoolName:cleanText(profile.schoolName,160),
+          students:(c.students||[]).map(st=>({id:String(st.id),name:cleanText(st.name||st.nameFr,160)}))});
+      }
+      if(req.user.role==='professor')return res.json({ok:true,classes});
+    }
+    if(req.user.schoolId){
+      const school=await loadTeacherSchool(req.user.schoolId);
+      const accessible=req.user.role==='teacher'?new Set(assignedClassIds(req.user,school).map(String)):null;
+      for(const cls of school.classes||[]){
+        const classId=String(cls.id);
+        if(accessible&&!accessible.has(classId))continue;
+        if(classes.some(c=>c.id===classId))continue;
+        const pupils=school.classData?.[classId]?.pupils||[];
+        classes.push({id:classId,name:cleanText(cls.name,120),schoolName:cleanText(school.school,160),
+          students:pupils.map(p=>({id:String(p?.[7]||p?.[0]||''),name:cleanText(p?.[1],160)})).filter(st=>st.id&&st.name)});
+      }
+    }
+    res.setHeader('Cache-Control','no-store');
+    res.json({ok:true,classes});
+  });
   app.get('/api/family/contacts',auth,db,author,async(req,res)=>{
     const classId=cleanText(req.query.classId,120);
     if(!classId)return res.status(400).json({error:'missing_class'});
