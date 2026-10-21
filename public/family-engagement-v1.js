@@ -52,7 +52,7 @@
       <label>${t('رقم واتساب ولي الأمر (موريتانيا)','WhatsApp du parent (Mauritanie)')}<input id="familyPhone" type="tel" inputmode="tel" autocomplete="off" placeholder="+222 34 00 00 00"></label>
       <label class="family-checkbox"><input id="familyConsent" type="checkbox"> ${t('أؤكد أن ولي الأمر وافق على استقبال الرسائل المدرسية من نتائجي على هذا الرقم.','Je confirme le consentement du parent à recevoir les messages scolaires de Nataiji.')}</label>
       <button type="button" id="familyRevoke" class="family-secondary">${t('إلغاء موافقة ولي الأمر وإيقاف الرسائل','Révoquer le consentement et bloquer les messages')}</button>
-      <p class="family-tiny">${t('يظهر رقم واتساب المُرسل للولي. حفظ التقييم لا يرسل شيئًا تلقائيًا.','Le parent voit le numéro WhatsApp de l'expéditeur. Pas d'envoi automatique.')}</p></section>
+      <p class="family-tiny">${t('يظهر رقم واتساب المُرسل للولي. حفظ التقييم لا يرسل شيئًا تلقائيًا.','Le parent voit le numéro WhatsApp de l’expéditeur. Pas d’envoi automatique.')}</p></section>
     <section class="family-roster"><div class="family-roster-title"><h3>قائمة أولياء التلاميذ · Liste des parents</h3><button type="button" id="familyOpenOutbox" class="family-secondary">الرسائل الجاهزة · Messages prêts</button></div><p class="family-tiny">اضغط إرسال بجانب كل تلميذ دون حفظ الأرقام في الهاتف. حضّر تقييمه أو شهادته أولًا.</p><div id="familyRosterList"></div></section>
     <button type="button" id="familyQueue" class="family-primary">${t('حفظ وتجهيز الرسالة لإرسالها من هاتفي','Enregistrer et préparer le message')}</button>
     <p class="family-message" aria-live="polite"></p>
@@ -77,8 +77,8 @@
        return '<article class="family-roster-row"><span><b>'+esc(st.name)+'</b><small>'+(c?.consent?t('رقم ولي الأمر مسجل','Numéro enregistré'):t('الرقم غير مسجل','Numéro manquant'))+'</small></span><button type="button" class="family-secondary" data-family-edit="'+i+'">'+t('تعديل','Modifier')+'</button><button type="button" class="family-primary" data-family-send="'+i+'">'+label+'</button></article>';
      }).join(''):'<p class="family-tiny">'+t('لا يوجد تلاميذ','Aucun élève')+'</p>';
      const focus=i=>{studentEl.value=students[i].id;syncContact();studentEl.scrollIntoView({behavior:'smooth',block:'center'})};
-     $('[data-family-edit]',host).forEach(b=>b.onclick=()=>focus(Number(b.dataset.familyEdit)));
-     $('[data-family-send]',host).forEach(b=>b.onclick=()=>{const i=Number(b.dataset.familySend),st=students[i],rec=findSendable(st.id),c=contacts[st.id];
+     $$('[data-family-edit]',host).forEach(b=>b.onclick=()=>focus(Number(b.dataset.familyEdit)));
+     $$('[data-family-send]',host).forEach(b=>b.onclick=()=>{const i=Number(b.dataset.familySend),st=students[i],rec=findSendable(st.id),c=contacts[st.id];
        if(rec&&c?.consent){openWhatsApp(rec,c.phone);return}
        focus(i);note(body,c?.consent?t('أنشئ تقييمًا أو شهادة لهذا التلميذ أولًا.','Préparez un rapport ou certificat pour cet élève.'):t('أضف رقم الولي وموافقته أولًا.','Ajoutez le numéro et le consentement du parent.'));
      });
@@ -121,8 +121,8 @@
        const r=await request('/api/family/records');history=r.records||[];
        const list=$('#familyHistory',body);if(!list)return;
        list.innerHTML=history.length?history.slice(0,12).map((x,i)=>`<article class="family-history-row"><span><b>${esc(x.student_name)}</b><small>${x.kind==='award'?t('شهادة تكريم','Certificat'):x.kind==='daily'?t('تقييم يومي','Évaluation'):t('إشعار نتائج','Résultats')} · ${esc(x.status)}</small></span>${(x.kind==='award'?`<button type="button" data-award-history="${i}">${t('الشهادة','Certificat')}</button>`:'')+(x.status==='private'?`<button type="button" data-ready-history="${i}">${t('إعداد الإرسال','Préparer l’envoi')}</button>`:'')}</article>`).join(''):`<p class="family-tiny">${t('لا توجد عمليات بعد','Aucune opération pour le moment')}</p>`;
-       $('[data-award-history]',list).forEach(btn=>btn.onclick=()=>{const x=history[Number(btn.dataset.awardHistory)];void showAward({...x,actor_name:user.name})});
-       $('[data-ready-history]',list).forEach(btn=>btn.onclick=async()=>{
+       $$('[data-award-history]',list).forEach(btn=>btn.onclick=()=>{const x=history[Number(btn.dataset.awardHistory)];void showAward({...x,actor_name:user.name})});
+       $$('[data-ready-history]',list).forEach(btn=>btn.onclick=async()=>{
          const x=history[Number(btn.dataset.readyHistory)],ph=phoneNum(phone.value);
          if(x.class_id!==classEl.value||x.student_key!==studentEl.value){note(body,t('اختر التلميذ صاحب الشهادة أو التقييم أولًا.','Sélectionnez d’abord l’élève concerné.'));return}
          if(!/^[0-9]{8}$/.test(ph)||!consent.checked){note(body,t('أدخل رقم ولي الأمر ووافق على التواصل قبل إعداد الرسالة.','Numéro et consentement requis.'));return}
@@ -131,7 +131,7 @@
            await request('/api/family/contacts','PUT',{classId:classEl.value,studentKey:studentEl.value,phone:ph,consent:true});
            contacts[studentEl.value]={phone:'222'+ph,consent:true};
            await request('/api/family/records/'+encodeURIComponent(x.id)+'/queue','POST');
-           note(body,t('تمت إضافة الرسالة إلى رسائلك الجاهزة؛ لم تُرسل بعد.','Message ajouté à votre boîte d'envoi, non envoyé.'),true);
+           note(body,t('تمت إضافة الرسالة إلى رسائلك الجاهزة؛ لم تُرسل بعد.','Message ajouté à votre boîte d’envoi, non envoyé.'),true);
            await refreshHistory();await refreshOutbox()
          }catch{note(body,t('تعذر تجهيز الرسالة. تحقق من الرقم والموافقة.','Impossible de préparer le message.'))}
          finally{btn.disabled=false}
@@ -271,8 +271,8 @@
          openWhatsApp(rec,rec.guardian_phone);
          try{await request('/api/family/records/'+encodeURIComponent(rec.id)+'/status','POST',{status:'opened'});await refresh()}catch{note(body,t('فتحت واتساب، لكن تعذر تحديث حالة الرسالة.','WhatsApp ouvert, mais mise à jour impossible.'))}
        });
-       $('[data-copy]',list).forEach(button=>button.onclick=async()=>{const rec=rows[Number(button.dataset.copy)],value=formatMessage(rec);try{await navigator.clipboard.writeText(value);note(body,t('تم نسخ الرسالة. الصقها داخل حساب واتساب الذي تستخدمه.','Message copié. Collez-le dans votre WhatsApp.'),true)}catch{window.prompt(t('انسخ الرسالة من هنا','Copiez le message'),value)}});
-       $('[data-sent]',list).forEach(button=>button.onclick=async()=>{
+       $$('[data-copy]',list).forEach(button=>button.onclick=async()=>{const rec=rows[Number(button.dataset.copy)],value=formatMessage(rec);try{await navigator.clipboard.writeText(value);note(body,t('تم نسخ الرسالة. الصقها داخل حساب واتساب الذي تستخدمه.','Message copié. Collez-le dans votre WhatsApp.'),true)}catch{window.prompt(t('انسخ الرسالة من هنا','Copiez le message'),value)}});
+       $$('[data-sent]',list).forEach(button=>button.onclick=async()=>{
          const rec=rows[Number(button.dataset.sent)];
          if(!confirm(t('هل ضغطت إرسال بالفعل من واتساب هاتفك؟','Avez-vous effectivement envoyé le message depuis votre WhatsApp ?')))return;
          try{await request('/api/family/records/'+encodeURIComponent(rec.id)+'/status','POST',{status:'sent'});await refresh()}catch{note(body,t('تعذر تأكيد الحالة.','Mise à jour impossible.'))}
