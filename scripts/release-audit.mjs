@@ -364,11 +364,11 @@ assert('student bulletin decision and signatures are easy to read', /official-bu
 assert('bulletin summary has more vertical space', /official-bulletin-summary>div\{min-height:14mm/.test(professorV2));
 assert('Arabic official header is balanced against French', /official-student-bulletin-doc \.official-ar\{font-size:11\.7pt/.test(professorV2) && /class-list-doc \.official-ar\{font-size:11\.5pt/.test(professorV2));
 assert('professor batch bulletin label says one student per A4', /كشوف التلاميذ الرسمية – طالب واحد لكل A4/.test(professorV2) && /Bulletins officiels – 1 élève par A4/.test(professorV2));
-assert('professor v2 cache-busted asset is current', /professor-v2\.js\?v=85/.test(index));
+assert('professor v2 cache-busted asset is current', /professor-v2\.js\?v=86/.test(index));
 assert('professor v2 stylesheet cache-busted asset is current', /professor-v2\.css\?v=49/.test(index));
 const ownerStaff = read('public/owner-staff-v1.js');
 assert('owner professor tools support official branches', /staffClassBranch/.test(ownerStaff) && /data-branch/.test(ownerStaff) && /subjectOptions\(catalog,level,branch\)/.test(ownerStaff));
-assert('owner staff cache-busted asset is current', /owner-staff-v1\.js\?v=6/.test(index));
+assert('owner staff cache-busted asset is current', /owner-staff-v1\.js\?v=7/.test(index));
 assert('secure cookie enabled', /httpOnly:true/.test(server) && /sameSite:'lax'/.test(server));
 assert('origin protection enabled', /cross_site_request_blocked/.test(server));
 assert('CSP enabled', /Content-Security-Policy/.test(server));
