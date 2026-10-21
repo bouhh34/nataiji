@@ -57,3 +57,19 @@ html[lang=fr] .family-dialog{direction:ltr}
 .family-roster-row small{color:#56756c;font-size:11px}
 .family-roster-row button{padding:7px 9px;min-height:42px;font-size:12px;flex:none}
 @media(max-width:380px){.family-roster-row{flex-wrap:wrap}.family-roster-row>span{flex:1 1 100%}.family-roster-row button{flex:1}}
+
+/* Family-specific layout wins against legacy app-wide label/input styles. */
+.family-dialog .family-body .family-kind{display:grid;grid-template-columns:minmax(0,1fr);gap:7px;padding:12px;min-width:0}
+.family-dialog .family-body .family-kind label{display:flex!important;flex-flow:row nowrap!important;align-items:center!important;justify-content:flex-start!important;gap:11px!important;width:100%;min-height:44px;margin:0;padding:10px 11px;border:1px solid #d7e9e1;border-radius:11px;background:#fff;font-size:14px;font-weight:750;cursor:pointer;box-sizing:border-box;line-height:1.4}
+.family-dialog .family-body .family-kind input[type=radio]{display:inline-block!important;flex:0 0 19px!important;width:19px!important;height:19px!important;min-width:19px!important;min-height:19px!important;margin:0!important;padding:0!important;appearance:auto!important;-webkit-appearance:radio!important;accent-color:#0a765d;position:static!important}
+.family-dialog .family-body .family-kind label:has(input:checked){background:#edf9f3;border-color:#64b09a;color:#075e4f}
+.family-dialog .family-body .family-checkbox{display:flex!important;flex-flow:row nowrap!important;align-items:flex-start!important;gap:10px!important;line-height:1.7}
+.family-dialog .family-body .family-checkbox input[type=checkbox]{flex:0 0 20px!important;width:20px!important;height:20px!important;min-height:20px!important;margin:3px 0 0!important}
+.family-dialog .family-body #familyFields{display:grid;gap:11px;min-width:0}
+.family-dialog .family-body{align-content:start}
+.family-dialog .family-roster-row{direction:rtl}
+.family-dialog .family-roster-row>span{flex:1 1 120px;min-width:0}
+.family-dialog .family-roster-row button{min-width:68px}
+.family-dialog .family-retry-button{background:#fff;border:1px solid #c8a367;color:#875312;border-radius:9px;padding:7px 12px;font-weight:750}
+.family-dialog .family-sync-status{display:none;font-size:12px;line-height:1.6;padding:10px;border:1px solid #e6c69b;color:#78491c;background:#fff9ef;border-radius:10px}
+.family-dialog .family-sync-status.is-visible{display:flex;gap:8px;align-items:center;justify-content:space-between;flex-wrap:wrap}
