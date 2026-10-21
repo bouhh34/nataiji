@@ -12,7 +12,7 @@ test('all application entrypoint scripts download without blocking the HTML pars
  assert.ok(scripts.length>=35);
  assert.ok(scripts.every(attributes=>/\bdefer\b/.test(attributes)));
  const names=scripts.map(attributes=>attributes.match(/src="([^"]+)"/)?.[1]);
- for(const [first,second] of [['/app.js?v=53','/auth-access-v2.js?v=56'],['/grade-journal.js?v=1','/professor-v2.js?v=85'],['/auth-access-v2.js?v=56','/luxury-ui-v1.js?v=6']]){
+ for(const [first,second] of [['/app.js?v=54','/auth-access-v2.js?v=56'],['/grade-journal.js?v=1','/professor-v2.js?v=86'],['/auth-access-v2.js?v=56','/luxury-ui-v1.js?v=6']]){
   assert.ok(names.indexOf(first)>=0&&names.indexOf(second)>names.indexOf(first),first+' should precede '+second);
  }
  const cacheAssets=JSON.parse(sw.match(/const ASSETS = ([\s\S]*?);/)[1]);
@@ -95,7 +95,7 @@ test('login, session restore and UI updates ship as versioned assets in the curr
 });
 
 test('session and login downloads receive preload priority with unchanged execution order',()=>{
- const paths=['/offline-session-v1.js?v=3','/app.js?v=53','/auth-access-v2.js?v=56'];
+ const paths=['/offline-session-v1.js?v=3','/app.js?v=54','/auth-access-v2.js?v=56'];
  const positions=[];
  for(const path of paths){
   assert.ok(html.includes('<link rel="preload" href="'+path+'" as="script" />'));
