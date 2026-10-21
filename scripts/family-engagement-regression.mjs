@@ -1,5 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
+import {readFileSync} from 'node:fs';
 import {initFamilySchema,mountFamilyRoutes,normalizeMauritaniaPhone} from '../src/family-engagement.js';
 
 test('Mauritanian guardian phone normalization',()=>{
@@ -101,4 +102,22 @@ test('teacher and director issue awards without approval; only their own WhatsAp
  const directorAward=await invoke('POST','/api/family/records',director,{id:privateId,classId:'primary',studentKey:'123',kind:'award',data:{awardType:'behavior'}});
  assert.equal(directorAward.code,201);assert.equal(directorAward.data.status,'private');
  assert.equal((await invoke('GET','/api/family/outbox',director)).data.records.length,0);
+});
+
+test('certificate PDF is generated as one real A4 landscape page, not portrait print preview',async()=>{
+ const script=readFileSync(new URL('../public/family-engagement-v1.js',import.meta.url),'utf8');
+ const start=script.indexOf(' function pdfFromJpeg('),end=script.indexOf(' async function awardPdfBlob(',start);
+ assert(start>0&&end>start,'Missing direct certificate PDF builder');
+ const pdfFromJpeg=new Function(script.slice(start,end)+'\nreturn pdfFromJpeg')();
+ const jpg=Uint8Array.from([0xff,0xd8,0xff,0xe0,0x01,0x02,0xff,0xd9]);
+ const blob=pdfFromJpeg(jpg);
+ assert.equal(blob.type,'application/pdf');
+ const bytes=Buffer.from(await blob.arrayBuffer()),text=bytes.toString('latin1');
+ assert(text.startsWith('%PDF-1.4'));
+ assert.match(text,/\/MediaBox \[0 0 841\.89 595\.28\]/);
+ assert.match(text,/\/Subtype \/Image/);
+ assert.match(text,/\/Filter \/DCTDecode/);
+ assert.match(text,/\/Count 1/);
+ const off=Number(text.match(/startxref\n(\d+)\n%%EOF/)[1]);
+ assert.equal(text.slice(off,off+5),'xref\n');
 });
