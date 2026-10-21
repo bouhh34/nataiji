@@ -338,7 +338,7 @@
    $('#familyAwardPDF',w.body).onclick=async()=>{
      const button=$('#familyAwardPDF',w.body);button.disabled=true;
      try{
-       const blob=await awardPdfBlob(raw),filename='Certificat-'+today()+'.pdf;
+       const blob=await awardPdfBlob(raw),filename='Certificat-'+today()+'.pdf';
        const file=new File([blob],filename,{type:'application/pdf'});
        if(navigator.share&&navigator.canShare?.({files:[file]})){
          try{await navigator.share({files:[file],title:t('شهادة تكريم PDF أفقي','Certificat PDF paysage')});}
