@@ -140,8 +140,14 @@ async function addStudent(){
   if(raw&&!consent){msg.textContent='يلزم تأكيد موافقة ولي الأمر لحفظ رقم واتساب';return}
   const digits=raw.replace(/[^0-9]/g,'').replace(/^00/,'');
   if(raw&&!/^[0-9]{8}$/.test(digits)&&!/^222[0-9]{8}$/.test(digits)){msg.textContent='رقم واتساب الموريتاني غير صحيح';return}
-  state.pupils.push([n,a,$('#ag').value,$('#ad').value]);state.marks.push(state.subjects.map(()=>''));
-  try{await save(true)}catch{msg.textContent='تعذر حفظ التلميذ على الخادم';return}
+  try{
+   const result=await api('/api/pupils',{method:'POST',body:JSON.stringify({classId:state.activeClassId,pupil:[n,a,$('#ag').value,$('#ad').value]})});
+   if(!result?.ok||!Array.isArray(result.pupils))throw Error('pupil_save_not_verified');
+   state.pupils=structuredClone(result.pupils);
+   state.marks=state.pupils.map((_,i)=>state.subjects.map((_,j)=>state.marks?.[i]?.[j]??''));
+   if(state.classData?.[state.activeClassId])state.classData[state.activeClassId].pupils=structuredClone(state.pupils);
+   localStorage.setItem('nataiji-data',JSON.stringify(state));
+  }catch{msg.textContent='تعذر حفظ التلميذ على الخادم';return}
   if(raw){
    try{await api('/api/family/contacts',{method:'PUT',body:JSON.stringify({classId:state.activeClassId,studentKey:n,phone:digits,consent:true})})}
    catch{render();msg.textContent='تم حفظ التلميذ، لكن تعذر حفظ رقم ولي الأمر. أضفه لاحقًا من قسم المراسلات.';return}
