@@ -44,3 +44,16 @@ html[lang=fr] .family-dialog{direction:ltr}
 .family-launch-button{display:flex;align-items:center;justify-content:space-between;gap:8px;border-radius:13px;border:1px solid #cae4db;background:#eaf9f1;color:#096d58;padding:13px 14px;text-align:inherit;font-weight:900;min-height:49px;width:100%;cursor:pointer}
 #familyTeacherBtn{margin-block:7px}
 @media(max-width:500px){.family-overlay{align-items:end;padding:0}.family-dialog{width:100%;max-height:96dvh;border-radius:19px 19px 0 0}.family-dialog>header{padding-top:18px}.family-dialog>header h2{font-size:17px}}
+
+/* Individual parent roster: comfortably tappable actions on Android and mobile web. */
+.family-roster{background:#fff;border:1px solid #d1e5de;border-radius:15px;padding:12px;display:grid;gap:10px}
+.family-roster-title{display:flex;align-items:center;justify-content:space-between;gap:8px;flex-wrap:wrap}
+.family-roster-title h3{font-size:15px;color:#0b6255;margin:0}
+.family-roster-title button{font-size:12px;min-height:38px}
+#familyRosterList{display:grid;gap:8px}
+.family-roster-row{display:flex;align-items:center;gap:6px;padding:9px 7px;background:#f4faf8;border:1px solid #dbece5;border-radius:12px;min-width:0}
+.family-roster-row>span{display:grid;gap:3px;flex:1;min-width:0}
+.family-roster-row b{font-size:13px;overflow-wrap:anywhere}
+.family-roster-row small{color:#56756c;font-size:11px}
+.family-roster-row button{padding:7px 9px;min-height:42px;font-size:12px;flex:none}
+@media(max-width:380px){.family-roster-row{flex-wrap:wrap}.family-roster-row>span{flex:1 1 100%}.family-roster-row button{flex:1}}
