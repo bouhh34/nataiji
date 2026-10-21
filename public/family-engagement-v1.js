@@ -225,26 +225,82 @@
    ${txt(903,'المعلم / الأستاذ: '+issuer,23)}${txt(975,'التاريخ: '+date,23)}
    <text x="800" y="1040" text-anchor="middle" fill="#69817d" font-family="Arial,sans-serif" font-size="21">NATAIJI · CERTIFICAT DE RECONNAISSANCE</text></svg>`;
  }
- async function imageBlob(svg){
+ async function awardCanvas(svg){
    const url=URL.createObjectURL(new Blob([svg],{type:'image/svg+xml;charset=utf-8'}));
    try{
-     const img=new Image();await new Promise((resolve,reject)=>{img.onload=resolve;img.onerror=reject;img.src=url});
-     const canvas=document.createElement('canvas');canvas.width=1600;canvas.height=1131;
-     canvas.getContext('2d').drawImage(img,0,0);
-     return new Promise((resolve,reject)=>canvas.toBlob(x=>x?resolve(x):reject(Error('png_failed')),'image/png'))
+     const img=new Image();
+     await new Promise((resolve,reject)=>{img.onload=resolve;img.onerror=reject;img.src=url});
+     const canvas=document.createElement('canvas');
+     canvas.width=1600;canvas.height=1131;
+     const ctx=canvas.getContext('2d');
+     if(!ctx)throw Error('canvas_unavailable');
+     ctx.fillStyle='#ffffff';ctx.fillRect(0,0,canvas.width,canvas.height);
+     ctx.drawImage(img,0,0,canvas.width,canvas.height);
+     return canvas;
    }finally{URL.revokeObjectURL(url)}
+ }
+ async function imageBlob(svg){
+   const canvas=await awardCanvas(svg);
+   return new Promise((resolve,reject)=>canvas.toBlob(b=>b?resolve(b):reject(Error('png_failed')),'image/png'));
+ }
+ function pdfFromJpeg(jpegBytes,imageWidth=1600,imageHeight=1131){
+   // A physical A4 landscape page, independent of Android print-dialog orientation.
+   const bytes=jpegBytes instanceof Uint8Array?jpegBytes:new Uint8Array(jpegBytes);
+   if(bytes.length<4||bytes[0]!==0xff||bytes[1]!==0xd8)throw Error('invalid_jpeg');
+   const enc=new TextEncoder(),parts=[],offsets=[0];let position=0;
+   const add=value=>{const arr=typeof value==='string'?enc.encode(value):value;parts.push(arr);position+=arr.byteLength};
+   const obj=(num,body)=>{offsets[num]=position;add(num+' 0 obj\n'+body+'\nendobj\n')};
+   add('%PDF-1.4\n%NATAIJI\n');
+   obj(1,'<< /Type /Catalog /Pages 2 0 R >>');
+   obj(2,'<< /Type /Pages /Kids [3 0 R] /Count 1 >>');
+   obj(3,'<< /Type /Page /Parent 2 0 R /MediaBox [0 0 841.89 595.28] /Resources << /XObject << /Im0 5 0 R >> >> /Contents 4 0 R >>');
+   const drawing='q\n841.89 0 0 595.28 0 0 cm\n/Im0 Do\nQ\n';
+   obj(4,'<< /Length '+enc.encode(drawing).byteLength+' >>\nstream\n'+drawing+'endstream');
+   offsets[5]=position;
+   add('5 0 obj\n<< /Type /XObject /Subtype /Image /Width '+imageWidth+' /Height '+imageHeight+' /ColorSpace /DeviceRGB /BitsPerComponent 8 /Filter /DCTDecode /Length '+bytes.byteLength+' >>\nstream\n');
+   add(bytes);add('\nendstream\nendobj\n');
+   const xref=position;
+   add('xref\n0 6\n0000000000 65535 f \n');
+   for(let i=1;i<=5;i++)add(String(offsets[i]).padStart(10,'0')+' 00000 n \n');
+   add('trailer\n<< /Size 6 /Root 1 0 R >>\nstartxref\n'+xref+'\n%%EOF\n');
+   return new Blob(parts,{type:'application/pdf'});
+ }
+ async function awardPdfBlob(svg){
+   const canvas=await awardCanvas(svg);
+   const jpg=await new Promise((resolve,reject)=>canvas.toBlob(blob=>blob?resolve(blob):reject(Error('jpeg_failed')),'image/jpeg',0.96));
+   return pdfFromJpeg(new Uint8Array(await jpg.arrayBuffer()),canvas.width,canvas.height);
+ }
+ function saveLocalFile(blob,filename){
+   const a=document.createElement('a'),url=URL.createObjectURL(blob);
+   a.href=url;a.download=filename;document.body.appendChild(a);a.click();a.remove();
+   setTimeout(()=>URL.revokeObjectURL(url),30000);
  }
  async function showAward(record,preview=false){
    const w=modal(t('شهادة تكريم','Certificat de distinction'));
    w.body.innerHTML=`<p class="family-hint">${preview?t('معاينة فقط: لم تُحفظ الشهادة بعد.','Aperçu uniquement, non enregistré.'):t('تم إنشاء الشهادة من طرف المعلم أو الأستاذ دون اعتماد المدير.','Certificat créé par l’enseignant sans validation du directeur.')}</p>
    <div class="family-award-preview"></div><button type="button" id="familyAwardDownload" class="family-primary">${t('حفظ شهادة PNG على الهاتف','Enregistrer le certificat PNG')}</button>
-   <button type="button" id="familyAwardPDF" class="family-secondary">${t('طباعة أو حفظ PDF على الهاتف','Imprimer ou enregistrer en PDF')}</button>
+   <button type="button" id="familyAwardPDF" class="family-primary">${t('حفظ PDF أفقي A4 على الهاتف','Enregistrer PDF A4 paysage')}</button>
+   <button type="button" id="familyAwardPrint" class="family-secondary">${t('طباعة الشهادة (اختر أفقي)','Imprimer le certificat (paysage)')}</button>
     <button type="button" id="familyAwardShare" class="family-secondary">${t('مشاركة التكريم في واتساب أو مجموعة','Partager le certificat dans WhatsApp ou un groupe')}</button>
    <p class="family-message" aria-live="polite"></p>`;
    const raw=awardSVG(record),previewHost=$('.family-award-preview',w.body);
    previewHost.innerHTML=raw.replace('<svg ','<svg role="img" aria-label="'+t('شهادة تكريم','Certificat')+'" ');
-   $('#familyAwardPDF',w.body).onclick=()=>{
-     const doc='<!doctype html><html lang="ar" dir="rtl"><head><meta charset="utf-8"><title>شهادة تكريم | نتائجي</title><style>@page{size:A4 landscape;margin:0}html,body{padding:0;margin:0;background:#fff}svg{display:block;width:100vw;height:auto;max-height:100vh;margin:auto}</style></head><body>'+raw+'</body></html>';
+   $('#familyAwardPDF',w.body).onclick=async()=>{
+     const button=$('#familyAwardPDF',w.body);button.disabled=true;
+     try{
+       const blob=await awardPdfBlob(raw),filename='Nataiji-Certificat-'+today()+'.pdf';
+       const file=new File([blob],filename,{type:'application/pdf'});
+       if(navigator.share&&navigator.canShare?.({files:[file]})){
+         try{await navigator.share({files:[file],title:t('شهادة تكريم PDF أفقي','Certificat PDF paysage')});}
+         catch(e){if(e?.name!=='AbortError')saveLocalFile(blob,filename)}
+       }else{saveLocalFile(blob,filename)}
+       note(w.body,t('✓ تم إنشاء ملف PDF من صفحة A4 أفقية واحدة. احفظه من خيارات الهاتف إذا ظهرت قائمة المشاركة.','✓ PDF généré sur une seule page A4 paysage. Enregistrez-le via les options de partage si nécessaire.'),true);
+     }catch(error){note(w.body,t('تعذر تجهيز PDF. استخدم طباعة الشهادة واختر وضع أفقي.','Impossible de préparer le PDF. Utilisez Imprimer et choisissez Paysage.'))}
+     finally{button.disabled=false}
+   };
+   $('#familyAwardPrint',w.body).onclick=()=>{
+     // Printing stays optional: the system print dialog may override orientation.
+     const doc='<!doctype html><html lang="ar" dir="rtl"><head><meta charset="utf-8"><title>شهادة تكريم | نتائجي</title><style>@page{size:297mm 210mm;margin:0!important}*{box-sizing:border-box}html,body{padding:0!important;margin:0!important;width:297mm!important;height:210mm!important;background:#fff;overflow:hidden}svg{display:block!important;width:297mm!important;height:210mm!important;max-width:none!important;max-height:none!important;margin:0!important;break-inside:avoid;page-break-inside:avoid}</style></head><body>'+raw+'</body></html>';
      const native=window.Capacitor?.isNativePlatform?.()===true||window.Capacitor?.getPlatform?.()==='android';
      if(native&&typeof window.nataijiPrintDocument==='function'){void window.nataijiPrintDocument({html:doc,title:'Nataiji - Certificat',landscape:true});return}
      const tab=window.open('about:blank','_blank');
