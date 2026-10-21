@@ -121,3 +121,32 @@ test('certificate PDF is generated as one real A4 landscape page, not portrait p
  const off=Number(text.match(/startxref\n(\d+)\n%%EOF/)[1]);
  assert.equal(text.slice(off,off+5),'xref\n');
 });
+
+test('a guardian-number save reads PostgreSQL pupil result rows instead of iterating the query result object',()=>{
+ const server=readFileSync(new URL('../src/server.js',import.meta.url),'utf8');
+ const start=server.indexOf('loadTeacherSchool:async schoolId=>{');
+ const end=server.indexOf('mountDirectorRoutes(',start);
+ assert(start>=0&&end>start,'Family school loader should be present');
+ const loader=server.slice(start,end);
+ assert.match(loader,/const \{rows\}=await pool\.query\('SELECT class_id,nns,data FROM nataiji_pupils/);
+ assert.match(loader,/for\(const row of rows\)/);
+ assert.doesNotMatch(loader,/const rows=await pool\.query\('SELECT class_id,nns,data FROM nataiji_pupils/);
+});
+
+test('certificate is luxurious, school-branded, safely escaped, and has no app brand in its rendered SVG',()=>{
+ const script=readFileSync(new URL('../public/family-engagement-v1.js',import.meta.url),'utf8');
+ const start=script.indexOf('function premiumAwardSVG('),end=script.indexOf('function awardSVG(',start);
+ assert(start>=0&&end>start,'Premium certificate renderer must be present');
+ const premiumAwardSVG=new Function(script.slice(start,end)+'\\nreturn premiumAwardSVG')();
+ const svg=premiumAwardSVG({school_name:'مدرسة الأمل',student_name:'محمد & محمود',class_name:'الأولى',actor_name:'أستاذ',data:{awardType:'excellence',date:'2026-10-21'}});
+ assert.match(svg,/مدرسة الأمل/);
+ assert.match(svg,/محمد &amp; محمود/);
+ assert.match(svg,/شهادة التفوق الدراسي/);
+ assert.match(svg,/linearGradient id="gold"/);
+ assert.match(svg,/path d="M800 76L866 106/);
+ assert.match(svg,/width="1600" height="1131"/);
+ assert.doesNotMatch(svg,/Nataiji|نتائجي/i);
+ const unknown=premiumAwardSVG({student_name:'أحمد',data:{awardType:'effort'}});
+ assert.match(unknown,/اسم المدرسة/);
+ assert.doesNotMatch(unknown,/Nataiji|نتائجي/i);
+});
