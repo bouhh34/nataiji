@@ -210,22 +210,72 @@
    drawFields();fillStudents();void changeClass();void refreshHistory();
  }
  function svgSafe(v){return String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;','\'':'&apos;'}[c]))}
- function awardSVG(record){
-   const d=record.data||{},name=String(record.student_name||'').slice(0,75),school=String(record.school_name||'نتائجي').slice(0,75),cls=String(record.class_name||'').slice(0,70),issuer=String(record.actor_name||'').slice(0,70),reason=String(d.reason||'تقديرًا لجهوده وتميزه').slice(0,95),date=String(d.date||today()),title=AWARDS[d.awardType]?.[0]||AWARDS.effort[0];
-   const txt=(y,val,size=28,color='#0e4d63')=>`<text x="800" y="${y}" text-anchor="middle" direction="rtl" unicode-bidi="plaintext" fill="${color}" font-family="Arial, sans-serif" font-weight="700" font-size="${size}">${svgSafe(val)}</text>`;
-   return `<svg xmlns="http://www.w3.org/2000/svg" width="1600" height="1131" viewBox="0 0 1600 1131">
-   <rect width="1600" height="1131" fill="#fffdf8"/><rect x="40" y="40" width="1520" height="1051" rx="24" fill="none" stroke="#b49350" stroke-width="11"/>
-   <rect x="61" y="61" width="1478" height="1009" rx="16" fill="none" stroke="#0b6d6c" stroke-width="3"/>
-   <path d="M0 0H480L0 340ZM1600 1131H1100L1600 780Z" fill="#e8f4ee"/>
-   <circle cx="800" cy="156" r="69" fill="#e9c678" stroke="#b78a35" stroke-width="7"/><path d="M765 163l25 25 46-55" fill="none" stroke="#0b625d" stroke-width="13" stroke-linecap="round"/>
-   ${txt(270,'نتائجي | Nataiji',39,'#0b6d6c')}${txt(337,school,28)}
-   ${txt(458,title,58,'#b08132')}${txt(542,'تُمنح هذه الشهادة للتلميذ / للتلميذة',27)}
-   ${txt(632,name,55,'#0e3d59')}<path d="M420 663H1180" stroke="#c6a453" stroke-width="3"/>
-   ${txt(734,reason,25)}${txt(812,'القسم: '+cls,26)}
-   ${txt(903,'المعلم / الأستاذ: '+issuer,23)}${txt(975,'التاريخ: '+date,23)}
-   <text x="800" y="1040" text-anchor="middle" fill="#69817d" font-family="Arial,sans-serif" font-size="21">NATAIJI · CERTIFICAT DE RECONNAISSANCE</text></svg>`;
- }
- async function awardCanvas(svg){
+ function premiumAwardSVG(record){
+ const d=record?.data||{},awards={
+  excellence:['شهادة التفوق الدراسي',"Certificat d’excellence scolaire"],
+  effort:['شهادة الاجتهاد',"Certificat d’effort"],
+  behavior:['شهادة حسن السلوك',"Certificat de bonne conduite"],
+  attendance:['شهادة المواظبة',"Certificat d’assiduité"],
+  progress:['شهادة التحسن',"Certificat de progrès"],
+  subject:['شهادة التميز في مادة',"Certificat de distinction"]};
+ const title=awards[d.awardType]||awards.excellence;
+ const school=String(record?.school_name||'').trim().slice(0,82)||'اسم المدرسة';
+ const student=String(record?.student_name||'').trim().slice(0,82);
+ const cls=String(record?.class_name||'').trim().slice(0,90);
+ const teacher=String(record?.actor_name||'').trim().slice(0,70);
+ const reason=String(d.reason||'تقديرًا لاجتهاده وتميّزه وإسهامه في الحياة المدرسية').trim().slice(0,105);
+ const date=String(d.date||new Date().toISOString().slice(0,10)).slice(0,10);
+ const clean=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;','\'':'&apos;'}[c]));
+ const ar=(y,s,size=27,fill='#0c403a')=>`<text x="800" y="${y}" text-anchor="middle" direction="rtl" unicode-bidi="plaintext" font-family="'Noto Naskh Arabic',Tahoma,Arial,sans-serif" font-size="${size}" font-weight="700" fill="${fill}">${clean(s)}</text>`;
+ const fr=(y,s,size=20,fill='#335950')=>`<text x="800" y="${y}" text-anchor="middle" font-family="Georgia,serif" font-size="${size}" fill="${fill}">${clean(s)}</text>`;
+ const schoolSize=school.length>48?29:school.length>28?38:47,studentSize=student.length>45?39:student.length>25?48:61;
+ const leaves=Array.from({length:7},(_,i)=>{
+  const y=94+i*19,x=675+i*3,a=-42+i*7,xr=1600-x;
+  return `<ellipse cx="${x}" cy="${y}" rx="8" ry="18" fill="url(#gold)" transform="rotate(${a} ${x} ${y})"/><ellipse cx="${xr}" cy="${y}" rx="8" ry="18" fill="url(#gold)" transform="rotate(${-a} ${xr} ${y})"/>`;
+ }).join('');
+ return `<svg xmlns="http://www.w3.org/2000/svg" width="1600" height="1131" viewBox="0 0 1600 1131">
+ <defs>
+ <linearGradient id="gold" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#96631b"/><stop offset=".24" stop-color="#e5c07b"/><stop offset=".52" stop-color="#fff0ba"/><stop offset=".75" stop-color="#c28a32"/><stop offset="1" stop-color="#8f581b"/></linearGradient>
+ <linearGradient id="deep" x1="0" y1="0" x2="1" y2=".7"><stop stop-color="#0a4d43"/><stop offset="1" stop-color="#012b26"/></linearGradient>
+ <radialGradient id="paper"><stop stop-color="#fff"/><stop offset="1" stop-color="#fcf8ec"/></radialGradient>
+ <pattern id="filigree" width="28" height="28" patternUnits="userSpaceOnUse"><path d="M0 14Q14 -1 28 14Q14 29 0 14Z" fill="none" stroke="#d0b97c" stroke-opacity=".13" stroke-width=".8"/></pattern>
+ </defs>
+ <rect width="1600" height="1131" fill="url(#paper)"/><rect width="1600" height="1131" fill="url(#filigree)"/>
+ <path d="M0 0H520Q390 99 240 127L0 325Z" fill="url(#deep)"/><path d="M0 0H600Q408 107 241 141L0 362V337L231 126Q405 90 543 0Z" fill="url(#gold)"/>
+ <path d="M1600 1131H1075Q1219 1024 1373 990L1600 785Z" fill="url(#deep)"/><path d="M1600 1131H1025Q1197 1008 1363 979L1600 756V785L1378 999Q1213 1035 1078 1131Z" fill="url(#gold)"/>
+ <rect x="22" y="22" width="1556" height="1087" fill="none" stroke="url(#gold)" stroke-width="9"/>
+ <rect x="43" y="43" width="1514" height="1045" fill="none" stroke="#0d5348" stroke-width="3"/>
+ <rect x="58" y="58" width="1484" height="1015" fill="none" stroke="#d7b36b" stroke-width="1.8"/>
+ <g fill="none" stroke="url(#gold)" stroke-width="3"><path d="M1479 85q-84 5-71 72q55-6 34-44q-30-28-57 18M1489 88q-17 43 33 55q14 52-24 68"/><path d="M121 1047q84-5 71-72q-55 6-34 44q30 28 57-18M111 1044q17-43-33-55q-14-52 24-68"/></g>
+ <g opacity=".2" fill="none" stroke="#dbc692" stroke-width="3"><circle cx="165" cy="615" r="130"/><circle cx="165" cy="615" r="104"/><circle cx="1435" cy="615" r="130"/><circle cx="1435" cy="615" r="104"/><path d="M165 474Q220 610 165 756Q110 610 165 474ZM35 615Q165 553 295 615Q165 677 35 615Z"/><path d="M1435 474Q1490 610 1435 756Q1380 610 1435 474ZM1305 615Q1435 553 1565 615Q1435 677 1305 615Z"/></g>
+ <path d="M800 76L866 106V183Q865 232 800 255Q735 232 734 183V106Z" fill="url(#deep)" stroke="url(#gold)" stroke-width="9"/>
+ <path d="M800 92L850 117V180Q848 218 800 236Q752 218 750 180V117Z" fill="none" stroke="#f5d58d" stroke-width="2.5"/>
+ <path d="M800 125L806 139L821 141L809 152L812 167L800 159L788 167L791 152L779 141L794 139Z" fill="url(#gold)"/>
+ <path d="M796 194Q768 179 769 184V214Q781 213 798 225Q819 211 832 214V184Q806 179 800 194Z" fill="#f8d386"/><path d="M800 196V226M770 193Q784 195 800 207Q815 195 831 193" fill="none" stroke="#0a5147" stroke-width="3.5"/>
+ <path d="M673 95Q643 183 704 241M927 95Q957 183 896 241" fill="none" stroke="#bb8b37" stroke-width="4"/>
+ ${leaves}<path d="M785 68l15-19 15 19-15-7Z" fill="url(#gold)"/>
+ ${ar(309,school,schoolSize)}
+ ${fr(342,'ÉTABLISSEMENT SCOLAIRE',17,'#7f6939')}
+ <path d="M505 366H755M845 366H1095" stroke="url(#gold)" stroke-width="2.6"/><path d="M800 355l13 11-13 11-13-11Z" fill="url(#gold)"/>
+ ${ar(448,title[0],title[0].length>26?58:65,'#a46c23')}
+ ${fr(493,title[1],23,'#25534a')}
+ <path d="M545 515H747M853 515H1055" stroke="#d4ab5e" stroke-width="2"/><path d="M800 504l11 11-11 11-11-11Z" fill="url(#gold)"/>
+ ${ar(578,'تُقدَّم هذه الشهادة للتلميذ/ة',31)}
+ <rect x="285" y="608" width="1030" height="116" rx="26" fill="#fffdf5" stroke="url(#gold)" stroke-width="5"/>
+ <rect x="297" y="620" width="1006" height="92" rx="19" fill="none" stroke="#dab777" stroke-width="1.6"/>
+ <path d="M326 664l16-16 16 16-16 16ZM1274 664l-16-16-16 16 16 16Z" fill="url(#gold)"/>
+ ${ar(688,student,studentSize,'#06463c')}
+ ${ar(786,reason,reason.length>70?21:26,'#23554b')}
+ <path d="M530 815H755M845 815H1070" stroke="#d6b87c" stroke-width="2"/><path d="M800 807l9 9-9 9-9-9Z" fill="url(#gold)"/>
+ ${ar(879,'القسم: '+cls,28)}
+ ${ar(932,'المعلم / الأستاذ: '+teacher,25)}
+ ${ar(985,'التاريخ: '+date,25)}
+ ${ar(1036,'مع أطيب التهاني والتشجيع',23,'#926b33')}
+ <path d="M498 1048H708M892 1048H1102" stroke="#c7a15a" stroke-width="2"/>
+ </svg>`;
+}
+  function awardSVG(record){return premiumAwardSVG(record)}
+  async function awardCanvas(svg){
    const url=URL.createObjectURL(new Blob([svg],{type:'image/svg+xml;charset=utf-8'}));
    try{
      const img=new Image();
@@ -280,7 +330,7 @@
    w.body.innerHTML=`<p class="family-hint">${preview?t('معاينة فقط: لم تُحفظ الشهادة بعد.','Aperçu uniquement, non enregistré.'):t('تم إنشاء الشهادة من طرف المعلم أو الأستاذ دون اعتماد المدير.','Certificat créé par l’enseignant sans validation du directeur.')}</p>
    <div class="family-award-preview"></div><button type="button" id="familyAwardDownload" class="family-primary">${t('حفظ شهادة PNG على الهاتف','Enregistrer le certificat PNG')}</button>
    <button type="button" id="familyAwardPDF" class="family-primary">${t('حفظ PDF أفقي A4 على الهاتف','Enregistrer PDF A4 paysage')}</button>
-   <button type="button" id="familyAwardPrint" class="family-secondary">${t('طباعة الشهادة (اختر أفقي)','Imprimer le certificat (paysage)')}</button>
+   <button type="button" id="familyAwardPrint" class="family-secondary">${t('فتح PDF للطباعة (أفقي A4)','Ouvrir le PDF pour imprimer (A4 paysage)')}</button>
     <button type="button" id="familyAwardShare" class="family-secondary">${t('مشاركة التكريم في واتساب أو مجموعة','Partager le certificat dans WhatsApp ou un groupe')}</button>
    <p class="family-message" aria-live="polite"></p>`;
    const raw=awardSVG(record),previewHost=$('.family-award-preview',w.body);
@@ -288,7 +338,7 @@
    $('#familyAwardPDF',w.body).onclick=async()=>{
      const button=$('#familyAwardPDF',w.body);button.disabled=true;
      try{
-       const blob=await awardPdfBlob(raw),filename='Nataiji-Certificat-'+today()+'.pdf';
+       const blob=await awardPdfBlob(raw),filename='Certificat-'+today()+'.pdf';
        const file=new File([blob],filename,{type:'application/pdf'});
        if(navigator.share&&navigator.canShare?.({files:[file]})){
          try{await navigator.share({files:[file],title:t('شهادة تكريم PDF أفقي','Certificat PDF paysage')});}
@@ -298,20 +348,24 @@
      }catch(error){note(w.body,t('تعذر تجهيز PDF. استخدم طباعة الشهادة واختر وضع أفقي.','Impossible de préparer le PDF. Utilisez Imprimer et choisissez Paysage.'))}
      finally{button.disabled=false}
    };
-   $('#familyAwardPrint',w.body).onclick=()=>{
-     // Printing stays optional: the system print dialog may override orientation.
-     const doc='<!doctype html><html lang="ar" dir="rtl"><head><meta charset="utf-8"><title>شهادة تكريم | نتائجي</title><style>@page{size:297mm 210mm;margin:0!important}*{box-sizing:border-box}html,body{padding:0!important;margin:0!important;width:297mm!important;height:210mm!important;background:#fff;overflow:hidden}svg{display:block!important;width:297mm!important;height:210mm!important;max-width:none!important;max-height:none!important;margin:0!important;break-inside:avoid;page-break-inside:avoid}</style></head><body>'+raw+'</body></html>';
-     const native=window.Capacitor?.isNativePlatform?.()===true||window.Capacitor?.getPlatform?.()==='android';
-     if(native&&typeof window.nataijiPrintDocument==='function'){void window.nataijiPrintDocument({html:doc,title:'Nataiji - Certificat',landscape:true});return}
-     const tab=window.open('about:blank','_blank');
-     if(!tab){note(w.body,t('اسمح بفتح صفحة الطباعة من المتصفح.','Autorisez la fenêtre d’impression.'));return}
-     tab.document.open();tab.document.write(doc);tab.document.close();
-     tab.focus();setTimeout(()=>{try{tab.print()}catch{}},400)
-   };
-   $('#familyAwardShare',w.body).onclick=async()=>{
+   $('#familyAwardPrint',w.body).onclick=async()=>{
+      // An actual A4 landscape PDF avoids Android's tall portrait HTML print preview.
+      const button=$('#familyAwardPrint',w.body);button.disabled=true;
+      try{
+        const blob=await awardPdfBlob(raw),filename='Certificat-'+today()+'.pdf';
+        const file=new File([blob],filename,{type:'application/pdf'});
+        if(navigator.share&&navigator.canShare?.({files:[file]})){
+          try{await navigator.share({files:[file],title:t('شهادة مدرسية للطباعة','Certificat scolaire à imprimer')})}
+          catch(e){if(e?.name==='AbortError')return;saveLocalFile(blob,filename)}
+        }else saveLocalFile(blob,filename);
+        note(w.body,t('✓ ملف A4 أفقي جاهز. افتح PDF واختر طباعة من هاتفك.','✓ PDF A4 paysage prêt. Ouvrez le PDF et choisissez Imprimer.'),true);
+      }catch{note(w.body,t('تعذر تجهيز شهادة الطباعة. جرّب حفظ PDF.','Préparation impossible. Essayez Enregistrer PDF.'))}
+      finally{button.disabled=false}
+    };
+    $('#familyAwardShare',w.body).onclick=async()=>{
       if(!confirm(t('تأكد من موافقة ولي الأمر قبل مشاركة شهادة التكريم في مجموعة. متابعة؟','Vérifiez le consentement du parent avant un partage dans un groupe. Continuer ?')))return;
       try{
-        const blob=await imageBlob(raw),file=new File([blob],'nataiji-award-'+today()+'.png',{type:'image/png'});
+        const blob=await imageBlob(raw),file=new File([blob],'certificat-'+today()+'.png',{type:'image/png'});
         const shareData=navigator.canShare?.({files:[file]})?{files:[file],title:t('شهادة تكريم','Certificat')}:{title:t('شهادة تكريم','Certificat'),text:formatMessage({...record,kind:'award'})};
         if(!navigator.share)throw Error('share_unavailable');
         await navigator.share(shareData);
@@ -320,7 +374,7 @@
     $('#familyAwardDownload',w.body).onclick=async()=>{
      const button=$('#familyAwardDownload',w.body);button.disabled=true;
      try{
-       const blob=await imageBlob(raw),fileName='nataiji-award-'+today()+'.png',file=new File([blob],fileName,{type:'image/png'});
+       const blob=await imageBlob(raw),fileName='certificat-'+today()+'.png',file=new File([blob],fileName,{type:'image/png'});
        const a=document.createElement('a'),url=URL.createObjectURL(file);a.href=url;a.download=fileName;document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(url),5000);
        note(w.body,t('تم طلب حفظ صورة الشهادة على الهاتف.','Enregistrement du certificat demandé.'),true);
      }catch{note(w.body,t('تعذر حفظ الصورة على هذا الجهاز.','Enregistrement impossible sur cet appareil.'))}
@@ -328,10 +382,10 @@
    }
  }
  function formatMessage(rec){
-   const d=rec.data||{},name=rec.student_name,school=rec.school_name||'نتائجي';
-   if(rec.kind==='award')return '🏅 نتائجي | Nataiji\n'+school+'\nيسعدنا تكريم التلميذ/ة '+name+'\n'+(AWARDS[d.awardType]?.[0]||'شهادة تكريم')+(d.reason?'\nالسبب: '+d.reason:'')+'\nمع تحيات المعلم أو الأستاذ المُصدِر للشهادة.';
-   if(rec.kind==='daily')return '📚 نتائجي | Nataiji\n'+school+'\nالتقرير اليومي للتلميذ/ة: '+name+'\nالتاريخ: '+(d.date||'')+'\nالحضور: '+pair(ATT,d.attendance)+'\nالتقييم: '+pair(RATE,d.assessment)+(d.note?'\nالملاحظة: '+d.note:'')+'\nمع تحيات المعلم أو الأستاذ.';
-   return '📄 نتائجي | Nataiji\n'+school+'\nإشعار بنتائج التلميذ/ة: '+name+(d.term?'\nالفصل: '+d.term:'')+(d.note?'\n'+d.note:'')+'\nيمكنكم التواصل مع المؤسسة للاطلاع على الكشف المعتمد.';
+   const d=rec.data||{},name=rec.student_name,school=rec.school_name||'اسم المدرسة';
+   if(rec.kind==='award')return '🏅 '+school+'\nيسعدنا تكريم التلميذ/ة '+name+'\n'+(AWARDS[d.awardType]?.[0]||'شهادة تكريم')+(d.reason?'\nالسبب: '+d.reason:'')+'\nمع تحيات المعلم أو الأستاذ المُصدِر للشهادة.';
+   if(rec.kind==='daily')return '📚 '+school+'\nالتقرير اليومي للتلميذ/ة: '+name+'\nالتاريخ: '+(d.date||'')+'\nالحضور: '+pair(ATT,d.attendance)+'\nالتقييم: '+pair(RATE,d.assessment)+(d.note?'\nالملاحظة: '+d.note:'')+'\nمع تحيات المعلم أو الأستاذ.';
+   return '📄 '+school+'\nإشعار بنتائج التلميذ/ة: '+name+(d.term?'\nالفصل: '+d.term:'')+(d.note?'\n'+d.note:'')+'\nيمكنكم التواصل مع المؤسسة للاطلاع على الكشف المعتمد.';
  }
  function openWhatsApp(rec,phone){
    if(!rec||!/^222[0-9]{8}$/.test(String(phone||'')))return;
