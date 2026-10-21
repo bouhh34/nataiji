@@ -233,11 +233,15 @@
    if(rec.kind==='daily')return '📚 نتائجي | Nataiji\n'+school+'\nالتقرير اليومي للتلميذ/ة: '+name+'\nالتاريخ: '+(d.date||'')+'\nالحضور: '+pair(ATT,d.attendance)+'\nالتقييم: '+pair(RATE,d.assessment)+(d.note?'\nالملاحظة: '+d.note:'')+'\nمع تحيات نتائجي.';
    return '📄 نتائجي | Nataiji\n'+school+'\nإشعار بنتائج التلميذ/ة: '+name+(d.term?'\nالفصل: '+d.term:'')+(d.note?'\n'+d.note:'')+'\nيمكنكم التواصل مع المؤسسة للاطلاع على الكشف المعتمد.';
  }
+ function openWhatsApp(rec,phone){
+   if(!rec||!/^222[0-9]{8}$/.test(String(phone||'')))return;
+   const a=document.createElement('a');a.href='https://wa.me/'+phone+'?text='+encodeURIComponent(formatMessage(rec));a.target='_blank';a.rel='noopener noreferrer';document.body.appendChild(a);a.click();a.remove();
+   void request('/api/family/records/'+encodeURIComponent(rec.id)+'/status','POST',{status:'opened'}).catch(()=>{});
+ }
  async function openOutbox(){
    const w=modal(t('إرسال فردي لأولياء الأمور','Envoi individuel aux parents'));
    const body=w.body;let rows=[],selected='pending';
-   body.innerHTML=`<p class="family-hint">${t('لا ترسل إلا من هاتف مرتبط بحساب WhatsApp Business الرسمي لنتائجي. فتح رابط واتساب وحده لا يضمن اختيار حساب الأعمال إذا كان لديك أكثر من حساب. تحقق من الحساب قبل الإرسال.','Envoyez uniquement depuis le téléphone connecté au WhatsApp Business officiel. Vérifiez le compte actif avant l’envoi.')}</p>
-     <label class="family-checkbox"><input type="checkbox" id="familyOfficial"> ${t('أؤكد أن هذا الهاتف سيستخدم حساب حساب واتساب الذي تستخدمه الرسمي فقط','Je confirme utiliser exclusivement votre WhatsApp sur ce téléphone')}</label>
+   body.innerHTML=`<p class="family-hint">${t('هذه رسائلك أنت. يفتح زر الإرسال محادثة ولي الأمر في واتساب هاتفك؛ تأكد من الحساب الذي اخترته.','Ce sont vos messages. Le bouton ouvre le parent dans WhatsApp de votre téléphone ; vérifiez le compte choisi.')}</p>
      <div class="family-tabs"><button data-status="pending" class="on">${t('جاهزة','En attente')}</button><button data-status="opened">${t('فُتحت','Ouvertes')}</button><button data-status="sent">${t('أرسلت يدويًا','Marquées envoyées')}</button></div>
      <p class="family-message" aria-live="polite"></p><div id="familyQueueList"></div>`;
    async function refresh(){
@@ -254,15 +258,13 @@
           </article>`).join(''):`<p class="family-tiny">${t('لا توجد رسائل في هذه القائمة','Aucun message dans cette liste')}</p>`;
        $$('[data-open]',list).forEach(button=>button.onclick=async()=>{
          const rec=rows[Number(button.dataset.open)];
-         const url='https://wa.me/'+rec.guardian_phone+'?text='+encodeURIComponent(formatMessage(rec));
-         // No automated sending, and we NEVER claim WhatsApp successfully sent.
-         const a=document.createElement('a');a.href=url;a.target='_blank';a.rel='noopener noreferrer';document.body.appendChild(a);a.click();a.remove();
+         openWhatsApp(rec,rec.guardian_phone);
          try{await request('/api/family/records/'+encodeURIComponent(rec.id)+'/status','POST',{status:'opened'});await refresh()}catch{note(body,t('فتحت واتساب، لكن تعذر تحديث حالة الرسالة.','WhatsApp ouvert, mais mise à jour impossible.'))}
        });
        $('[data-copy]',list).forEach(button=>button.onclick=async()=>{const rec=rows[Number(button.dataset.copy)],value=formatMessage(rec);try{await navigator.clipboard.writeText(value);note(body,t('تم نسخ الرسالة. الصقها داخل حساب واتساب الذي تستخدمه.','Message copié. Collez-le dans votre WhatsApp.'),true)}catch{window.prompt(t('انسخ الرسالة من هنا','Copiez le message'),value)}});
        $('[data-sent]',list).forEach(button=>button.onclick=async()=>{
          const rec=rows[Number(button.dataset.sent)];
-         if(!confirm(t('هل تحققت بنفسك من إرسال هذه الرسالة من حساب واتساب الذي تستخدمه الرسمي؟','Avez-vous réellement envoyé ce message depuis votre WhatsApp ?')))return;
+         if(!confirm(t('هل ضغطت إرسال بالفعل من واتساب هاتفك؟','Avez-vous effectivement envoyé le message depuis votre WhatsApp ?')))return;
          try{await request('/api/family/records/'+encodeURIComponent(rec.id)+'/status','POST',{status:'sent'});await refresh()}catch{note(body,t('تعذر تأكيد الحالة.','Mise à jour impossible.'))}
        });
        $$('[data-certificate]',list).forEach(button=>button.onclick=()=>void showAward(rows[Number(button.dataset.certificate)]));
