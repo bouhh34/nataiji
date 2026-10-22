@@ -23,6 +23,6 @@ window.addEventListener('pagehide',saveUi);window.addEventListener('beforeunload
 // Coalesce frequent DOM changes instead of repeatedly resetting a timer.
 // Avoid writing unchanged table cells: our own updates must not trigger an endless observer loop.
 let callNumberSyncQueued=false;
-new MutationObserver(()=>{if(callNumberSyncQueued)return;callNumberSyncQueued=true;setTimeout(()=>{callNumberSyncQueued=false;syncAdminCallNumbers()},90)}).observe(document.documentElement,{childList:true,subtree:true});
+new MutationObserver(records=>{if(callNumberSyncQueued)return;const relevant=records.some(r=>r.target?.closest?.('#list,.student-table')||[...r.addedNodes].some(n=>n.nodeType===1&&(n.matches?.('#list,.student-table')||n.querySelector?.('#list,.student-table'))));if(!relevant)return;callNumberSyncQueued=true;setTimeout(()=>{callNumberSyncQueued=false;syncAdminCallNumbers()},110)}).observe(document.documentElement,{childList:true,subtree:true});
 window.addEventListener('DOMContentLoaded',()=>{settle(0);settle(100);settle(350);setTimeout(()=>document.documentElement.classList.add('nataiji-restored'),450)});setTimeout(()=>settle(0),0);
 })();
