@@ -337,16 +337,20 @@
  const w=modal(t('شهادة التميز وإعلان التكريم','Certificat et annonce de distinction')),body=w.body,raw=awardSVG(record);
  const announce=formatMessage({...record,kind:'award'}),filename='Certificat-'+today()+'.pdf';
  const native=window.Capacitor?.isNativePlatform?.()===true||['android','ios'].includes(window.Capacitor?.getPlatform?.());
- let prepared;
+ let prepared,readyFile=null;
  const pdf=()=>prepared||=awardPdfBlob(raw).catch(e=>{prepared=null;throw e});
- const pdfFile=async()=>new File([await pdf()],filename,{type:'application/pdf'});
+ const pdfFile=async()=>readyFile ||= new File([await pdf()],filename,{type:'application/pdf'});
  const supportsShare=file=>Boolean(navigator.share&&navigator.canShare?.({files:[file]}));
  // File-only share: some Android/WhatsApp builds discard the attachment
  // when Web Share receives both a file and text.
- const sharePdfAttachment=async()=>{
-   const file=await pdfFile();
-   if(supportsShare(file)){await navigator.share({files:[file]});return 'chooser'}
-   saveLocalFile(file,filename);return 'download'
+ const sharePdfAttachment=()=>{
+   // Call navigator.share synchronously from the tap handler: a late await
+   // after PDF rasterization can expire Android's transient user gesture.
+   const file=readyFile;
+   if(!file)throw Error('pdf_not_ready');
+   if(supportsShare(file))return navigator.share({files:[file]}).then(()=> 'chooser');
+   saveLocalFile(file,filename);
+   return Promise.resolve('download');
  };
  body.innerHTML=`<p class="family-hint">${preview?t('معاينة شهادة التميز قبل إنشاء الإعلان والشهادة.','Aperçu du certificat avant création.'):t('الشهادة والإعلان في شاشة واحدة: شارك ملف PDF أولًا، ثم افتح محادثة ولي الأمر لإرسال الإعلان.','Certificat et annonce au même endroit : partagez le fichier PDF, puis envoyez le message au parent.')}</p>
  <div class="family-award-preview"></div>
@@ -368,7 +372,22 @@
  </section>`}
  <p class="family-message" aria-live="polite"></p>`;
  $('.family-award-preview',body).innerHTML=raw.replace('<svg ','<svg role="img" aria-label="'+t('شهادة تكريم','Certificat')+'" ');
- if(!preview)$('#familyAwardMessage',body).textContent=announce;
+ if(!preview){
+   $('#familyAwardMessage',body).textContent=announce;
+   const sendFile=$('#familyAwardShare',body);
+   sendFile.disabled=true;
+   sendFile.textContent=t('جار تجهيز ملف الشهادة PDF…','Préparation du fichier PDF…');
+   // Prepare the real document before the user taps Share, without blocking paint.
+   setTimeout(()=>{void pdfFile().then(()=>{
+     if(!sendFile.isConnected)return;
+     sendFile.disabled=false;
+     sendFile.textContent=t('١ — مشاركة ملف PDF في واتساب','1 — Partager le fichier PDF sur WhatsApp');
+   }).catch(()=>{
+     if(!sendFile.isConnected)return;
+     sendFile.disabled=false;
+     sendFile.textContent=t('إعادة محاولة مشاركة PDF','Réessayer de partager le PDF');
+   })},30);
+ }
  const feedback=(ar,fr,ok=false)=>note(body,t(ar,fr),ok);
  const protect=async(button,action)=>{button.disabled=true;try{await action()}catch(e){if(e?.name!=='AbortError')feedback('تعذر إتمام العملية؛ يمكنك حفظ PDF وإعادة المحاولة.','Opération impossible. Enregistrez le PDF et réessayez.')}finally{button.disabled=false}};
  $('#familyAwardOpenPDF',body).onclick=()=>{
@@ -411,8 +430,10 @@
  $('#familyAwardShare',body).onclick=()=>{
    if(!approve())return;
    const button=$('#familyAwardShare',body);
+   // Capture the share promise immediately while the user's tap is active.
+   let action;try{action=sharePdfAttachment()}catch(e){feedback('ملف PDF لم يكتمل بعد. اختر إعادة المحاولة.','Le PDF est encore en préparation. Réessayez.');return}
    void protect(button,async()=>{
-     const result=await sharePdfAttachment();
+     const result=await action;
      if(result==='chooser')feedback('فُتحت مشاركة ملف PDF دون نص. اختر واتساب وولي الأمر الصحيح، وتأكد من ظهور المستند قبل إرساله. بعد ذلك أرسل الإعلان من الزر الثاني.','Le PDF seul est présenté au partage. Choisissez le parent et vérifiez le document avant envoi, puis utilisez le second bouton pour l’annonce.',true);
      else feedback('تم تجهيز PDF في ملفات الهاتف، ولم يتم إرساله. أرفقه في واتساب من المشبك > مستند ثم أرسل الإعلان من الزر الثاني.','PDF enregistré, pas encore envoyé. Joignez-le dans WhatsApp > Document, puis envoyez l’annonce avec le second bouton.',true);
    });
