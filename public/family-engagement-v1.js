@@ -252,12 +252,16 @@
  <rect x="58" y="58" width="1484" height="1015" fill="none" stroke="#d7b36b" stroke-width="1.8"/>
  <g fill="none" stroke="url(#gold)" stroke-width="3"><path d="M1479 85q-84 5-71 72q55-6 34-44q-30-28-57 18M1489 88q-17 43 33 55q14 52-24 68"/><path d="M121 1047q84-5 71-72q-55 6-34 44q30 28 57-18M111 1044q17-43-33-55q-14-52 24-68"/></g>
  <g opacity=".2" fill="none" stroke="#dbc692" stroke-width="3"><circle cx="165" cy="615" r="130"/><circle cx="165" cy="615" r="104"/><circle cx="1435" cy="615" r="130"/><circle cx="1435" cy="615" r="104"/><path d="M165 474Q220 610 165 756Q110 610 165 474ZM35 615Q165 553 295 615Q165 677 35 615Z"/><path d="M1435 474Q1490 610 1435 756Q1380 610 1435 474ZM1305 615Q1435 553 1565 615Q1435 677 1305 615Z"/></g>
- <path d="M800 76L866 106V183Q865 232 800 255Q735 232 734 183V106Z" fill="url(#deep)" stroke="url(#gold)" stroke-width="9"/>
- <path d="M800 92L850 117V180Q848 218 800 236Q752 218 750 180V117Z" fill="none" stroke="#f5d58d" stroke-width="2.5"/>
- <path d="M800 125L806 139L821 141L809 152L812 167L800 159L788 167L791 152L779 141L794 139Z" fill="url(#gold)"/>
- <path d="M796 194Q768 179 769 184V214Q781 213 798 225Q819 211 832 214V184Q806 179 800 194Z" fill="#f8d386"/><path d="M800 196V226M770 193Q784 195 800 207Q815 195 831 193" fill="none" stroke="#0a5147" stroke-width="3.5"/>
- <path d="M673 95Q643 183 704 241M927 95Q957 183 896 241" fill="none" stroke="#bb8b37" stroke-width="4"/>
- ${leaves}<path d="M785 68l15-19 15 19-15-7Z" fill="url(#gold)"/>
+ <circle cx="800" cy="167" r="108" fill="#fff5db" stroke="url(#gold)" stroke-width="10"/>
+ <circle cx="800" cy="167" r="93" fill="#063e35" stroke="#bb8b37" stroke-width="3"/>
+ <circle cx="800" cy="167" r="84" fill="none" stroke="#d3b06c" stroke-width="2" stroke-dasharray="3 8"/>
+ <path d="M686 145L800 100L914 145L800 191Z" fill="url(#gold)" stroke="#ffefc8" stroke-width="3"/>
+ <path d="M730 168V212Q800 249 870 212V168L800 194Z" fill="#f9d896" stroke="#a07327" stroke-width="3"/>
+ <path d="M800 187L883 152V233" stroke="#fdf0c4" stroke-width="5" fill="none"/>
+ <circle cx="883" cy="233" r="9" fill="url(#gold)"/>
+ <path d="M883 240L873 265H893Z" fill="#f9d896"/>
+ <path d="M667 155Q641 222 701 263M933 155Q959 222 899 263" stroke="url(#gold)" stroke-width="5" fill="none"/>
+ <path d="M778 75L800 49L822 75L800 67Z" fill="url(#gold)"/>
  ${ar(309,school,schoolSize)}
  ${fr(342,'ÉTABLISSEMENT SCOLAIRE',17,'#7f6939')}
  <path d="M505 366H755M845 366H1095" stroke="url(#gold)" stroke-width="2.6"/><path d="M800 355l13 11-13 11-13-11Z" fill="url(#gold)"/>
