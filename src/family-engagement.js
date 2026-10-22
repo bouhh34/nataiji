@@ -37,6 +37,9 @@ export async function initFamilySchema(pool){
   await pool.query("UPDATE nataiji_family_records SET contact_scope=actor_id,contact_class_id=class_id WHERE contact_scope=''");
   await pool.query("CREATE INDEX IF NOT EXISTS nataiji_family_records_queue_idx ON nataiji_family_records(status,created_at DESC)");
   await pool.query("CREATE INDEX IF NOT EXISTS nataiji_family_records_actor_idx ON nataiji_family_records(actor_id,created_at DESC)");
+  await pool.query("CREATE TABLE IF NOT EXISTS nataiji_family_certificate_links (token_hash text PRIMARY KEY, record_id uuid NOT NULL, actor_id text NOT NULL, phone text NOT NULL, pdf bytea NOT NULL, expires_at timestamptz NOT NULL, created_at timestamptz NOT NULL DEFAULT now())");
+  await pool.query("CREATE INDEX IF NOT EXISTS nataiji_family_certificate_expiry_idx ON nataiji_family_certificate_links(expires_at)");
+
 }
 
 export function mountFamilyRoutes(app,{auth,ownerOnly,getPool,loadProfessorProfile,loadTeacherSchool,assignedClassIds}){
@@ -181,6 +184,48 @@ export function mountFamilyRoutes(app,{auth,ownerOnly,getPool,loadProfessorProfi
     const saved=await getPool().query("UPDATE nataiji_family_records SET guardian_phone=$3,status='pending',contact_scope=$4,contact_class_id=$5 WHERE id=$1 AND actor_id=$2 AND status='private' RETURNING id,status",[id,req.user.id,contact.rows[0].phone,loc.scope,loc.classId]);
     if(!saved.rowCount)return res.status(409).json({error:'record_status_changed'});
     res.json({ok:true,record:saved.rows[0]});
+  });
+
+  // Share only this educator's award with a guardian who consented to messages.
+  app.post('/api/family/certificate-links',auth,db,author,async(req,res)=>{
+    const id=String(req.body?.recordId||''),phone=normalizeMauritaniaPhone(req.body?.phone),
+      data=String(req.body?.pdfBase64||'');
+    if(!isUuid(id)||!phone||!data||data.length>980000||
+       !/^[A-Za-z0-9+/]+={0,2}$/.test(data)||data.length%4!==0)
+      return res.status(400).json({error:'invalid_certificate_payload'});
+    const pdf=Buffer.from(data,'base64');
+    if(pdf.byteLength<100||pdf.byteLength>735000||
+       pdf.subarray(0,5).toString('latin1')!=='%PDF-'||
+       !pdf.subarray(Math.max(0,pdf.length-120)).toString('latin1').includes('%%EOF'))
+      return res.status(400).json({error:'invalid_certificate_pdf'});
+    const record=await getPool().query(
+      "SELECT r.id FROM nataiji_family_records r INNER JOIN nataiji_family_contacts c ON c.actor_id=r.contact_scope AND c.class_id=r.contact_class_id AND c.student_key=r.student_key AND c.phone=$3 AND c.consent=true WHERE r.id=$1 AND r.actor_id=$2 AND r.kind='award' AND r.status IN ('pending','opened','sent') LIMIT 1",
+      [id,req.user.id,phone]);
+    if(!record.rowCount)return res.status(403).json({error:'guardian_consent_or_award_required'});
+    const token=crypto.randomBytes(32).toString('hex');
+    const hash=crypto.createHash('sha256').update(token).digest('hex');
+    await getPool().query("DELETE FROM nataiji_family_certificate_links WHERE expires_at<now() OR (record_id=$1 AND actor_id=$2)",[id,req.user.id]);
+    await getPool().query("INSERT INTO nataiji_family_certificate_links (token_hash,record_id,actor_id,phone,pdf,expires_at) VALUES($1,$2,$3,$4,$5,now()+interval '7 days')",[hash,id,req.user.id,phone,pdf]);
+    res.setHeader('Cache-Control','no-store');
+    res.json({ok:true,url:'/api/family/certificate-links/'+token,expiresInDays:7});
+  });
+  // Token is unguessable; no account login is needed for the parent to view.
+  // A revoked consent or changed guardian number instantly blocks the link.
+  app.get('/api/family/certificate-links/:token',async(req,res)=>{
+    const token=String(req.params.token||'');
+    if(!/^[a-f0-9]{64}$/.test(token))return res.status(404).end();
+    if(!getPool())return res.status(503).end();
+    const hash=crypto.createHash('sha256').update(token).digest('hex');
+    const result=await getPool().query(
+      "SELECT l.pdf FROM nataiji_family_certificate_links l INNER JOIN nataiji_family_records r ON r.id=l.record_id AND r.actor_id=l.actor_id INNER JOIN nataiji_family_contacts c ON c.actor_id=r.contact_scope AND c.class_id=r.contact_class_id AND c.student_key=r.student_key AND c.phone=l.phone AND c.consent=true WHERE l.token_hash=$1 AND l.expires_at>now() AND r.kind='award' AND r.status NOT IN ('cancelled','private') LIMIT 1",
+      [hash]);
+    if(!result.rowCount)return res.status(404).end();
+    res.setHeader('Content-Type','application/pdf');
+    res.setHeader('Content-Disposition','inline; filename="certificat-scolaire.pdf"');
+    res.setHeader('Cache-Control','private, no-store, max-age=0');
+    res.setHeader('X-Robots-Tag','noindex, noarchive');
+    res.setHeader('Referrer-Policy','no-referrer');
+    return res.end(result.rows[0].pdf);
   });
   app.get('/api/family/records',auth,db,author,async(req,res)=>{
     const rows=await getPool().query(`SELECT id,class_id,student_key,student_name,class_name,school_name,kind,data,status,created_at
