@@ -178,3 +178,18 @@ test('award outbox does not open a text-only WhatsApp message while PDF is missi
  assert.match(script,/تُشارك شهادة التكريم بصيغة PDF كمستند منفصل/);
  assert.match(script,/«Vous»/);
 });
+
+test('Android PDF attachment sharing preserves transient user activation',()=>{
+ const script=readFileSync(new URL('../public/family-engagement-v1.js',import.meta.url),'utf8');
+ assert.match(script,/let prepared,readyFile=null/);
+ assert.match(script,/sendFile\.disabled=true/);
+ assert.match(script,/pdfFile\(\)\.then\(/);
+ assert.match(script,/const file=readyFile/);
+ const start=script.indexOf('const sharePdfAttachment=()=>');
+ const end=script.indexOf('body.innerHTML=',start);
+ assert(start>0&&end>start);
+ const shareCode=script.slice(start,end);
+ assert.match(shareCode,/navigator\.share\(\{files:\[file\]\}\)/);
+ assert.doesNotMatch(shareCode,/await/);
+ assert.doesNotMatch(shareCode,/text:announce/);
+});
