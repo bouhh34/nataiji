@@ -175,7 +175,8 @@ test('award outbox does not open a text-only WhatsApp message while PDF is missi
  const end=script.indexOf("$$('[data-copy]',list).forEach(",start);
  assert(start>0&&end>start);
  assert.match(script.slice(start,end),/if\(rec\.kind==='award'\)\{void showAward\(rec\);return\}/);
- assert.match(script,/تُشارك شهادة التكريم بصيغة PDF كمستند منفصل/);
+ assert.match(script,/إرسال الإعلان ورابط شهادة PDF مباشرة إلى ولي الأمر/);
+ assert.match(script,/فتح محادثة الولي مع الإعلان فقط/);
  assert.match(script,/«Vous»/);
 });
 
