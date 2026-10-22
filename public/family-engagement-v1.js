@@ -362,10 +362,12 @@
  <label>${t('رقم واتساب ولي الأمر (اختياري عند المشاركة في مجموعة)','Numéro WhatsApp du parent (facultatif pour groupe)')}<input id="familyAwardPhone" type="tel" inputmode="tel" placeholder="+222 34 00 00 00" value="${esc(String(record.guardian_phone||'').replace(/^222/,''))}"></label>
  <label class="family-checkbox"><input type="checkbox" id="familyAwardConsent"> ${t('أؤكد موافقة ولي الأمر على مشاركة شهادة التلميذ وإعلان تميزه.','Je confirme le consentement du parent.')}</label>
  <button id="familyAwardSaveContact" type="button" class="family-secondary">${t('حفظ رقم الولي','Enregistrer le numéro')}</button>
- <p class="family-tiny family-award-step">${t('الخطوة ١: شارك ملف الشهادة PDF الحقيقي.','Étape 1 : partagez le véritable fichier PDF.')}</p>
- <button id="familyAwardShare" type="button" class="family-primary">${t('١ — مشاركة ملف PDF في واتساب','1 — Partager le fichier PDF sur WhatsApp')}</button>
- <p class="family-tiny family-award-step">${t('الخطوة ٢: أرسل إعلان التميز إلى ولي الأمر في المحادثة نفسها.','Étape 2 : envoyez l’annonce au parent dans la même discussion.')}</p>
- <button id="familyAwardWhatsApp" type="button" class="family-secondary">${t('٢ — فتح محادثة ولي الأمر مع الإعلان','2 — Ouvrir la discussion du parent avec l’annonce')}</button>
+ <button id="familyAwardDirect" type="button" class="family-primary">${t('إرسال الإعلان ورابط شهادة PDF مباشرة إلى ولي الأمر','Envoyer directement l’annonce et le lien PDF au parent')}</button>
+ <p class="family-tiny">${t('يفتح واتساب مباشرة على الرقم المكتوب أعلاه، ومعه إعلان التميز ورابط PDF خاص بالشهادة صالح لمدة 7 أيام. يحتاج ولي الأمر إلى اتصال بالإنترنت لفتح الملف.','Ouvre directement la discussion WhatsApp du numéro indiqué, avec le texte et un lien privé vers le PDF valable 7 jours. Internet est nécessaire pour ouvrir le document.')}</p>
+ <p class="family-tiny family-award-step">${t('اختياري: لإرسال ملف PDF كمرفق بدل الرابط استخدم الزر التالي واختر المستلم يدويًا.','Optionnel : pour partager le PDF comme pièce jointe plutôt qu’un lien, sélectionnez le destinataire manuellement ci-dessous.')}</p>
+ <button id="familyAwardShare" type="button" class="family-primary">${t('مشاركة PDF كمرفق (اختيار المستلم يدويًا)','Partager le PDF en pièce jointe (choix manuel)')}</button>
+ <p class="family-tiny family-award-step">${t('اختياري: إرسال نص الإعلان فقط مباشرة إلى رقم الولي.','Optionnel : envoyer uniquement le texte au numéro du parent.')}</p>
+ <button id="familyAwardWhatsApp" type="button" class="family-secondary">${t('فتح محادثة الولي مع الإعلان فقط','Ouvrir la discussion du parent avec le texte seul')}</button>
  <div id="familyAwardDestination" class="family-award-destination" role="status" aria-live="polite"></div>
  <button id="familyAwardCopy" type="button" class="family-secondary">${t('نسخ إعلان التميز','Copier l’annonce')}</button>
  <p class="family-tiny">${t('تأكد من اختيار ولي الأمر، وليس «Vous» (محادثتك مع نفسك)، ومن ظهور ملف PDF قبل الضغط على إرسال. لا يتم الإرسال تلقائيًا.','Choisissez le parent, pas « Vous », et vérifiez que le PDF apparaît bien en pièce jointe avant d’envoyer. Aucun envoi automatique.')}</p>
@@ -381,7 +383,7 @@
    setTimeout(()=>{void pdfFile().then(()=>{
      if(!sendFile.isConnected)return;
      sendFile.disabled=false;
-     sendFile.textContent=t('١ — مشاركة ملف PDF في واتساب','1 — Partager le fichier PDF sur WhatsApp');
+     sendFile.textContent=t('مشاركة PDF كمرفق (اختيار المستلم يدويًا)','Partager le PDF en pièce jointe (choix manuel)');
    }).catch(()=>{
      if(!sendFile.isConnected)return;
      sendFile.disabled=false;
@@ -414,6 +416,50 @@
  const showDestination=()=>{const n=number();destination.textContent=n?t('المحادثة المقصودة: +','Discussion prévue : +')+n:t('أدخل رقم ولي الأمر الصحيح للإرسال الفردي.','Saisissez le bon numéro du parent.')};
  phone.addEventListener('input',showDestination);showDestination();
  const approve=()=>{if(consent.checked)return true;feedback('أكد موافقة ولي الأمر قبل المشاركة.','Confirmez le consentement avant partage.');return false};
+ const openGuardianWhatsApp=(dest,message)=>{
+   const a=document.createElement('a');
+   a.href='https://wa.me/'+dest+'?text='+encodeURIComponent(message);
+   a.target='_blank';a.rel='noopener noreferrer';
+   document.body.appendChild(a);a.click();a.remove();
+ };
+ const encodePdf=async blob=>{
+   const bytes=new Uint8Array(await blob.arrayBuffer());
+   let binary='';
+   for(let i=0;i<bytes.length;i+=16384)binary+=String.fromCharCode(...bytes.subarray(i,i+16384));
+   return btoa(binary);
+ };
+ $('#familyAwardDirect',body).onclick=()=>{
+   if(!approve())return;
+   const dest=number();
+   if(!dest){feedback('أدخل رقم ولي الأمر الصحيح المكون من 8 أرقام أولًا.','Saisissez un numéro mauritanien valide à 8 chiffres.');return}
+   if(!record.id||!record.class_id||!record.student_key){
+     feedback('احفظ شهادة التميز أولًا قبل مشاركة رابطها.','Enregistrez d’abord le certificat.');return
+   }
+   const button=$('#familyAwardDirect',body);
+   void protect(button,async()=>{
+     if(navigator.onLine===false)throw Error('offline');
+     // Binding the link to the guardian's persisted consent ensures a
+     // changed or revoked number can no longer fetch the document.
+     await request('/api/family/contacts','PUT',{
+       classId:record.class_id,studentKey:record.student_key,phone:dest,consent:true
+     });
+     record.guardian_phone=dest;
+     if(record.status==='private'){
+       await request('/api/family/records/'+encodeURIComponent(record.id)+'/queue','POST');
+       record.status='pending';
+     }
+     const blob=await pdf();
+     const result=await request('/api/family/certificate-links','POST',{
+       recordId:record.id,phone:dest,pdfBase64:await encodePdf(blob)
+     });
+     const path=String(result.url||'');
+     if(!/^\/api\/family\/certificate-links\/[a-f0-9]{64}$/.test(path))throw Error('invalid_certificate_link');
+     const link=location.origin+path;
+     const message=announce+'\n\n📎 '+t('رابط شهادة PDF (صالح 7 أيام): ','Lien PDF du certificat (valable 7 jours) : ')+link;
+     feedback('تم تجهيز الإعلان ورابط الشهادة لمحادثة الرقم +'+dest+'. اضغط إرسال داخل واتساب بعد التحقق من اسم ولي الأمر.','Annonce et lien PDF préparés pour le +'+dest+'. Vérifiez le destinataire et appuyez sur Envoyer dans WhatsApp.',true);
+     openGuardianWhatsApp(dest,message);
+   });
+ };
  $('#familyAwardSaveContact',body).onclick=()=>{
    if(!approve()||!number()||!record.class_id||!record.student_key){feedback('أدخل رقمًا موريتانيًا صحيحًا لحفظه.','Numéro mauritanien valide requis.');return}
    const button=$('#familyAwardSaveContact',body);
@@ -441,7 +487,7 @@
 }
   function formatMessage(rec){
    const d=rec.data||{},name=rec.student_name,school=rec.school_name||'اسم المدرسة';
-   if(rec.kind==='award')return '🏆 إعلان التميز | '+school+'\nيسعدنا تكريم التلميذ/ة '+name+'\n'+(AWARDS[d.awardType]?.[0]||'شهادة تكريم')+(d.reason?'\nالسبب: '+d.reason:'')+'\nتُشارك شهادة التكريم بصيغة PDF كمستند منفصل في المحادثة نفسها.\nمع تحيات المدرسة والمعلم أو الأستاذ.';
+   if(rec.kind==='award')return '🏆 إعلان التميز | '+school+'\nيسعدنا تكريم التلميذ/ة '+name+'\n'+(AWARDS[d.awardType]?.[0]||'شهادة تكريم')+(d.reason?'\nالسبب: '+d.reason:'')+'\nمع أطيب التهاني من المدرسة والمعلم أو الأستاذ.';
    if(rec.kind==='daily')return '📚 '+school+'\nالتقرير اليومي للتلميذ/ة: '+name+'\nالتاريخ: '+(d.date||'')+'\nالحضور: '+pair(ATT,d.attendance)+'\nالتقييم: '+pair(RATE,d.assessment)+(d.note?'\nالملاحظة: '+d.note:'')+'\nمع تحيات المعلم أو الأستاذ.';
    return '📄 '+school+'\nإشعار بنتائج التلميذ/ة: '+name+(d.term?'\nالفصل: '+d.term:'')+(d.note?'\n'+d.note:'')+'\nيمكنكم التواصل مع المؤسسة للاطلاع على الكشف المعتمد.';
  }
