@@ -159,7 +159,7 @@
        const r=await request('/api/family/records');history=r.records||[];
        const list=$('#familyHistory',body);if(!list)return;
        list.innerHTML=history.length?history.slice(0,12).map((x,i)=>`<article class="family-history-row"><span><b>${esc(x.student_name)}</b><small>${x.kind==='award'?t('شهادة تكريم','Certificat'):x.kind==='daily'?t('تقييم يومي','Évaluation'):t('إشعار نتائج','Résultats')} · ${esc(x.status)}</small></span>${(x.kind==='award'?`<button type="button" data-award-history="${i}">${t('الشهادة','Certificat')}</button>`:'')+(x.status==='private'?`<button type="button" data-ready-history="${i}">${t('إعداد الإرسال','Préparer l’envoi')}</button>`:'')}</article>`).join(''):`<p class="family-tiny">${t('لا توجد عمليات بعد','Aucune opération pour le moment')}</p>`;
-       $$('[data-award-history]',list).forEach(btn=>btn.onclick=()=>{const x=history[Number(btn.dataset.awardHistory)];void showAward({...x,actor_name:user.name})});
+       $$('[data-award-history]',list).forEach(btn=>btn.onclick=()=>{const x=history[Number(btn.dataset.awardHistory)];void showAward({...x,actor_name:user.name,guardian_phone:contacts[x.student_key]?.phone||''})});
        $$('[data-ready-history]',list).forEach(btn=>btn.onclick=async()=>{
          const x=history[Number(btn.dataset.readyHistory)],ph=phoneNum(phone.value);
          if(x.class_id!==classEl.value||x.student_key!==studentEl.value){note(body,t('اختر التلميذ صاحب الشهادة أو التقييم أولًا.','Sélectionnez d’abord l’élève concerné.'));return}
@@ -385,7 +385,7 @@
  $('#familyAwardSaveContact',body).onclick=()=>{
    if(!approve()||!number()||!record.class_id||!record.student_key){feedback('أدخل رقمًا موريتانيًا صحيحًا لحفظه.','Numéro mauritanien valide requis.');return}
    const button=$('#familyAwardSaveContact',body);
-   void protect(button,async()=>{await request('/api/family/contacts','PUT',{classId:record.class_id,studentKey:record.student_key,phone:number(),consent:true});record.guardian_phone=number();feedback('تم حفظ رقم ولي الأمر.','Numéro enregistré.',true)});
+   void protect(button,async()=>{await request('/api/family/contacts','PUT',{classId:record.class_id,studentKey:record.student_key,phone:number(),consent:true});record.guardian_phone=number();if(record.id&&record.status==='private'){try{await request('/api/family/records/'+encodeURIComponent(record.id)+'/queue','POST');record.status='pending'}catch{}}feedback('تم حفظ رقم ولي الأمر.','Numéro enregistré.',true)});
  };
  $('#familyAwardCopy',body).onclick=async()=>{try{await navigator.clipboard.writeText(announce);feedback('تم نسخ الإعلان.','Annonce copiée.',true)}catch{window.prompt(t('انسخ الإعلان','Copiez l’annonce'),announce)}};
  $('#familyAwardWhatsApp',body).onclick=()=>{
