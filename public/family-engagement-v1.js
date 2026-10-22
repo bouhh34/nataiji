@@ -363,6 +363,7 @@
  <label class="family-checkbox"><input type="checkbox" id="familyAwardConsent"> ${t('أؤكد موافقة ولي الأمر على مشاركة شهادة التلميذ وإعلان تميزه.','Je confirme le consentement du parent.')}</label>
  <button id="familyAwardSaveContact" type="button" class="family-secondary">${t('حفظ رقم الولي','Enregistrer le numéro')}</button>
  <button id="familyAwardDirect" type="button" class="family-primary">${t('إرسال الإعلان ورابط شهادة PDF مباشرة إلى ولي الأمر','Envoyer directement l’annonce et le lien PDF au parent')}</button>
+ <a id="familyAwardDirectLink" class="family-primary family-direct-link" href="#" target="_blank" rel="noopener noreferrer" hidden>${t('إن لم يُفتح واتساب اضغط هنا لفتح محادثة ولي الأمر','Si WhatsApp ne s’ouvre pas, cliquez ici pour joindre le parent')}</a>
  <p class="family-tiny">${t('يفتح واتساب مباشرة على الرقم المكتوب أعلاه، ومعه إعلان التميز ورابط PDF خاص بالشهادة صالح لمدة 7 أيام. يحتاج ولي الأمر إلى اتصال بالإنترنت لفتح الملف.','Ouvre directement la discussion WhatsApp du numéro indiqué, avec le texte et un lien privé vers le PDF valable 7 jours. Internet est nécessaire pour ouvrir le document.')}</p>
  <p class="family-tiny family-award-step">${t('اختياري: لإرسال ملف PDF كمرفق بدل الرابط استخدم الزر التالي واختر المستلم يدويًا.','Optionnel : pour partager le PDF comme pièce jointe plutôt qu’un lien, sélectionnez le destinataire manuellement ci-dessous.')}</p>
  <button id="familyAwardShare" type="button" class="family-primary">${t('مشاركة PDF كمرفق (اختيار المستلم يدويًا)','Partager le PDF en pièce jointe (choix manuel)')}</button>
@@ -457,6 +458,9 @@
      const link=location.origin+path;
      const message=announce+'\n\n📎 '+t('رابط شهادة PDF (صالح 7 أيام): ','Lien PDF du certificat (valable 7 jours) : ')+link;
      feedback('تم تجهيز الإعلان ورابط الشهادة لمحادثة الرقم +'+dest+'. اضغط إرسال داخل واتساب بعد التحقق من اسم ولي الأمر.','Annonce et lien PDF préparés pour le +'+dest+'. Vérifiez le destinataire et appuyez sur Envoyer dans WhatsApp.',true);
+     const fallback=$('#familyAwardDirectLink',body);
+     fallback.href='https://wa.me/'+dest+'?text='+encodeURIComponent(message);
+     fallback.hidden=false;
      openGuardianWhatsApp(dest,message);
    });
  };
