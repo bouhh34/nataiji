@@ -40,12 +40,12 @@
    if(!user?.id||!classes?.length){alert(t('أضف قسمًا وتلاميذ أولًا','Ajoutez une classe et des élèves'));return}
    const win=modal(t('التقييم والتكريم','Évaluation et récompenses'));
    const body=win.body;let contacts={},cachedClass='',history=[],outbox=[],contactsLoaded=false;
-   body.innerHTML=`<p class="family-hint">${t('يمكن إصدار التكريم دون موافقة المدير. تُرسل الرسائل يدويًا من حساب واتساب الموجود على هاتفك.','Vous délivrez les certificats sans validation, puis envoyez depuis votre propre WhatsApp.')}</p>
+   body.innerHTML=`<p class="family-hint">${t('أنشئ الشهادة وإعلان التميز معًا. يمكنك حفظ الشهادة دون رقم ولي الأمر، ثم إرسال الإعلان وملف الشهادة من شاشة واحدة عبر واتساب هاتفك.','Créez le certificat et son annonce ensemble, puis partagez-les depuis le même écran.')}</p>
     <label>${t('القسم','Classe')}<select id="familyClass"></select></label>
     <label>${t('التلميذ','Élève')}<select id="familyStudent"></select></label>
     <fieldset class="family-kind"><legend>${t('نوع العملية','Type')}</legend>
       <label><input type="radio" name="familyKind" value="daily" checked> ${t('تقييم يومي','Évaluation quotidienne')}</label>
-      <label><input type="radio" name="familyKind" value="award"> ${t('شهادة تكريم','Certificat')}</label>
+      <label><input type="radio" name="familyKind" value="award"> ${t('شهادة التميز وإعلان التكريم','Certificat et annonce de distinction')}</label>
       <label><input type="radio" name="familyKind" value="results"> ${t('إشعار نتائج','Avis de résultats')}</label></fieldset>
     <div id="familyFields"></div>
     <section class="family-contact"><h3>${t('بيانات ولي الأمر','Contact du parent')}</h3>
@@ -90,7 +90,7 @@
      const focus=i=>{studentEl.value=students[i].id;syncContact();phone.scrollIntoView({behavior:'smooth',block:'center'});phone.focus({preventScroll:true})};
      $$('[data-family-edit]',host).forEach(b=>b.onclick=()=>focus(Number(b.dataset.familyEdit)));
      $$('[data-family-send]',host).forEach(b=>b.onclick=()=>{const i=Number(b.dataset.familySend),st=students[i],rec=findSendable(st.id),c=contacts[st.id];
-       if(rec&&c?.consent){openWhatsApp(rec,c.phone);return}
+       if(rec&&c?.consent){if(rec.kind==='award')void showAward({...rec,guardian_phone:c.phone});else openWhatsApp(rec,c.phone);return}
        focus(i);note(body,c?.consent?t('أنشئ تقييمًا أو شهادة لهذا التلميذ أولًا.','Préparez un rapport ou certificat pour cet élève.'):t('أضف رقم الولي وموافقته أولًا.','Ajoutez le numéro et le consentement du parent.'));
      });
    }
@@ -139,10 +139,14 @@
        <label>${t('ملاحظة المعلم أو الأستاذ','Observation')}<textarea id="familyNote" maxlength="600" rows="3" placeholder="${t('ملاحظة موجزة ومحترمة','Observation brève et respectueuse')}"></textarea></label>`;
      else if(kind==='award')fields.innerHTML=`<label>${t('نوع الشهادة','Type de certificat')}<select id="familyAwardType">${Object.keys(AWARDS).map(k=>`<option value="${k}">${pair(AWARDS,k)}</option>`).join('')}</select></label>
        <label>${t('سبب التكريم (اختياري)','Motif (facultatif)')}<textarea id="familyReason" maxlength="350" rows="2"></textarea></label>
+       <button id="familyAwardCreate" type="button" class="family-primary">${t('إنشاء الشهادة وإعلان التميز','Créer le certificat et son annonce')}</button>
        <button id="familyPreview" type="button" class="family-secondary">${t('معاينة شهادة التكريم على الهاتف','Aperçu du certificat')}</button>`;
      else fields.innerHTML=`<label>${t('الفصل الدراسي','Trimestre')}<input id="familyTerm" maxlength="100" placeholder="${t('الفصل الأول','Premier trimestre')}"></label>
        <label>${t('ملاحظة حول نشر النتائج','Note sur la publication')}<textarea id="familyNote" maxlength="300" rows="2"></textarea></label>
        <p class="family-tiny">${t('هذا إشعار بصدور النتائج؛ لا يرفق كشف درجات قبل التحقق من اعتماده.','Notification de disponibilité, sans bulletin avant validation.')}</p>`;
+     body.classList.toggle('family-award-mode',kind==='award');
+     $('#familyQueue',body).hidden=kind==='award';
+     $('#familyAwardCreate',fields)?.addEventListener('click',()=>$('#familyQueue',body).click());
      $('#familyPreview',fields)?.addEventListener('click',()=>{const cls=classes.find(c=>String(c.id)===classEl.value),st=cls?.students.find(x=>String(x.id)===studentEl.value);if(!st)return;void showAward({student_name:st.name,class_name:cls.name,school_name:cls.schoolName||'',actor_name:user.name||'',data:{awardType:$('#familyAwardType',fields).value,reason:$('#familyReason',fields).value,date:today()}},true)});
    }
    function bodyData(kind){
@@ -188,7 +192,7 @@
        const saved=await request('/api/family/records','POST',{id,classId,studentKey,kind,data:bodyData(kind)});
        note(body,saved.queued?t('✓ حُفظت العملية وأُضيفت إلى رسائلك الجاهزة، ولم تُرسل بعد.','✓ Enregistré dans votre boîte de messages, non envoyé.'):t('✓ حُفظت الشهادة أو التقييم باسمك دون الحاجة إلى موافقة المدير، ولم تُرسل إلى ولي الأمر.','✓ Certificat ou évaluation enregistré indépendamment, sans envoi WhatsApp.'),true);
        await refreshHistory();await refreshOutbox();
-       if(kind==='award'){const cls=classes.find(c=>String(c.id)===classId);void showAward({student_name:saved.studentName,class_name:saved.className,school_name:saved.schoolName,actor_name:user.name||'',data:saved.data})}
+       if(kind==='award'){void showAward({id,kind:'award',class_id:classId,student_key:studentKey,guardian_phone:contacts[studentKey]?.phone||'',status:saved.status,student_name:saved.studentName,class_name:saved.className,school_name:saved.schoolName,actor_name:user.name||'',data:saved.data})}
      }catch(error){
        const errors={parent_contact_and_consent_required:t('يجب تسجيل موافقة ولي الأمر أولًا','Consentement requis'),student_not_authorized:t('ليس لديك صلاحية على هذا التلميذ','Accès non autorisé'),durable_storage_required:t('قاعدة البيانات غير متاحة','Base de données indisponible')};
        note(body,errors[error.message]||t('تعذر حفظ العملية. حاول لاحقًا.','Enregistrement impossible. Réessayez.'))
@@ -317,7 +321,7 @@
  }
  async function awardPdfBlob(svg){
    const canvas=await awardCanvas(svg);
-   const jpg=await new Promise((resolve,reject)=>canvas.toBlob(blob=>blob?resolve(blob):reject(Error('jpeg_failed')),'image/jpeg',0.96));
+   const jpg=await new Promise((resolve,reject)=>canvas.toBlob(blob=>blob?resolve(blob):reject(Error('jpeg_failed')),'image/jpeg',0.88));
    return pdfFromJpeg(new Uint8Array(await jpg.arrayBuffer()),canvas.width,canvas.height);
  }
  function saveLocalFile(blob,filename){
@@ -383,7 +387,7 @@
  }
  function formatMessage(rec){
    const d=rec.data||{},name=rec.student_name,school=rec.school_name||'اسم المدرسة';
-   if(rec.kind==='award')return '🏅 '+school+'\nيسعدنا تكريم التلميذ/ة '+name+'\n'+(AWARDS[d.awardType]?.[0]||'شهادة تكريم')+(d.reason?'\nالسبب: '+d.reason:'')+'\nمع تحيات المعلم أو الأستاذ المُصدِر للشهادة.';
+   if(rec.kind==='award')return '🏆 إعلان التميز | '+school+'\nيسعدنا تكريم التلميذ/ة '+name+'\n'+(AWARDS[d.awardType]?.[0]||'شهادة تكريم')+(d.reason?'\nالسبب: '+d.reason:'')+'\nالشهادة الرسمية مرفقة بصيغة PDF.\nمع تحيات المدرسة والمعلم أو الأستاذ.';
    if(rec.kind==='daily')return '📚 '+school+'\nالتقرير اليومي للتلميذ/ة: '+name+'\nالتاريخ: '+(d.date||'')+'\nالحضور: '+pair(ATT,d.attendance)+'\nالتقييم: '+pair(RATE,d.assessment)+(d.note?'\nالملاحظة: '+d.note:'')+'\nمع تحيات المعلم أو الأستاذ.';
    return '📄 '+school+'\nإشعار بنتائج التلميذ/ة: '+name+(d.term?'\nالفصل: '+d.term:'')+(d.note?'\n'+d.note:'')+'\nيمكنكم التواصل مع المؤسسة للاطلاع على الكشف المعتمد.';
  }
@@ -408,7 +412,7 @@
           <div class="family-actions"><button data-open="${i}" class="family-primary">${t('فتح في واتساب','Ouvrir WhatsApp')}</button>
           <button data-sent="${i}" class="family-secondary">${t('تأكيد الإرسال','Confirmer l’envoi')}</button>
           <button data-copy="${i}" class="family-secondary">${t('نسخ الرسالة','Copier le message')}</button>
-          ${rec.kind==='award'?`<button data-certificate="${i}" class="family-secondary">${t('الشهادة','Certificat')}</button>`:''}</div>
+          ${rec.kind==='award'?`<button data-certificate="${i}" class="family-primary">${t('الشهادة + إعلان التميز','Certificat + annonce')}</button>`:''}</div>
           </article>`).join(''):`<p class="family-tiny">${t('لا توجد رسائل في هذه القائمة','Aucun message dans cette liste')}</p>`;
        $$('[data-open]',list).forEach(button=>button.onclick=async()=>{
          const rec=rows[Number(button.dataset.open)];
