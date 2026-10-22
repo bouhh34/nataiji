@@ -175,7 +175,8 @@ test('award outbox does not open a text-only WhatsApp message while PDF is missi
  const end=script.indexOf("$$('[data-copy]',list).forEach(",start);
  assert(start>0&&end>start);
  assert.match(script.slice(start,end),/if\(rec\.kind==='award'\)\{void showAward\(rec\);return\}/);
- assert.match(script,/تُشارك شهادة التكريم بصيغة PDF كمستند منفصل/);
+ assert.match(script,/إرسال الإعلان ورابط شهادة PDF مباشرة إلى ولي الأمر/);
+ assert.match(script,/فتح محادثة الولي مع الإعلان فقط/);
  assert.match(script,/«Vous»/);
 });
 
@@ -192,4 +193,63 @@ test('Android PDF attachment sharing preserves transient user activation',()=>{
  assert.match(shareCode,/navigator\.share\(\{files:\[file\]\}\)/);
  assert.doesNotMatch(shareCode,/await pdfFile\(\)/);
  assert.doesNotMatch(shareCode,/text:announce/);
+});
+
+test('private PDF link is sent only to a consented guardian for the teacher-owned award',async()=>{
+ const routes=new Map(),add=verb=>(url,...fns)=>routes.set(verb+' '+url,fns);
+ const app={post:add('POST'),get:add('GET'),put:add('PUT'),delete:add('DELETE')};
+ const saved=[];
+ let allowContact=true;
+ const fakePDF=Buffer.from('%PDF-1.4\n'+ 'P'.repeat(140)+'\n%%EOF');
+ const pool={query:async(q,args=[])=>{
+   saved.push([q,args]);
+   if(q.startsWith('SELECT r.id FROM nataiji_family_records r INNER JOIN')){
+     return {rowCount:allowContact?1:0,rows:allowContact?[{id:'aabbccdd-1234-4123-8123-123456789abc'}]:[]};
+   }
+   if(q.startsWith('SELECT l.pdf FROM nataiji_family_certificate_links l')){
+     return {rowCount:allowContact?1:0,rows:allowContact?[{pdf:fakePDF}]:[]};
+   }
+   return {rows:[],rowCount:1};
+ }};
+ const profile=async()=>({classes:[]});
+ mountFamilyRoutes(app,{auth:(_q,_r,next)=>next(),ownerOnly:(_q,_r,next)=>next(),
+  getPool:()=>pool,loadProfessorProfile:profile,loadTeacherSchool:async()=>({}),assignedClassIds:()=>[]});
+ const call=async(method,url,body={},params={})=>{
+   const handlers=routes.get(method+' '+url);
+   assert(handlers,'route exists: '+method+' '+url);
+   const r={user:{id:'teacher-1',role:'teacher',schoolId:'s1'},body,params,query:{}};
+   const res={statusCode:200,headers:{},status(v){this.statusCode=v;return this},
+     setHeader(k,v){this.headers[k]=v},json(v){this.jsonBody=v;return this},
+     end(v){this.responseBody=v;return this}};
+   for(const h of handlers){let next=false;await h(r,res,()=>{next=true});if(!next)break;}
+   return res;
+ };
+ const base={recordId:'aabbccdd-1234-4123-8123-123456789abc',phone:'34123456',pdfBase64:fakePDF.toString('base64')};
+ assert.equal((await call('POST','/api/family/certificate-links',{...base,pdfBase64:'bad'})).statusCode,400);
+ assert.equal((await call('POST','/api/family/certificate-links',{...base,phone:'0000'})).statusCode,400);
+ allowContact=false;
+ assert.equal((await call('POST','/api/family/certificate-links',base)).statusCode,403);
+ allowContact=true;
+ const link=await call('POST','/api/family/certificate-links',base);
+ assert.equal(link.statusCode,200);
+ assert.match(link.jsonBody.url,/^\/api\/family\/certificate-links\/[0-9a-f]{64}$/);
+ assert.equal(link.jsonBody.expiresInDays,7);
+ assert(saved.some(([q])=>q.includes('consent=true')&&q.includes("r.kind='award'")));
+ const token=link.jsonBody.url.split('/').pop();
+ const pdf=await call('GET','/api/family/certificate-links/:token',{}, {token});
+ assert.equal(pdf.headers['Content-Type'],'application/pdf');
+ assert.equal(pdf.headers['Cache-Control'],'private, no-store, max-age=0');
+ assert.equal(Buffer.compare(pdf.responseBody,fakePDF),0);
+ allowContact=false;
+ assert.equal((await call('GET','/api/family/certificate-links/:token',{}, {token})).statusCode,404);
+ assert.equal((await call('GET','/api/family/certificate-links/:token',{}, {token:'invalid'})).statusCode,404);
+});
+test('teacher can open guardian WhatsApp directly with an expiring PDF link and award text',()=>{
+ const code=readFileSync(new URL('../public/family-engagement-v1.js',import.meta.url),'utf8');
+ assert.match(code,/id="familyAwardDirect"/);
+ assert.match(code,/request\('\/api\/family\/certificate-links','POST'/);
+ assert.match(code,/openGuardianWhatsApp\(dest,message\)/);
+ assert.match(code,/location\.origin\+path/);
+ assert.match(code,/recordId:record\.id,phone:dest,pdfBase64:await encodePdf\(blob\)/);
+ assert.match(code,/guardian_phone=dest/);
 });
