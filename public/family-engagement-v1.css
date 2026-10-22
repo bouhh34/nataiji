@@ -92,3 +92,5 @@ html[lang=fr] .family-dialog{direction:ltr}
 .family-dialog #familyAwardShare,.family-dialog #familyAwardWhatsApp{min-height:52px}
 
 .family-dialog #familyAwardDirect{background:#095b45;color:#fff;font-weight:900;font-size:15px;min-height:62px;border:2px solid #d3ab58;box-shadow:0 5px 17px #123f3236;white-space:normal;line-height:1.55}.family-dialog #familyAwardDirect:disabled{opacity:.6}
+
+.family-dialog .family-direct-link:not([hidden]){display:block;text-align:center;text-decoration:none;border-radius:11px;padding:14px 12px;background:#eef8f5;border:1px solid #94c1ae;color:#075b46;font-weight:800;line-height:1.5}
