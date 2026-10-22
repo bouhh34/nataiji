@@ -334,62 +334,78 @@
    setTimeout(()=>URL.revokeObjectURL(url),30000);
  }
  async function showAward(record,preview=false){
-   const w=modal(t('شهادة تكريم','Certificat de distinction'));
-   w.body.innerHTML=`<p class="family-hint">${preview?t('معاينة فقط: لم تُحفظ الشهادة بعد.','Aperçu uniquement, non enregistré.'):t('تم إنشاء الشهادة من طرف المعلم أو الأستاذ دون اعتماد المدير.','Certificat créé par l’enseignant sans validation du directeur.')}</p>
-   <div class="family-award-preview"></div><button type="button" id="familyAwardDownload" class="family-primary">${t('حفظ شهادة PNG على الهاتف','Enregistrer le certificat PNG')}</button>
-   <button type="button" id="familyAwardPDF" class="family-primary">${t('حفظ PDF أفقي A4 على الهاتف','Enregistrer PDF A4 paysage')}</button>
-   <button type="button" id="familyAwardPrint" class="family-secondary">${t('فتح PDF للطباعة (أفقي A4)','Ouvrir le PDF pour imprimer (A4 paysage)')}</button>
-    <button type="button" id="familyAwardShare" class="family-secondary">${t('مشاركة التكريم في واتساب أو مجموعة','Partager le certificat dans WhatsApp ou un groupe')}</button>
-   <p class="family-message" aria-live="polite"></p>`;
-   const raw=awardSVG(record),previewHost=$('.family-award-preview',w.body);
-   previewHost.innerHTML=raw.replace('<svg ','<svg role="img" aria-label="'+t('شهادة تكريم','Certificat')+'" ');
-   $('#familyAwardPDF',w.body).onclick=async()=>{
-     const button=$('#familyAwardPDF',w.body);button.disabled=true;
-     try{
-       const blob=await awardPdfBlob(raw),filename='Certificat-'+today()+'.pdf';
-       const file=new File([blob],filename,{type:'application/pdf'});
-       if(navigator.share&&navigator.canShare?.({files:[file]})){
-         try{await navigator.share({files:[file],title:t('شهادة تكريم PDF أفقي','Certificat PDF paysage')});}
-         catch(e){if(e?.name!=='AbortError')saveLocalFile(blob,filename)}
-       }else{saveLocalFile(blob,filename)}
-       note(w.body,t('✓ تم إنشاء ملف PDF من صفحة A4 أفقية واحدة. احفظه من خيارات الهاتف إذا ظهرت قائمة المشاركة.','✓ PDF généré sur une seule page A4 paysage. Enregistrez-le via les options de partage si nécessaire.'),true);
-     }catch(error){note(w.body,t('تعذر تجهيز PDF. استخدم طباعة الشهادة واختر وضع أفقي.','Impossible de préparer le PDF. Utilisez Imprimer et choisissez Paysage.'))}
-     finally{button.disabled=false}
-   };
-   $('#familyAwardPrint',w.body).onclick=async()=>{
-      // An actual A4 landscape PDF avoids Android's tall portrait HTML print preview.
-      const button=$('#familyAwardPrint',w.body);button.disabled=true;
-      try{
-        const blob=await awardPdfBlob(raw),filename='Certificat-'+today()+'.pdf';
-        const file=new File([blob],filename,{type:'application/pdf'});
-        if(navigator.share&&navigator.canShare?.({files:[file]})){
-          try{await navigator.share({files:[file],title:t('شهادة مدرسية للطباعة','Certificat scolaire à imprimer')})}
-          catch(e){if(e?.name==='AbortError')return;saveLocalFile(blob,filename)}
-        }else saveLocalFile(blob,filename);
-        note(w.body,t('✓ ملف A4 أفقي جاهز. افتح PDF واختر طباعة من هاتفك.','✓ PDF A4 paysage prêt. Ouvrez le PDF et choisissez Imprimer.'),true);
-      }catch{note(w.body,t('تعذر تجهيز شهادة الطباعة. جرّب حفظ PDF.','Préparation impossible. Essayez Enregistrer PDF.'))}
-      finally{button.disabled=false}
-    };
-    $('#familyAwardShare',w.body).onclick=async()=>{
-      if(!confirm(t('تأكد من موافقة ولي الأمر قبل مشاركة شهادة التكريم في مجموعة. متابعة؟','Vérifiez le consentement du parent avant un partage dans un groupe. Continuer ?')))return;
-      try{
-        const blob=await imageBlob(raw),file=new File([blob],'certificat-'+today()+'.png',{type:'image/png'});
-        const shareData=navigator.canShare?.({files:[file]})?{files:[file],title:t('شهادة تكريم','Certificat')}:{title:t('شهادة تكريم','Certificat'),text:formatMessage({...record,kind:'award'})};
-        if(!navigator.share)throw Error('share_unavailable');
-        await navigator.share(shareData);
-      }catch(error){if(error?.name==='AbortError')return;note(w.body,t('احفظ الشهادة على هاتفك ثم شاركها في مجموعة واتساب من تطبيق واتساب.','Enregistrez le certificat, puis partagez-le depuis WhatsApp.'))}
-    };
-    $('#familyAwardDownload',w.body).onclick=async()=>{
-     const button=$('#familyAwardDownload',w.body);button.disabled=true;
-     try{
-       const blob=await imageBlob(raw),fileName='certificat-'+today()+'.png',file=new File([blob],fileName,{type:'image/png'});
-       const a=document.createElement('a'),url=URL.createObjectURL(file);a.href=url;a.download=fileName;document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(url),5000);
-       note(w.body,t('تم طلب حفظ صورة الشهادة على الهاتف.','Enregistrement du certificat demandé.'),true);
-     }catch{note(w.body,t('تعذر حفظ الصورة على هذا الجهاز.','Enregistrement impossible sur cet appareil.'))}
-     finally{button.disabled=false}
-   }
- }
- function formatMessage(rec){
+ const w=modal(t('شهادة التميز وإعلان التكريم','Certificat et annonce de distinction')),body=w.body,raw=awardSVG(record);
+ const announce=formatMessage({...record,kind:'award'}),filename='Certificat-'+today()+'.pdf';
+ const native=window.Capacitor?.isNativePlatform?.()===true||['android','ios'].includes(window.Capacitor?.getPlatform?.());
+ let prepared;
+ const pdf=()=>prepared||=awardPdfBlob(raw).catch(e=>{prepared=null;throw e});
+ const pdfFile=async()=>new File([await pdf()],filename,{type:'application/pdf'});
+ const supportsShare=file=>Boolean(navigator.share&&navigator.canShare?.({files:[file]}));
+ body.innerHTML=`<p class="family-hint">${preview?t('معاينة شهادة التميز قبل إنشاء الإعلان والشهادة.','Aperçu du certificat avant création.'):t('الشهادة وإعلان التميز معًا. اختر واتساب والمستلم من هاتفك بعد الضغط على مشاركة.','Certificat et annonce ensemble. Sélectionnez WhatsApp et son destinataire.')}</p>
+ <div class="family-award-preview"></div>
+ <div class="family-award-actions"><button id="familyAwardOpenPDF" type="button" class="family-primary">${t('فتح شهادة PDF','Ouvrir PDF')}</button>
+ <button id="familyAwardPDF" type="button" class="family-secondary">${t('حفظ شهادة PDF','Enregistrer PDF')}</button>
+ <button id="familyAwardDownload" type="button" class="family-secondary">${t('حفظ صورة','Enregistrer PNG')}</button></div>
+ ${preview?'':`<section class="family-award-send"><h3>${t('إرسال إعلان التميز والشهادة معًا','Partager le certificat et son annonce')}</h3>
+ <div id="familyAwardMessage" class="family-message-preview"></div>
+ <label>${t('رقم واتساب ولي الأمر (اختياري عند المشاركة في مجموعة)','Numéro WhatsApp du parent (facultatif pour groupe)')}<input id="familyAwardPhone" type="tel" inputmode="tel" placeholder="+222 34 00 00 00" value="${esc(String(record.guardian_phone||'').replace(/^222/,''))}"></label>
+ <label class="family-checkbox"><input type="checkbox" id="familyAwardConsent"> ${t('أؤكد موافقة ولي الأمر على مشاركة شهادة التلميذ وإعلان تميزه.','Je confirme le consentement du parent.')}</label>
+ <button id="familyAwardSaveContact" type="button" class="family-secondary">${t('حفظ رقم الولي','Enregistrer le numéro')}</button>
+ <button id="familyAwardShare" type="button" class="family-primary">${t('مشاركة PDF وإعلان التميز عبر واتساب','Partager PDF et annonce par WhatsApp')}</button>
+ <button id="familyAwardWhatsApp" type="button" class="family-secondary">${t('فتح محادثة ولي الأمر','Ouvrir la discussion du parent')}</button>
+ <button id="familyAwardCopy" type="button" class="family-secondary">${t('نسخ إعلان التميز','Copier l’annonce')}</button>
+ <p class="family-tiny">${t('قد لا يعرض واتساب النص مع PDF على بعض الهواتف. تحقّق قبل الإرسال، وألصق الإعلان في المحادثة نفسها إذا لزم. لا إرسال تلقائي.','Sur certains téléphones, WhatsApp peut ignorer le texte joint au PDF. Vérifiez et collez le message si besoin. Aucun envoi automatique.')}</p>
+ </section>`}
+ <p class="family-message" aria-live="polite"></p>`;
+ $('.family-award-preview',body).innerHTML=raw.replace('<svg ','<svg role="img" aria-label="'+t('شهادة تكريم','Certificat')+'" ');
+ if(!preview)$('#familyAwardMessage',body).textContent=announce;
+ const feedback=(ar,fr,ok=false)=>note(body,t(ar,fr),ok);
+ const protect=async(button,action)=>{button.disabled=true;try{await action()}catch(e){if(e?.name!=='AbortError')feedback('تعذر إتمام العملية؛ يمكنك حفظ PDF وإعادة المحاولة.','Opération impossible. Enregistrez le PDF et réessayez.')}finally{button.disabled=false}};
+ $('#familyAwardOpenPDF',body).onclick=()=>{
+   const button=$('#familyAwardOpenPDF',body),tab=!native?window.open('about:blank','_blank'):null;
+   void protect(button,async()=>{
+     const file=await pdfFile();
+     if(native&&supportsShare(file))await navigator.share({files:[file],title:filename});
+     else if(tab){const url=URL.createObjectURL(file);tab.location.href=url;setTimeout(()=>URL.revokeObjectURL(url),120000)}
+     else{saveLocalFile(file,filename);feedback('تم تجهيز PDF؛ افتحه من ملفات الهاتف.','Ouvrez le PDF dans vos fichiers.',true)}
+   });
+ };
+ $('#familyAwardPDF',body).onclick=()=>{
+   const button=$('#familyAwardPDF',body);
+   void protect(button,async()=>{const file=await pdfFile();if(native&&supportsShare(file))await navigator.share({files:[file],title:filename});else saveLocalFile(file,filename)});
+ };
+ $('#familyAwardDownload',body).onclick=()=>{
+   const button=$('#familyAwardDownload',body);
+   void protect(button,async()=>{const file=new File([await imageBlob(raw)],'Certificat-'+today()+'.png',{type:'image/png'});if(native&&supportsShare(file))await navigator.share({files:[file],title:file.name});else saveLocalFile(file,file.name)});
+ };
+ if(preview)return;
+ const phone=$('#familyAwardPhone',body),consent=$('#familyAwardConsent',body);
+ const number=()=>{const n=phoneNum(phone.value);return /^[0-9]{8}$/.test(n)?'222'+n:null};
+ const approve=()=>{if(consent.checked)return true;feedback('أكد موافقة ولي الأمر قبل المشاركة.','Confirmez le consentement avant partage.');return false};
+ $('#familyAwardSaveContact',body).onclick=()=>{
+   if(!approve()||!number()||!record.class_id||!record.student_key){feedback('أدخل رقمًا موريتانيًا صحيحًا لحفظه.','Numéro mauritanien valide requis.');return}
+   const button=$('#familyAwardSaveContact',body);
+   void protect(button,async()=>{await request('/api/family/contacts','PUT',{classId:record.class_id,studentKey:record.student_key,phone:number(),consent:true});record.guardian_phone=number();feedback('تم حفظ رقم ولي الأمر.','Numéro enregistré.',true)});
+ };
+ $('#familyAwardCopy',body).onclick=async()=>{try{await navigator.clipboard.writeText(announce);feedback('تم نسخ الإعلان.','Annonce copiée.',true)}catch{window.prompt(t('انسخ الإعلان','Copiez l’annonce'),announce)}};
+ $('#familyAwardWhatsApp',body).onclick=()=>{
+   if(!approve())return;
+   const dest=number()||(/^222[0-9]{8}$/.test(String(record.guardian_phone||''))?record.guardian_phone:null);
+   if(!dest){feedback('أدخل رقم ولي الأمر الصحيح.','Saisissez le numéro du parent.');return}
+   const a=document.createElement('a');a.href='https://wa.me/'+dest+'?text='+encodeURIComponent(announce);a.target='_blank';a.rel='noopener noreferrer';document.body.appendChild(a);a.click();a.remove();
+   feedback('أرفق PDF من زر المشاركة في هذه الشاشة إذا لم يظهر في المحادثة.','Joignez le PDF si nécessaire.',true);
+ };
+ $('#familyAwardShare',body).onclick=()=>{
+   if(!approve())return;
+   const button=$('#familyAwardShare',body);
+   void protect(button,async()=>{
+     const file=await pdfFile();
+     if(supportsShare(file)){await navigator.share({files:[file],text:announce,title:t('شهادة وإعلان التميز','Certificat et annonce')});feedback('تحقق من وجود PDF وإعلان التميز في واتساب قبل إرسال الرسالة.','Vérifiez la présence du PDF et du texte dans WhatsApp.',true)}
+     else{saveLocalFile(file,filename);try{await navigator.clipboard.writeText(announce)}catch{}feedback('حُفظ PDF وتم تجهيز الإعلان؛ أرفقهما في محادثة واتساب واحدة.','PDF préparé : partagez-le avec le texte dans la même discussion.',true)}
+   });
+ };
+}
+  function formatMessage(rec){
    const d=rec.data||{},name=rec.student_name,school=rec.school_name||'اسم المدرسة';
    if(rec.kind==='award')return '🏆 إعلان التميز | '+school+'\nيسعدنا تكريم التلميذ/ة '+name+'\n'+(AWARDS[d.awardType]?.[0]||'شهادة تكريم')+(d.reason?'\nالسبب: '+d.reason:'')+'\nالشهادة الرسمية مرفقة بصيغة PDF.\nمع تحيات المدرسة والمعلم أو الأستاذ.';
    if(rec.kind==='daily')return '📚 '+school+'\nالتقرير اليومي للتلميذ/ة: '+name+'\nالتاريخ: '+(d.date||'')+'\nالحضور: '+pair(ATT,d.attendance)+'\nالتقييم: '+pair(RATE,d.assessment)+(d.note?'\nالملاحظة: '+d.note:'')+'\nمع تحيات المعلم أو الأستاذ.';
