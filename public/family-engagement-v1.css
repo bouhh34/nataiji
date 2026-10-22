@@ -73,3 +73,16 @@ html[lang=fr] .family-dialog{direction:ltr}
 .family-dialog .family-retry-button{background:#fff;border:1px solid #c8a367;color:#875312;border-radius:9px;padding:7px 12px;font-weight:750}
 .family-dialog .family-sync-status{display:none;font-size:12px;line-height:1.6;padding:10px;border:1px solid #e6c69b;color:#78491c;background:#fff9ef;border-radius:10px}
 .family-dialog .family-sync-status.is-visible{display:flex;gap:8px;align-items:center;justify-content:space-between;flex-wrap:wrap}
+
+/* Unified distinction certificate and announcement: compact, readable, touch friendly. */
+.family-dialog .family-award-actions{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}
+.family-dialog .family-award-actions button{min-width:0;min-height:46px;line-height:1.45}
+.family-dialog .family-award-actions #familyAwardOpenPDF{grid-column:1/-1;background:#064b3c;color:#fff;border:1px solid #b18a3b;box-shadow:inset 0 1px 0 #fff3,0 3px 11px #154d3a20}
+.family-dialog .family-award-send{border:1px solid #d5b271;background:linear-gradient(155deg,#fffefa,#f6faf6);padding:14px;border-radius:16px;display:grid;gap:10px;min-width:0}
+.family-dialog .family-award-send h3{margin:0;color:#725018;font-size:17px;font-weight:900}
+.family-dialog .family-award-send .family-message-preview{max-height:190px;border:1px solid #eadbb8;background:#fffdfa;line-height:1.75}
+.family-dialog .family-award-send #familyAwardShare{background:#065640;color:#fff;min-height:54px;font-size:14px}
+.family-dialog .family-award-send button{width:100%}
+.family-dialog .family-award-preview{border:2px solid #bd9143;box-shadow:0 7px 26px #201e1230}
+.family-dialog button[hidden],.family-dialog [hidden]{display:none!important}
+@media(max-width:380px){.family-dialog .family-award-actions{grid-template-columns:minmax(0,1fr)}.family-dialog .family-award-actions #familyAwardOpenPDF{grid-column:auto}}

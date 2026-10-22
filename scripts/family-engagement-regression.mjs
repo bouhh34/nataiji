@@ -128,7 +128,8 @@ test('a guardian-number save reads PostgreSQL pupil result rows instead of itera
  const end=server.indexOf('mountDirectorRoutes(',start);
  assert(start>=0&&end>start,'Family school loader should be present');
  const loader=server.slice(start,end);
- assert.match(loader,/const \{rows\}=await pool\.query\('SELECT class_id,nns,data FROM nataiji_pupils/);
+ assert.match(loader,/const \{rows\}=pupils/);
+ assert.match(loader,/Promise\.all\(/);
  assert.match(loader,/for\(const row of rows\)/);
  assert.doesNotMatch(loader,/const rows=await pool\.query\('SELECT class_id,nns,data FROM nataiji_pupils/);
 });
@@ -143,10 +144,23 @@ test('certificate is luxurious, school-branded, safely escaped, and has no app b
  assert.match(svg,/محمد &amp; محمود/);
  assert.match(svg,/شهادة التفوق الدراسي/);
  assert.match(svg,/linearGradient id="gold"/);
- assert.match(svg,/path d="M800 76L866 106/);
+ assert.match(svg,/path d="M686 145L800 100L914 145/);
  assert.match(svg,/width="1600" height="1131"/);
  assert.doesNotMatch(svg,/Nataiji|نتائجي/i);
  const unknown=premiumAwardSVG({student_name:'أحمد',data:{awardType:'effort'}});
  assert.match(unknown,/اسم المدرسة/);
  assert.doesNotMatch(unknown,/Nataiji|نتائجي/i);
+});
+
+test('awards and announcement share the same workflow, with optional parent contact and real PDF opening',()=>{
+ const code=readFileSync(new URL('../public/family-engagement-v1.js',import.meta.url),'utf8');
+ assert.match(code,/id="familyAwardCreate"/);
+ assert.match(code,/id="familyAwardShare"/);
+ assert.match(code,/id="familyAwardOpenPDF"/);
+ assert.match(code,/id="familyAwardPhone"/);
+ assert.match(code,/text:announce/);
+ assert.match(code,/files:\[file\]/);
+ assert.match(code,/kind==='award'/);
+ assert.match(code,/showAward\(\{id,kind:'award'/);
+ assert.match(code,/if\(preview\)return/);
 });

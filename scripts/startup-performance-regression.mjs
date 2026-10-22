@@ -85,7 +85,7 @@ test('lightweight table updates do not rewrite unchanged cells or loop on their 
 
 test('login, session restore and UI updates ship as versioned assets in the current offline bundle',()=>{
  const css=read('auth.css'),login=read('auth-access-v2.js'),stability=read('app-stability-v1.js');
- for(const asset of ['/auth.css?v=5','/auth-access-v2.js?v=56','/app-stability-v1.js?v=6']){
+ for(const asset of ['/auth.css?v=5','/auth-access-v2.js?v=56','/app-stability-v1.js?v=7']){
   assert.ok(html.includes(asset),'page missing '+asset);
   assert.ok(sw.includes(asset),'offline cache missing '+asset);
  }
