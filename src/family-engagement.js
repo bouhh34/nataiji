@@ -190,11 +190,11 @@ export function mountFamilyRoutes(app,{auth,ownerOnly,getPool,loadProfessorProfi
   app.post('/api/family/certificate-links',auth,db,author,async(req,res)=>{
     const id=String(req.body?.recordId||''),phone=normalizeMauritaniaPhone(req.body?.phone),
       data=String(req.body?.pdfBase64||'');
-    if(!isUuid(id)||!phone||!data||data.length>980000||
+    if(!isUuid(id)||!phone||!data||data.length>2000000||
        !/^[A-Za-z0-9+/]+={0,2}$/.test(data)||data.length%4!==0)
       return res.status(400).json({error:'invalid_certificate_payload'});
     const pdf=Buffer.from(data,'base64');
-    if(pdf.byteLength<100||pdf.byteLength>735000||
+    if(pdf.byteLength<100||pdf.byteLength>1500000||
        pdf.subarray(0,5).toString('latin1')!=='%PDF-'||
        !pdf.subarray(Math.max(0,pdf.length-120)).toString('latin1').includes('%%EOF'))
       return res.status(400).json({error:'invalid_certificate_pdf'});
