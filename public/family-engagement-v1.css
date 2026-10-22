@@ -86,3 +86,7 @@ html[lang=fr] .family-dialog{direction:ltr}
 .family-dialog .family-award-preview{border:2px solid #bd9143;box-shadow:0 7px 26px #201e1230}
 .family-dialog button[hidden],.family-dialog [hidden]{display:none!important}
 @media(max-width:380px){.family-dialog .family-award-actions{grid-template-columns:minmax(0,1fr)}.family-dialog .family-award-actions #familyAwardOpenPDF{grid-column:auto}}
+
+.family-dialog .family-award-step{margin:5px 0 0;color:#0b5b4e;font-size:13px;font-weight:800}
+.family-dialog .family-award-destination{padding:9px 12px;border:1px solid #b6d5ce;border-radius:10px;background:#f4fbf9;font-size:13px;overflow-wrap:anywhere;color:#124e45;font-weight:750}
+.family-dialog #familyAwardShare,.family-dialog #familyAwardWhatsApp{min-height:52px}

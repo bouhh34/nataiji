@@ -158,9 +158,38 @@ test('awards and announcement share the same workflow, with optional parent cont
  assert.match(code,/id="familyAwardShare"/);
  assert.match(code,/id="familyAwardOpenPDF"/);
  assert.match(code,/id="familyAwardPhone"/);
- assert.match(code,/text:announce/);
+ assert.match(code,/sharePdfAttachment/);
+ assert.match(code,/navigator\.share\(\{files:\[file\]\}\)/);
+ assert.doesNotMatch(code,/navigator\.share\(\{files:\[file\],text:/);
+ assert.match(code,/id="familyAwardWhatsApp"/);
+ assert.match(code,/id="familyAwardDestination"/);
  assert.match(code,/files:\[file\]/);
  assert.match(code,/kind==='award'/);
  assert.match(code,/showAward\(\{id,kind:'award'/);
  assert.match(code,/if\(preview\)return/);
+});
+
+test('award outbox does not open a text-only WhatsApp message while PDF is missing',()=>{
+ const script=readFileSync(new URL('../public/family-engagement-v1.js',import.meta.url),'utf8');
+ const start=script.indexOf("$$('[data-open]',list).forEach(");
+ const end=script.indexOf("$$('[data-copy]',list).forEach(",start);
+ assert(start>0&&end>start);
+ assert.match(script.slice(start,end),/if\(rec\.kind==='award'\)\{void showAward\(rec\);return\}/);
+ assert.match(script,/تُشارك شهادة التكريم بصيغة PDF كمستند منفصل/);
+ assert.match(script,/«Vous»/);
+});
+
+test('Android PDF attachment sharing preserves transient user activation',()=>{
+ const script=readFileSync(new URL('../public/family-engagement-v1.js',import.meta.url),'utf8');
+ assert.match(script,/let prepared,readyFile=null/);
+ assert.match(script,/sendFile\.disabled=true/);
+ assert.match(script,/pdfFile\(\)\.then\(/);
+ assert.match(script,/const file=readyFile/);
+ const start=script.indexOf('const sharePdfAttachment=()=>');
+ const end=script.indexOf('body.innerHTML=',start);
+ assert(start>0&&end>start);
+ const shareCode=script.slice(start,end);
+ assert.match(shareCode,/navigator\.share\(\{files:\[file\]\}\)/);
+ assert.doesNotMatch(shareCode,/await pdfFile\(\)/);
+ assert.doesNotMatch(shareCode,/text:announce/);
 });

@@ -337,11 +337,22 @@
  const w=modal(t('شهادة التميز وإعلان التكريم','Certificat et annonce de distinction')),body=w.body,raw=awardSVG(record);
  const announce=formatMessage({...record,kind:'award'}),filename='Certificat-'+today()+'.pdf';
  const native=window.Capacitor?.isNativePlatform?.()===true||['android','ios'].includes(window.Capacitor?.getPlatform?.());
- let prepared;
+ let prepared,readyFile=null;
  const pdf=()=>prepared||=awardPdfBlob(raw).catch(e=>{prepared=null;throw e});
- const pdfFile=async()=>new File([await pdf()],filename,{type:'application/pdf'});
+ const pdfFile=async()=>readyFile ||= new File([await pdf()],filename,{type:'application/pdf'});
  const supportsShare=file=>Boolean(navigator.share&&navigator.canShare?.({files:[file]}));
- body.innerHTML=`<p class="family-hint">${preview?t('معاينة شهادة التميز قبل إنشاء الإعلان والشهادة.','Aperçu du certificat avant création.'):t('الشهادة وإعلان التميز معًا. اختر واتساب والمستلم من هاتفك بعد الضغط على مشاركة.','Certificat et annonce ensemble. Sélectionnez WhatsApp et son destinataire.')}</p>
+ // File-only share: some Android/WhatsApp builds discard the attachment
+ // when Web Share receives both a file and text.
+ const sharePdfAttachment=()=>{
+   // Call navigator.share synchronously from the tap handler: a late await
+   // after PDF rasterization can expire Android's transient user gesture.
+   const file=readyFile;
+   if(!file)throw Error('pdf_not_ready');
+   if(supportsShare(file))return navigator.share({files:[file]}).then(()=> 'chooser');
+   saveLocalFile(file,filename);
+   return Promise.resolve('download');
+ };
+ body.innerHTML=`<p class="family-hint">${preview?t('معاينة شهادة التميز قبل إنشاء الإعلان والشهادة.','Aperçu du certificat avant création.'):t('الشهادة والإعلان في شاشة واحدة: شارك ملف PDF أولًا، ثم افتح محادثة ولي الأمر لإرسال الإعلان.','Certificat et annonce au même endroit : partagez le fichier PDF, puis envoyez le message au parent.')}</p>
  <div class="family-award-preview"></div>
  <div class="family-award-actions"><button id="familyAwardOpenPDF" type="button" class="family-primary">${t('فتح شهادة PDF','Ouvrir PDF')}</button>
  <button id="familyAwardPDF" type="button" class="family-secondary">${t('حفظ شهادة PDF','Enregistrer PDF')}</button>
@@ -351,14 +362,32 @@
  <label>${t('رقم واتساب ولي الأمر (اختياري عند المشاركة في مجموعة)','Numéro WhatsApp du parent (facultatif pour groupe)')}<input id="familyAwardPhone" type="tel" inputmode="tel" placeholder="+222 34 00 00 00" value="${esc(String(record.guardian_phone||'').replace(/^222/,''))}"></label>
  <label class="family-checkbox"><input type="checkbox" id="familyAwardConsent"> ${t('أؤكد موافقة ولي الأمر على مشاركة شهادة التلميذ وإعلان تميزه.','Je confirme le consentement du parent.')}</label>
  <button id="familyAwardSaveContact" type="button" class="family-secondary">${t('حفظ رقم الولي','Enregistrer le numéro')}</button>
- <button id="familyAwardShare" type="button" class="family-primary">${t('مشاركة PDF وإعلان التميز عبر واتساب','Partager PDF et annonce par WhatsApp')}</button>
- <button id="familyAwardWhatsApp" type="button" class="family-secondary">${t('فتح محادثة ولي الأمر','Ouvrir la discussion du parent')}</button>
+ <p class="family-tiny family-award-step">${t('الخطوة ١: شارك ملف الشهادة PDF الحقيقي.','Étape 1 : partagez le véritable fichier PDF.')}</p>
+ <button id="familyAwardShare" type="button" class="family-primary">${t('١ — مشاركة ملف PDF في واتساب','1 — Partager le fichier PDF sur WhatsApp')}</button>
+ <p class="family-tiny family-award-step">${t('الخطوة ٢: أرسل إعلان التميز إلى ولي الأمر في المحادثة نفسها.','Étape 2 : envoyez l’annonce au parent dans la même discussion.')}</p>
+ <button id="familyAwardWhatsApp" type="button" class="family-secondary">${t('٢ — فتح محادثة ولي الأمر مع الإعلان','2 — Ouvrir la discussion du parent avec l’annonce')}</button>
+ <div id="familyAwardDestination" class="family-award-destination" role="status" aria-live="polite"></div>
  <button id="familyAwardCopy" type="button" class="family-secondary">${t('نسخ إعلان التميز','Copier l’annonce')}</button>
- <p class="family-tiny">${t('قد لا يعرض واتساب النص مع PDF على بعض الهواتف. تحقّق قبل الإرسال، وألصق الإعلان في المحادثة نفسها إذا لزم. لا إرسال تلقائي.','Sur certains téléphones, WhatsApp peut ignorer le texte joint au PDF. Vérifiez et collez le message si besoin. Aucun envoi automatique.')}</p>
+ <p class="family-tiny">${t('تأكد من اختيار ولي الأمر، وليس «Vous» (محادثتك مع نفسك)، ومن ظهور ملف PDF قبل الضغط على إرسال. لا يتم الإرسال تلقائيًا.','Choisissez le parent, pas « Vous », et vérifiez que le PDF apparaît bien en pièce jointe avant d’envoyer. Aucun envoi automatique.')}</p>
  </section>`}
  <p class="family-message" aria-live="polite"></p>`;
  $('.family-award-preview',body).innerHTML=raw.replace('<svg ','<svg role="img" aria-label="'+t('شهادة تكريم','Certificat')+'" ');
- if(!preview)$('#familyAwardMessage',body).textContent=announce;
+ if(!preview){
+   $('#familyAwardMessage',body).textContent=announce;
+   const sendFile=$('#familyAwardShare',body);
+   sendFile.disabled=true;
+   sendFile.textContent=t('جار تجهيز ملف الشهادة PDF…','Préparation du fichier PDF…');
+   // Prepare the real document before the user taps Share, without blocking paint.
+   setTimeout(()=>{void pdfFile().then(()=>{
+     if(!sendFile.isConnected)return;
+     sendFile.disabled=false;
+     sendFile.textContent=t('١ — مشاركة ملف PDF في واتساب','1 — Partager le fichier PDF sur WhatsApp');
+   }).catch(()=>{
+     if(!sendFile.isConnected)return;
+     sendFile.disabled=false;
+     sendFile.textContent=t('إعادة محاولة مشاركة PDF','Réessayer de partager le PDF');
+   })},30);
+ }
  const feedback=(ar,fr,ok=false)=>note(body,t(ar,fr),ok);
  const protect=async(button,action)=>{button.disabled=true;try{await action()}catch(e){if(e?.name!=='AbortError')feedback('تعذر إتمام العملية؛ يمكنك حفظ PDF وإعادة المحاولة.','Opération impossible. Enregistrez le PDF et réessayez.')}finally{button.disabled=false}};
  $('#familyAwardOpenPDF',body).onclick=()=>{
@@ -381,6 +410,9 @@
  if(preview)return;
  const phone=$('#familyAwardPhone',body),consent=$('#familyAwardConsent',body);
  const number=()=>{const n=phoneNum(phone.value);return /^[0-9]{8}$/.test(n)?'222'+n:null};
+ const destination=$('#familyAwardDestination',body);
+ const showDestination=()=>{const n=number();destination.textContent=n?t('المحادثة المقصودة: +','Discussion prévue : +')+n:t('أدخل رقم ولي الأمر الصحيح للإرسال الفردي.','Saisissez le bon numéro du parent.')};
+ phone.addEventListener('input',showDestination);showDestination();
  const approve=()=>{if(consent.checked)return true;feedback('أكد موافقة ولي الأمر قبل المشاركة.','Confirmez le consentement avant partage.');return false};
  $('#familyAwardSaveContact',body).onclick=()=>{
    if(!approve()||!number()||!record.class_id||!record.student_key){feedback('أدخل رقمًا موريتانيًا صحيحًا لحفظه.','Numéro mauritanien valide requis.');return}
@@ -398,16 +430,18 @@
  $('#familyAwardShare',body).onclick=()=>{
    if(!approve())return;
    const button=$('#familyAwardShare',body);
+   // Capture the share promise immediately while the user's tap is active.
+   let action;try{action=sharePdfAttachment()}catch(e){feedback('ملف PDF لم يكتمل بعد. اختر إعادة المحاولة.','Le PDF est encore en préparation. Réessayez.');return}
    void protect(button,async()=>{
-     const file=await pdfFile();
-     if(supportsShare(file)){await navigator.share({files:[file],text:announce,title:t('شهادة وإعلان التميز','Certificat et annonce')});feedback('تحقق من وجود PDF وإعلان التميز في واتساب قبل إرسال الرسالة.','Vérifiez la présence du PDF et du texte dans WhatsApp.',true)}
-     else{saveLocalFile(file,filename);try{await navigator.clipboard.writeText(announce)}catch{}feedback('حُفظ PDF وتم تجهيز الإعلان؛ أرفقهما في محادثة واتساب واحدة.','PDF préparé : partagez-le avec le texte dans la même discussion.',true)}
+     const result=await action;
+     if(result==='chooser')feedback('فُتحت مشاركة ملف PDF دون نص. اختر واتساب وولي الأمر الصحيح، وتأكد من ظهور المستند قبل إرساله. بعد ذلك أرسل الإعلان من الزر الثاني.','Le PDF seul est présenté au partage. Choisissez le parent et vérifiez le document avant envoi, puis utilisez le second bouton pour l’annonce.',true);
+     else feedback('تم تجهيز PDF في ملفات الهاتف، ولم يتم إرساله. أرفقه في واتساب من المشبك > مستند ثم أرسل الإعلان من الزر الثاني.','PDF enregistré, pas encore envoyé. Joignez-le dans WhatsApp > Document, puis envoyez l’annonce avec le second bouton.',true);
    });
  };
 }
   function formatMessage(rec){
    const d=rec.data||{},name=rec.student_name,school=rec.school_name||'اسم المدرسة';
-   if(rec.kind==='award')return '🏆 إعلان التميز | '+school+'\nيسعدنا تكريم التلميذ/ة '+name+'\n'+(AWARDS[d.awardType]?.[0]||'شهادة تكريم')+(d.reason?'\nالسبب: '+d.reason:'')+'\nالشهادة الرسمية مرفقة بصيغة PDF.\nمع تحيات المدرسة والمعلم أو الأستاذ.';
+   if(rec.kind==='award')return '🏆 إعلان التميز | '+school+'\nيسعدنا تكريم التلميذ/ة '+name+'\n'+(AWARDS[d.awardType]?.[0]||'شهادة تكريم')+(d.reason?'\nالسبب: '+d.reason:'')+'\nتُشارك شهادة التكريم بصيغة PDF كمستند منفصل في المحادثة نفسها.\nمع تحيات المدرسة والمعلم أو الأستاذ.';
    if(rec.kind==='daily')return '📚 '+school+'\nالتقرير اليومي للتلميذ/ة: '+name+'\nالتاريخ: '+(d.date||'')+'\nالحضور: '+pair(ATT,d.attendance)+'\nالتقييم: '+pair(RATE,d.assessment)+(d.note?'\nالملاحظة: '+d.note:'')+'\nمع تحيات المعلم أو الأستاذ.';
    return '📄 '+school+'\nإشعار بنتائج التلميذ/ة: '+name+(d.term?'\nالفصل: '+d.term:'')+(d.note?'\n'+d.note:'')+'\nيمكنكم التواصل مع المؤسسة للاطلاع على الكشف المعتمد.';
  }
@@ -436,6 +470,7 @@
           </article>`).join(''):`<p class="family-tiny">${t('لا توجد رسائل في هذه القائمة','Aucun message dans cette liste')}</p>`;
        $$('[data-open]',list).forEach(button=>button.onclick=async()=>{
          const rec=rows[Number(button.dataset.open)];
+         if(rec.kind==='award'){void showAward(rec);return}
          openWhatsApp(rec,rec.guardian_phone);
          try{await request('/api/family/records/'+encodeURIComponent(rec.id)+'/status','POST',{status:'opened'});await refresh()}catch{note(body,t('فتحت واتساب، لكن تعذر تحديث حالة الرسالة.','WhatsApp ouvert, mais mise à jour impossible.'))}
        });
