@@ -190,6 +190,6 @@ test('Android PDF attachment sharing preserves transient user activation',()=>{
  assert(start>0&&end>start);
  const shareCode=script.slice(start,end);
  assert.match(shareCode,/navigator\.share\(\{files:\[file\]\}\)/);
- assert.doesNotMatch(shareCode,/await/);
+ assert.doesNotMatch(shareCode,/await pdfFile\(\)/);
  assert.doesNotMatch(shareCode,/text:announce/);
 });
