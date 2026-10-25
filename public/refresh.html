@@ -1,0 +1,65 @@
+<!doctype html>
+<html lang="ar" dir="rtl">
+<head>
+ <meta charset="utf-8">
+ <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+ <meta name="robots" content="noindex,nofollow">
+ <meta name="theme-color" content="#08334b">
+ <title>تحديث نتائجي | Actualiser Nataiji</title>
+ <style>
+  *{box-sizing:border-box}body{font-family:Tahoma,Arial,sans-serif;background:linear-gradient(160deg,#eaf7f2,#f6f8ff);color:#153848;min-height:100dvh;margin:0;display:grid;place-items:center;padding:18px}
+  main{width:min(470px,100%);border:1px solid #d5e8e2;background:#fff;border-radius:23px;box-shadow:0 22px 60px #123b4020;padding:28px 23px}
+  .symbol{width:55px;height:55px;border-radius:17px;display:grid;place-items:center;background:#e1f5ee;color:#09816c;font-size:29px}
+  h1{font-size:24px;margin:18px 0 7px}p{font-size:14px;line-height:1.85}small{display:block;color:#647b7a;font-size:12px;line-height:1.75}
+  button,a{border:0;border-radius:13px;font-weight:800;font-size:15px;padding:14px 18px}button{width:100%;background:#087965;color:white;margin-top:15px;cursor:pointer}button:disabled{opacity:.55;cursor:progress}
+  a{display:block;text-align:center;margin-top:12px;color:#165767;text-decoration:none;background:#ecf6f3}
+  #message{min-height:28px;font-weight:700;color:#176e5c}#message.bad{color:#a42b2b}
+  .details{padding:11px 13px;border-radius:12px;background:#f5fbf8;border:1px solid #e0eee7}
+ </style>
+</head>
+<body>
+<main>
+ <div class="symbol" aria-hidden="true">↻</div>
+ <h1>تحديث واجهة نتائجي</h1>
+ <small dir="ltr">Mise à jour de l’interface Nataiji</small>
+ <p>إذا بقيت نافذة إضافة التلميذ قديمة، استخدم هذا التحديث لاسترجاع أحدث ملفات التطبيق، بما فيها خانة واتساب ولي الأمر.</p>
+ <p class="details">لا تُمسح حساباتك أو بيانات التلاميذ أو الدرجات أو المسودات المحلية. يتم تجديد الملفات المؤقتة للتطبيق فقط. يجب توفر الإنترنت.</p>
+ <button type="button" id="refresh">تحديث الواجهة الآن · Actualiser</button>
+ <p id="message" role="status" aria-live="polite"></p>
+ <a href="/">العودة إلى نتائجي · Retour</a>
+ <small>ملاحظة: افتح هذه الصفحة داخل نفس المتصفح أو التطبيق الذي تظهر فيه المشكلة. فتحها في Chrome لا يُحدّث ذاكرة تطبيق Android المثبّت إذا كان يستخدم مساحة تخزين مستقلة.</small>
+</main>
+<script>
+(()=>{
+ 'use strict';
+ const button=document.querySelector('#refresh'),message=document.querySelector('#message');
+ const say=(text,bad=false)=>{message.textContent=text;message.classList.toggle('bad',bad)};
+ button.addEventListener('click',async()=>{
+   button.disabled=true;
+   try{
+     if(navigator.onLine===false)throw Error('لا يوجد اتصال بالإنترنت. أعد المحاولة عندما يتوفر الاتصال.');
+     say('التحقق من نسخة نتائجي على الخادم…');
+     const token=Date.now().toString(36);
+     const r=await fetch('/professor-v2.js?v=89&check='+token,{cache:'no-store',redirect:'error',signal:AbortSignal.timeout(20000)});
+     if(!r.ok)throw Error('تعذّر الوصول إلى ملف التحديث: '+r.status);
+     const body=await r.text();
+     if(!body.includes('prof-student-family-panel')||!body.includes('pv2GuardianPhone'))throw Error('الخادم لا يقدم نموذج ولي الأمر الجديد. لم تُمسح أي ملفات.');
+     say('تم التحقق من الإصدار الجديد. يجري تحديث ملفات التطبيق…');
+     if('serviceWorker' in navigator){
+       const reg=await navigator.serviceWorker.getRegistration('/');
+       if(reg)await reg.unregister();
+     }
+     if('caches' in window){
+       const names=await caches.keys();
+       await Promise.all(names.filter(x=>x.startsWith('nataiji-shell-')).map(x=>caches.delete(x)));
+     }
+     location.replace('/?refresh_ui='+token);
+   }catch(e){
+     say(e&&e.message||'تعذّر تحديث الواجهة. راجع اتصال الإنترنت.',true);
+     button.disabled=false;
+   }
+ });
+})();
+</script>
+</body>
+</html>

@@ -121,6 +121,17 @@ assert('student import menu is teacher-only and safe for print and no edit right
  /@media screen/.test(studentShortcutCss) &&
  !/@media print/.test(studentShortcutCss) &&
  /student-quick-import-ready/.test(studentShortcutCss));
+const safeRefreshPage=read('public/refresh.html');
+assert('student editor provides native UI refresh control distinct from data sync',
+  /profMoreAppUpdate/.test(read('public/professor-v2.js')) &&
+  /location\.assign\('\/refresh\.html'\)/.test(read('public/professor-v2.js')));
+assert('safe refresh page verifies guardian editor and preserves durable/local drafts',
+  /pv2GuardianPhone/.test(safeRefreshPage) &&
+  /serviceWorker\.getRegistration/.test(safeRefreshPage) &&
+  /nataiji-shell-/.test(safeRefreshPage) &&
+  !/localStorage\.(?:clear|removeItem)/.test(safeRefreshPage) &&
+  !/indexedDB\.(?:deleteDatabase)/.test(safeRefreshPage) &&
+  !/\/api\//.test(safeRefreshPage));
 assert('PWA cache version current', /nataiji-shell-v\d+/.test(sw));
 const commercialPlan = read('public/commercial-foundation-v1.js');
 assert('plan card script version is present in web and Android cache',
@@ -364,7 +375,7 @@ assert('student bulletin decision and signatures are easy to read', /official-bu
 assert('bulletin summary has more vertical space', /official-bulletin-summary>div\{min-height:14mm/.test(professorV2));
 assert('Arabic official header is balanced against French', /official-student-bulletin-doc \.official-ar\{font-size:11\.7pt/.test(professorV2) && /class-list-doc \.official-ar\{font-size:11\.5pt/.test(professorV2));
 assert('professor batch bulletin label says one student per A4', /كشوف التلاميذ الرسمية – طالب واحد لكل A4/.test(professorV2) && /Bulletins officiels – 1 élève par A4/.test(professorV2));
-assert('professor v2 cache-busted asset is current', /professor-v2\.js\?v=88/.test(index));
+assert('professor v2 cache-busted asset is current', /professor-v2\.js\?v=89/.test(index));
 assert('professor v2 stylesheet cache-busted asset is current', /professor-v2\.css\?v=50/.test(index));
 const ownerStaff = read('public/owner-staff-v1.js');
 assert('owner professor tools support official branches', /staffClassBranch/.test(ownerStaff) && /data-branch/.test(ownerStaff) && /subjectOptions\(catalog,level,branch\)/.test(ownerStaff));
