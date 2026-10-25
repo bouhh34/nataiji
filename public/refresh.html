@@ -40,7 +40,7 @@
      if(navigator.onLine===false)throw Error('لا يوجد اتصال بالإنترنت. أعد المحاولة عندما يتوفر الاتصال.');
      say('التحقق من نسخة نتائجي على الخادم…');
      const token=Date.now().toString(36);
-     const r=await fetch('/professor-v2.js?v=88&check='+token,{cache:'no-store',redirect:'error',signal:AbortSignal.timeout(20000)});
+     const r=await fetch('/professor-v2.js?v=89&check='+token,{cache:'no-store',redirect:'error',signal:AbortSignal.timeout(20000)});
      if(!r.ok)throw Error('تعذّر الوصول إلى ملف التحديث: '+r.status);
      const body=await r.text();
      if(!body.includes('prof-student-family-panel')||!body.includes('pv2GuardianPhone'))throw Error('الخادم لا يقدم نموذج ولي الأمر الجديد. لم تُمسح أي ملفات.');
