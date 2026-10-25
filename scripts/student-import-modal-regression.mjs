@@ -154,3 +154,17 @@ test('image importer reviews additional student information and explicit guardia
  assert.match(source,/guardianConsent/);
  assert.match(source,/recognizedStudents/);
 });
+
+test('student editor displays the WhatsApp parent section before optional school fields',()=>{
+ const professor=fs.readFileSync(new URL('../public/professor-v2.js',import.meta.url),'utf8');
+ const css=fs.readFileSync(new URL('../public/professor-v2.css',import.meta.url),'utf8');
+ const editor=professor.slice(professor.indexOf('function studentEditor('),professor.indexOf('function cleanGrade('));
+ assert.ok(editor.includes('prof-student-family-panel'));
+ assert.ok(editor.indexOf('prof-student-family-panel')<editor.indexOf('pv2StudentNns'));
+ assert.ok(editor.includes('pv2GuardianPhone'));
+ assert.ok(editor.includes('pv2GuardianConsent'));
+ assert.ok(editor.includes('/api/family/contacts'));
+ assert.ok(editor.includes('guardianStatus.textContent'));
+ assert.ok(editor.includes('Aucun message'));
+ assert.ok(css.includes('prof-student-family-consent input[type=checkbox]'));
+});

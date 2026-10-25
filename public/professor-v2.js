@@ -940,17 +940,37 @@ function studentEditor(classId,studentId,onDone){
  const nextCall=existing?.callNumber||nextProfessorCallNumber(cls),names=profStudentNamePair(existing||{}),m=modal(existing?'Modifier l’élève / تعديل التلميذ':'Ajouter un élève / إضافة تلميذ',`<div class="prof-student-form">
   <label class="prof-student-field"><b>الاسم الكامل بالعربية</b><input id="pv2StudentName" maxlength="160" dir="rtl" autocomplete="off" value="${esc(names.ar||'')}"><small id="pv2StudentArHint">يمكنك البدء بالعربية أو الفرنسية؛ سيقترح التطبيق اللغة الأخرى تلقائيًا، ويمكن تعديل الاقتراح يدويًا.</small></label>
   <label class="prof-student-field"><b>Nom complet en français</b><input id="pv2StudentNameFr" maxlength="160" dir="ltr" autocomplete="off" value="${esc(names.fr||'')}"><small id="pv2StudentFrHint" dir="ltr">Commencez en arabe ou en français : l’autre langue est proposée automatiquement et reste modifiable.</small><button type="button" id="pv2StudentRegenFr">↻ تحديث الفرنسية من العربية / Régénérer le français</button></label>
+  <section class="prof-student-family-panel" aria-labelledby="pv2GuardianHeading">
+    <div class="prof-student-family-heading">
+      <span class="prof-student-family-icon" aria-hidden="true">✉</span>
+      <div><h3 id="pv2GuardianHeading">${tr('واتساب ولي الأمر','WhatsApp du parent')}</h3>
+      <small>${tr('لإرسال النتائج وشهادات التكريم والملاحظات لهذا التلميذ','Pour transmettre les résultats, distinctions et remarques de cet élève')}</small></div>
+    </div>
+    <label class="prof-student-field"><b>${tr('رقم واتساب ولي الأمر (+222)','Numéro WhatsApp du parent (+222)')}</b><input id="pv2GuardianPhone" type="tel" inputmode="tel" autocomplete="off" placeholder="+222 34 12 34 56" dir="ltr"></label>
+    <label class="prof-student-family-consent"><input id="pv2GuardianConsent" type="checkbox"><span>${tr('أؤكد موافقة ولي الأمر على تلقي النتائج والتكريمات والمراسلات المدرسية عبر واتساب.','Je confirme l’accord du parent pour recevoir les résultats, distinctions et messages scolaires par WhatsApp.')}</span></label>
+    <small class="prof-student-family-note">${tr('سيظهر الرقم في قائمة أولياء الأمور بعد الحفظ، ويمكن فتح محادثته عند إعداد رسالة. لا يُرسل أي شيء تلقائيًا.','Le contact sera disponible dans la liste des parents après enregistrement. Aucun message n’est envoyé automatiquement.')}</small>
+    <p id="pv2GuardianStatus" class="prof-student-family-status" role="status" aria-live="polite"></p>
+  </section>
   <label class="prof-student-field"><b>NNS / الرقم المدرسي</b><span class="prof-field-optional">Facultatif / اختياري — يمكن تركه فارغًا</span><input id="pv2StudentNns" maxlength="80" dir="ltr" autocomplete="off" value="${esc(existing?.nns||'')}"></label>
   <label class="prof-student-field"><b>N° d’appel / رقم النداء</b><input id="pv2StudentCall" type="number" inputmode="numeric" min="1" max="9999" step="1" value="${esc(nextCall)}" dir="ltr"><small>رقم ثابت بعد الحفظ وقابل للتعديل يدويًا / Numéro modifiable manuellement.</small></label>
   <label class="prof-student-field"><b>Sexe / الجنس</b><select id="pv2StudentSex"><option value="male" ${existing?.sex==='male'?'selected':''}>Garçon / ذكر</option><option value="female" ${existing?.sex==='female'?'selected':''}>Fille / أنثى</option></select></label>
   <label class="prof-student-field"><b>Date de naissance / تاريخ الميلاد</b><span class="prof-field-optional">Facultatif / اختياري — يمكن تركه فارغًا</span><input id="pv2StudentBirthDate" type="date" dir="ltr" value="${esc(existing?.birthDate||'')}"></label>
-  <label class="prof-student-field"><b>رقم واتساب ولي الأمر / WhatsApp du parent (+222)</b><input id="pv2GuardianPhone" type="tel" inputmode="tel" autocomplete="off" placeholder="+222 34 12 34 56" dir="ltr"></label>
-  <label class="prof-student-field"><span style="display:flex;gap:8px;align-items:center"><input id="pv2GuardianConsent" type="checkbox"> موافقة ولي الأمر على تلقي المراسلات المدرسية / Accord du parent</span></label>
   <div class="prof-student-save-row"><button class="primary" id="pv2StudentSave">${existing?'Enregistrer les modifications / حفظ التعديلات':'Enregistrer / حفظ'}</button></div>
   <p class="professor-msg prof-student-msg"></p>
  </div>`);
  m.wrap.classList.add('prof-student-modal');
- if(existing)void api('/api/family/contacts?classId='+encodeURIComponent(classId)).then(r=>{if(!m.wrap.isConnected)return;const contact=(r.contacts||[]).find(x=>String(x.student_key)===String(existing.id));if(contact){q('#pv2GuardianPhone',m.wrap).value='+'+contact.phone;q('#pv2GuardianConsent',m.wrap).checked=!!contact.consent}}).catch(()=>{});
+ const guardianPhone=q('#pv2GuardianPhone',m.wrap),guardianConsent=q('#pv2GuardianConsent',m.wrap),guardianStatus=q('#pv2GuardianStatus',m.wrap);
+ let storedGuardianPhone='';
+ guardianPhone.addEventListener('input',()=>{const typed=guardianPhone.value.replace(/[^0-9]/g,'').replace(/^00/,'');if(storedGuardianPhone&&typed!==storedGuardianPhone)guardianConsent.checked=false;guardianStatus.textContent=''});
+ if(existing){
+  guardianStatus.textContent=tr('جارٍ جلب رقم ولي الأمر المحفوظ…','Chargement du numéro du parent…');
+  void api('/api/family/contacts?classId='+encodeURIComponent(classId)).then(r=>{
+   if(!m.wrap.isConnected)return;
+   const contact=(r.contacts||[]).find(x=>String(x.student_key)===String(existing.id));
+   if(contact){storedGuardianPhone=contact.phone;if(!guardianPhone.value.trim()){guardianPhone.value='+'+contact.phone;guardianConsent.checked=!!contact.consent}guardianStatus.textContent=tr('رقم ولي الأمر مسجل ومربوط بالتلميذ.','Numéro enregistré et lié à cet élève.')}
+   else guardianStatus.textContent=tr('لا يوجد رقم مسجل حتى الآن.','Aucun numéro enregistré pour cet élève.');
+  }).catch(()=>{if(m.wrap.isConnected)guardianStatus.textContent=tr('تعذر جلب الرقم المحفوظ؛ تحقق من الاتصال قبل تعديله.','Impossible de charger le numéro enregistré. Vérifiez la connexion.')});
+ }
  const ar=q('#pv2StudentName',m.wrap),frInput=q('#pv2StudentNameFr',m.wrap),arHint=q('#pv2StudentArHint',m.wrap),frHint=q('#pv2StudentFrHint',m.wrap);let arManual=!!existing?.name&&!!existing?.nameFr&&String(existing.name).trim()!==profNameAr(existing.nameFr),frenchManual=!!existing?.nameFr&&String(existing.nameFr).trim()!==profNameFr(existing.name),syncing=false;
  const fromArabic=()=>{if(frenchManual)return;syncing=true;frInput.value=profNameFr(ar.value);syncing=false};
  const fromFrench=()=>{if(arManual)return;syncing=true;ar.value=profNameAr(frInput.value);syncing=false};

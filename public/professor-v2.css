@@ -7608,3 +7608,45 @@ html.nataiji-professor-mode body{background:#f4f7f6;min-height:100vh;overflow-x:
     order:2!important;flex:1 1 130px;min-height:44px;
   }
 }
+
+
+/* Guardian contact is intentionally prominent in the pupil editor. */
+.nataiji-professor-mode .prof-student-family-panel{
+ display:grid;gap:11px;padding:16px;margin:4px 0 8px;
+ border:1px solid #b6dfd1;border-radius:17px;
+ background:linear-gradient(145deg,#f0fbf6,#ffffff);direction:inherit;
+}
+.nataiji-professor-mode .prof-student-family-heading{
+ display:flex;align-items:center;gap:11px;color:#12664f;
+}
+.nataiji-professor-mode .prof-student-family-icon{
+ display:grid;place-items:center;flex:none;width:38px;height:38px;
+ border-radius:12px;background:#d8f2e7;font-size:21px;
+}
+.nataiji-professor-mode .prof-student-family-heading h3{
+ font-size:16px;line-height:1.35;margin:0 0 4px;color:#115f4e;
+}
+.nataiji-professor-mode .prof-student-family-heading small,
+.nataiji-professor-mode .prof-student-family-note,
+.nataiji-professor-mode .prof-student-family-status{
+ display:block;font-size:12px;line-height:1.65;color:#536f69;
+}
+.nataiji-professor-mode .prof-student-family-note{margin:0}
+.nataiji-professor-mode .prof-student-family-status:empty{display:none}
+.nataiji-professor-mode .prof-student-family-status{margin:0;font-weight:650}
+.nataiji-professor-mode .prof-student-family-consent{
+ display:flex;align-items:flex-start;gap:10px;font-size:12px;line-height:1.7;color:#214b43;
+}
+.nataiji-professor-mode .prof-student-family-consent input[type=checkbox]{
+ appearance:auto!important;flex:none;width:18px!important;height:18px!important;
+ min-height:18px!important;margin:2px 0 0!important;padding:0!important;
+ border-radius:4px!important;accent-color:#0a9071;
+}
+.nataiji-professor-mode .prof-student-family-panel #pv2GuardianPhone{
+ width:100%;box-sizing:border-box;direction:ltr;text-align:left;
+ background:#fff!important;
+}
+@media(max-width:600px){
+ .nataiji-professor-mode .prof-student-family-panel{padding:13px;border-radius:15px}
+ .nataiji-professor-mode .prof-student-family-heading h3{font-size:15px}
+}
