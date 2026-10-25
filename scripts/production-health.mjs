@@ -14,13 +14,13 @@ for(let attempt=1;attempt<=24;attempt++){
  try{
   const [healthResponse,swResponse,privacyResponse,deletionResponse,editorResponse,refreshResponse,entryResponse]=await Promise.all([
    get('/health'),get('/sw.js'),get('/privacy.html'),get('/delete-account.html'),
-   get('/professor-v2.js?v=88'),get('/refresh.html'),get('/index.html')
+   get('/professor-v2.js?v=89'),get('/refresh.html'),get('/index.html')
   ]);
   const h=await healthResponse.json(),sw=await swResponse.text();
   const [editor,refreshPage,entry]=await Promise.all([editorResponse.text(),refreshResponse.text(),entryResponse.text()]);
   if(!editor.includes('prof-student-family-panel')||!editor.includes('pv2GuardianPhone')||
      !editor.includes('/api/family/contacts'))throw new Error('Render is serving a stale student editor without parent WhatsApp');
-  if(!entry.includes('/professor-v2.js?v=88')||!entry.includes('/professor-v2.css?v=50'))throw new Error('Render HTML is serving stale professor assets');
+  if(!entry.includes('/professor-v2.js?v=89')||!entry.includes('/professor-v2.css?v=50'))throw new Error('Render HTML is serving stale professor assets');
   if(!refreshPage.includes('تحديث واجهة نتائجي')||!refreshPage.includes('refresh_ui='))throw new Error('Safe refresh page not deployed');
   if(h.ok!==true||h.storage!=='postgres'||h.databaseOk!==true)throw new Error('Durable PostgreSQL service unavailable');
   if(h.emailConfigured!==true||h.superAdminConfigured!==true)throw new Error('Mail or owner configuration unavailable');
