@@ -1158,7 +1158,7 @@ const studentVisionRate=rateLimit('student-vision',20,60*60*1000);
 app.post('/api/student-document/recognize',auth,studentVisionRate,express.json({limit:'3mb'}),async(req,res)=>{
  // Student list images are sent only to the configured Gemini service.
  if(visionProvider()!=='Gemini')return res.status(503).json({error:'vision_unconfigured'});
- try{res.json(await recognizeStudentDocument(req.body?.image))}catch(err){res.status(err.status||502).json({error:err.status?err.message:'vision_unavailable'})}
+ try{res.json(await recognizeStudentDocument(req.body?.image,{mode:req.body?.mode==='details'?'details':'names'}))}catch(err){res.status(err.status||502).json({error:err.status?err.message:'vision_unavailable'})}
 });
 // No destructive move: copy only pupil identities. Source pupils and marks remain intact.
 app.post('/api/pupils/copy',auth,async(req,res)=>{

@@ -41,3 +41,20 @@ test('unavailable default Gemini model retries once with compatible Flash',async
  let calls=0;const names=[{text:'محمد محمدن',uncertain:false}];
  const result=await recognizeStudentDocument(image,{env:{GEMINI_API_KEY:'test'},fetchImpl:async url=>{calls++;if(calls===1)return {ok:false,status:404};assert.match(url,/gemini-2.5-flash:generateContent$/);return {ok:true,json:async()=>({candidates:[{finishReason:'STOP',content:{parts:[{text:JSON.stringify({names})}]}}]})}}});assert.equal(calls,2);assert.deepEqual(result.names,names);
 });
+
+test('detail OCR keeps a guardian phone tied to the correct original student row',async()=>{
+ const students=[
+  {text:'محمد محمود',uncertain:false,phone:'+222 34123456',nns:'123456',sex:'male',birthDate:'2017-02-04'},
+  {text:'مريم محمد',uncertain:true,phone:'',nns:'',sex:'female',birthDate:''}
+ ];
+ const got=await recognizeStudentDocument(image,{env:{GEMINI_API_KEY:'test'},mode:'details',fetchImpl:async(_url,options)=>{
+  const req=JSON.parse(options.body);
+  assert.deepEqual(req.generationConfig.responseSchema.required,['students']);
+  assert.match(req.systemInstruction.parts[0].text,/SAME ROW/);
+  return {ok:true,json:async()=>({candidates:[{finishReason:'STOP',content:{parts:[{text:JSON.stringify({students})}]}}]})};
+ }});
+ assert.deepEqual(got.students,students)
+});
+test('structured OCR rejects malformed guardian fields rather than guessing',async()=>{
+ await assert.rejects(recognizeStudentDocument(image,{env:{GEMINI_API_KEY:'test'},mode:'details',fetchImpl:async()=>({ok:true,json:async()=>({candidates:[{finishReason:'STOP',content:{parts:[{text:JSON.stringify({students:[{text:'محمد',uncertain:false,phone:999,nns:'',sex:'',birthDate:''}]})}]}}]})})}),/vision_invalid_result/)
+});

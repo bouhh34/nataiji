@@ -899,14 +899,38 @@ function nextProfessorCallNumber(cls){
 }
 function importStudents(classId){
  const cls=classById(classId),link=linkFor(classId);if(!cls||(link&&link.role!=='owner'))return;
+ let pendingContacts=null;
  window.nataijiStudentImport.open({toAr:profNameAr,toFr:profNameFr,onSave:async rows=>{
   if(currentView!=='class:'+classId)throw Error(tr('أعد فتح القسم','Rouvrez la classe'));
-  const snapshot=structuredClone(profile),known=new Set(cls.students.map(s=>String(s.name).trim().normalize('NFKC').toLowerCase())),fresh=[];
-  for(const row of rows){const key=row.name.normalize('NFKC').toLowerCase();if(known.has(key))continue;known.add(key);fresh.push(row)}
-  if(!fresh.length)throw Error(tr('الأسماء موجودة بالفعل في القسم','Ces noms existent déjà dans la classe'));
-  if(cls.students.length+fresh.length>800)throw Error(tr('الحد الأقصى للقسم 800 تلميذ','Maximum 800 élèves par classe'));
-  for(const row of fresh){const callNumber=nextProfessorCallNumber(cls);cls.students.push({id:uid(),...row,nns:'',sex:'',birthDate:'',callNumber})}
-  try{await saveProfile(tr('تم استيراد التلاميذ','Élèves importés'));openClass(classId)}catch(err){profile=normalize(snapshot);throw err}
+  if(pendingContacts===null){
+   const snapshot=structuredClone(profile),known=new Set(cls.students.map(s=>String(s.name).trim().normalize('NFKC').toLowerCase())),usedNns=new Set(cls.students.map(s=>String(s.nns||'').trim()).filter(Boolean)),fresh=[];
+   for(const row of rows){
+    const key=row.name.normalize('NFKC').toLowerCase();if(known.has(key))continue;
+    const nns=String(row.nns||'').trim();
+    if(nns&&usedNns.has(nns))throw Error(tr('هناك رقم مدرسي مكرر؛ راجعه قبل الاستيراد','Un identifiant scolaire est déjà utilisé. Vérifiez les données.'));
+    if(nns)usedNns.add(nns);known.add(key);fresh.push(row)
+   }
+   if(!fresh.length)throw Error(tr('الأسماء موجودة بالفعل في القسم','Ces noms existent déjà dans la classe'));
+   if(cls.students.length+fresh.length>800)throw Error(tr('الحد الأقصى للقسم 800 تلميذ','Maximum 800 élèves par classe'));
+   const contacts=[];
+   for(const row of fresh){
+    const callNumber=nextProfessorCallNumber(cls),student={id:uid(),name:row.name,nameFr:row.nameFr,nns:String(row.nns||'').trim(),sex:row.sex||'',birthDate:row.birthDate||'',callNumber};
+    cls.students.push(student);
+    if(row.phone&&row.guardianConsent)contacts.push({studentKey:student.id,phone:row.phone});
+   }
+   try{await saveProfile(tr('تم استيراد التلاميذ','Élèves importés'))}
+   catch(err){profile=normalize(snapshot);throw err}
+   pendingContacts=contacts;
+  }
+  // Retry only unsaved guardian contacts; never duplicate students after a partial failure.
+  const failed=[];
+  for(const contact of pendingContacts){
+   try{await api('/api/family/contacts',{method:'PUT',body:JSON.stringify({classId,studentKey:contact.studentKey,phone:contact.phone,consent:true})})}
+   catch{failed.push(contact)}
+  }
+  pendingContacts=failed;
+  if(failed.length)throw Error(tr('تم حفظ التلاميذ، لكن تعذر حفظ '+failed.length+' رقم ولي أمر. اضغط حفظ مجددًا لإعادة المحاولة دون تكرار التلاميذ.','Élèves enregistrés, mais '+failed.length+' contact(s) parent non enregistrés. Réessayez sans créer de doublons.'));
+  openClass(classId)
  }});
 }
 function addStudent(classId,onDone){return studentEditor(classId,'',onDone)}
