@@ -7,7 +7,7 @@ const lang=()=>localStorage.getItem('nataiji-lang')==='fr';
 const tr=(ar,fr)=>lang()?fr:ar;
 const esc=v=>String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const owner=()=>{try{return String(currentUser?.id||currentUser?.userId||'device')}catch{return 'device'}};
-const uid=()=>typeof crypto?.randomUUID==='function'?crypto.randomUUID():'local-'+Date.now()+'-'+Math.floor(Math.random()*1e7);
+const uid=()=>typeof crypto!=='undefined'&&typeof crypto.randomUUID==='function'?crypto.randomUUID():'local-'+Date.now()+'-'+Math.floor(Math.random()*1e7);
 function transact(store,mode,createRequest){
  return new Promise((resolve,reject)=>{
   if(!('indexedDB' in window)){reject(Error('offline_storage_unavailable'));return}
@@ -109,7 +109,7 @@ async function render(body){
   catch(err){status.textContent=normalizeError(err);btn.disabled=false}
  });
  body.querySelector('[data-note-cancel]').onclick=()=>render(body);
- body.addEventListener('click',async e=>{
+ body.onclick=async e=>{
   const btn=e.target.closest('[data-doc-open],[data-doc-download],[data-doc-delete],[data-note-view],[data-note-edit],[data-note-delete]');
   if(!btn||!body.contains(btn))return;
   const action=['doc-open','doc-download','doc-delete','note-view','note-edit','note-delete'].find(k=>btn.hasAttribute('data-'+k)),id=btn.getAttribute('data-'+action);
@@ -141,7 +141,7 @@ async function render(body){
    panel.querySelector('[data-close-preview]').onclick=()=>panel.remove();
    body.querySelector('.kou-offline-warning').before(panel);panel.scrollIntoView({block:'nearest'})
   }
- },{once:false});
+ };
 }
 window.nataijiOfflineLibrary={render};
 })();
