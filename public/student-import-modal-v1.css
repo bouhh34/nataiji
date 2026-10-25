@@ -204,6 +204,16 @@
     background:#fbfdfc!important;border-radius:10px!important;
     min-width:0;
   }
+  html .nataiji-student-import-modal .nti-review-list select,
+  html .nataiji-student-import-modal .nti-review-list input[type=date],
+  html .nataiji-student-import-modal .nti-review-list input[type=tel] {
+    display:block;width:100%;min-height:40px;box-sizing:border-box;
+    border:1px solid #d4e4e0;border-radius:10px;background:#fbfdfc;
+    color:#24475b;padding:9px 10px;font-size:12.5px;
+  }
+  html .nataiji-student-import-modal .nti-review-list [data-row] small {
+    color:#5e7978;line-height:1.55;
+  }
   html .nataiji-student-import-modal .nti-review-list input[type=checkbox] {
     flex:none;width:18px!important;height:18px!important;
     padding:0!important;margin:0 0 0 6px!important;
