@@ -11,3 +11,14 @@ test('same-name pupils remain distinct and incomplete or oversized imports are r
  assert.throws(()=>importedPupilRows([{name:'محمد'}],[]),/invalid_import/);
  assert.throws(()=>importedPupilRows([{name:'محمد',nameFr:'Mohamed'}],Array(800).fill([])),/class_capacity/);
 });
+
+test('photo roster preserves optional NNS, sex and birth date without reassigning pupils',()=>{
+ const rows=importedPupilRows([
+  {name:'محمد',nameFr:'Mohamed',nns:'N-25',sex:'male',birthDate:'2016-10-25'},
+  {name:'مريم',nameFr:'Mariem',sex:'female'}
+ ],[]);
+ assert.deepEqual(rows[0].slice(0,6),['N-25','محمد','ذكر','2016-10-25','Mohamed',1]);
+ assert.equal(rows[1][2],'أنثى');
+ assert.throws(()=>importedPupilRows([{name:'محمد',nameFr:'Mohamed',nns:'OLD'}],[['OLD','سابق']]),/invalid_import/);
+ assert.throws(()=>importedPupilRows([{name:'محمد',nameFr:'Mohamed',birthDate:'2026-02-30'}],[]),/invalid_import/);
+});
