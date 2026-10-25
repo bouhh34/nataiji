@@ -127,6 +127,8 @@ assert('student editor provides native UI refresh control distinct from data syn
   /location\.assign\('\/refresh\.html'\)/.test(read('public/professor-v2.js')));
 assert('safe refresh page verifies guardian editor and preserves durable/local drafts',
   /pv2GuardianPhone/.test(safeRefreshPage) &&
+  /location\.replace\('\/live-students\?refresh_ui='\+token\)/.test(safeRefreshPage) &&
+  !/live-students/.test(sw) &&
   /serviceWorker\.getRegistration/.test(safeRefreshPage) &&
   /nataiji-shell-/.test(safeRefreshPage) &&
   !/localStorage\.(?:clear|removeItem)/.test(safeRefreshPage) &&
