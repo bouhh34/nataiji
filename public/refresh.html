@@ -26,6 +26,7 @@
  <p class="details">لا تُمسح حساباتك أو بيانات التلاميذ أو الدرجات أو المسودات المحلية. يتم تجديد الملفات المؤقتة للتطبيق فقط. يجب توفر الإنترنت.</p>
  <button type="button" id="refresh">تحديث الواجهة الآن · Actualiser</button>
  <p id="message" role="status" aria-live="polite"></p>
+ <a href="/live-students">فتح النسخة الحديثة مباشرة · Ouvrir la version récente</a>
  <a href="/">العودة إلى نتائجي · Retour</a>
  <small>ملاحظة: افتح هذه الصفحة داخل نفس المتصفح أو التطبيق الذي تظهر فيه المشكلة. فتحها في Chrome لا يُحدّث ذاكرة تطبيق Android المثبّت إذا كان يستخدم مساحة تخزين مستقلة.</small>
 </main>
@@ -53,7 +54,9 @@
        const names=await caches.keys();
        await Promise.all(names.filter(x=>x.startsWith('nataiji-shell-')).map(x=>caches.delete(x)));
      }
-     location.replace('/?refresh_ui='+token);
+     // The PWA service worker caches the '/' navigation; this non-shell path always hits the network.
+     // Express serves the same fresh index.html for extensionless routes.
+     location.replace('/live-students?refresh_ui='+token);
    }catch(e){
      say(e&&e.message||'تعذّر تحديث الواجهة. راجع اتصال الإنترنت.',true);
      button.disabled=false;
