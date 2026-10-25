@@ -115,6 +115,6 @@ test('professor add-student action is a clear full-width mobile primary button, 
  assert.match(professor,/canManageRoster\?\x60/);
  assert.match(professor,/id="pv2AddStudent"/);
  assert.match(professor,/if\(canManageRoster\)\{q\('#pv2AddStudent',el\)\.onclick=/);
- assert.match(html,/professor-v2\.css\?v=49/);
- assert.match(sw,/professor-v2\.css\?v=49/);
+ assert.match(html,/professor-v2\.css\?v=50/);
+ assert.match(sw,/professor-v2\.css\?v=50/);
 });
