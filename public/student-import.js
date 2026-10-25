@@ -15,10 +15,10 @@ async function extract(file,progress,cancelled,language='both',cloud=false){
  if(file.size>20*1024*1024)throw Error('الحد الأقصى 20 MB / Maximum 20 Mo');
  if(!(/\.(pdf|png|jpe?g|webp|bmp)$/i.test(file.name)||/^image\/(png|jpeg|webp|bmp)$/.test(file.type)))throw Error('اختر PDF أو صورة JPG/PNG / Choisissez un PDF ou une image JPG/PNG');
  if(extracting)throw Error('القراءة قيد التنفيذ / Lecture en cours');extracting=true;
- let worker,doc,pendingWorker,timer,failed=false;const output=[],confidences=[];clearTimeout(idleTimer);
+ let worker,doc,pendingWorker,timer,failed=false;const output=[],confidences=[],students=[];clearTimeout(idleTimer);
  const stages={'loading tesseract core':'تحميل قارئ الصور / Chargement du lecteur','initializing tesseract':'تهيئة قارئ الصور / Initialisation','loading language traineddata':'تحميل لغة اللائحة لأول مرة / Chargement de la langue','initializing api':'تجهيز القراءة / Préparation','recognizing text':'استخراج الأسماء / Lecture des noms'};
  const timed=promise=>Promise.race([promise,new Promise((_,reject)=>{timer=setTimeout(()=>reject(Error('انتهت مهلة القراءة؛ جرّب صورة أصغر / Délai dépassé : essayez une image plus petite')),180000)})]).finally(()=>clearTimeout(timer));
- const ocr=async image=>{if(cloud){progress('قراءة الصورة بالذكاء الاصطناعي / Lecture de l’image');const response=await fetch('/api/student-document/recognize',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({image:image.toDataURL('image/jpeg',.85)}),signal:AbortSignal.timeout(65000)});const result=await response.json();if(!response.ok)throw Error(result.error==='vision_model_unavailable'?'نموذج Gemini غير متاح لهذا المشروع / Modèle Gemini indisponible':result.error==='vision_request_invalid'?'رفض Gemini صيغة الطلب (400) / Requête Gemini refusée (400)':result.error==='vision_incomplete'?'لم تكتمل القراءة؛ جرّب صورة مقتصة حول الأسماء / Lecture incomplète, recadrez les noms':result.error==='vision_invalid_result'?'تعذر تحليل الأسماء المستخرجة / Réponse illisible':result.error==='vision_unconfigured'?'القراءة الذكية غير مفعلة / Lecture intelligente non activée':result.error==='vision_quota'?'رصيد API غير كافٍ أو بلغ حد الاستخدام؛ راجع حصة Gemini أو رصيد مزود القراءة / Vérifiez le quota Gemini ou les crédits du fournisseur':result.error==='vision_invalid_key'?'مفتاح API غير صالح؛ راجعه في Render / Clé API invalide':result.error==='vision_access_denied'?'المفتاح لا يملك صلاحية القراءة / Accès API refusé':result.error==='vision_busy'?'الخدمة مشغولة، أعد المحاولة / Service occupé, réessayez':'تعذر الوصول إلى خدمة القراءة الذكية / Service de lecture indisponible');confidences.push(result.names.some(n=>n.uncertain)?0:80);return result.names.map(n=>n.text).join('\n')}if(cancelled())throw Error('cancelled');progress('تجهيز القراءة / Préparation de la lecture');await loadEngine();workerProgress=m=>{if(!cancelled())progress(`${stages[m.status]||m.status} ${Math.round((m.progress||0)*100)}%`)};if(!worker){if(cachedWorker&&cachedLanguage!==language){await cachedWorker.terminate();cachedWorker=null}if(cachedWorker)worker=cachedWorker;else{pendingWorker=Tesseract.createWorker(language==='both'?['ara','fra']:language,1,{workerPath:base+'worker.min.js',corePath:base+'core',langPath:base.slice(0,-1),logger:m=>workerProgress(m)},{load_system_dawg:'0',load_freq_dawg:'0'});worker=await timed(pendingWorker);cachedWorker=worker;cachedLanguage=language}await worker.setParameters({tessedit_pageseg_mode:'11',preserve_interword_spaces:'1'})}if(cancelled())throw Error('cancelled');progress('استخراج الأسماء / Lecture des noms');const {data}=await timed(worker.recognize(image,{}, {text:true,tsv:true}));confidences.push(Number.isFinite(data.confidence)?data.confidence:0);return ocrLines(data)};
+ const ocr=async image=>{if(cloud){progress('قراءة الصورة بالذكاء الاصطناعي / Lecture de l’image');const response=await fetch('/api/student-document/recognize',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({image:image.toDataURL('image/jpeg',.85),mode:'details'}),signal:AbortSignal.timeout(65000)});const result=await response.json();if(!response.ok)throw Error(result.error==='vision_model_unavailable'?'نموذج Gemini غير متاح لهذا المشروع / Modèle Gemini indisponible':result.error==='vision_request_invalid'?'رفض Gemini صيغة الطلب (400) / Requête Gemini refusée (400)':result.error==='vision_incomplete'?'لم تكتمل القراءة؛ جرّب صورة مقتصة حول الأسماء / Lecture incomplète, recadrez les noms':result.error==='vision_invalid_result'?'تعذر تحليل الأسماء المستخرجة / Réponse illisible':result.error==='vision_unconfigured'?'القراءة الذكية غير مفعلة / Lecture intelligente non activée':result.error==='vision_quota'?'رصيد API غير كافٍ أو بلغ حد الاستخدام؛ راجع حصة Gemini أو رصيد مزود القراءة / Vérifiez le quota Gemini ou les crédits du fournisseur':result.error==='vision_invalid_key'?'مفتاح API غير صالح؛ راجعه في Render / Clé API invalide':result.error==='vision_access_denied'?'المفتاح لا يملك صلاحية القراءة / Accès API refusé':result.error==='vision_busy'?'الخدمة مشغولة، أعد المحاولة / Service occupé, réessayez':'تعذر الوصول إلى خدمة القراءة الذكية / Service de lecture indisponible');const found=Array.isArray(result.students)?result.students:(result.names||[]).map(n=>({...n,phone:'',nns:'',sex:'',birthDate:''}));students.push(...found);confidences.push(found.some(n=>n.uncertain)?0:80);return found.map(n=>n.text).join('\n')}if(cancelled())throw Error('cancelled');progress('تجهيز القراءة / Préparation de la lecture');await loadEngine();workerProgress=m=>{if(!cancelled())progress(`${stages[m.status]||m.status} ${Math.round((m.progress||0)*100)}%`)};if(!worker){if(cachedWorker&&cachedLanguage!==language){await cachedWorker.terminate();cachedWorker=null}if(cachedWorker)worker=cachedWorker;else{pendingWorker=Tesseract.createWorker(language==='both'?['ara','fra']:language,1,{workerPath:base+'worker.min.js',corePath:base+'core',langPath:base.slice(0,-1),logger:m=>workerProgress(m)},{load_system_dawg:'0',load_freq_dawg:'0'});worker=await timed(pendingWorker);cachedWorker=worker;cachedLanguage=language}await worker.setParameters({tessedit_pageseg_mode:'11',preserve_interword_spaces:'1'})}if(cancelled())throw Error('cancelled');progress('استخراج الأسماء / Lecture des noms');const {data}=await timed(worker.recognize(image,{}, {text:true,tsv:true}));confidences.push(Number.isFinite(data.confidence)?data.confidence:0);return ocrLines(data)};
  const photo=async()=>{const url=URL.createObjectURL(file),img=new Image();try{await new Promise((resolve,reject)=>{img.onload=resolve;img.onerror=()=>reject(Error('تعذر فتح الصورة / Image illisible'));img.src=url});const scale=Math.min(1,2200/Math.max(img.naturalWidth,img.naturalHeight)),canvas=document.createElement('canvas');canvas.width=Math.round(img.naturalWidth*scale);canvas.height=Math.round(img.naturalHeight*scale);const context=canvas.getContext('2d');context.fillStyle='#fff';context.fillRect(0,0,canvas.width,canvas.height);context.drawImage(img,0,0,canvas.width,canvas.height);try{return await ocr(canvas)}finally{canvas.width=canvas.height=0}}finally{URL.revokeObjectURL(url)}};
  try{if(file.type==='application/pdf'||/\.pdf$/i.test(file.name)){
  const pdf=await import(base+'pdf.mjs');pdf.GlobalWorkerOptions.workerSrc=base+'pdf.worker.mjs';doc=await pdf.getDocument({data:new Uint8Array(await file.arrayBuffer()),cMapUrl:base+'cmaps/',cMapPacked:true,standardFontDataUrl:base+'standard_fonts/'}).promise;
@@ -30,7 +30,7 @@ async function extract(file,progress,cancelled,language='both',cloud=false){
  canvas.width=Math.ceil(view.width);canvas.height=Math.ceil(view.height);
  try{await page.render({canvasContext:canvas.getContext('2d'),viewport:view}).promise;output.push(await ocr(canvas))}
  finally{canvas.width=canvas.height=0;page.cleanup()}}
- }else output.push(await photo());return {text:output.join('\n'),confidence:confidences.length?Math.min(...confidences):100};
+ }else output.push(await photo());return {text:output.join('\n'),confidence:confidences.length?Math.min(...confidences):100,students};
  }catch(err){failed=true;throw err}finally{extracting=false;clearTimeout(timer);workerProgress=()=>{};if(failed||cancelled()){if(worker){if(cachedWorker===worker)cachedWorker=null;await worker.terminate()}else pendingWorker?.then(w=>w.terminate()).catch(()=>{})}else if(worker){idleTimer=setTimeout(()=>{const old=cachedWorker;cachedWorker=null;old?.terminate().catch(()=>{})},120000)}await doc?.destroy()}
 }
 window.nataijiStudentImport={parse,open({toAr,toFr,onSave}){
@@ -67,7 +67,7 @@ window.nataijiStudentImport={parse,open({toAr,toFr,onSave}){
      <strong>${t('جاهز لاستخراج الأسماء','Prêt à extraire les noms')}</strong>
      <p class="nti-reading-hint">${t('يدعم الصور واللوائح المكتوبة بخط اليد أو المطبوعة.','Pour les listes manuscrites ou imprimées.')}</p>
      <p data-smart-disclosure class="nti-smart-disclosure"></p>
-     <button type="button" data-read-smart class="nti-smart-choice">${t('✨ استخراج الأسماء بالذكاء الاصطناعي','✨ Extraire les noms avec Gemini')}</button>
+     <button type="button" data-read-smart class="nti-smart-choice">${t('✨ استخراج الأسماء والبيانات وأرقام أولياء الأمور','✨ Extraire les noms, informations et téléphones avec Gemini')}</button>
    </div>
    <p data-status class="nti-status" role="status" aria-live="polite"></p>
    <label class="nti-text-field"><strong>${t('الأسماء المستخرجة (اسم في كل سطر)','Noms extraits (un nom par ligne)')}</strong><textarea data-text rows="5" dir="auto" placeholder="${t('ستظهر الأسماء هنا، ويمكنك تعديلها أو لصقها يدويًا','Les noms apparaîtront ici. Vous pouvez les corriger ou les coller.')}"></textarea></label>
@@ -76,7 +76,7 @@ window.nataijiStudentImport={parse,open({toAr,toFr,onSave}){
    <button type="button" class="primary nti-save-button" data-save hidden>${t('حفظ التلاميذ في القسم','Enregistrer les élèves dans la classe')}</button>
  </div></div>`;
  document.body.append(wrap)
- const q=s=>wrap.querySelector(s),status=q('[data-status]'),review=q('[data-review]'),save=q('[data-save]');let cancelled=false,busy=false,saving=false,confidence=100;
+ const q=s=>wrap.querySelector(s),status=q('[data-status]'),review=q('[data-review]'),save=q('[data-save]');let cancelled=false,busy=false,saving=false,confidence=100,recognizedStudents=[];
  let cloud=false,pendingFile=null,choiceGeneration=0;
  const capabilities=fetch('/api/student-document/status')
   .then(r=>r.ok?r.json():{})
@@ -85,8 +85,8 @@ window.nataijiStudentImport={parse,open({toAr,toFr,onSave}){
  // This information is displayed before the user chooses smart OCR.
  function explainSmartReading(){
    q('[data-smart-disclosure]').textContent=t(
-     'بالضغط على زر الاستخراج، توافق على إرسال صورة اللائحة إلى Gemini لتحليلها. راجع الأسماء وصححها قبل الحفظ.',
-     'En appuyant sur Extraire, vous acceptez l’envoi de l’image à Gemini pour analyse. Vérifiez et corrigez les noms avant de les enregistrer.'
+     'بالضغط على استخراج، توافق على إرسال بيانات التلاميذ وأوليائهم في الصورة إلى Gemini لتحليلها. راجع كل رقم، ولا تُفعّل مراسلات واتساب دون موافقة ولي الأمر.',
+     'En cliquant sur Extraire, vous acceptez l’envoi à Gemini des données des élèves et parents visibles. Vérifiez chaque numéro; le consentement parental est requis.'
    );
  }
 
@@ -114,7 +114,7 @@ window.nataijiStudentImport={parse,open({toAr,toFr,onSave}){
     // Only the user's explicit smart-reading button authorizes cloud transfer.
     if(!cloud)throw Error(t('خدمة Gemini غير متاحة الآن. حاول مجددًا لاحقًا أو أدخل الأسماء يدويًا.','Gemini est indisponible. Réessayez plus tard ou saisissez les noms manuellement.'));
     const result=await extract(file,message=>{status.textContent=message},()=>cancelled,'both',true);
-    confidence=result.confidence;
+    confidence=result.confidence;recognizedStudents=result.students||[];
     q('[data-text]').value=result.text;
     if(!cancelled){
       status.textContent=t('راجع الأسماء المستخرجة قبل الحفظ.','Vérifiez les noms extraits avant l’enregistrement.');
@@ -134,7 +134,7 @@ window.nataijiStudentImport={parse,open({toAr,toFr,onSave}){
   if(!file||busy||cancelled)return;
   const generation=++choiceGeneration;
   pendingFile=file;
-  q('[data-text]').value='';
+  q('[data-text]').value='';recognizedStudents=[];
   q('[data-rows]').replaceChildren();
   setSaveVisible(false);setStep(1);
   const feedback=e.target.hasAttribute('data-camera')?q('[data-camera-feedback]'):q('[data-file-feedback]');
@@ -184,7 +184,14 @@ window.nataijiStudentImport={parse,open({toAr,toFr,onSave}){
  }
  review.onclick=()=>{
   const names=parse(q('[data-text]').value);if(names.length>800){status.textContent='الحد الأقصى 800 تلميذ / Maximum 800 élèves';return}
-  rowsContainer.innerHTML=names.map(raw=>{const arabic=/[\u0600-\u06ff]/u.test(raw),nameAr=arabic?raw:toAr(raw),nameFr=arabic?toFr(raw):raw;return `<div data-row data-ar-manual="${arabic}" data-fr-manual="${!arabic}" style="padding:10px;border-bottom:1px solid #ddd"><label><input type="checkbox" data-selected ${confidence>=65?'checked':''}> ${t('إضافة','Ajouter')}</label><label>${t('الاسم كما في الملف','Nom original')}<input data-source maxlength="160" dir="auto" value="${esc(raw)}"></label><div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:8px"><label>${t('الاسم بالعربية','Nom en arabe')}<input data-ar maxlength="160" dir="rtl" value="${esc(nameAr)}"></label><label>${t('الاسم بالفرنسية','Nom en français')}<input data-fr maxlength="160" dir="ltr" value="${esc(nameFr)}"></label></div><small data-hint role="status"></small><button type="button" data-regenerate>↻ ${t('تحديث الفرنسية من العربية','Actualiser depuis l’arabe')}</button></div>`}).join('');
+  const extracted=recognizedStudents.slice();
+  rowsContainer.innerHTML=names.map(raw=>{const found=extracted.findIndex(x=>String(x.text||'').trim()===raw),info=found>=0?extracted.splice(found,1)[0]:{};const arabic=/[\u0600-\u06ff]/u.test(raw),nameAr=arabic?raw:toAr(raw),nameFr=arabic?toFr(raw):raw;return `<div data-row data-ar-manual="${arabic}" data-fr-manual="${!arabic}" style="padding:10px;border-bottom:1px solid #ddd"><label><input type="checkbox" data-selected ${confidence>=65?'checked':''}> ${t('إضافة','Ajouter')}</label><label>${t('الاسم كما في الملف','Nom original')}<input data-source maxlength="160" dir="auto" value="${esc(raw)}"></label><div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:8px"><label>${t('الاسم بالعربية','Nom en arabe')}<input data-ar maxlength="160" dir="rtl" value="${esc(nameAr)}"></label><label>${t('الاسم بالفرنسية','Nom en français')}<input data-fr maxlength="160" dir="ltr" value="${esc(nameFr)}"></label></div><div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:8px">
+<label>${t('الرقم المدرسي NNS (اختياري)','NNS (facultatif)')}<input data-nns maxlength="80" dir="ltr" value="${esc(info.nns||'')}"></label>
+<label>${t('الجنس','Sexe')}<select data-sex><option value="">—</option><option value="male" ${/^(male|m|gar[cç]on|ذكر)$/i.test(info.sex||'')?'selected':''}>${t('ذكر','Garçon')}</option><option value="female" ${/^(female|f|fille|أنثى)$/i.test(info.sex||'')?'selected':''}>${t('أنثى','Fille')}</option></select></label>
+<label>${t('تاريخ الميلاد','Date de naissance')}<input data-birth type="date" value="${esc(/^[0-9]{4}-[0-9]{2}-[0-9]{2}$/.test(info.birthDate||'')?info.birthDate:'')}"></label>
+<label>${t('واتساب ولي الأمر','WhatsApp du parent')}<input data-phone type="tel" inputmode="tel" maxlength="30" autocomplete="off" dir="ltr" placeholder="+222 34 12 34 56" value="${esc(info.phone||'')}"></label></div>
+<label style="display:flex;align-items:center;gap:8px;margin:10px 0"><input type="checkbox" data-consent> ${t('أؤكد موافقة ولي الأمر على استقبال النتائج والتكريمات والمراسلات عبر واتساب.','Je confirme le consentement du parent pour les résultats, distinctions et messages WhatsApp.')}</label>
+<small>${t('تأكد من أن الرقم يخص ولي أمر هذا التلميذ. لا إرسال تلقائي.','Vérifiez le numéro de ce parent. Aucun envoi automatique.')}</small><small data-hint role="status"></small><button type="button" data-regenerate>↻ ${t('تحديث الفرنسية من العربية','Actualiser depuis l’arabe')}</button></div>`}).join('');
   rowsContainer.querySelectorAll('[data-row]').forEach(inspectRow);setSaveVisible(!!names.length);
   setStep(names.length?2:1);
   status.textContent=`${confidence<65?t('قراءة ضعيفة: راجع كل اسم قبل اختياره. ','Lecture incertaine : vérifiez chaque nom. '):''}${names.length} — ${t('راجع الاسمين بالعربية والفرنسية قبل الحفظ','Vérifiez les noms en arabe et en français avant l’enregistrement')}`
@@ -193,11 +200,13 @@ window.nataijiStudentImport={parse,open({toAr,toFr,onSave}){
  rowsContainer.addEventListener('click',e=>{const button=e.target.closest('[data-regenerate]');if(!button)return;const row=button.closest('[data-row]'),ar=row.querySelector('[data-ar]'),french=row.querySelector('[data-fr]');row.dataset.frManual='false';french.value=toFr(ar.value.trim());inspectRow(row)});
  q('[data-text]').oninput=()=>{
    ++choiceGeneration;pendingFile=null;q('[data-reading-choice]').hidden=true;
-   confidence=100;setSaveVisible(false);setStep(1);q('[data-rows]').replaceChildren()
+   confidence=100;recognizedStudents=[];setSaveVisible(false);setStep(1);q('[data-rows]').replaceChildren()
  };
  save.onclick=async()=>{
-  const rows=[...rowsContainer.querySelectorAll('[data-row]')].filter(r=>r.querySelector('[data-selected]').checked).map(r=>({name:r.querySelector('[data-ar]').value.trim(),nameFr:r.querySelector('[data-fr]').value.trim()}));
+  const rows=[...rowsContainer.querySelectorAll('[data-row]')].filter(r=>r.querySelector('[data-selected]').checked).map(r=>({name:r.querySelector('[data-ar]').value.trim(),nameFr:r.querySelector('[data-fr]').value.trim(),nns:r.querySelector('[data-nns]').value.trim(),sex:r.querySelector('[data-sex]').value,birthDate:r.querySelector('[data-birth]').value,phone:r.querySelector('[data-phone]').value.trim(),guardianConsent:r.querySelector('[data-consent]').checked}));
   if(!rows.length||rows.some(r=>!r.name||!r.nameFr)){status.textContent=t('أكمل الأسماء المحددة قبل الحفظ','Complétez les noms sélectionnés avant l’enregistrement');return}
+  const invalid=rows.find(r=>{const digits=r.phone.replace(/[^0-9]/g,'').replace(/^00/,'');return (r.phone&&(!r.guardianConsent||(!/^[0-9]{8}$/.test(digits)&&!/^222[0-9]{8}$/.test(digits))))||(!r.phone&&r.guardianConsent)});
+  if(invalid){status.textContent=t('راجع رقم واتساب ولي الأمر وأكد موافقته، أو امسح الرقم لاستيراد التلميذ فقط.','Vérifiez le numéro WhatsApp et le consentement du parent, ou effacez le numéro pour importer seulement l’élève.');return}
   setStep(3);
   saving=true;save.disabled=true;review.disabled=true;for(const input of wrap.querySelectorAll('input'))input.disabled=true;
   try{await onSave(rows);close() }catch(err){setStep(2);status.textContent=err.message||'تعذر الحفظ / Enregistrement impossible'}
