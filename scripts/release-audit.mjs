@@ -65,10 +65,10 @@ const studentShortcutCss=read('public/student-quick-import-v1.css');
 const studentImportModalJs=read('public/student-import.js');
 const studentImportModalCss=read('public/student-import-modal-v1.css');
 assert('teacher import modal visual layer is cached in Android and loaded on web',
-  /student-import-modal-v1\.css\?v=4/.test(index) &&
-  /student-import-modal-v1\.css\?v=4/.test(sw) &&
-  /student-import\.js\?v=14/.test(index) &&
-  /student-import\.js\?v=14/.test(sw));
+  /student-import-modal-v1\.css\?v=5/.test(index) &&
+  /student-import-modal-v1\.css\?v=5/.test(sw) &&
+  /student-import\.js\?v=15/.test(index) &&
+  /student-import\.js\?v=15/.test(sw));
 assert('student import modal preserves original parser, OCR and class save action',
   /window\.nataijiStudentImport=\{parse,open/.test(studentImportModalJs) &&
   /await onSave\(rows\)/.test(studentImportModalJs) &&
@@ -364,7 +364,7 @@ assert('student bulletin decision and signatures are easy to read', /official-bu
 assert('bulletin summary has more vertical space', /official-bulletin-summary>div\{min-height:14mm/.test(professorV2));
 assert('Arabic official header is balanced against French', /official-student-bulletin-doc \.official-ar\{font-size:11\.7pt/.test(professorV2) && /class-list-doc \.official-ar\{font-size:11\.5pt/.test(professorV2));
 assert('professor batch bulletin label says one student per A4', /كشوف التلاميذ الرسمية – طالب واحد لكل A4/.test(professorV2) && /Bulletins officiels – 1 élève par A4/.test(professorV2));
-assert('professor v2 cache-busted asset is current', /professor-v2\.js\?v=86/.test(index));
+assert('professor v2 cache-busted asset is current', /professor-v2\.js\?v=87/.test(index));
 assert('professor v2 stylesheet cache-busted asset is current', /professor-v2\.css\?v=49/.test(index));
 const ownerStaff = read('public/owner-staff-v1.js');
 assert('owner professor tools support official branches', /staffClassBranch/.test(ownerStaff) && /data-branch/.test(ownerStaff) && /subjectOptions\(catalog,level,branch\)/.test(ownerStaff));
