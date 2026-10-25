@@ -121,6 +121,17 @@ assert('student import menu is teacher-only and safe for print and no edit right
  /@media screen/.test(studentShortcutCss) &&
  !/@media print/.test(studentShortcutCss) &&
  /student-quick-import-ready/.test(studentShortcutCss));
+const safeRefreshPage=read('public/refresh.html');
+assert('student editor provides native UI refresh control distinct from data sync',
+  /profMoreAppUpdate/.test(read('public/professor-v2.js')) &&
+  /location\.assign\('\/refresh\.html'\)/.test(read('public/professor-v2.js')));
+assert('safe refresh page verifies guardian editor and preserves durable/local drafts',
+  /pv2GuardianPhone/.test(safeRefreshPage) &&
+  /serviceWorker\.getRegistration/.test(safeRefreshPage) &&
+  /nataiji-shell-/.test(safeRefreshPage) &&
+  !/localStorage\.(?:clear|removeItem)/.test(safeRefreshPage) &&
+  !/indexedDB\.(?:deleteDatabase)/.test(safeRefreshPage) &&
+  !/\/api\//.test(safeRefreshPage));
 assert('PWA cache version current', /nataiji-shell-v\d+/.test(sw));
 const commercialPlan = read('public/commercial-foundation-v1.js');
 assert('plan card script version is present in web and Android cache',
