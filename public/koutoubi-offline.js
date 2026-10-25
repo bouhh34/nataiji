@@ -132,14 +132,14 @@ async function render(body){
   const item=preps.find(x=>x.id===id);if(!item)return;
   if(action==='note-edit'){
    note.elements.id.value=item.id;note.elements.title.value=item.title;note.elements.className.value=item.className||'';note.elements.subject.value=item.subject||'';note.elements.objectives.value=item.objectives||'';note.elements.steps.value=item.steps;
-   note.querySelector('[data-note-cancel]').hidden=false;note.querySelector('button[type=submit]').textContent=tr('حفظ التعديلات','Enregistrer les modifications');note.scrollIntoView({block:'nearest'});return;
+   note.querySelector('[data-note-cancel]').hidden=false;note.querySelector('button[type=submit]').textContent=tr('حفظ التعديلات','Enregistrer les modifications');note.scrollIntoView?.({block:'nearest'});return;
   }
   if(action==='note-view'){
    const existing=body.querySelector('[data-note-preview]');existing?.remove();
    const panel=document.createElement('section');panel.className='kou-offline-preview';panel.setAttribute('data-note-preview','');
    panel.innerHTML='<h4>'+esc(item.title)+'</h4><p>'+esc([item.className,item.subject].filter(Boolean).join(' · '))+'</p><b>'+tr('الأهداف','Objectifs')+'</b><p class="kou-offline-pre">'+esc(item.objectives||'—')+'</p><b>'+tr('خطوات الدرس','Déroulement')+'</b><p class="kou-offline-pre">'+esc(item.steps)+'</p><button type="button" data-close-preview>'+tr('إغلاق','Fermer')+'</button>';
    panel.querySelector('[data-close-preview]').onclick=()=>panel.remove();
-   body.querySelector('.kou-offline-warning').before(panel);panel.scrollIntoView({block:'nearest'})
+   body.querySelector('.kou-offline-warning').before(panel);panel.scrollIntoView?.({block:'nearest'})
   }
  };
 }
