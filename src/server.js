@@ -1232,16 +1232,41 @@ app.post('/api/pupils/import',auth,async(req,res)=>{
  const st=await loadDurableSchoolStructure(req.user.schoolId),resolved=resolveTeacherMutationClass(req.user,st,String(req.body?.classId||'').trim());
  if(!resolved.ok)return res.status(req.user.role==='teacher'?403:400).json({error:resolved.error});
  const classId=resolved.classId;if(!st.classes?.some(c=>String(c.id)===classId))return res.status(400).json({error:'invalid_class'});
+ const input=req.body?.students;
+ if(!Array.isArray(input)||input.length===0||input.length>800)return res.status(400).json({error:'invalid_import'});
+ // An OCR guess cannot grant parental messaging permission: each selected phone
+ // must have been reviewed and explicitly consented to in the import form.
+ let guardians;
+ try{
+  guardians=input.map(row=>{
+   if(!row||typeof row!=='object'||Array.isArray(row))throw Error('invalid_import');
+   const hasPhone=String(row.phone||'').trim().length>0;
+   if(hasPhone&&row.guardianConsent!==true)throw Error('guardian_consent_required');
+   if(!hasPhone&&row.guardianConsent===true)throw Error('guardian_phone_required');
+   return hasPhone?parsePupilGuardian({phone:row.phone,consent:true}):undefined;
+  });
+ }catch(e){return res.status(400).json({error:e.message||'invalid_import'})}
  const client=await pool.connect();
  try{
   await client.query('BEGIN');
-  await client.query('SELECT pg_advisory_xact_lock(hashtext($1),hashtext($2))',[req.user.schoolId,'roster-import:'+classId]);
-  const prior=await client.query('SELECT data,position FROM nataiji_pupils WHERE school_id=$1 AND class_id=$2 ORDER BY position,updated_at',[req.user.schoolId,classId]);
-  const rows=importedPupilRows(req.body?.students,prior.rows.map(r=>r.data));let position=prior.rows.reduce((max,r)=>Math.max(max,Number(r.position)||0),-1)+1;
-  for(const row of rows){const key='auto-'+crypto.randomUUID();row[7]=key;await client.query('INSERT INTO nataiji_pupils(school_id,class_id,nns,data,position) VALUES($1,$2,$3,$4::jsonb,$5)',[req.user.schoolId,classId,key,JSON.stringify(row),position++])}
+  // Match the pupil edit/add lock so simultaneous imports and manual entry cannot
+  // assign the same pupil number or reuse an existing NNS.
+  await client.query('SELECT pg_advisory_xact_lock(hashtext($1))',[req.user.schoolId+':'+classId]);
+  const prior=await client.query('SELECT nns,data,position FROM nataiji_pupils WHERE school_id=$1 AND class_id=$2 ORDER BY position,updated_at',[req.user.schoolId,classId]);
+  const rows=importedPupilRows(input,prior.rows.map(r=>r.data));
+  const takenKeys=new Set(prior.rows.map(r=>String(r.nns||'')));
+  let position=prior.rows.reduce((max,r)=>Math.max(max,Number(r.position)||0),-1)+1;
+  for(let i=0;i<rows.length;i++){
+   const row=rows[i],key=row[0]||('auto-'+crypto.randomUUID());
+   if(takenKeys.has(key))throw Error('invalid_import');
+   takenKeys.add(key);row[7]=key;
+   await client.query('INSERT INTO nataiji_pupils(school_id,class_id,nns,data,position) VALUES($1,$2,$3,$4::jsonb,$5)',[req.user.schoolId,classId,key,JSON.stringify(row),position++]);
+   if(guardians[i])await savePupilGuardian(client,{schoolId:req.user.schoolId,classId,key,guardian:guardians[i]});
+  }
   await client.query('INSERT INTO nataiji_migrations(school_id,class_id,resource) VALUES($1,$2,$3) ON CONFLICT DO NOTHING',[req.user.schoolId,classId,'pupils']);
-  await client.query('COMMIT');return res.status(201).json({ok:true,classId,imported:rows.length});
- }catch(e){await client.query('ROLLBACK');if(['invalid_import','class_capacity'].includes(e.message))return res.status(400).json({error:e.message});throw e}finally{client.release()}
+  await client.query('COMMIT');
+  return res.status(201).json({ok:true,classId,imported:rows.length,contacts:guardians.filter(Boolean).length});
+ }catch(e){await client.query('ROLLBACK').catch(()=>{});if(['invalid_import','class_capacity'].includes(e.message))return res.status(400).json({error:e.message});throw e}finally{client.release()}
 });
 
 app.post('/api/pupils',auth,async(req,res)=>{if(!pool)return res.status(503).json({error:'durable_storage_required'});const st=await loadDurableSchoolStructure(req.user.schoolId),requestedClassId=String(req.body?.classId||'').trim(),resolved=resolveTeacherMutationClass(req.user,st,requestedClassId);if(!resolved.ok)return res.status(req.user.role==='teacher'?403:400).json({error:resolved.error});const classId=resolved.classId,pupil=Array.isArray(req.body?.pupil)?structuredClone(req.body.pupil):null;if(!classId||!st.classes?.some(x=>String(x.id)===classId)||!pupil||!String(pupil[1]||'').trim())return res.status(400).json({error:'invalid_pupil'});if(req.user.role!=='admin'&&!new Set(req.user.permissions||[]).has('pupils'))return res.status(403).json({error:'forbidden'});const guardian=parsePupilGuardian(req.body?.guardian);const displayNns=String(pupil[0]||'').trim(),storageKey=displayNns||('auto-'+crypto.randomUUID());pupil[0]=displayNns;pupil[7]=storageKey;const client=await pool.connect();try{await client.query('BEGIN');await client.query('SELECT pg_advisory_xact_lock(hashtext($1))',[req.user.schoolId+":"+classId]);if(Number.isInteger(Number(pupil[5]))&&Number(pupil[5])>0){const duplicate=await client.query("SELECT 1 FROM nataiji_pupils WHERE school_id=$1 AND class_id=$2 AND data->>5=$3 AND nns<>$4",[req.user.schoolId,classId,String(Number(pupil[5])),'']);if(duplicate.rowCount){await client.query('ROLLBACK');return res.status(409).json({error:'pupil_call_exists'})}}const pos=(await client.query('SELECT COALESCE(MAX(position),-1)+1 AS n FROM nataiji_pupils WHERE school_id=$1 AND class_id=$2',[req.user.schoolId,classId])).rows[0].n;await client.query('INSERT INTO nataiji_pupils(school_id,class_id,nns,data,position) VALUES($1,$2,$3,$4::jsonb,$5)',[req.user.schoolId,classId,storageKey,JSON.stringify(pupil),pos]);await client.query('INSERT INTO nataiji_migrations(school_id,class_id,resource) VALUES($1,$2,$3) ON CONFLICT DO NOTHING',[req.user.schoolId,classId,'pupils']);await savePupilGuardian(client,{schoolId:req.user.schoolId,classId,key:storageKey,guardian});await client.query('COMMIT')}catch(e){await client.query('ROLLBACK');if(e.code==='23505')return res.status(409).json({error:'pupil_exists'});throw e}finally{client.release()}const q=await pool.query('SELECT nns,data FROM nataiji_pupils WHERE school_id=$1 AND class_id=$2 ORDER BY position,updated_at',[req.user.schoolId,classId]);res.status(201).json({ok:true,classId,pupilKey:storageKey,pupils:pupilRows(q.rows)})});
