@@ -1,4 +1,4 @@
-const CACHE = "nataiji-shell-v203";
+const CACHE = "nataiji-shell-v204";
 const ASSETS = [
   "/teacher-touchups-v1.css?v=1",
   "/teacher-account-sheet-v1.css?v=1",
@@ -65,11 +65,11 @@ const ASSETS = [
   "/scoring-model-v2.js?v=8",
   "/annual-results-v1.js?v=23",
   "/final-grade-entry.js?v=12",
-  "/bilingual-data-editor-v1.js?v=27",
+  "/bilingual-data-editor-v1.js?v=28",
   "/official-bilingual-v1.js?v=14",
   "/class-report-layout-v2.js?v=10",
   "/two-students-a4-v1.js?v=18",
-  "/app-power-v1.js?v=14",
+  "/app-power-v1.js?v=15",
   "/student-mobile-cards-v1.js?v=3",
   "/pupil-roster-actions-v1.js?v=2",
   "/student-quick-import-v1.js?v=1",
@@ -127,10 +127,15 @@ self.addEventListener('fetch', event=>{
     const cached=await cachedPromise;
     if(!navigation&&cached) return cached; // Exact release URL: zero network bytes.
     if(navigation&&cached){
-      // Show the saved app shell immediately on poor mobile connections.
-      // A background revalidation refreshes the cache without delaying launch.
-      void network().catch(()=>{});
-      return cached;
+      // Prefer current HTML when online; bounded fallback keeps offline startup fast.
+      // Never clear user storage or force-reload a page containing unsaved work.
+      let timer;
+      try {
+        return await Promise.race([
+          network().then(r=>r.ok?r:cached).catch(()=>cached),
+          new Promise(resolve=>{timer=setTimeout(()=>resolve(cached),1500)})
+        ]);
+      } finally {clearTimeout(timer)}
     }
     try {return await network()}
     catch {

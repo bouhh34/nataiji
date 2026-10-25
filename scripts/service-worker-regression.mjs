@@ -77,3 +77,8 @@ test('all entrypoint scripts and styles are precached with their exact version',
  for(const [,url] of html.matchAll(/(?:src|href)="(\/[^"#]+)"/g))assert.ok(assets.includes(url),url);
  for(const url of assets)assert.ok(fs.existsSync(new URL('../public/'+(url==='/'?'index.html':url.slice(1).split('?')[0]),import.meta.url)),url);
 });
+
+test('online navigation prefers current HTML to an old cached editor',async()=>{
+ const f=fixture(async()=>new Response('current teacher editor'),()=>new Response('old teacher editor'));
+ assert.equal(await(await f.request('/','navigate')).text(),'current teacher editor');
+});
