@@ -675,6 +675,7 @@ function renderMore(){
    ${row('profMoreSubjects','books',tr('إدارة المواد والأقسام','Gestion des matières et classes'),tr('إضافة وإدارة المواد والأقسام','Ajouter et gérer les matières et les classes'))}
    ${row('profMoreJoin','link',tr('الانضمام برمز القسم','Rejoindre avec un code de classe'),tr('ربط أستاذ آخر بنفس القسم','Relier un autre professeur à la même classe'))}
    ${row('profMoreRefresh','refresh',tr('تحديث البيانات','Actualiser les données'),tr('تحميل أحدث نسخة محفوظة من الخادم','Charger la dernière version enregistrée sur le serveur'))}
+   ${row('profMoreAppUpdate','refresh',tr('تحديث نسخة التطبيق','Mettre à jour l’application'),tr('إصلاح الواجهة القديمة وتحميل أحدث الملفات دون حذف الدرجات','Actualiser l’interface sans effacer les notes'))}
    ${row('profMoreLang','language',tr('اللغة','Langue'),fr()?'العربية / Français':'العربية / Français')}
    ${row('profMoreShare','share',tr('مشاركة نتائجي','Partager Nataiji'),tr('شارك التطبيق مع زملائك عبر الهاتف أو الرابط','Partagez l’application avec vos collègues ou par lien'),'share')}
    ${row('profMorePrivacy','shield',tr('سياسة البرنامج','Politique de l’application'),tr('شروط الاستخدام وحماية البيانات','Conditions d’utilisation et protection des données'))}
@@ -693,6 +694,7 @@ function renderMore(){
  q('#profMoreSubjects',el).onclick=()=>{currentView='grades';renderGrades()};
  q('#profMoreJoin',el).onclick=openJoinClass;
  q('#profMoreRefresh',el).onclick=async()=>{const b=q('#profMoreRefresh',el);b.disabled=true;try{await flushGradeAutosave();await refreshProfile();toast(tr('تم التحديث','Actualisé'));renderMore()}finally{b.disabled=false}};
+ q('#profMoreAppUpdate',el).onclick=()=>{location.assign('/refresh.html')};
  q('#profMoreLang',el).onclick=async()=>{await flushGradeAutosave();toggleLanguage()};
  q('#profMoreShare',el).onclick=shareNataiji;
  q('#profMorePrivacy',el).onclick=openProfessorPrivacy;
