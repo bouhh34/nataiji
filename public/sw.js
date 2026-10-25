@@ -1,4 +1,4 @@
-const CACHE = "nataiji-shell-v202";
+const CACHE = "nataiji-shell-v203";
 const ASSETS = [
   "/teacher-touchups-v1.css?v=1",
   "/teacher-account-sheet-v1.css?v=1",
@@ -54,7 +54,7 @@ const ASSETS = [
   "/onboarding-v1.js?v=8",
   "/professor-v1.js?v=1",
   "/grade-journal.js?v=1",
-  "/professor-v2.js?v=88",
+  "/professor-v2.js?v=89",
   "/director-outbox-v1.js?v=1",
   "/director-timetables-v1.js?v=2",
   "/director-v1.js?v=15",
