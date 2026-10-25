@@ -12,10 +12,16 @@ async function get(path){
 let problem;
 for(let attempt=1;attempt<=24;attempt++){
  try{
-  const [healthResponse,swResponse,privacyResponse,deletionResponse]=await Promise.all([
-   get('/health'),get('/sw.js'),get('/privacy.html'),get('/delete-account.html')
+  const [healthResponse,swResponse,privacyResponse,deletionResponse,editorResponse,refreshResponse,entryResponse]=await Promise.all([
+   get('/health'),get('/sw.js'),get('/privacy.html'),get('/delete-account.html'),
+   get('/professor-v2.js?v=88'),get('/refresh.html'),get('/index.html')
   ]);
   const h=await healthResponse.json(),sw=await swResponse.text();
+  const [editor,refreshPage,entry]=await Promise.all([editorResponse.text(),refreshResponse.text(),entryResponse.text()]);
+  if(!editor.includes('prof-student-family-panel')||!editor.includes('pv2GuardianPhone')||
+     !editor.includes('/api/family/contacts'))throw new Error('Render is serving a stale student editor without parent WhatsApp');
+  if(!entry.includes('/professor-v2.js?v=88')||!entry.includes('/professor-v2.css?v=50'))throw new Error('Render HTML is serving stale professor assets');
+  if(!refreshPage.includes('تحديث واجهة نتائجي')||!refreshPage.includes('refresh_ui='))throw new Error('Safe refresh page not deployed');
   if(h.ok!==true||h.storage!=='postgres'||h.databaseOk!==true)throw new Error('Durable PostgreSQL service unavailable');
   if(h.emailConfigured!==true||h.superAdminConfigured!==true)throw new Error('Mail or owner configuration unavailable');
   if(!sw.includes(expectedCache))throw new Error('Render is still serving an earlier public release');
@@ -25,7 +31,7 @@ for(let attempt=1;attempt<=24;attempt++){
   if(!asset)throw new Error('Missing accessibility asset');
   const response=await fetch(base+asset,{headers:{'Accept-Encoding':'br'},cache:'no-store',signal:AbortSignal.timeout(15000)});
   if(!response.ok||response.headers.get('Content-Encoding')!=='br')throw new Error('Compressed static delivery unavailable');
-  console.log('Production release verified:',{release:expectedCache,storage:h.storage,databaseOk:h.databaseOk,compressed:true,privacy:true,deletion:true});
+  console.log('Production release verified:',{release:expectedCache,storage:h.storage,databaseOk:h.databaseOk,compressed:true,privacy:true,deletion:true,guardianEditor:true,refreshPage:true});
   process.exit(0);
  }catch(e){problem=e;console.log(`Deployment check ${attempt}/24: ${e.message}`)}
  if(attempt<24)await new Promise(resolve=>setTimeout(resolve,10000));
