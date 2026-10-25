@@ -96,7 +96,7 @@ test('clear explicit smart-reading click is the only gateway to Gemini image tra
 });
 test('French import explains Gemini transfer and has no local OCR button',async()=>{
  const x=await openWith('fr',true);
- assert.match(x.dialog.innerHTML,/Extraire les noms avec Gemini/);
+ assert.match(x.dialog.innerHTML,/Extraire les noms, informations et téléphones avec Gemini/);
  await x.select();
  assert.match(x.map.get('[data-smart-disclosure]').textContent,/l’image à Gemini/);
  assert.doesNotMatch(x.dialog.innerHTML,/data-read-local/);
@@ -142,4 +142,15 @@ test('responsive importer is scoped to the student modal in teacher and professo
  assert.ok(styles.includes('nti-upload-choice input[type=file]'));
  assert.ok(source.includes('class="nti-upload-copy"'));
  assert.ok(!styles.includes('@media print'));
+});
+
+test('image importer reviews additional student information and explicit guardian consent',()=>{
+ assert.match(source,/mode:'details'/);
+ assert.match(source,/data-nns/);
+ assert.match(source,/data-sex/);
+ assert.match(source,/data-birth/);
+ assert.match(source,/data-phone/);
+ assert.match(source,/data-consent/);
+ assert.match(source,/guardianConsent/);
+ assert.match(source,/recognizedStudents/);
 });
