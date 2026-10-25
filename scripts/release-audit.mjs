@@ -157,8 +157,8 @@ assert('new Play tester shell installs atomically and activates after complete p
   /nataiji-shell-v\d+/.test(sw));
 assert('native and web release check the newest SW URL on every start',
   /sw\.js\?v=4/.test(read('public/app-power-v1.js')) &&
-  /app-power-v1\.js\?v=14/.test(index) &&
-  /app-power-v1\.js\?v=14/.test(sw));
+  /app-power-v1\.js\?v=15/.test(index) &&
+  /app-power-v1\.js\?v=15/.test(sw));
 assert('teacher restores pre-redesign dashboard', !/teacher-visual-v3\.(?:css|js)/.test(index) && /teacher-touchups-v1\.css\?v=1/.test(index));
 assert('teacher visual polish is cached and never targets professor or print', /teacher-touchups-v1\.css\?v=1/.test(sw) && !/teacher-visual-v3\.(?:css|js)/.test(sw) && /html:not\(\.nataiji-professor-mode\)/.test(read('public/teacher-touchups-v1.css')) && /@media screen/.test(read('public/teacher-touchups-v1.css')) && !/@media print/.test(read('public/teacher-touchups-v1.css')));
 assert('PWA loads and caches school grade journal', /school-grade-journal\.js\?v=1/.test(index) && /school-grade-journal\.js\?v=1/.test(sw));
