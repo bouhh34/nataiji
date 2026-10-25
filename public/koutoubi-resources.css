@@ -1,1 +1,31 @@
 .koutoubi-modal .professor-modal-card{width:min(620px,calc(100vw - 24px));max-height:90dvh;overflow:auto}.koutoubi-modal header{position:sticky;top:0;background:#fff;z-index:1}.koutoubi-tabs{display:flex;gap:8px;margin:16px 0}.koutoubi-tabs button{flex:1;min-height:48px;white-space:normal}.koutoubi-years,.koutoubi-subjects{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}.koutoubi-years button,.koutoubi-link{min-height:48px;border:1px solid #d7e7e4;border-radius:12px;padding:12px;background:#f6fbf9;color:#11483f;font-weight:700;text-align:start;white-space:normal}.koutoubi-link{display:flex;align-items:center;justify-content:space-between;gap:10px;text-decoration:none}.koutoubi-link:focus-visible,.koutoubi-modal button:focus-visible{outline:3px solid #148f79;outline-offset:3px}.koutoubi-stage{margin:18px 0}.koutoubi-modal footer{margin-top:22px;border-top:1px solid #e0eae7;padding-top:16px}.koutoubi-modal h3{line-height:1.6}@media(max-width:380px){.koutoubi-subjects{grid-template-columns:1fr}.koutoubi-tabs{flex-direction:column}}
+
+
+/* Offline PDF library + editable lesson preparations; no large assets shipped */
+.koutoubi-modal .koutoubi-tabs{flex-wrap:wrap}
+.koutoubi-modal .koutoubi-tabs button{flex:1 1 140px}
+.koutoubi-modal .koutoubi-save-tip,.koutoubi-modal .kou-offline-hint{padding:12px 14px;border-radius:12px;background:#eff9f4;border:1px solid #cee8dc;line-height:1.7;color:#265d50}
+.koutoubi-modal [data-open-offline]{display:block;width:100%;margin:11px 0;min-height:44px;border-radius:12px;background:#0f856b;color:#fff;font-weight:800;border:0}
+.koutoubi-modal .kou-offline{display:grid;gap:11px;padding:4px 0}
+.koutoubi-modal .kou-offline>h3,.koutoubi-modal .kou-offline>h4{margin:8px 0 0;color:#173e4d}
+.koutoubi-modal .kou-offline-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(230px,1fr));gap:12px}
+.koutoubi-modal .kou-offline-box{border:1px solid #d6e6df;border-radius:15px;padding:13px;background:#f9fcfb;display:grid;gap:9px;align-content:start;min-width:0}
+.koutoubi-modal .kou-offline-box h4{margin:0;color:#165b50}
+.koutoubi-modal .kou-offline-box label{display:grid;gap:5px;min-width:0;font-size:12px;font-weight:750}
+.koutoubi-modal .kou-offline-box input,.koutoubi-modal .kou-offline-box select,.koutoubi-modal .kou-offline-box textarea{display:block;box-sizing:border-box;width:100%;padding:10px;border:1px solid #c8ddd8;border-radius:9px;background:#fff;color:#183949;font-size:14px}
+.koutoubi-modal .kou-offline-box textarea{min-height:70px;resize:vertical}
+.koutoubi-modal .kou-offline-box button{padding:10px;border-radius:9px;min-height:42px}
+.koutoubi-modal .kou-offline-box p[role=status]{margin:0;line-height:1.5;color:#207455;font-size:12px}
+.koutoubi-modal .kou-offline-status{font-weight:750;color:#136b59;margin:2px 0}
+.koutoubi-modal .kou-offline-list{display:grid;gap:8px}
+.koutoubi-modal .kou-offline-item{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:8px;padding:11px;border:1px solid #dde9e4;border-radius:12px;background:#fff}
+.koutoubi-modal .kou-offline-item>div:first-child{min-width:0;overflow-wrap:anywhere;flex:1 1 130px}
+.koutoubi-modal .kou-offline-item b,.koutoubi-modal .kou-offline-item small{display:block;line-height:1.55}
+.koutoubi-modal .kou-offline-item small{color:#6a7a7e;font-size:11px}
+.koutoubi-modal .kou-offline-actions{display:flex;gap:6px;flex-wrap:wrap}
+.koutoubi-modal .kou-offline-actions button,.koutoubi-modal .kou-offline-preview button{border:1px solid #c5ddd6;padding:8px 10px;min-height:36px;border-radius:9px;background:#f1faf6;color:#195c50;font-weight:700}
+.koutoubi-modal .kou-offline-actions button.kou-offline-danger{color:#a92f2f;background:#fff5f5;border-color:#f1cdcd}
+.koutoubi-modal .kou-offline-warning,.koutoubi-modal .kou-offline-empty{padding:10px;background:#f8fafc;color:#556c75;border:1px solid #e1e8ec;border-radius:9px;line-height:1.65;font-size:12px}
+.koutoubi-modal .kou-offline-preview{padding:14px;border-radius:13px;background:#f8fcf9;border:1px solid #d2e7de}
+.koutoubi-modal .kou-offline-pre{white-space:pre-wrap;overflow-wrap:anywhere;line-height:1.7}
+@media(max-width:480px){.koutoubi-modal .kou-offline-grid{grid-template-columns:minmax(0,1fr)}.koutoubi-modal .kou-offline-item{align-items:flex-start}}
