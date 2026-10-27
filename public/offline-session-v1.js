@@ -1,8 +1,8 @@
-/* 35-day offline reopening of a previously verified device workspace.
+/* 30-day offline reopening of a previously verified device workspace.
  * Never caches a cookie/password and never grants server access. */
 (function(global){
  'use strict';
- const KEY='nataiji-offline-session-v1', MAX_AGE=35*24*60*60*1000;
+ const KEY='nataiji-offline-session-v1', MAX_AGE=30*24*60*60*1000;
  function read(storage){
   try{
    const record=JSON.parse(storage.getItem(KEY)||'null');
