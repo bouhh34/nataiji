@@ -43,7 +43,7 @@ test('stale, invalid and suspended sessions never open offline',()=>{
  f.localStorage.setItem('nataiji-offline-school-scope-v1',JSON.stringify(['t','','']));
  f.cache.remember(user);
  const key='nataiji-offline-session-v1';
- const raw=JSON.parse(f.entries.get(key));raw.verifiedAt=Date.now()-36*24*60*60*1000;
+ const raw=JSON.parse(f.entries.get(key));raw.verifiedAt=Date.now()-31*24*60*60*1000;
  f.localStorage.setItem(key,JSON.stringify(raw));assert.equal(f.cache.read(),null);
  raw.verifiedAt=Date.now()+5*60*1000;f.localStorage.setItem(key,JSON.stringify(raw));assert.equal(f.cache.read(),null);
  raw.verifiedAt=Date.now();raw.user.suspended=true;f.localStorage.setItem(key,JSON.stringify(raw));assert.equal(f.cache.read(),null);
@@ -69,14 +69,14 @@ test('offline login routing never sends saved snapshots as server grade mutation
  assert.match(prof,/navigator\.onLine===false\|\|window\.__nataijiOfflineActive/);
 });
 
- test('offline workspace remains usable after a month without extending verification time',()=>{
+ test('offline workspace remains usable through day 29 without extending verification time',()=>{
  const f=fixture(), user={id:'month',role:'teacher'};
  f.localStorage.setItem('nataiji-active-user',user.id);
  f.localStorage.setItem('nataiji-data',JSON.stringify({pupils:[]}));
  f.localStorage.setItem('nataiji-offline-school-scope-v1',JSON.stringify([user.id,'','']));
  f.cache.remember(user);
  const key='nataiji-offline-session-v1', record=JSON.parse(f.entries.get(key));
- record.verifiedAt=Date.now()-31*24*60*60*1000;
+ record.verifiedAt=Date.now()-29*24*60*60*1000;
  f.localStorage.setItem(key,JSON.stringify(record));
  assert.equal(f.cache.read()?.user.id,user.id);
  assert.equal(JSON.parse(f.entries.get(key)).verifiedAt,record.verifiedAt);
@@ -95,3 +95,16 @@ test('offline login routing never sends saved snapshots as server grade mutation
  context.resetToken=()=> 'reset-token';calls.length=0;
  await context.resumeAtStartup();assert.deepEqual(calls,[['login']]);
  });
+
+test('offline verification expires after 30 days without deleting local work',()=>{
+ const f=fixture(),user={id:'expiry',role:'teacher'};
+ f.localStorage.setItem('nataiji-active-user',user.id);
+ f.localStorage.setItem('nataiji-data',JSON.stringify({pupils:[{id:'1',name:'Saved locally'}]}));
+ f.localStorage.setItem('nataiji-offline-school-scope-v1',JSON.stringify([user.id,'','']));
+ f.cache.remember(user);
+ const key='nataiji-offline-session-v1',record=JSON.parse(f.entries.get(key));
+ record.verifiedAt=Date.now()-30*24*60*60*1000-60_000;
+ f.localStorage.setItem(key,JSON.stringify(record));
+ assert.equal(f.cache.read(),null,'online verification is required after 30 days');
+ assert.ok(f.localStorage.getItem('nataiji-data').includes('Saved locally'),'never delete pending data on session expiry');
+});
