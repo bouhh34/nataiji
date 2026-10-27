@@ -3,7 +3,7 @@
 This branch is isolated from `main` and the Google Play testing build. No deployment or production data migration is authorized by this document.
 
 ## Existing behavior confirmed in source
-- `public/offline-session-v1.js` permits reopening a previously verified local workspace for up to **35 days**, provided the scoped cached profile is present. This already covers the requested 30-day window; **do not shorten it**.
+- `public/offline-session-v1.js` permits reopening a previously verified local workspace for up to **30 days**, provided the scoped cached profile is present. This branch sets the requested 30-day expiry; cached unsynced data must remain intact after expiry.
 - `public/sw.js` caches a web shell and avoids caching authenticated API responses.
 - `capacitor.config.ts` still points `server.url` to the remote Render website; the Android application cannot yet be considered fully standalone offline-first.
 - Grade drafts and reconnect checks exist, but do not demonstrate durable offline support for **all** create/edit/delete workflows.
@@ -24,7 +24,7 @@ This branch is isolated from `main` and the Google Play testing build. No deploy
 - Reconnect with interrupted/repeated requests; no duplicated pupil/grade; all queued changes eventually reconcile.
 - Two devices edit same grade concurrently; no silent overwrite; explain conflict.
 - Account switch, permission revocation, logout, app upgrade and storage quota failure; no cross-account leak.
-- Day 31/35+ policy test: expiry requires online verification but preserves unsynced local data.
+- Day 31+ policy test: expiry requires online verification but preserves unsynced local data.
 - Compare current Android release behavior against candidate on physical device and complete `npm run release:check`.
 
 ## Release hold
