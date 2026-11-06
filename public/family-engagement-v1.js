@@ -40,7 +40,8 @@
    if(!user?.id||!classes?.length){alert(t('أضف قسمًا وتلاميذ أولًا','Ajoutez une classe et des élèves'));return}
    const win=modal(t('التقييم والتكريم','Évaluation et récompenses'));
    const body=win.body;let contacts={},cachedClass='',history=[],outbox=[],contactsLoaded=false;
-   body.innerHTML=`<p class="family-hint">${t('أنشئ الشهادة وإعلان التميز معًا. يمكنك حفظ الشهادة دون رقم ولي الأمر، ثم إرسال الإعلان وملف الشهادة من شاشة واحدة عبر واتساب هاتفك.','Créez le certificat et son annonce ensemble, puis partagez-les depuis le même écran.')}</p>
+   body.innerHTML=`<button type="button" id="familyBatch" class="family-primary">${t('نتائج الأولياء · تجهيز دفعة','Résultats · Préparer un lot')}</button>
+    <p class="family-hint">${t('أنشئ الشهادة وإعلان التميز معًا. يمكنك حفظ الشهادة دون رقم ولي الأمر، ثم إرسال الإعلان وملف الشهادة من شاشة واحدة عبر واتساب هاتفك.','Créez le certificat et son annonce ensemble, puis partagez-les depuis le même écran.')}</p>
     <label>${t('القسم','Classe')}<select id="familyClass"></select></label>
     <label>${t('التلميذ','Élève')}<select id="familyStudent"></select></label>
     <fieldset class="family-kind"><legend>${t('نوع العملية','Type')}</legend>
@@ -99,6 +100,11 @@
      renderRoster();
    }
    $('#familyOpenOutbox',body).onclick=()=>openOutbox();
+   $('#familyBatch',body).onclick=()=>{
+     const cls=classes.find(c=>String(c.id)===classEl.value);
+     if(cls&&contactsLoaded)openResultsBatch(user,cls,contacts);
+     else syncMessage(t('انتظر تحميل أرقام الأولياء أولًا.','Attendez le chargement des contacts.'));
+   };
    async function changeClass(){
      cachedClass=classEl.value;const targetClass=cachedClass;
      contactsLoaded=false;contacts={};outbox=[];fillStudents();note(body,'');syncMessage('');
@@ -159,7 +165,7 @@
        const r=await request('/api/family/records');history=r.records||[];
        const list=$('#familyHistory',body);if(!list)return;
        list.innerHTML=history.length?history.slice(0,12).map((x,i)=>`<article class="family-history-row"><span><b>${esc(x.student_name)}</b><small>${x.kind==='award'?t('شهادة تكريم','Certificat'):x.kind==='daily'?t('تقييم يومي','Évaluation'):t('إشعار نتائج','Résultats')} · ${esc(x.status)}</small></span>${(x.kind==='award'?`<button type="button" data-award-history="${i}">${t('الشهادة','Certificat')}</button>`:'')+(x.status==='private'?`<button type="button" data-ready-history="${i}">${t('إعداد الإرسال','Préparer l’envoi')}</button>`:'')}</article>`).join(''):`<p class="family-tiny">${t('لا توجد عمليات بعد','Aucune opération pour le moment')}</p>`;
-       $$('[data-award-history]',list).forEach(btn=>btn.onclick=()=>{const x=history[Number(btn.dataset.awardHistory)];void showAward({...x,actor_name:user.name,guardian_phone:contacts[x.student_key]?.phone||''})});
+       $$('[data-award-history]',list).forEach(btn=>btn.onclick=()=>{const x=history[Number(btn.dataset.awardHistory)];void showAward({...x,guardian_phone:contacts[x.student_key]?.phone||''})});
        $$('[data-ready-history]',list).forEach(btn=>btn.onclick=async()=>{
          const x=history[Number(btn.dataset.readyHistory)],ph=phoneNum(phone.value);
          if(x.class_id!==classEl.value||x.student_key!==studentEl.value){note(body,t('اختر التلميذ صاحب الشهادة أو التقييم أولًا.','Sélectionnez d’abord l’élève concerné.'));return}
@@ -489,15 +495,194 @@
    });
  };
 }
-  function formatMessage(rec){
-   const d=rec.data||{},name=rec.student_name,school=rec.school_name||'اسم المدرسة';
-   if(rec.kind==='award')return '🏆 إعلان التميز | '+school+'\nيسعدنا تكريم التلميذ/ة '+name+'\n'+(AWARDS[d.awardType]?.[0]||'شهادة تكريم')+(d.reason?'\nالسبب: '+d.reason:'')+'\nمع أطيب التهاني من المدرسة والمعلم أو الأستاذ.';
-   if(rec.kind==='daily')return '📚 '+school+'\nالتقرير اليومي للتلميذ/ة: '+name+'\nالتاريخ: '+(d.date||'')+'\nالحضور: '+pair(ATT,d.attendance)+'\nالتقييم: '+pair(RATE,d.assessment)+(d.note?'\nالملاحظة: '+d.note:'')+'\nمع تحيات المعلم أو الأستاذ.';
-   return '📄 '+school+'\nإشعار بنتائج التلميذ/ة: '+name+(d.term?'\nالفصل: '+d.term:'')+(d.note?'\n'+d.note:'')+'\nيمكنكم التواصل مع المؤسسة للاطلاع على الكشف المعتمد.';
+ function openResultsBatch(user,cls,contacts){
+   const {body}=modal(t('إرسال نتائج القسم','Résultats de la classe'));
+   const pupils=studentInfo(cls.students||[]).map(student=>({
+     student, contact:contacts[student.id]
+   }));
+   body.innerHTML=`<p class="family-hint"><strong>${esc(cls.name)}</strong> · ${t('حدّد التلاميذ وجهّز الرسائل الخاصة دفعة واحدة. تؤكد الإرسال داخل واتساب.','Sélectionnez les élèves et préparez le lot. Validez chaque envoi dans WhatsApp.')}</p>
+     <label>${t('الفصل الدراسي','Trimestre')}<input id="familyBatchTerm" maxlength="100" required></label>
+     <details class="family-roster"><summary>${t('إعلان عام للمجموعة','Annonce pour le groupe')}</summary>
+       <button type="button" class="family-secondary" id="familyBatchAnnouncement">${t('نسخ إعلان مراجعة الإدارة','Copier l’annonce de retrait à la direction')}</button>
+     </details>
+     <div class="family-actions">
+       <button type="button" class="family-secondary" id="familyBatchAll">${t('تحديد المتاحين','Tout sélectionner')}</button>
+       <button type="button" class="family-secondary" id="familyBatchClear">${t('إلغاء التحديد','Effacer la sélection')}</button>
+     </div>
+     <div class="family-roster" id="familyBatchPupils"></div>
+     <p class="family-tiny" id="familyBatchCount" aria-live="polite"></p>
+     <button type="button" class="family-primary" id="familyBatchPrepare">${t('تجهيز الرسائل الخاصة','Préparer les messages privés')}</button>
+     <p class="family-message" role="status"></p>`;
+   const term=$('#familyBatchTerm',body),prepare=$('#familyBatchPrepare',body);
+   $('#familyBatchPupils',body).innerHTML=pupils.map(({student,contact},index)=>{
+     const ready=contact?.consent===true&&/^222[0-9]{8}$/.test(contact.phone);
+     return `<article class="family-queue-card">
+       <label class="family-checkbox"><input type="checkbox" data-pupil="${index}" ${ready?'':'disabled'}> ${esc(student.name)}</label>
+       ${ready?`<details data-result hidden>
+         <summary>${t('إضافة نتيجة أو كشف PDF','Ajouter une note ou un bulletin PDF')}</summary>
+         <label>${t('النتيجة المعتمدة (اختياري)','Note validée (facultatif)')}<input maxlength="80" data-grade></label>
+         <label>${t('كشف هذا التلميذ (اختياري)','Bulletin de cet élève (facultatif)')}<input type="file" accept=".pdf,application/pdf" data-pdf></label>
+       </details>`:`<small>${t('الرقم أو الموافقة غير مسجّل','Numéro ou consentement manquant')}</small>`}
+     </article>`;
+   }).join('');
+   const boxes=$$('[data-pupil]:not(:disabled)',body);
+   function updateSelection(){
+     for(const box of boxes) $('[data-result]',box.closest('article')).hidden=!box.checked;
+     const count=boxes.filter(box=>box.checked).length;
+     $('#familyBatchCount',body).textContent=t(`المحدّدون: ${count} · غير المتاحين: ${pupils.length-boxes.length}`,`Sélection : ${count} · Indisponibles : ${pupils.length-boxes.length}`);
+     prepare.disabled=count===0;
+   }
+   for(const box of boxes)box.onchange=updateSelection;
+   $('#familyBatchAll',body).onclick=()=>{for(const box of boxes)box.checked=true;updateSelection()};
+   $('#familyBatchClear',body).onclick=()=>{for(const box of boxes)box.checked=false;updateSelection()};
+   $('#familyBatchAnnouncement',body).onclick=async()=>{
+     const period=term.value.trim();
+     const message=t(
+       `أولياء الأمور الكرام، صدرت النتائج${period?' ('+period+')':''}. يُرجى مراجعة إدارة المدرسة لاستلامها.
+${user.name||''}`,
+       `Chers parents, les résultats${period?' ('+period+')':''} sont disponibles. Merci de vous adresser à la direction pour les retirer.
+${user.name||''}`
+     );
+     try{
+       await navigator.clipboard.writeText(message);
+       note(body,t('نُسخ الإعلان. الصقه في مجموعة القسم.','Annonce copiée. Collez-la dans le groupe de la classe.'),true);
+     }catch{window.prompt(t('انسخ الإعلان','Copiez l’annonce'),message)}
+   };
+   const jobs=new Map();
+   prepare.onclick=async()=>{
+     if(!term.value.trim()){term.reportValidity();term.focus();return}
+     const selected=boxes.filter(box=>box.checked);
+     const batch=[];
+     for(const box of selected){
+       const {student,contact}=pupils[Number(box.dataset.pupil)];
+       const row=box.closest('article');
+       const result=$('[data-grade]',row).value.trim();
+       const pdf=$('[data-pdf]',row).files[0];
+       if(pdf&&!/\.pdf$/i.test(pdf.name)){
+         note(body,t('اختر ملف PDF صالحًا لكل كشف مرفق.','Sélectionnez un fichier PDF pour chaque bulletin joint.'));
+         return;
+       }
+       const data={term:term.value.trim(),result};
+       const previous=jobs.get(student.id);
+       const job=previous||{id:uuid(),classId:String(cls.id),studentKey:String(student.id),kind:'results',expectedPhone:contact.phone,data};
+       jobs.set(student.id,job);
+       batch.push({job,student,contact,pdf});
+     }
+     const controls=$$('button,input',body).filter(control=>!control.disabled);
+     for(const control of controls)control.disabled=true;
+     note(body,t('جارٍ تجهيز الرسائل…','Préparation des messages…'),true);
+     const ready=[];
+     const failed=[];
+     for(const item of batch){
+       try{
+         const saved=await request('/api/family/records','POST',item.job);
+         ready.push({
+           id:saved.id,kind:'results',data:saved.data,student_name:saved.studentName,
+           school_name:saved.schoolName,actor_name:user.name,guardian_phone:item.contact.phone,
+           pdf:item.pdf
+         });
+       }catch{failed.push(item.student.name)}
+     }
+     for(const control of controls)control.disabled=false;
+     if(!ready.length){
+       note(body,t('تعذر تجهيز الدفعة. تحقق من الاتصال وأرقام الأولياء.','Lot indisponible. Vérifiez la connexion et les contacts.'));
+       return;
+     }
+     showResultsQueue(body,ready,failed);
+   };
+   updateSelection();
+ }
+ function showResultsQueue(body,rows,failed){
+   let index=0;
+   const warning=failed.length?`<p class="family-hint">${esc(t('تعذر تجهيز رسائل: ','Messages non préparés : ')+failed.join(' · '))}</p>`:'';
+   function render(){
+     const rec=rows[index];
+     if(!rec){
+       body.innerHTML=`${warning}<p class="family-hint">${t('تمت مراجعة الدفعة. الرسائل التي لم تؤكد إرسالها تبقى في الرسائل الجاهزة.','Lot parcouru. Les messages non confirmés restent dans la boîte d’envoi.')}</p>`;
+       return;
+     }
+     body.innerHTML=`${warning}<p class="family-tiny">${t('ولي الأمر','Parent')} ${index+1} / ${rows.length}</p>
+       <article class="family-queue-card">
+         <b>${esc(rec.student_name)}</b>
+         <small dir="ltr">+${esc(rec.guardian_phone)}</small>
+         <div class="family-message-preview">${esc(formatMessage(rec))}</div>
+       </article>
+       <button type="button" class="family-primary" id="familyBatchOpen">${t('فتح محادثة الولي','Ouvrir la conversation')}</button>
+       <a class="family-direct-link" id="familyBatchLink" hidden target="_blank" rel="noopener noreferrer">${t('اضغط هنا إذا لم تفتح المحادثة','Ouvrir si WhatsApp ne s’est pas lancé')}</a>
+       ${rec.pdf?`<button type="button" class="family-secondary" id="familyBatchPdf" disabled>${t('مشاركة كشف PDF','Partager le bulletin PDF')}</button>
+       <p class="family-tiny">${t('بعد فتح المحادثة، اختر نفس الولي عند مشاركة الكشف.','Après ouverture, choisissez le même parent pour partager le bulletin.')}</p>`:''}
+       <button type="button" class="family-secondary" id="familyBatchNext" disabled>${t('أرسلت · التالي','Envoyé · Suivant')}</button>
+       <button type="button" class="family-secondary" id="familyBatchSkip">${t('تخطي الآن','Passer pour l’instant')}</button>
+       <p class="family-message" role="status"></p>`;
+     const next=$('#familyBatchNext',body),share=$('#familyBatchPdf',body);
+     const open=$('#familyBatchOpen',body),skip=$('#familyBatchSkip',body);
+     let opened=false;
+     open.onclick=async()=>{
+       open.disabled=skip.disabled=true;
+       try{
+         await request('/api/family/records/'+encodeURIComponent(rec.id)+'/status','POST',{status:'opened',expectedPhone:rec.guardian_phone});
+         if(!body.isConnected)return;
+         const link=$('#familyBatchLink',body);
+         link.href=whatsappUrl(rec,rec.guardian_phone);
+         link.hidden=false;
+         link.click();
+         opened=true;
+         next.disabled=false;
+         if(share)share.disabled=false;
+       }catch{note(body,t('تعذر التحقق من أن الرقم والموافقة لا يزالان صالحين.','Impossible de confirmer le numéro et le consentement.'))}
+       finally{open.disabled=skip.disabled=false}
+     };
+     if(share)share.onclick=async()=>{
+       if(!opened)return;
+       const payload={files:[rec.pdf]};
+       try{
+         if(navigator.canShare?.(payload))await navigator.share(payload);
+         else{
+           saveLocalFile(rec.pdf,rec.pdf.name);
+           note(body,t('حُفظ الكشف. أرفقه يدويًا في محادثة هذا الولي.','Bulletin téléchargé. Joignez-le dans la conversation du parent.'),true);
+         }
+       }catch(error){
+         if(error.name!=='AbortError')note(body,t('تعذرت مشاركة الكشف.','Partage du bulletin impossible.'));
+       }
+     };
+     next.onclick=async()=>{
+       next.disabled=open.disabled=skip.disabled=true;
+       if(share)share.disabled=true;
+       try{
+         await request('/api/family/records/'+encodeURIComponent(rec.id)+'/status','POST',{status:'sent',expectedPhone:rec.guardian_phone});
+         index++;render();
+       }catch{
+         next.disabled=open.disabled=skip.disabled=false;
+         if(share)share.disabled=false;
+         note(body,t('تعذر تسجيل الإرسال. حاول مجددًا.','Confirmation impossible. Réessayez.'));
+       }
+     };
+     skip.onclick=()=>{index++;render()};
+   }
+   render();
+ }
+ function formatMessage(rec){
+   const d=rec.data||{},name=rec.student_name,school=rec.school_name||t('المدرسة','École');
+   const signature=rec.actor_name?'\n'+t('المُرسل: ','Expéditeur : ')+rec.actor_name:'';
+   if(rec.kind==='award')return '🏆 '+t('إعلان التميز','Annonce de distinction')+' | '+school+'\n'+name+' · '+pair(AWARDS,d.awardType)+(d.reason?'\n'+d.reason:'')+signature;
+   if(rec.kind==='daily')return '📚 '+school+'\n'+name+' · '+(d.date||'')+'\n'+pair(ATT,d.attendance)+' · '+pair(RATE,d.assessment)+(d.note?'\n'+d.note:'')+signature;
+   return '📄 '+school+'\n'+name+(d.term?' · '+d.term:'')+'\n'+
+     (d.result?t('النتيجة: ','Résultat : ')+d.result:t('صدرت النتائج. يُرجى مراجعة الإدارة لاستلام الكشف.','Les résultats sont disponibles. Veuillez retirer le bulletin auprès de la direction.'))+
+     (d.note?'\n'+d.note:'')+signature;
+ }
+ const whatsappUrl=(rec,phone)=>'https://wa.me/'+phone+'?text='+encodeURIComponent(formatMessage(rec));
+ function launchWhatsApp(rec,phone){
+   const a=document.createElement('a');
+   a.href=whatsappUrl(rec,phone);
+   a.target='_blank';
+   a.rel='noopener noreferrer';
+   document.body.appendChild(a);
+   a.click();
+   a.remove();
  }
  function openWhatsApp(rec,phone){
    if(!rec||!/^222[0-9]{8}$/.test(String(phone||'')))return;
-   const a=document.createElement('a');a.href='https://wa.me/'+phone+'?text='+encodeURIComponent(formatMessage(rec));a.target='_blank';a.rel='noopener noreferrer';document.body.appendChild(a);a.click();a.remove();
+   launchWhatsApp(rec,phone);
    void request('/api/family/records/'+encodeURIComponent(rec.id)+'/status','POST',{status:'opened'}).catch(()=>{});
  }
  async function openOutbox(){

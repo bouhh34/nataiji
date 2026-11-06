@@ -253,3 +253,55 @@ test('teacher can open guardian WhatsApp directly with an expiring PDF link and 
  assert.match(code,/recordId:record\.id,phone:dest,pdfBase64:await encodePdf\(blob\)/);
  assert.match(code,/guardian_phone=dest/);
 });
+
+test('results batch excludes missing contacts and opens each guardian with only their own signed result',async()=>{
+ const {JSDOM}=await import('jsdom');
+ const {window}=new JSDOM('<body></body>',{url:'https://nataiji.example',runScripts:'outside-only'});
+ const phones={'a':'22234123456','b':'22234234567'};
+ const requests=[],links=[],attachments=[];
+ const tick=()=>new Promise(resolve=>setImmediate(resolve));
+ window.fetch=async(url,options)=>{
+  const body=options.body?JSON.parse(options.body):null;
+  requests.push({url,body});
+  let data={records:[]};
+  if(url.startsWith('/api/family/contacts'))data={contacts:Object.entries(phones).map(([student_key,phone])=>({student_key,phone,consent:true}))};
+  if(url==='/api/family/records'&&body)data={id:body.id,studentName:body.studentKey,schoolName:'مدرسة',data:body.data};
+  return {ok:true,json:async()=>data};
+ };
+ window.HTMLAnchorElement.prototype.click=function(){links.push(new URL(this.href))};
+ window.navigator.canShare=()=>true;
+ window.navigator.share=async({files})=>attachments.push(files[0].name);
+ window.eval(readFileSync(new URL('../public/family-engagement-v1.js',import.meta.url),'utf8'));
+ const select=s=>window.document.querySelector(s);
+ await window.NataijiFamily.openProfessor({id:'teacher',name:'أحمد'},{classes:[{id:'c1',name:'القسم',students:['a','b','c'].map(id=>({id,name:id}))}]});
+ await tick();
+ select('#familyBatch').click();
+ select('#familyBatchTerm').value='الفصل الأول';
+ select('#familyBatchAll').click();
+ const grades=window.document.querySelectorAll('[data-grade]');
+ grades[0].value='16/20';
+ grades[1].value='12/20';
+ const inputs=window.document.querySelectorAll('[data-pdf]');
+ for(const [i,name] of ['a.pdf','b.pdf'].entries())
+  Object.defineProperty(inputs[i],'files',{value:[new window.File(['test'],name,{type:'application/pdf'})]});
+ select('#familyBatchPrepare').click();
+ await tick();
+ assert.deepEqual(requests.filter(x=>x.url==='/api/family/records'&&x.body).map(x=>x.body.studentKey),['a','b']);
+ assert.equal(links.length,0);
+ select('#familyBatchOpen').click();
+ await tick();
+ assert.equal(links[0].pathname,'/'+phones.a);
+ assert.match(links[0].searchParams.get('text'),/16\/20[\s\S]+أحمد/);
+ assert.doesNotMatch(links[0].searchParams.get('text'),/12\/20/);
+ select('#familyBatchPdf').click();
+ select('#familyBatchNext').click();
+ await tick();
+ select('#familyBatchOpen').click();
+ await tick();
+ assert.equal(links[1].pathname,'/'+phones.b);
+ assert.match(links[1].searchParams.get('text'),/12\/20/);
+ assert.doesNotMatch(links[1].searchParams.get('text'),/16\/20/);
+ select('#familyBatchPdf').click();
+ assert.deepEqual(attachments,['a.pdf','b.pdf']);
+ window.close();
+});
