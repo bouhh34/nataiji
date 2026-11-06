@@ -147,6 +147,8 @@ export function mountFamilyRoutes(app,{auth,ownerOnly,getPool,loadProfessorProfi
     if(!student)return res.status(403).json({error:'student_not_authorized'});
     const loc=await contactLocation(req.user,classId);if(!loc)return res.status(403).json({error:'forbidden_class'});
     const contact=await getPool().query('SELECT phone FROM nataiji_family_contacts WHERE actor_id=$1 AND class_id=$2 AND student_key=$3 AND consent=true',[loc.scope,loc.classId,studentKey]);
+    if(req.body?.expectedPhone&&contact.rows[0]?.phone!==req.body.expectedPhone)
+      return res.status(409).json({error:'parent_contact_changed'});
     if(!contact.rowCount&&kind==='results')return res.status(400).json({error:'parent_contact_and_consent_required'});
     let data={};
     if(kind==='daily'){
@@ -157,7 +159,7 @@ export function mountFamilyRoutes(app,{auth,ownerOnly,getPool,loadProfessorProfi
       if(!awardTypes.has(raw.awardType))return res.status(400).json({error:'invalid_award_type'});
       data={awardType:raw.awardType,reason:cleanText(raw.reason,350),date:new Date().toISOString().slice(0,10)};
     }else {
-      data={term:cleanText(raw.term,100),note:cleanText(raw.note,300),date:new Date().toISOString().slice(0,10)};
+      data={term:cleanText(raw.term,100),note:cleanText(raw.note,300),result:cleanText(raw.result,80),date:new Date().toISOString().slice(0,10)};
     }
     const phone=contact.rows[0]?.phone||'',messageStatus=phone?'pending':'private';
     const result=await getPool().query(`INSERT INTO nataiji_family_records
@@ -228,7 +230,7 @@ export function mountFamilyRoutes(app,{auth,ownerOnly,getPool,loadProfessorProfi
     return res.end(result.rows[0].pdf);
   });
   app.get('/api/family/records',auth,db,author,async(req,res)=>{
-    const rows=await getPool().query(`SELECT id,class_id,student_key,student_name,class_name,school_name,kind,data,status,created_at
+    const rows=await getPool().query(`SELECT id,class_id,student_key,student_name,class_name,school_name,actor_name,kind,data,status,created_at
       FROM nataiji_family_records WHERE actor_id=$1 ORDER BY created_at DESC LIMIT 60`,[req.user.id]);
     res.json({ok:true,records:rows.rows});
   });
@@ -246,18 +248,19 @@ export function mountFamilyRoutes(app,{auth,ownerOnly,getPool,loadProfessorProfi
     res.setHeader('Cache-Control','no-store');res.json({ok:true,records:rows.rows,status});
   });
   app.post('/api/family/records/:id/status',auth,db,author,async(req,res)=>{
-    const id=String(req.params.id||''),status=String(req.body?.status||'');
+    const id=String(req.params.id||''),status=String(req.body?.status||''),expectedPhone=req.body?.expectedPhone||null;
     if(!isUuid(id)||!['opened','sent','pending'].includes(status))return res.status(400).json({error:'invalid_status'});
     const rows=await getPool().query(`UPDATE nataiji_family_records
        SET status=$3,opened_at=CASE WHEN $3='opened' THEN now() ELSE opened_at END,
        marked_sent_at=CASE WHEN $3='sent' THEN now() ELSE NULL END
        WHERE id=$1 AND actor_id=$2 AND status <> 'cancelled'
+       AND ($4::text IS NULL OR (guardian_phone=$4 AND (status IN ('pending','opened') OR ($3='sent' AND status='sent'))))
        AND EXISTS(SELECT 1 FROM nataiji_family_contacts c
          WHERE c.actor_id=nataiji_family_records.contact_scope
          AND c.class_id=nataiji_family_records.contact_class_id
          AND c.student_key=nataiji_family_records.student_key
          AND c.phone=nataiji_family_records.guardian_phone AND c.consent=true)
-       RETURNING id,status`,[id,req.user.id,status]);
+       RETURNING id,status`,[id,req.user.id,status,expectedPhone]);
     if(!rows.rowCount)return res.status(404).json({error:'record_not_found'});
     res.json({ok:true,record:rows.rows[0]});
   });
